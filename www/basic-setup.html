@@ -41,58 +41,59 @@ one small, one large.
 <p>
 Riak node configurations are stored in simple text files.  Users familiar with
 Erlang's file:consult/1 function will recognize the format:
+</p>
 
 <pre>
 {ParameterName1, Setting1}.
 {ParameterName2, Setting2}.
 ...
 </pre>
-</p>
 
 <p>
 The following are some useful parameters:
-
-</p><pre>cluster_name: string</pre><p>
-
+</p>
+<dl>
+<dt><code>cluster_name: string</code></dt>
+<dd>
   The name of the cluster.  Can be anything.  Used mainly in saving
   ring configuration.  All nodes in a cluster should have the same
   cluster name.  This parameter is required.
-
-</p><pre>doorbell_port: integer</pre><p>
-
+</dd>
+<dt><code>doorbell_port: integer</code></dt>
+<dd>
   Network port (UDP) on which this node will listen for connections from
   clients and other nodes.  If this parameter is not specified, the node
   cannot be used to service client requests, but can still participate
   in storage.
-
-</p><pre>riak_cookie: atom</pre><p>
-
+</dd>
+<dt><code>riak_cookie: atom</code></dt>
+<dd>
   The Erlang cookie for the riak cluster.  All nodes in a cluster
   must have the same cookie.  This parameter is required.
-
-</p><pre>riak_heart_command: string</pre><p>
-
+</dd>
+<dt><code>riak_heart_command: string</code></dt>
+<dd>
   The command that heart should use to restart this node.  This
   usually takes the form of:
   "(cd /riak; ./start-restart.sh /riak/config/riak.erlenv)".
   If this parameter is missing or malformed, heart will not auto-restart
   crashed Riak nodes.
-
-</p><pre>riak_hostname: string</pre><p>
-
+</dd>
+<dt><code>riak_hostname: string</code></dt>
+<dd>
   The host on which this node is running.  This is used to construct
   the long-name form of the Erlang node.  On a developer machine, this
   might be "127.0.0.1".  If other nodes cannot reach this node's host
   by use of this hostname, the cluster will fail to connect.
   This parameter is required.
-
-</p><pre>riak_nodename: atom</pre><p>
-
+</dd>
+<dt><code>riak_nodename: atom</code></dt>
+<dd>
   The short-name form of the Erlang node.  This is used to construct
   the long-name form.  This parameter is required.
-
-</p><pre>ring_creation_size: integer</pre><p>
-
+</dd>
+<dt><code>ring_creation_size: integer</code></dt>
+<dd>
   The number of partitions to divide the keyspace into.  This can be
   any number, but you probably don't want to go lower than 16, and
   production deployments will probably want something like 1024 or
@@ -100,9 +101,9 @@ The following are some useful parameters:
   number of nodes.  This can be a very difficult parameter to change
   after your ring has been created, so choose a number that allows
   for growth.  This parameter defaults to 1024.
-
-</p><pre>storage_backend: atom</pre><p>
-
+</dd>
+<dt><code>storage_backend: atom</code></dt>
+<dd>
   Name of the module that implements the storage for all vnodes
   on this Riak node.  The four backends that ship with Riak are
   riak_fs_backend, riak_ets_backend, riak_dets_backend, and
@@ -110,28 +111,31 @@ The following are some useful parameters:
   configuration parameters which should also be set.  This parameter
   does not have a default, but unless you have a very unusual cluster
   setup you must set it to a valid storage backend on every node.
-
-</p><pre>    riak_fs_backend_root: string</pre><p>
-
+<dl>
+<dt><code>riak_fs_backend_root: string</code></dt>
+<dd>
     If you have set the storage_backend to riak_fs_backend, then
     you must set this parameter to determine where data will be stored.
     Note that riak_fs_backend performs poorly when there is a large
     amount of data per vnode, and is primarily used for testing.
-
-</p><pre>    riak_dets_backend_root: string</pre><p>
-
+</dd>
+<dt><code>riak_dets_backend_root: string</code></dt>
+<dd>
     If you have set storage_backend to riak_dets_backend, you should
     use this parameter to determine where this backend will store its files.
-
-</p><pre>    riak_osmos_backend_root: string</pre><p>
-
+</dd>
+<dt><code>riak_osmos_backend_root: string</code></dt>
+<dd>
     If you have set storage_backend to riak_osmos_backend, you should
     use this parameter to determine where this backend will store its files.
-</p>
-
+</dd>
+</dl>
+</dd>
+</dl>
 <h3>small (developer laptop) configuration</h3>
 <p>
 A configuration like this one may serve well for a very small cluster such as that used by an individual developer:
+</p>
 <pre>
 {cluster_name, "default"}.
 {ring_creation_size, 16}.
@@ -145,14 +149,14 @@ A configuration like this one may serve well for a very small cluster such as th
 {riak_hostname, "127.0.0.1"}.
 </pre>
 
-<p></p>
+<p>
 This configuration assumes that you'll be connecting to the cluster
 from localhost, and that Riak is installed at /usr/local/riak.  The
 cluster will store its data in /var/riak/store.
-
 </p>
 <p>
 To start the first node of this cluster:
+</p>
 
 <ol>
 <li>Save the configuration to /usr/local/riak/config/riak.erlenv</li>
@@ -160,13 +164,12 @@ To start the first node of this cluster:
 <li>./start-fresh.sh config/riak.erlenv</li>
 </ol>
 
-<p></p>
+<p>
 The node will start and background itself.  Your cluster should now be
 ready to accept requests.  See the
 <a href="dev.html">developer documentation</a>
 for simple instructions on connecting and storing and fetching data.
-
-</p><p></p>
+</p>
 
 <h3>larger (production) configuration</h3>
 <p>
@@ -175,6 +178,7 @@ If you're running any sort of cluster that could be labeled
 word implying that the cluster will be running interminably with
 on-going maintenance needs, then you will want a different
 configuration.  Something like this will work:
+</p>
 
 <pre>
 {cluster_name, "default"}.
@@ -189,11 +193,14 @@ configuration.  Something like this will work:
 {riak_hostname, "yourhost0.yourdomain.example.com"}.
 </pre>
 
+<p>
 (the most notable changes are to ring_creation_size and riak_hostname)
 </p>
+
 <p>
 Starting the first node in this cluster is just like starting the
 first node in the dev cluster:
+</p>
 
 <ol>
 <li> Save the configuration to /usr/local/riak/config/riak.erlenv </li>
@@ -201,7 +208,7 @@ first node in the dev cluster:
 <li> ./start-fresh.sh config/riak.erlenv </li>
 </ol>
 
-<p></p>
+<p>
 The node will start and background itself.  Your cluster should now be
 ready to accept requests.  See the
 <a href="dev.html">developer documentation</a>
@@ -210,6 +217,7 @@ for simple instructions on connecting and storing and fetching data.
 
 <p>
 Starting more nodes in production is just as easy:
+</p>
 
 <ol>
 <li> Install Riak on another host. </li>
@@ -218,11 +226,10 @@ Starting more nodes in production is just as easy:
 <li> ./start-join config/riak.erlenv yourhost0.yourdomain.example.com 9000 </li>
 </ol>
 
-<p></p>
+<p>
 That node will also start and background itself.  You cluster will
 still be ready to accept requests, with no further changes.
-
-</p><p></p>
+</p>
 
 <h3>what about logging?</h3>
 <p>
@@ -231,13 +238,14 @@ Instead, logging can be enabled and disabled by connecting and
 disconnecting an "eventer".  Eventers are described more fully
 <a href="eventer.html">here</a>, but these simple steps for starting the default
 logging eventer are:
+</p>
 
 <ol>
 <li> cd /usr/local/riak </li>
 <li> ./start-eventer.sh default default_riak_cookie 127.0.0.1 9000 evt riak_event_logger /tmp/riakevt.log</li>
 </ol>
 
-<p></p>
+<p>
 That command will start an Erlang node named 'evt' that will stay
 running.  It will connect to the cluster "default" at 127.0.0.1:9000,
 with Erlang cookie 'default_riak_cookie'.  It will then begin spewing
