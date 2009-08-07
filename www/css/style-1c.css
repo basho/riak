@@ -25,4 +25,5 @@ p  { margin: 5px 0 15px; line-height: 1.6em; }
 	#right li a { display: block; border-bottom: 1px solid #ccc; padding: 5px 5px; }
 #footer { clear: both; padding: 15px 0; border-top: 1px solid #ccc; }
 	#r { float: right; }
-	
+dt { font-weight:bold; }
+dd { margin: 0.5em 0 0.5em 1em; }	

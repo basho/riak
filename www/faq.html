@@ -24,30 +24,25 @@
 		</div>
 		<div id="left">
 			
-          <ol>
-          <p></p><li>Why did you build Yet Another Data Store?</br><p></p>
-              We built the first incarnation of Riak in late 2007 for our own use, and we have nurtured it ever since in order to satisfy our operational needs.  There wasn't an alternative that suited us at the time, and since then we have developed something that solves a unique combination of problems.</li>
+          <dl>
+            <dt>Why did you build Yet Another Data Store?</dt>
+            <dd>We built the first incarnation of Riak in late 2007 for our own use, and we have nurtured it ever since in order to satisfy our operational needs.  There wasn't an alternative that suited us at the time, and since then we have developed something that solves a unique combination of problems.</dd>
 
-          <p></p><li>How do you pronounce "Riak"?</br><p></p>
-              REE-ahk
-</li>
+            <dt>How do you pronounce "Riak"?</dt>
+            <dd>REE-ahk</dd>
+   
+            <dt>How fast is it?</dt>
+            <dd>Performance depends on many factors, including hardware and network parameters as well as a great many tunable parameters in the way you set up your cluster and the way that you use Riak from an application.  We've found it to be fast enough for our purposes, and our goal is not to be "fastest" but rather to stay "fast enough" as the system grows, as hosts fail, and so on.  That said, as soon as we get a chance to produce a general, reproducible benchmarking suite, we'll share it with you.</dd>
 
-          <p></p><li>How fast is it?</br><p></p>
-              Performance depends on many factors, including hardware and network parameters as well as a great many tunable parameters in the way you set up your cluster and the way that you use Riak from an application.  We've found it to be fast enough for our purposes, and our goal is not to be "fastest" but rather to stay "fast enough" as the system grows, as hosts fail, and so on.  That said, as soon as we get a chance to produce a general, reproducible benchmarking suite, we'll share it with you.
-</li>
+            <dt>But what about (insert favorite "nosql" system here)?</dt>
+            <dd>We believe that the current explosion of choice in data storage software is a healthy thing.  Each of the different datastores out there has its own strengths and weaknesses and will be best suited to a different class of problems.  We hope to not only contribute a strong system that works well for us and others, but also to work with friends in the open source community to improve the state of the art.</dd>
 
-          <p></p><li>But what about (insert favorite "nosql" system here)?</br><p></p>
-              We believe that the current explosion of choice in data storage software is a healthy thing.  Each of the different datastores out there has its own strengths and weaknesses and will be best suited to a different class of problems.  We hope to not only contribute a strong system that works well for us and others, but also to work with friends in the open source community to improve the state of the art.
-              </li>
+            <dt>Do I have to know how to write distributed Erlang code?</dt>
+            <dd>I believe you don't, Bob.  Riak provides a simple and convenient programming interface over HTTP and JSON, making it accessible to nearly every programmer on the Web.</dd>
 
-          <p></p><li>Do I have to know how to write distributed Erlang code?</br><p></p>
-              I believe you don't, Bob.  Riak provides a simple and convenient programming interface over HTTP and JSON, making it accessible to nearly every programmer on the Web.
-              </li>
-
-          <p></p><li>Version 0.1?  Is it ready for my production data?</br><p></p>
-              That kind of decision depends on many factors, most of which cannot be answered in general but depend on your business.  We gave it a low version number befitting a first public appearance, but Riak has robustly served the needs of multiple revenue-generating applications for nearly two years now.
-              </li>
-            </ol>
+            <dt>Version 0.1?  Is it ready for my production data?</dt>
+            <dd>That kind of decision depends on many factors, most of which cannot be answered in general but depend on your business.  We gave it a low version number befitting a first public appearance, but Riak has robustly served the needs of multiple revenue-generating applications for nearly two years now.</dd>
+          </dl>
 			
 		</div>
 		<div id="footer">
