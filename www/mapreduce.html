@@ -67,12 +67,11 @@ A map/reduce query is initiated with two arguments.  The first is simply the lis
 
 <p>
 A map phase is declared as:
+</p>
 
 <pre>
 {map, FunTerm, Arg, Accumulate}
 </pre>
-
-</p>
 
 <p>
 <code>FunTerm</code> is a reference to the function that will compute the map of
@@ -99,12 +98,12 @@ Note that a map function must return a <strong>list</strong> of values, each of 
 </p>
 <p>
 A reduce phase is declared as:
+</p>
 
 <pre>
 {reduce, FunTerm, Arg, Accumulate}
 </pre>
 
-</p>
 <p>
 Where the terms are essentially the same as for map, with the exception that the function referenced by <code>FunTerm</code> must be arity 2.  It takes <code>(ValueList, Arg)</code> with <code>Arg</code> playing the same role as before and <code>ValueList</code> being a round of (possibly already processed) inputs to reduce.
 </p>
@@ -113,7 +112,7 @@ Much like with map, a reduce function must return a list of values.  This list w
 </p>
 <p>
 The third and final type of phase is a link phase, declared as <code>{link, Bucket, Tag, Accumulate}</code>.  For this kind of phase to work, there must already be a <code>linkfun</code> property set on <code>Bucket</code> in the cluster, which must return a <code>FunTerm</code>.  This will be translated into a map phase with that term, looking like: <code>{map, FunTerm, {Bucket,Tag}, Accumulate}</code>.
-			<br />
+</p>
 			
 			
 		</div>
