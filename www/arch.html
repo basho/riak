@@ -68,7 +68,7 @@ as well as the vnodes responsible for the next N-1 partitions in the
 ring, where N is a bucket-configurable parameter that describes how
 many copies of the value to store.  A put request may specify
 that at least W (=&lt; N) of those vnodes reply with success, and that DW
-(=< W) reply with success only after durably storing the value.  The
+(=&lt; W) reply with success only after durably storing the value.  The
 request will only be considered successful to the client when both
 W and DW have been satisfied by the nodes in question.
 (A get request is similar except that it only has one such value, called R.)
@@ -97,13 +97,13 @@ establishing its initial version.  When a value is updated in Riak,
 the client provides the vclock of the object being modified so that
 this vclock can be extended to reflect the update.  Riak can compare
 vclocks on different versions of the object and determine:
+</p>
 
 <ol>
  <li> Whether one object is a direct descendant of the other. </li>
  <li> Whether the objects are direct descendants of a common parent. </li>
  <li> Whether the objects are unrelated in recent heritage. </li>
 </ol>
-</p>
 
 <p>
 Using this knowledge, Riak can auto-repair out-of-sync data,
@@ -133,8 +133,10 @@ storage.  This module only needs to define "get", "put", "delete", and
 "list keys" functions that operate on binary blobs.  The backend can
 consider these binaries completely opaque data, or examine them to
 make decisions about how best to store them.
-
+</p>
+<p>
 Four backends come pre-packaged with Riak:
+</p>
 
 <ol>
  <li> riak_fs_backend, which stores data directly to files in a nested
@@ -146,6 +148,7 @@ Four backends come pre-packaged with Riak:
                <a href="http://code.google.com/p/osmos/">Osmos</a> tables</li>
 </ol>
 
+<p>
 It is easy to create additional backends to suit application needs.
 </p>
 <p></p>
@@ -153,12 +156,13 @@ It is easy to create additional backends to suit application needs.
 <p>
 Riak provides its primary programming interface over RESTful HTTP, in JSON encoding.  This is enabled by embedding the 
 <a href="http://bitbucket.org/justin/webmachine">Webmachine</a> server, and has two major benefits:
+</p>
+
 <ol>
 <li>Ease of use for developers in any programming language</li>
 <li>Taking advantage of the Web's architecture for caching, validation and more</li>
 </ol>
 
-</p>
 
 
 			<br />
@@ -166,19 +170,19 @@ Riak provides its primary programming interface over RESTful HTTP, in JSON encod
 			
 		</div>
 		<div id="right">
-        <img src="images/splash250.gif">
+        <img src="images/splash250.gif" alt="Riak" />
 <p></p>
-        <img src="images/halfblankbox.gif">
+        <img src="images/halfblankbox.gif" alt="" />
 <p></p>
-        <img src="images/chash.gif">
+        <img src="images/chash.gif" alt="consistent hashing" />
 <p></p>
-        <img src="images/halfblankbox.gif">
+        <img src="images/halfblankbox.gif" alt="" />
 <p></p>
-        <img src="images/gossip4.gif">
+        <img src="images/gossip4.gif" alt="gossip" />
 <p></p>
-        <img src="images/halfblankbox.gif">
+        <img src="images/halfblankbox.gif" alt="" />
 <p></p>
-        <img src="images/vclock.gif">
+        <img src="images/vclock.gif" alt="vclocks" />
 <p></p>
 			
 		</div>
