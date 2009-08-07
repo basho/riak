@@ -38,8 +38,8 @@ The quick start goes like this:
 
 1. Build Riak
 -
-Assuming you have a working Erlang installation, building Riak should
-be as simple as:
+Assuming you have a working Erlang (R13 or later) installation,
+building Riak should be as simple as:
 
 $ cd $RIAK
 $ make
