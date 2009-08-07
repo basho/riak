@@ -67,7 +67,7 @@ the value's key belongs, then sends the request to that vnode,
 as well as the vnodes responsible for the next N-1 partitions in the
 ring, where N is a bucket-configurable parameter that describes how
 many copies of the value to store.  A put request may specify
-that at least W (=< N) of those vnodes reply with success, and that DW
+that at least W (=&lt; N) of those vnodes reply with success, and that DW
 (=< W) reply with success only after durably storing the value.  The
 request will only be considered successful to the client when both
 W and DW have been satisfied by the nodes in question.
