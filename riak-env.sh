@@ -1,0 +1,1 @@
+export ERL_MAX_ETS_TABLES=100000

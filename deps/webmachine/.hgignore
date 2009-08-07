@@ -1,0 +1,7 @@
+syntax:glob
+*~
+*.beam
+demo/priv/log/access.log.*
+demo/ebin/webmachine_demo.app
+deps/mochiweb/ebin/mochiweb.app
+ebin/webmachine.app

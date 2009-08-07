@@ -1,0 +1,152 @@
+Riak Architecture Overview
+------
+
+This document describes the design of Riak.  It is meant to give both
+a description of the shape of the system and also some background in
+the terminology used throughout.
+
+Summary and High-level View
+---
+
+Riak is a distributed key-value store, strongly influenced by the
+Dynamo Paper[1] and the CAP Theorem[2].  It supports high availability
+by allowing tunable levels of guarantees for durability and eventual
+consistency.
+
+A Riak cluster is generally run on a set of well-connected physical
+hosts.  Each host in the cluster runs one Riak node.  Each Riak node
+runs a set of virutal nodes, or "vnodes", that are each responsible
+for storing a separate portion of the key space.
+
+Nodes are not clones of each other, nor do they all participate in
+fulfilling every request.  The extent to which data is replicated, and
+when, and with what merge strategy and failure model, is configurable
+at runtime.
+
+
+The Ring
+---
+
+(Much of this section is discussed in the Dynamo paper, but it's a
+good summary of how Riak implements the necessities.)
+
+Riak's client interface speaks of "buckets" and "keys", but this is
+just an aid to data organization.  Once inside Riak, the concept of a
+bucket disappears, and all values are referenced simply by unique
+160-bit keys.  An internal key is simply the SHA-1 hash of the bucket
+and key taken together.
+
+Riak thinks of these 160-bit keys as being arranged in-order around a
+ring.  The ring is divided into partitions.  Each Riak vnode is
+responsible for a partition (we say that it "claims" that partition).
+
+The nodes of a Riak cluster each attempt to run roughly an equal
+number of vnodes.  In the general case, this means that each node in
+the cluster is responsible for 1/(number of nodes) of the ring, or
+(number of partitions)/(number of nodes) vnodes.  For example, if two
+nodes define a 16-partition cluster, then each node will run 8 vnodes.
+Nodes claim their partitions at random intervals around the ring, in
+an attempt at even distribution.
+
+When a value is being stored in the cluster, any node may participate
+as the coordinator for the request.  The coordinating node consults
+the ring state to determine which vnode owns the partition in which
+the value's key belongs, then sends the "put" request to that vnode,
+as well as the vnodes responsible for the next N-1 partitions in the
+ring, where N is a bucket-configurable parameter that describes how
+many copies of the value to store.  The put request may also specify
+that at least W (=< N) of those vnodes reply with success, and that DW
+(=< W) reply with success only after durably storing the value.
+
+A fetch, or "get", request operates similarly, sending requests to the
+vnode that "claims" the partition in which the key resides, as well as
+to the next N-1 partitions.  The request also specifies R (=< N), the
+number of vnodes that must reply before a response is returned.
+
+The riak node startup is defined by the riak_sup module.
+
+The riak ring is defined by the riak_ring module.
+
+Vnodes are defined by the riak_vnode mdoule.
+
+Gets and Puts are driven by the riak_get_fsm and riak_put_fsm modules,
+respectively.
+
+
+Gossiping
+---
+
+The ring state is shared around the cluster by means of a "gossip
+protocol".  Whenever a node changes its claim on the ring, it
+announces its change via this protocol.  It also periodically
+re-announces what it knows about the ring, in case any nodes missed
+previous updates.
+
+This gossip protocol is defined in the riak_ring_gossiper and
+riak_ring_manager modules.
+
+
+Vclocks
+---
+
+With any node able to drive any request, and not all nodes needing to
+participate in each request, it is necessary to have a method for
+keeping track of which version of a value is current.  This is where
+vclocks come in.  The vclocks used in Riak are based on the work
+of Leslie Lamport.[3]
+
+When a value is stored in Riak, it is tagged with a vclock,
+establishing its initial version.  For each update, the vclock is
+extended in such a way that Riak can later compare to versions of the
+object and determine:
+
+ 1. Whether one object is a direct descendant of the other.
+ 2. Whether the objects are direct descendants of a common parent.
+ 3. Whether the objects are unrelated in recent heritage.
+
+Using this knowledge, Riak can possibly auto-repair out-of-sync data,
+or at least provide a client with an opportunity to reconcile
+divergent changesets in an application specific manner.
+
+Riak's vclock usage is defined by the vclock module in the riak source 
+directory.
+
+Riak attempts to move data toward a consistent state across nodes,
+but it doesn't do so by comparing each and every object on each node.
+Instead, nodes gossip a "merkle tree"[4], which allows them to quickly
+decide which values need comparing.
+
+Riak's merkle trees are defined by the merkerl module in the riak source 
+directory.
+
+Backends
+---
+
+Sharing data among nodes, on rings, etc. is all well and good, but at
+some point, it has to actually be stored somewhere - like on disk!
+Because Riak is relevant to a wide variety of applications, its
+"backend" storage system is a pluggable one.
+
+Each node may be configured with a different Erlang module for doing
+the simple storage, at the vnode level, below all of the
+interconnected cluster details.  At the backend level, a module only
+needs to define "get", "put", "delete", and "keys list" functions that
+receive a key and value which are both Erlang binaries.  The backend
+can consider these binaries completely opaque data, or examine them to
+make decisions about how best to store them.
+
+Four backends are packaged with Riak:
+
+ 1. riak_fs_backend, which stores data directly to files in a nested
+    directory structure on disk
+ 2. riak_ets_backend, which stores data in ETS tables (which makes it
+    volatile storage, but great for debugging)
+ 3. riak_dets_backend, which stores data on-disk in DETS tables
+ 4. riak_osmos_backend, which stores data in Osmos tables[5]
+
+
+[1] http://s3.amazonaws.com/AllThingsDistributed/sosp/amazon-dynamo-sosp2007.pdf
+[2] http://portal.acm.org/citation.cfm?doid=564585.564601
+[3] http://portal.acm.org/citation.cfm?id=359563
+[4] http://portal.acm.org/citation.cfm?id=704751
+[5] http://code.google.com/p/osmos/

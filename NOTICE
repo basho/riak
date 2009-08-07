@@ -1,0 +1,10 @@
+Riak
+Copyright 2007-2009 Basho Technologies
+
+This product contains code developed at Basho Technologies.
+(http://www.basho.com/)
+
+The gen_server2 and priority_queue modules are provided
+by LShift Ltd, and can also be found in the RabbitMQ
+sources at http://www.rabbitmq.com/
+

@@ -1,0 +1,243 @@
+Riak Setup Instructions
+------
+
+This document explains how to set up a Riak cluster.  It assumes that
+you have already downloaded an successfully built Riak.  For help with
+those steps, please refer to riak/README.
+
+Overview
+---
+
+Riak has many knobs to tweak, affecting everything from distribution
+to disk storage.  This document will attempt to give a description of
+the common configuration parameters, then describe two typical setups,
+one small, one large.
+
+
+Configuration Format
+---
+
+Configurations are stored in simple text files.  Users familiar with
+Erlang's file:consult/1 function will recognize the format:
+
+{ParameterName1, Setting1}.
+{ParameterName2, Setting2}.
+...
+
+
+Parameter Descriptions
+---
+
+Some of the terminology used below is better explained in
+riak/doc/architecture.txt.
+
+The following are the parameters required for Riak to run:
+
+cluster_name: string
+  The name of the cluster.  Can be anything.  Used mainly in saving
+  ring configuration.  All nodes should have the same cluster name.
+
+doorbell_port: integer
+  Network port on which this node will listen for connections from
+  clients and other nodes.
+
+gossip_interval: integer
+  The period, in milliseconds, at which ring state gossiping will
+  happen.  A good default is 60000 (sixty seconds).  Best not to
+  change it unless you know what you're doing.
+
+riak_cookie: atom
+  The Erlang cookie for the riak cluster.  All nodes should have the
+  same cookie.
+
+riak_heart_command: string
+  The command that heart should use to restart this node.  This
+  usually takes the form of:
+  "(cd /riak; ./start-restart.sh /riak/config/riak.erlenv)"
+
+riak_hostname: string
+  The host on which this node is running.  This is used to construct
+  the long-name form of the Erlang node.  On a developer machine, this
+  will usually be "127.0.0.1".
+
+riak_nodename: atom
+  The short-name form of the Erlang node.  This is used to construct
+  the long-name form.
+
+ring_creation_size: integer
+  The number of partitions to divide the keyspace into.  This can be
+  any number, but you probably don't want to go lower than 16, and
+  production deployments will probably want something like 1024 or
+  greater.  This is a very difficult parameter to change after your
+  ring has been created, so choose a number that allows for growth, if
+  you expect to add nodes to this cluster in the future.
+
+ring_state_dir: string
+  Directory in which the ring state should be stored.  Ring state is
+  stored to allow an entire cluster to be restarted.
+
+storage_backend: atom
+
+  Name of the module that implements the storage for a vnode.  The
+  four backends that ship with Riak are riak_fs_backend,
+  riak_ets_backend, riak_dets_backend, and riak_osmos_backend. Some
+  backends have their own set of configuration parameters.
+
+  riak_fs_backend:
+    A backend that uses the filesystem directly to store data.  Data
+    are stored in Erlang binary format in files in a directory
+    structure on disk.
+
+    riak_fs_backend_root: string
+      The directory under which this backend will store its files.
+
+  riak_ets_backend:
+    A backend that uses ETS to store its data.
+
+  riak_dets_backend:
+    A backend that uses DETS to store its data.
+
+    riak_dets_backend_root: string
+      The directory under which this backend will store its files.
+
+  riak_osmos_backend:
+    A backend that uses Osmos to store its data.
+    http://code.google.com/p/osmos/
+
+    riak_osmos_backend_root: string
+      The directory under which this backend will store its files.
+
+    riak_osmos_backend_block_size: integer
+      The "block size" configuration parameter for Osmos.
+      Defaults to 2048.
+
+
+Small (Developer) Configuration
+---
+
+If you're running a very small Riak cluster, in development, for
+example, a simple configuration file may look like this:
+
+{cluster_name, "default"}.
+{ring_state_dir, "priv/ringstate"}.
+{ring_creation_size, 16}.
+{gossip_interval, 60000}.
+{doorbell_port, 9000}.
+{storage_backend, riak_fs_backend}.
+{riak_fs_backend_root, "/var/riak/store"}.
+{riak_cookie, default_riak_cookie}.
+{riak_heart_command,
+ "(cd /usr/local/riak; ./start-restart.sh /usr/local/riak/config/riak.erlenv)"}.
+{riak_nodename, riak}.
+{riak_hostname, "127.0.0.1"}.
+
+This configuration assumes that you'll be connecting to the cluster
+from localhost, and that Riak is installed at /usr/local/riak.  The
+cluster will store its data in /var/riak/store.
+
+To start the first node of this cluster:
+
+1. Save the configuration to /usr/local/riak/config/riak.erlenv
+2. cd /usr/local/riak
+3. ./start-fresh.sh config/riak.erlenv
+
+The node will start and background itself.  Your cluster should now be
+ready to accept requests.  See riak/doc/basic-client.txt for simple
+instructions on connecting and storing and fetching data.
+
+It is possible to start more nodes on localhost.  There is little
+reason to do so, other than for testing and Riak development, but it
+is possible.  To do so:
+
+1. cd /usr/local/riak
+2. cp config/riak.erlenv config/riak2.erlenv
+3. Edit riak2.erlenv, and change doorbell_port, riak_fs_backend_root,
+   and riak_nodename to something unique.
+3. ./start-join config/riak2.erlenv 127.0.0.1 9000
+
+That node will also start and background itself.  You cluster will
+still be ready to accept requests, with no further changes.
+
+
+Large (Production) Configuration
+---
+
+If you're running any sort of cluster that could be labeled
+"production", "deployment", "scalable", "enterprise", or any other
+word implying that the cluster will be running interminably with
+on-going maintenance, then you will want a bit of a different
+configuration file.  Something like this will work:
+
+{cluster_name, "default"}.
+{ring_state_dir, "priv/ringstate"}.
+{ring_creation_size, 1024}.
+{gossip_interval, 60000}.
+{doorbell_port, 9000}.
+{storage_backend, riak_fs_backend}.
+{riak_fs_backend_root, "/var/riak/store"}.
+{riak_cookie, default_riak_cookie}.
+{riak_heart_command,
+ "(cd /usr/local/riak; ./start-restart.sh /usr/local/riak/config/riak.erlenv)"}.
+{riak_nodename, riak}.
+{riak_hostname, "prod0.domain.net"}.
+
+Yes, it looks much like the developer configuration.  Two things have
+changed: ring_creation_size and riak_hostname.
+
+ring_creation_size changed because it is expected that you will have
+more nodes into your production cluster.  In order to give some room
+for node addition, this configuration bumped up the partition count so
+that new nodes will have something to claim.
+
+riak_hostname changed because the hosts running the other nodes and
+clients will need something more resolve-able than 127.0.0.1.
+
+Starting the first node in this cluster is just like starting the
+first node in the dev cluster:
+
+1. Save the configuration to /usr/local/riak/config/riak.erlenv
+2. cd /usr/local/riak
+3. ./start-fresh.sh config/riak.erlenv
+
+The node will start and background itself.  Your cluster should now be
+ready to accept requests.  See riak/doc/basic-client.txt for simple
+instructions on connecting and storing and fetching data, though
+you'll need to use an Erlang node name for your client that isn't
+hosted on "127.0.0.1".
+
+Starting more nodes in production is just as easy:
+
+1. Install Riak on another host.
+2. Copy riak.erlenv from your original host to the new host.
+3. Edit riak.erlenv and change riak_hostname to match the new host.
+4. ./start-join config/riak.erlenv prod0.domain.net 9000
+
+That node will also start and background itself.  You cluster will
+still be ready to accept requests, with no further changes.
+
+Notice that there is no need to change doorbell_port,
+riak_fs_backend_port, or riak_nodename on the new host, because they
+won't conflict with those settings on the original host, unlike the
+development configuration.
+
+
+Logging
+---
+
+Riak doesn't do any persistent logging in the default configuration.
+Instead, logging can be "enabled" and "disabled" by connecting and
+disconnecting an "eventer".  Eventers will be described more fully in
+another document, but this simple steps for starting the default
+logging eventer are:
+
+1. cd /usr/local/riak
+2. ./start-eventer.sh default default_riak_cookie 127.0.0.1 9000 \
+   evt riak_event_logger /tmp/riakevt.log
+
+That command will start and Erlang node, named 'evt' that will stay
+running.  It will connect to the cluster "default" at 127.0.0.1:9000,
+with Erlang cookie 'default_riak_cookie'.  It will then begin spewing
+data into /tmp/riakevt.log.  Use 'tail -F /tmp/riakevt.log' to watch
+it fly by.  Note that it is not recommended that you connect this
+particular logger to an active production cluster, as it generates a
+*lot* of data, and has no provision for things like log file rollover.

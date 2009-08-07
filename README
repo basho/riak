@@ -1,0 +1,158 @@
+Welcome to Riak.
+
+Riak is a distributed, decentralized data storage system.
+
+Below, you will find the "quick start" directions for setting up and
+using Riak.  For more information, browse the following files:
+
+ README:  this file
+ TODO:    a list of improvements planned for Riak
+ LICENSE: the license under which Riak is released
+ *.sh:    various startup scripts
+ riak_demo.escript:  demo for a base level of Riak functionality
+ doc/
+   basic-setup.txt:  slightly more detail on setting up Riak
+   basic-client.txt: slightly more detail on using Riak
+   architecture.txt: details about the underlying design of Riak,
+                     and how this affects applications using it
+   index.html:       the root of the edoc output of 'make docs'
+ src/
+   *.erl:            the source for Riak (it's friendly)
+ config/
+   *.erlenv:         example configuration files
+
+
+Quick Start
+---
+
+This section assumes that you have copy of the Riak source tree at
+$RIAK.  You should have created this by cloning a repo or expanding
+a tarball from somewhere.
+
+The quick start goes like this:
+
+1. Build Riak
+2. Start the Riak server
+3. Connect a client and store/fetch data
+
+
+1. Build Riak
+-
+Assuming you have a working Erlang installation, building Riak should
+be as simple as:
+
+$ cd $RIAK
+$ make
+
+
+2. Start the Riak server - Assuming no errors were generated in the
+build step, $RIAK/config/riak-demo.erlenv and replace all instances of
+$RIAK with the directory in which $RIAK is installed.  For example,
+change:
+
+{riak_heart_command, "(cd $RIAK; ./start-restart.sh $RIAK/config/riak-demo.erlenv)"}.
+
+to:
+
+{riak_heart_command, "(cd /usr/local/riak; ./start-restart.sh /usr/local/riak/config/riak-demo.erlenv)"}.
+
+Then start riak:
+
+$ cd $RIAK
+$ ./start-fresh.sh config/riak-demo.erlenv
+
+The server should start, then background itself, leaving you at a
+command prompt.
+
+At this point, you can use riak_demo.escript to ensure that Riak is
+functioning:
+
+$ ./riak_demo.escript config/riak-demo.erlenv
+Attempting to connect to 127.0.0.1:9000 with cookie riak_demo_cookie...
+Connected successfully
+Looking for pre-existing object at {riak_demo, "demo"}...
+  No pre-existing object found, creating new
+Storing object with new value...
+  Written successfully
+Fetching object at {riak_demo, "demo"}...
+  Fetched successfully
+  Object contained correct value
+SUCCESS
+
+If riak_demo prints no "Error: ..." messages, and instead prints
+"SUCCESS", then Riak is working.
+
+
+3. Connect a client
+-
+Assuming no errors were generated during the server start step, a
+simple client interaction will look like:
+
+$ erl -name riaktest@127.0.0.1 -pa $RIAK/ebin
+
+(riaktest@127.0.0.1)1> %% connect to Riak
+(riaktest@127.0.0.1)1> {ok, C} = riak:client_connect("127.0.0.1", 9000, riak_demo_cookie).
+{ok,{riak_client,'riakdemo@127.0.0.1',
+                 "20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664"}}
+
+riaktest@127.0.0.1)2> %% Create a shopping list for bread at /groceries/mine
+riaktest@127.0.0.1)2> O0 = riak_object:new(groceries, "mine", ["bread"]).
+{r_object,groceries,"mine",
+          [{r_content,{dict,0,16,16,8,80,48,
+                            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
+                            {{[],[],[],[],[],[],[],[],[],[],[],[],...}}},
+                      ["bread"]}],
+          [],
+          {dict,0,16,16,8,80,48,
+                {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
+                {{[],[],[],[],[],[],[],[],[],[],[],[],[],...}}},
+          undefined}
+
+(riaktest@127.0.0.1)3> %% store the list
+(riaktest@127.0.0.1)3> C:put(O0, 1).
+ok
+
+(riaktest@127.0.0.1)4> %% retrieve the list
+(riaktest@127.0.0.1)4> {ok, O1} = C:get(groceries, "mine", 1).
+{ok,{r_object,groceries,"mine",
+              [{r_content,{dict,2,16,16,8,80,48,
+                                {[],[],[],[],[],[],[],[],[],[],[],[],...},
+                                {{[],[],[],[],[],[],
+                                  [["X-Riak-Last-Modified",87|...]],
+                                  [],[],[],...}}},
+                          ["bread"]}],
+              [{"20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664",
+                {1,63415509105}}],
+              {dict,0,16,16,8,80,48,
+                    {[],[],[],[],[],[],[],[],[],[],[],[],[],...},
+                    {{[],[],[],[],[],[],[],[],[],[],[],...}}},
+              undefined}}
+
+(riaktest@127.0.0.1)5> %% extract the value
+(riaktest@127.0.0.1)5> V = riak_object:get_value(O1).
+["bread"]
+
+(riaktest@127.0.0.1)6> %% add milk to the list
+(riaktest@127.0.0.1)6> O2 = riak_object:update_value(O1, ["milk"|V]).
+{r_object,groceries,"mine",
+          [{r_content,{dict,2,16,16,8,80,48,
+                            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
+                            {{[],[],[],[],[],[],
+                              [["X-Riak-Last-Modified",87,101,100|...]],
+                              [],[],[],[],[],...}}},
+                      ["bread"]}],
+          [{"20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664",
+            {1,63415509105}}],
+          {dict,0,16,16,8,80,48,
+                {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
+                {{[],[],[],[],[],[],[],[],[],[],[],[],[],...}}},
+          ["milk","bread"]}
+
+(riaktest@127.0.0.1)7> %% store the new list
+(riaktest@127.0.0.1)7> C:put(O2, 1).
+ok
+
+
+(riaktest@127.0.0.1)8> %% find out what else is in the groceries bucket
+(riaktest@127.0.0.1)8> C:list_keys(groceries).
+{ok,["mine"]}

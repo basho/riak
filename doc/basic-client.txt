@@ -1,0 +1,361 @@
+Riak Client Usage Introduction
+------
+
+This document assumes that you have already started your Riak cluster.
+For instructions on that prerequisite, refer to
+riak/doc/basic-setup.txt.
+
+Overview
+---
+
+To talk to riak, all you need is an Erlang node with riak/ebin in its 
+code path.  Once this shell is up,
+use riak:client_connect/3 to get connected.  The client returned from
+client_connect is defined by the riak_client module, and supports the
+simple functions get, put, delete, and others.
+
+
+Starting Your Client Erlang Node
+---
+
+Riak client nodes must use "long names" and have riak/ebin in their
+code path.  The easiest way to start a node of this nature is:
+
+$ erl -name myclient@127.0.0.1 -pa $PATH_TO_RIAK/ebin 
+
+You'll know you've done this correctly if you can execute the
+following commands and get a path to a beam file, instead of the atom
+'non_existing':
+
+(myclient@127.0.0.1)1> code:which(riak).
+"../riak/ebin/riak.beam"
+
+Connecting
+---
+
+Once you have your node running, pass your Riak server's IP, port, and
+cookie to riak:client_connect/3 to connect and get a client.  This can
+be as simple as:
+
+3> {ok, Client} = riak:client_connect("127.0.0.1", 9000, mycookie).
+{ok,{riak_client,'riak@127.0.0.1',
+                 "20090722141126-myclient@127.0.0.1-riak@127.0.0.1-928359"}}
+
+
+Storing New Data
+---
+
+Each bit of data in Riak is stored in a "bucket" at a "key" that is
+unique to that bucket.  The bucket is intended as an organizational
+aid, for example to help segregate data by type, but Riak doesn't care
+what values it stores, so choose whatever scheme suits you.  Bucket
+must be an atom, and key must be a list.
+
+Before storing your data, you must wrap it in a riak_object:
+
+4> Object = riak_object:new(groceries, "mine", ["eggs", "bacon"]).
+{r_object,groceries,"mine",
+          [{r_content,{dict,0,16,16,8,80,48,
+                            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
+                            {{[],[],[],[],[],[],[],[],[],[],[],[],...}}},
+                      ["eggs","bacon"]}],
+          [],
+          {dict,0,16,16,8,80,48,
+                {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
+                {{[],[],[],[],[],[],[],[],[],[],[],[],[],...}}},
+          undefined}
+
+Then, using the client you opened earlier, store the object:
+
+5> Client:put(Object, 1).
+ok
+
+If the return value of the last command was anything but the atom
+'ok', then the store failed.  The return value may give you a clue as
+to why the store failed, but check the Troubleshooting section below if
+not.
+
+The object is now stored in Riak, but you may be wondering about the
+additional parameter to Client:put.  There are three different 'put'
+functions: put/2, put/3, and put/4.  The lower-arity functions pass
+defaults for the parameters they leave out of the higher-arity
+functions.  The available parameters, in order are:
+
+  Object: the riak_object to store
+       W: the minimum number of nodes that must respond
+          with success for the write to be considered successful
+      DW: the minimum number of nodes that must respond
+          with success *after durably storing* the object for the
+          write to be considered successful
+ Timeout: the number of milliseconds to wait for W and DW responses
+          before exiting with a timeout
+
+The default timeout is currently 15 seconds, and put/2 passes its W
+value as the DW value.  So, the example above asks the client to store
+Object, waiting for 1 successful durable write response, waiting a
+maximum of 15 seconds for success.
+
+See riak/doc/architecture.txt for more information about W and DW
+values.
+
+
+Fetching Data
+---
+
+At some point you'll want that data back.  Using the same bucket and
+key you used before:
+
+6> {ok, O} = Client:get(groceries, "mine", 1).
+{ok,{r_object,groceries,"mine",
+              [{r_content,{dict,2,16,16,8,80,48,
+                                {[],[],[],[],[],[],[],[],[],[],[],[],...},
+                                {{[],[],[],[],[],[],
+                                  [["X-Riak-Last-Modified",87|...]],
+                                  [],[],[],...}}},
+                          ["eggs","bacon"]}],
+              [{"20090722142711-myclient@127.0.0.1-riak@127.0.0.1-916345",
+                {1,63415492187}}],
+              {dict,0,16,16,8,80,48,
+                    {[],[],[],[],[],[],[],[],[],[],[],[],[],...},
+                    {{[],[],[],[],[],[],[],[],[],[],[],...}}},
+              undefined}}
+7> riak_object:get_value(O).
+["eggs","bacon"]
+
+Like 'put', there are two 'get' functions: get/3, and get/4.  Their
+parameters are:
+
+  Bucket: the bucket in which the object is stored
+     Key: the key under which the object is stored
+       R: the minimum number of nodes that must respond
+          with success for the read to be considered successful
+ Timeout: the number of milliseconds to wait for R responses
+          before exiting with a timeout
+
+So, the example 'get' above requested the "mine" object in the
+'groceries' bucket, demanding at least one successful response in 15
+seconds.
+
+
+Modifying Data
+---
+
+Say you had the "grocery list" from the examples above, reminding you
+to get ["eggs","bacon"], and you want to add "milk" to it.  The
+easiest way is:
+
+8> {ok, Oa} = Client:get(groceries, "mine", 1).
+...
+9> Ob = riak_object:update_value(Oa, ["milk"|riak_object:get_value(Oa)]).
+...
+10> Client:put(Ob).
+ok
+
+That is, fetch the object from Riak, modify its value with
+riak_object:update_value/2, then store the modified object back in
+Riak.  You can get your updated object to convince yourself that your
+list is updated:
+
+11> {ok, Oc} = Client:get(groceries, "mine", 1).
+...
+12> riak_object:get_value(Oc).
+["milk","eggs","bacon"].
+
+Suppose you didn't want to add "milk" to the list.  Instead, you
+wanted to overwrite the list with ["bread","cheese"].  What would
+happen if you just fired up a new client, and overwrote the existing
+list with a new one?
+
+1> {ok, C} = riak:client_connect("127.0.0.1", 9000, mycookie).
+...
+2> ok = C:put(riak_object:new(groceries, "mine", ["bread","cheese"]), 1).
+...
+3> {ok, O} = C:get(groceries, "mine", 1).
+...
+4> riak_object:get_value(O).
+** exception error: no match of right hand side value 
+                    [{{dict,2,16,16,8,80,48,
+                            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+                            {{[],[],[],[],[],[],
+                              [["X-Riak-Last-Modified",87,101,100,44,32,50,50,32|...]],
+                              [],[],[],[],[],[],[],
+                              [[[...]|...]],
+                              []}}},
+                      ["bread","cheese"]},
+                     {{dict,2,16,16,8,80,48,
+                            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+                            {{[],[],[],[],[],[],
+                              [["X-Riak-Last-Modified",87,101,100,44,32,50,50|...]],
+                              [],[],[],[],[],[],[],
+                              [[...]],
+                              []}}},
+                      ["eggs","bacon"]}]
+     in function  riak_object:get_value/1
+
+What happened?  In short, you created a "sibling" with your second
+put.  Riak is able to provide high availability, in part, due to its
+ability to accept put requests, even when it can't tell if that put
+would overwrite data.  It does this by retaining conflicting data, and
+providing it to the client the next time a get is attempted.  To see
+both sets of conflicting data, use riak_object:values/1:
+
+5> riak_object:values(O).
+[["bread","cheese"],["eggs","bacon"]]
+
+You can then "merge" the siblings in whatever way suits your
+application.  In this case, we really did just want bread and cheese
+in the list, so:
+
+6> O2 = riak_object:update_value(O, ["bread","cheese"]).
+...
+7> C:put(O2, 1).
+ok
+
+Note that you will not see the sibling behavior described above if you
+used the old Riak Client created in the previous example, instead of
+creating a fresh client like this example does.  This has to do with
+the vclocks that Riak uses to track object changes: the same vclock
+would be used for the modification, thereby overwriting the original
+data.  For more information about how Riak uses vclocks, see
+riak/doc/architecture.txt.
+
+There are two ways to avoid making siblings like the above.  One is to
+tell Riak to enforce a "last write wins" strategy for your data.  This
+is a per-bucket option, which is set with the set_bucket function in
+the riak_client module.  To enforce last-write-wins, set allow_mult to
+false:
+
+8> C:set_bucket(groceries, [{allow_mult, false}]).
+ok
+
+The other way to avoid simple siblings is to always fetch the object,
+modifiy it, then store it back.  This will still create siblings if
+you have clients interleaving their gets and puts, but if you're
+dealing with only one client, preceding every put with a fresh get
+will prevent siblings.
+
+
+Listing Keys
+---
+
+Most uses of key-value stores are structured in such a way that
+requests know which keys they want in a bucket.  Sometimes, though,
+it's necessary to find out what keys are available (when debugging,
+for example).  For that, there is list_keys:
+
+1> Client:list_keys(groceries).
+{ok, ["mine"]}.
+
+Note that keylist updates are asynchronous to the object storage
+primitives, and may not be updated immediately after a put or delete.
+This function is primarily intended as a debugging aid.
+
+Deleting Data
+---
+
+Throwing away data is quick and simple: just use the delete function
+in the riak_client module:
+
+1> Client:delete(groceries, "mine", 1).
+ok
+
+As with get and put, delete has an arity-3 function and an arity-4
+function, with parameters:
+
+  Bucket: the bucket the object is in
+     Key: the key to delete
+      RW: the number of nodes to wait for responses from
+ Timeout: the number of milliseconds to wait for responses
+
+So, the command demonstrated above tries to delete the object with the
+key "mine" in the bucket groceries, waiting up to 15 seconds for at
+least one node to respond.
+
+Issuing a delete for an object that does not exist returns an error
+tuple.  For example, calling the same delete as above a second time:
+
+2> Client:delete(groceries, "mine", 1).
+{error,notfound}
+
+
+Bucket Properties
+---
+
+As seen in the examples above, simply storing a key/value in a bucket
+causes the bucket to come into existence with some default parameters.
+To view the settings for a bucket, use the get_bucket function in the
+riak_client module:
+
+1> Client:get_bucket(groceries).
+[{name,groceries},
+ {n_val,3},
+ {allow_mult,true},
+ {linkfun,{no_mod,no_fun}},
+ {old_vclock,86400},
+ {young_vclock,21600},
+ {big_vclock,50},
+ {small_vclock,10}]
+
+If the default parameters do not suit your application, you can alter
+them on a per-bucket basis with set_bucket.  You should do this before
+storing any data in the bucket, but many of the settings will "just
+work" if they are modified after the bucket contains data.
+
+One example of set_bucket was discussed in the Storing Data section of
+this document.  There, we altered the allow_mult setting for the
+groceries bucket:
+
+8> C:set_bucket(groceries, [{allow_mult, false}]).
+ok
+
+The allow_mult setting is one that will "just work", in that if any
+objects in that bucket had siblings, fetching them will automatically
+choose one of the siblings, and return a riak_object with just one
+value.
+
+Another interesting bucket setting is 'n_val'.  n_val tells Riak how
+many copies of an object to make.  More properly, for a bucket with an
+n_val of N, Riak will store each object in the bucket in N different
+vnodes (see riak/doc/architecture.txt for a description of the term
+"vnode").
+
+Most of the time, the default n_val of 3 works perfectly.  Three
+provides some durability and availability over 1 or 2.
+
+If you are attempting to enhance either durability or speed, however,
+increasing n_val may make sense *if you also modify the R, W, and DW*
+values in your get an put calls.  Changing n_val on its own will have
+little effect without also modifying the put- and get-time parameters.
+
+
+Troubleshooting
+---
+
+{nodedown, ...}
+-
+
+If all of your riak_client calls are exiting with exceptions that
+describe themselves as, roughly:
+
+** exception exit: {{nodedown,'riak@127.0.0.1'},
+                    {gen_server,call,
+                                [{riak_api,'riak@127.0.0.1'},
+                                 {get,groceries,"mine",1,15000},
+                                 15000]}}
+     in function  gen_server:call/3
+
+The node that your client was connected to is down.  Try connecting a
+new client.
+
+
+riak:client_connect/3 returns {error,timeout}
+-
+
+This riak cluster is probably down.  It may also just be overloaded,
+but it's more likely down.
+
+
+{error,notfound}
+-
+
+The bucket/key combination you requested was not found.
