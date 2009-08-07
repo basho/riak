@@ -1,0 +1,18 @@
+syntax regex
+(^|/)\.svn($|/)
+(^|/)\.hg($|/)
+(^|/)\.hgtags($|/)
+(^|/)\.DS_Store
+doc/.*(html|css|info|png)$
+www/edoc/*
+www/README
+www/LICENSE
+www/TODO
+ebin/.*\.(beam|app)$
+(^|/)erl_crash.dump$
+.*~$
+log/.*.log$
+.*\.orig$
+priv/log/.*
+^priv/store
+^priv/ringstate/*
