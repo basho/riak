@@ -25,7 +25,7 @@
 delete(Bucket,Key,RW,Timeout,Client) ->           
     RealStartTime = riak_util:moment(),
     ReqID = erlang:phash2({random:uniform(),self(),Bucket,Key,RealStartTime}),
-    riak_eventer:notify(riak_delete, delete_start, ReqID),
+    riak_eventer:notify(riak_delete, delete_start, {ReqID, Bucket, Key}),
     case gen_server:call({riak_api, node()},
                               {get,Bucket,Key,RW,Timeout}) of
         {ok, OrigObj} ->
