@@ -121,7 +121,8 @@ execute_query(JiakClient, StartObjects, [{Bucket, Tag, Acc}|RestQuery]) ->
             {execute_segment(JiakClient, StartBKs,SafeQuery++[LastSafe]),
              UnsafeQuery}
      end,
-    [SegResults|execute_query(JiakClient,SegResults,Leftover)].
+    [[jiak_resource:apply_read_mask(R) || R <- SegResults]
+     |execute_query(JiakClient,SegResults,Leftover)].
 
 execute_segment(JiakClient, Start, Steps) ->
     MR = [{link, Bucket, Key, false} || {Bucket, Key, _} <- Steps]

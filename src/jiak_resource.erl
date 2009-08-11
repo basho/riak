@@ -131,7 +131,7 @@
 	 last_modified/2,
 	 generate_etag/2,
 	 expires/2,
-         apply_read_mask/2,
+         apply_read_mask/1,
          pretty_print/2]).
 
 -define(JIAK_REQUIRED_PROPS, [allowed_fields, required_fields, read_mask,
@@ -192,16 +192,19 @@ default_jiak_module(BucketName) when is_atom(BucketName) ->
 get_jiak_module(ReqData) ->
     case bucket_from_uri(ReqData) of
         {ok, Bucket} when is_atom(Bucket) ->
-            case code:which(Bucket) of
-                non_existing ->
-                    case default_jiak_module(Bucket) of
-                        undefined -> undefined;
-                        Mod when is_tuple(Mod) -> Mod
-                    end;
-                ModPath when is_list(ModPath) -> Bucket
-            end;
+            jiak_module_for_bucket(Bucket);
         {error, no_such_bucket} -> 
             undefined
+    end.
+
+jiak_module_for_bucket(Bucket) when is_atom(Bucket) ->
+    case code:which(Bucket) of
+        non_existing ->
+            case default_jiak_module(Bucket) of
+                undefined -> undefined;
+                Mod when is_tuple(Mod) -> Mod
+            end;
+        ModPath when is_list(ModPath) -> Bucket
     end.
 
 service_available(ReqData, Context=#ctx{key=container}) ->
@@ -758,9 +761,17 @@ diff_objects(ReqData, Context=#ctx{incoming=NewObj0, module=Mod}) ->
 				   incoming=NewObj}}
     end.
 
+%% @spec apply_read_mask(jiak_object()) -> jiak_object()
+%% @doc Remove fields from the jiak object that are not in the
+%%      bucket's read mask.  Determines the module to use, then
+%%      calls apply_read_mask/2.
+apply_read_mask(JiakObject={struct,_}) ->
+    Bucket = jiak_object:bucket(JiakObject),
+    apply_read_mask(jiak_module_for_bucket(Bucket), JiakObject).
+
 %% @spec apply_read_mask(jiak_module(), jiak_object()) -> jiak_object()
 %% @doc Remove fields from the jiak object that are not in the
-%%      bucket's read maks.
+%%      bucket's read mask.
 apply_read_mask(Module, JiakObject={struct,_}) ->
     {struct, OldData} = jiak_object:object(JiakObject),
     NewData = apply_read_mask1(OldData, Module:read_mask(), []),
