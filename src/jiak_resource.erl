@@ -114,6 +114,7 @@
 -module(jiak_resource).
 
 -export([init/1,
+         service_available/2,
          allowed_methods/2,
          resource_exists/2,
          is_authorized/2,
@@ -130,13 +131,18 @@
 	 last_modified/2,
 	 generate_etag/2,
 	 expires/2,
-         apply_read_mask/1,
+         apply_read_mask/2,
          pretty_print/2]).
 
+-define(JIAK_REQUIRED_PROPS, [allowed_fields, required_fields, read_mask,
+                              write_mask]).
+
 %% @type context() = term()
+%% @type jiak_module() = atom()|{jiak_default, list()}
 -record(ctx, {bucket,       %% atom() - Bucket name (from uri)
-              key,          %% binary()|container - Key (or sentinal
+              key,          %% binary()|container|schema - Key (or sentinal
                             %%   meaning "no key provided")
+              module,       %% atom()
               jiak_context, %% jiak_context() - context for the request
               jiak_name,    %% string() - prefix for jiak uris
               jiak_client,  %% jiak_client() - the store client
@@ -170,6 +176,56 @@ init(Props) ->
               key=proplists:get_value(key_type, Props),
               jiak_client=JiakClient}}.
 
+default_jiak_module(BucketName) when is_atom(BucketName) ->
+    BucketProps = riak_bucket:get_bucket(BucketName),
+    case lists:filter(
+           fun(I) -> 
+                   proplists:get_value(I, BucketProps) =:= undefined
+           end, 
+           ?JIAK_REQUIRED_PROPS) of
+        [] ->
+            jiak_default:new(BucketProps);
+        _ ->
+            undefined
+    end.
+
+get_jiak_module(ReqData) ->
+    case bucket_from_uri(ReqData) of
+        {ok, Bucket} when is_atom(Bucket) ->
+            case code:which(Bucket) of
+                non_existing ->
+                    case default_jiak_module(Bucket) of
+                        undefined -> undefined;
+                        Mod when is_tuple(Mod) -> Mod
+                    end;
+                ModPath when is_list(ModPath) -> Bucket
+            end;
+        {error, no_such_bucket} -> 
+            undefined
+    end.
+
+service_available(ReqData, Context=#ctx{key=container}) ->
+    {ServiceAvailable, NewCtx} = 
+        case wrq:method(ReqData) of
+            'PUT' -> 
+                _ = list_to_atom(wrq:path_info(bucket, ReqData)),
+                Mod = jiak_default:new([]),
+                {true, Context#ctx{module=Mod, key=schema}};
+            _ ->
+                case get_jiak_module(ReqData) of
+                    undefined -> {false, Context#ctx{module=no_module_found}};
+                    Module -> {true, Context#ctx{module=Module}}
+                end
+        end,
+    {ServiceAvailable, ReqData, NewCtx};
+service_available(ReqData, Context) ->
+    {ServiceAvailable, NewCtx} = 
+        case get_jiak_module(ReqData) of
+            undefined -> {false, Context#ctx{module=no_module_found}};
+            Module -> {true, Context#ctx{module=Module}}
+        end,
+    {ServiceAvailable, ReqData, NewCtx}.
+
 %% @spec allowed_methods(webmachine:wrq(), context()) ->
 %%          {[http_method()], webmachine:wrq(), context()}
 %% @type http_method() = 'HEAD'|'GET'|'POST'|'PUT'|'DELETE'
@@ -177,26 +233,30 @@ init(Props) ->
 %%      resource.  Should be HEAD/GET/POST for buckets and
 %%      HEAD/GET/POST/PUT/DELETE for objects.
 %%      Exception: HEAD/GET is returned for an "unknown" bucket.
-allowed_methods(RD, Ctx0) ->
+allowed_methods(RD, Ctx0=#ctx{module=Mod}) ->
     Key = case Ctx0#ctx.key of
               container -> container;
+              schema -> schema;
               _         -> list_to_binary(wrq:path_info(key, RD))
           end,
     case bucket_from_uri(RD) of
         {ok, Bucket} ->
-            {ok, JC} = Bucket:init(Key, jiak_context:new(not_diffed_yet, [])),
+            {ok, JC} = Mod:init(Key, jiak_context:new(not_diffed_yet, [])),
             Ctx = Ctx0#ctx{bucket=Bucket, key=Key, jiak_context=JC},
             case Key of
                 container ->
                     %% buckets have GET for list_keys, POST for create
                     {['HEAD', 'GET', 'POST'], RD, Ctx};
+                schema ->
+                    {['PUT'], RD, Ctx};
                 _ ->
                     %% keys have the "full" doc store set
                     {['HEAD', 'GET', 'POST', 'PUT', 'DELETE'], RD, Ctx}
             end;
         {error, no_such_bucket} ->
-            %% no bucket, nothing but GET/HEAD allowed
-            {['HEAD', 'GET'], RD, Ctx0#ctx{bucket={error, no_such_bucket}}}
+            %% no bucket, nothing but GET/HEAD allowed, and POST for 
+            %% schema mods
+            {['HEAD', 'GET', 'PUT'], RD, Ctx0#ctx{bucket={error, no_such_bucket}}}
     end.
 
 %% @spec bucket_from_uri(webmachine:wrq()) ->
@@ -221,6 +281,25 @@ bucket_from_uri(RD) ->
 %%          bucket component of the URI
 %%        - the "key" field of the object does not match the
 %%          key component of the URI
+
+malformed_request(ReqData, Context=#ctx{key=schema}) ->
+    case decode_object(wrq:req_body(ReqData)) of
+        {ok, SchemaObj={struct, SchemaPL}} ->
+            ReqProps = [list_to_binary(atom_to_list(P)) || 
+                           P <- ?JIAK_REQUIRED_PROPS],
+            case lists:filter(
+                   fun(I) -> 
+                           proplists:get_value(I, SchemaPL) =:= undefined
+                   end, 
+                   ReqProps) of
+                [] ->
+                    {false, ReqData, Context#ctx{incoming=SchemaObj}};
+                _ ->
+                    {true, ReqData, Context}
+            end;
+        _ ->
+            {true, ReqData, Context}
+    end;
 malformed_request(ReqData, Context=#ctx{bucket=Bucket,key=Key}) ->
     % just testing syntax and required fields on POST and PUT
     % also, bind the incoming body here
@@ -324,8 +403,8 @@ is_authorized(ReqData, Context=#ctx{bucket={error, no_such_bucket}}) ->
     {{halt, 404},
      wrq:append_to_response_body("Unknown bucket.", ReqData),
      Context};
-is_authorized(ReqData, Context=#ctx{key=Key,bucket=Bucket,jiak_context=JC}) ->
-    {Result, RD1, JC1} = Bucket:auth_ok(Key, ReqData, JC),
+is_authorized(ReqData, Context=#ctx{key=Key,jiak_context=JC,module=Mod}) ->
+    {Result, RD1, JC1} = Mod:auth_ok(Key, ReqData, JC),
     {Result, RD1, Context#ctx{jiak_context=JC1}}.
 
 %% @spec forbidden(webmachine:wrq(), context()) ->
@@ -334,10 +413,14 @@ is_authorized(ReqData, Context=#ctx{key=Key,bucket=Bucket,jiak_context=JC}) ->
 %%      whether the write request violates the write mask of the
 %%      bucket.  For a bucket GET, check to see whether the keys of
 %%      the bucket are listable.
-forbidden(ReqData, Context=#ctx{bucket=Bucket,key=container}) ->
+forbidden(ReqData, Context=#ctx{key=schema}) ->
+    %% PUTs to container are for setting schemas and therefore always
+    %% allowed
+    {false, ReqData, Context};
+forbidden(ReqData, Context=#ctx{key=container, module=Mod}) ->
     case wrq:method(ReqData) of
         'POST' -> object_forbidden(ReqData, Context);
-        _      -> {not Bucket:bucket_listable(), ReqData, Context}
+        _      -> {not Mod:bucket_listable(), ReqData, Context}
     end;
 forbidden(ReqData, Context) ->
     case lists:member(wrq:method(ReqData), ['POST', 'PUT']) of
@@ -349,10 +432,10 @@ forbidden(ReqData, Context) ->
 %%         {boolean(), webmachine:wrq(), context()}
 %% @doc Determine whether an object write violates the write mask of
 %%      the bucket.
-object_forbidden(ReqData, Context=#ctx{bucket=Bucket,jiak_context=JC}) ->
+object_forbidden(ReqData, Context=#ctx{jiak_context=JC,module=Mod}) ->
     {Diffs, NewContext0} = diff_objects(ReqData, Context),
     NewContext = NewContext0#ctx{jiak_context=JC:set_diff(Diffs)},
-    Permitted = check_write_mask(Bucket, Diffs),    
+    Permitted = check_write_mask(Mod, Diffs),    
     case Permitted of
         false ->
             {true,
@@ -385,6 +468,9 @@ encodings_provided(ReqData, Context) ->
 %% @doc Determine whether or not the resource exists.
 %%      This resource exists if the bucket is known or the object
 %%      was successfully fetched from Riak.
+resource_exists(ReqData, Context=#ctx{key=schema}) ->
+    %% schema-creation request, always exists.
+    {true, ReqData, Context};
 resource_exists(ReqData, Context=#ctx{key=container}) ->
     %% bucket existence was tested in is_authorized
     {true, ReqData, Context};
@@ -417,12 +503,11 @@ content_types_accepted(ReqData, Context) ->
 %%          {io_list(), webmachine:wrq(), context()}
 %% @doc Get the representation of this resource that will be
 %%      sent to the client.
-produce_body(ReqData, Context=#ctx{key=container,
-                                   bucket=Bucket}) ->
+produce_body(ReqData, Context=#ctx{key=container,module=Mod}) ->
     Qopts = wrq:req_qs(ReqData),
     Schema = case proplists:lookup("schema", Qopts) of
                  {"schema", "false"} -> [];
-                 _ -> [{schema, {struct, full_schema(Bucket)}}]
+                 _ -> [{schema, {struct, full_schema(Mod)}}]
              end,
     {Keys, Context1} = case proplists:lookup("keys", Qopts) of
                            {"keys", "false"} -> {[], Context};
@@ -432,9 +517,9 @@ produce_body(ReqData, Context=#ctx{key=container,
                        end,
     JSONSpec = {struct, Schema ++ Keys},
     {mochijson2:encode(JSONSpec), ReqData, Context1};
-produce_body(ReqData, Context=#ctx{}) ->
+produce_body(ReqData, Context=#ctx{module=Module}) ->
     {ok, {JiakObject0, Context1}} = retrieve_object(ReqData, Context),
-    JiakObject = apply_read_mask(JiakObject0),
+    JiakObject = apply_read_mask(Module, JiakObject0),
     {mochijson2:encode(JiakObject),
      wrq:set_resp_header("X-JIAK-VClock",
                          binary_to_list(jiak_object:vclock(JiakObject)),
@@ -448,11 +533,11 @@ produce_body(ReqData, Context=#ctx{}) ->
 %%                       read_mask |
 %%                       write_mask
 %% @doc Get the schema for the bucket.
-full_schema(Bucket) ->
-    [{allowed_fields, Bucket:allowed_fields()},
-     {required_fields, Bucket:required_fields()},
-     {read_mask, Bucket:read_mask()},
-     {write_mask, Bucket:write_mask()}].
+full_schema(Mod) ->
+    [{allowed_fields, Mod:allowed_fields()},
+     {required_fields, Mod:required_fields()},
+     {read_mask, Mod:read_mask()},
+     {write_mask, Mod:write_mask()}].
 
 %% @spec make_uri(string(), riak_object:bucket(), string()) -> string()
 %% @doc Get the string-path for the bucket and subpath under jiak.
@@ -464,10 +549,18 @@ make_uri(JiakName,Bucket,Path) ->
 %% @doc Handle POST/PUT requests.  This is where the actual Riak-put
 %%      happens, as well as where the bucket's check_write,
 %%      effect_write, and after_write functions are called.
+handle_incoming(ReqData, Context=#ctx{key=schema, 
+                                      bucket=Bucket,
+                                      incoming=Incoming}) ->
+    {struct, SchemaPL} = Incoming,
+    SchemaProps = [{list_to_atom(binary_to_list(K)),V} || {K,V} <- SchemaPL],
+    ok = riak_bucket:set_bucket(Bucket, SchemaProps),
+    {<<>>, ReqData, Context};
 handle_incoming(ReqData, Context=#ctx{bucket=Bucket,key=Key,
                                       jiak_context=JCTX,jiak_name=JiakName,
                                       jiak_client=JiakClient,
-                                      incoming=JiakObject0})->
+                                      incoming=JiakObject0,
+                                      module=Mod})->
     {PutType, NewRD, ObjId} =
         case Key of
             container -> % POST to bucket has its fresh id in Path
@@ -480,20 +573,20 @@ handle_incoming(ReqData, Context=#ctx{bucket=Bucket,key=Key,
             _ ->
                 {item, ReqData, Key}
         end,
-    case Bucket:check_write({PutType, ObjId},JiakObject0,NewRD,JCTX) of
+    case Mod:check_write({PutType, ObjId},JiakObject0,NewRD,JCTX) of
         {{error, Reason}, RD1, JC1} ->
             {{halt,403},
              wrq:append_to_response_body(
                io_lib:format("Write disallowed, ~p.~n", [Reason]), RD1),
              Context#ctx{jiak_context=JC1}};
         {{ok, JiakObject1}, RD1, JC1} ->
-	    Allowed = Bucket:allowed_fields(),
+	    Allowed = Mod:allowed_fields(),
 	    case check_allowed(JiakObject1, Allowed) of
 		true ->
-		    Required = Bucket:required_fields(),
+		    Required = Mod:required_fields(),
 		    case check_required(JiakObject1, Required) of
 			true ->
-			    case Bucket:effect_write(Key,JiakObject1,RD1,JC1) of
+			    case Mod:effect_write(Key,JiakObject1,RD1,JC1) of
 				{{error, Reason},RD2,JC2} ->
                                     {{error, Reason}, RD2,
                                      Context#ctx{jiak_context=JC2}};
@@ -506,7 +599,7 @@ handle_incoming(ReqData, Context=#ctx{bucket=Bucket,key=Key,
                                     W = integer_query("w", 2, ReqData),
                                     DW = integer_query("dw", 2, ReqData),
 				    ok = JiakClient:put(JiakObjectWrite, W, DW),
-                                    {ok, RD3, JC3} = Bucket:after_write(Key,JiakObject2,RD2,JC2),
+                                    {ok, RD3, JC3} = Mod:after_write(Key,JiakObject2,RD2,JC2),
                                     {RD4, Context1} =
                                         case proplists:lookup("returnbody", wrq:req_qs(RD1)) of
                                             {"returnbody", "true"} ->
@@ -634,8 +727,10 @@ last_modified(ReqData, Context) ->
 %% @doc Get the time at which a cache should expire its last fetch for
 %%      this resource.  This function calls through to the bucket's
 %%      expires_in_seconds/3 function.
-expires(ReqData, Context=#ctx{key=Key, bucket=Bucket, jiak_context=JC}) ->
-    {ExpiresInSecs, RD1, JC1} = Bucket:expires_in_seconds(Key, ReqData, JC),
+expires(ReqData, Context=#ctx{key=Key, 
+                              jiak_context=JC,
+                              module=Mod}) ->
+    {ExpiresInSecs, RD1, JC1} = Mod:expires_in_seconds(Key, ReqData, JC),
     Now = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
     {calendar:gregorian_seconds_to_datetime(Now+ExpiresInSecs),
      RD1, Context#ctx{jiak_context=JC1}}.
@@ -651,23 +746,22 @@ diff_objects(_ReqData, Context=#ctx{incoming=NewObj, key=container}) ->
     %% same as notfound
     Diffs = jiak_object:diff(undefined, NewObj),
     {Diffs, Context#ctx{diffs=Diffs}};
-diff_objects(ReqData, Context=#ctx{incoming=NewObj0, bucket=Bucket}) ->
+diff_objects(ReqData, Context=#ctx{incoming=NewObj0, module=Mod}) ->
     case retrieve_object(ReqData, Context) of
 	{notfound, NewContext} ->
 	    Diffs = jiak_object:diff(undefined, NewObj0),
 	    {Diffs, NewContext#ctx{diffs=Diffs}};
 	{ok, {JiakObject, NewContext}} ->
-	    NewObj = copy_unreadable_props(Bucket, JiakObject, NewObj0),
+	    NewObj = copy_unreadable_props(Mod,JiakObject, NewObj0),
 	    Diffs = jiak_object:diff(JiakObject, NewObj),
 	    {Diffs, NewContext#ctx{diffs=Diffs, storedobj=NewObj, 
 				   incoming=NewObj}}
     end.
 
-%% @spec apply_read_mask(jiak_object()) -> jiak_object()
+%% @spec apply_read_mask(jiak_module(), jiak_object()) -> jiak_object()
 %% @doc Remove fields from the jiak object that are not in the
 %%      bucket's read maks.
-apply_read_mask(JiakObject={struct,_}) ->
-    Module = jiak_object:bucket(JiakObject),
+apply_read_mask(Module, JiakObject={struct,_}) ->
     {struct, OldData} = jiak_object:object(JiakObject),
     NewData = apply_read_mask1(OldData, Module:read_mask(), []),
     jiak_object:set_object(JiakObject, {struct, NewData}).
@@ -690,9 +784,9 @@ apply_read_mask1([{K,_V}=H|T], ReadMask, Acc) ->
 %%      since the client can't know the values of fields not in the
 %%      read mask, it can't preserve their values, so we have to do it
 %%      for them.
-copy_unreadable_props(Bucket, OldObj, NewObj) ->
-    Allowed = Bucket:allowed_fields(),
-    ReadMask = Bucket:read_mask(),
+copy_unreadable_props(Mod, OldObj, NewObj) ->
+    Allowed = Mod:allowed_fields(),
+    ReadMask = Mod:read_mask(),
     Unreadable = sets:to_list(sets:subtract(
 				sets:from_list(Allowed),
 				sets:from_list(ReadMask))),
@@ -723,3 +817,4 @@ integer_query(ParamName, Default, ReqData) ->
         undefined -> Default;
         String    -> list_to_integer(String)
     end.
+
