@@ -28,7 +28,7 @@ start() ->
             application:set_env(stickynotes, use_ibrowse, true);
         {error, _} ->
             ensure_started(inets),
-            http:set_option(max_keep_alive_length, 0)
+            http:set_options([{max_keep_alive_length, 0}])
     end,
     application:start(stickynotes).
 
