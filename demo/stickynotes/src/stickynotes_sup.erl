@@ -46,13 +46,17 @@ init([]) ->
     External = lists:flatten(
                  io_lib:format("http://~s:~b/jiak/", [Ip, 8000])),
     Internal = lists:flatten(
-                 io_lib:format("http://~s:~b/jiak/",
+                 io_lib:format("http://~s:~b/~s/",
                                [proplists:get_value(riak_web_ip, RiakConfig),
-                                proplists:get_value(riak_web_port, RiakConfig)])),
-    Dispatch = [{["jiak",'*'], jiak_proxy, {External, Internal}},
+                                proplists:get_value(riak_web_port, RiakConfig),
+                                proplists:get_value(jiak_name, RiakConfig)])),
+    ProxyRes = case stickynotes:get_app_env(use_ibrowse) of
+                   true -> jiak_proxy_ibrowse;
+                   _    -> jiak_proxy_inets
+               end,
+    Dispatch = [{["jiak",'*'], ProxyRes, {External, Internal}},
                 {['*'], stickynotes_resource, ["priv/www/"]}],
-    WebConfig = [
-		 {ip, Ip},
+    WebConfig = [{ip, Ip},
 		 {port, 8000},
                  {log_dir, "priv/log"},
 		 {dispatch, Dispatch}],

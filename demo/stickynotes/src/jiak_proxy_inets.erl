@@ -1,12 +1,12 @@
 %% @author Bryan Fink
-%% @doc jiak_proxy is intended to be a simple webmachine resource
-%%      for proxying Webmachine requests to Jiak.
+%% @doc jiak_proxy_inets is intended to be a simple webmachine
+%%      resource for proxying Webmachine requests to Jiak.
 %%
 %%      Note: this is not a production-quality proxy resource.
 %%      For something that will be used in a real application, it
 %%      is recommended that ibrowse be used instead of the inets
 %%      http client.
--module(jiak_proxy).
+-module(jiak_proxy_inets).
 -export([init/1,
          service_available/2]).
 -include_lib("webmachine/include/webmachine.hrl").
