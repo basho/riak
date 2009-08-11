@@ -9,6 +9,6 @@
 {riak_heart_command, "(cd /path/to/riak; ./start-restart.sh /path/to/riak/config/riak.erlenv)"}.
 {riak_nodename, riak}.
 {riak_hostname, "127.0.0.1"}.
-{jiak_web_ip, "127.0.0.1"}.
-{jiak_web_port, 8098}.
+{riak_web_ip, "127.0.0.1"}.
+{riak_web_port, 8098}.
 {jiak_name, "jiak"}.

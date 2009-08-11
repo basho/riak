@@ -55,7 +55,7 @@ get_bucket(Name) ->
 get_bucket(Name, Ring) ->
     case riak_ring:get_meta({bucket, Name}, Ring) of
         undefined -> [{name,Name},{n_val,3},{allow_mult,true},
-                      {linkfun,linkfun_unset}, % override for linkwalking!
+                      {linkfun,{modfun, jiak_object, mapreduce_linkfun}},
                       {old_vclock, 86400},{young_vclock, 21600},
                       {big_vclock, 50}, {small_vclock, 10}];
         {ok, Bucket} -> Bucket
