@@ -130,10 +130,7 @@ effect_write(_Key, JiakObject, ReqData, Context) ->
 after_write(_Key, JiakObject, ReqData, Context) ->
     spawn(fun() ->
                   [[_, GroupKey, _]] = jiak_object:links(JiakObject, groups),
-                  {ok, C} = jiak:client_connect(
-                              stickynotes:get_app_env(riak_ip),
-                              stickynotes:get_app_env(riak_port),
-                              stickynotes:get_app_env(riak_cookie)),
+                  {ok, C} = jiak:local_client(),
                   {ok, G} = C:get(groups, GroupKey, 2),
                   Key = Context:get_prop(key),
                   C:put(jiak_object:add_link(G, notes, Key, <<"note">>), 2)

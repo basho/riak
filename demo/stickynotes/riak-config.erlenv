@@ -10,3 +10,9 @@
 {riak_hostname, "127.0.0.1"}.
 {add_paths, ["demo/stickynotes/ebin"]}.
 
+{jiak_name, "jiak"}.
+{riak_web_ip, "127.0.0.1"}.
+{riak_web_port, 9000}.
+{riak_web_logdir, "priv/weblogs"}.
+{jiak_buckets, [notes, groups]}. %% just to get atoms loaded in node
+

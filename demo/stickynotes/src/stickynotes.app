@@ -10,7 +10,5 @@
   ]},
   {registered, []},
   {mod, {stickynotes_app, []}},
-  {env, [{riak_ip, "127.0.0.1"},
-         {riak_port, 9000},
-         {riak_cookie, stickynotes_cookie}]},
+  {env, []},
   {applications, [kernel, stdlib, crypto]}]}.

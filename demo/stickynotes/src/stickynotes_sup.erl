@@ -41,18 +41,15 @@ upgrade() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->
-    setup_buckets(),
     Ip = case os:getenv("WEBMACHINE_IP") of false -> "0.0.0.0"; Any -> Any end,   
-    JiakOptions = [{jiak_name, "jiak"},
-                   {jiak_buckets, [notes,groups]}
-                   |[{K, stickynotes:get_app_env(K)}
-                     || K <- [riak_ip, riak_port, riak_cookie]]],
-    Dispatch = [{["jiak",bucket], jiak_resource,
-                 [{key_type, container}|JiakOptions]},
-                {["jiak",bucket,key], jiak_resource,
-                 [{key_type, item}|JiakOptions]},
-                {["jiak",bucket,key,'*'], jaywalker_resource,
-                 JiakOptions},
+    {ok, RiakConfig} = file:consult("riak-config.erlenv"),
+    External = lists:flatten(
+                 io_lib:format("http://~s:~b/jiak/", [Ip, 8000])),
+    Internal = lists:flatten(
+                 io_lib:format("http://~s:~b/jiak/",
+                               [proplists:get_value(riak_web_ip, RiakConfig),
+                                proplists:get_value(riak_web_port, RiakConfig)])),
+    Dispatch = [{["jiak",'*'], jiak_proxy, {External, Internal}},
                 {['*'], stickynotes_resource, ["priv/www/"]}],
     WebConfig = [
 		 {ip, Ip},
@@ -64,20 +61,3 @@ init([]) ->
 	   permanent, 5000, worker, dynamic},
     Processes = [Web],
     {ok, {{one_for_one, 10, 10}, Processes}}.
-
-%% @spec setup_buckets() -> ok
-%% @doc notes and groups buckets need to have their linkfuns set
-%%      before Jiak link walking will work properly on them
-setup_buckets() ->
-    case jiak:client_connect(
-           stickynotes:get_app_env(riak_ip),
-           stickynotes:get_app_env(riak_port),
-           stickynotes:get_app_env(riak_cookie)) of
-        {ok, C} ->
-            C:set_bucket(notes, jiak:default_jiak_bucket_props()),
-            C:set_bucket(groups, jiak:default_jiak_bucket_props());
-        Error ->
-            error_logger:error_msg(
-              "Unable to connect to riak cluster at ~p:~p~n"
-              "Error: ~p", [Error])
-    end.

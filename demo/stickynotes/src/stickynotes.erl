@@ -22,12 +22,15 @@ start() ->
     stickynotes_deps:ensure(),
     ensure_started(crypto),
     ensure_started(webmachine),
+    ensure_started(inets),
+    http:set_option(max_keep_alive_length, 0),
     application:start(stickynotes).
 
 %% @spec stop() -> ok
 %% @doc Stop the stickynotes server.
 stop() ->
     Res = application:stop(stickynotes),
+    application:stop(inets),
     application:stop(webmachine),
     application:stop(crypto),
     Res.
