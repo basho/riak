@@ -43,6 +43,7 @@ upgrade() ->
 init([]) ->
     Ip = case os:getenv("WEBMACHINE_IP") of false -> "0.0.0.0"; Any -> Any end,   
     {ok, RiakConfig} = file:consult("riak-config.erlenv"),
+    setup_buckets(RiakConfig),
     External = lists:flatten(
                  io_lib:format("http://~s:~b/jiak/", [Ip, 8000])),
     Internal = lists:flatten(
@@ -65,3 +66,21 @@ init([]) ->
 	   permanent, 5000, worker, dynamic},
     Processes = [Web],
     {ok, {{one_for_one, 10, 10}, Processes}}.
+
+%% @spec setup_buckets(proplist()) -> ok
+%% @doc notes and groups know how to deal with Riak siblings,
+%%      so we'll turn on allow_mult for them
+setup_buckets(RiakConfig) ->
+    code:add_path("../../ebin"), %% riak ebin for jiak module
+    case jiak:client_connect(
+           proplists:get_value(riak_hostname, RiakConfig),
+           proplists:get_value(doorbell_port, RiakConfig),
+           proplists:get_value(riak_cookie, RiakConfig)) of
+        {ok, C} ->
+            C:set_bucket(notes, [{allow_mult, true}]),
+            C:set_bucket(groups, [{allow_mult, true}]);
+        Error ->
+            error_logger:error_msg(
+              "Unable to connect to riak cluster at ~p:~p~n"
+              "Error: ~p", [Error])
+    end.
