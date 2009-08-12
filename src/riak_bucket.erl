@@ -54,7 +54,7 @@ get_bucket(Name) ->
 %% @private
 get_bucket(Name, Ring) ->
     case riak_ring:get_meta({bucket, Name}, Ring) of
-        undefined -> [{name,Name},{n_val,3},{allow_mult,true},
+        undefined -> [{name,Name},{n_val,3},{allow_mult,false},
                       {linkfun,{modfun, jiak_object, mapreduce_linkfun}},
                       {old_vclock, 86400},{young_vclock, 21600},
                       {big_vclock, 50}, {small_vclock, 10}];
