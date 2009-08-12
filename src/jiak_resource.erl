@@ -207,6 +207,13 @@ jiak_module_for_bucket(Bucket) when is_atom(Bucket) ->
         ModPath when is_list(ModPath) -> Bucket
     end.
 
+%% @spec service_available(webmachine:wrq(), context()) -> 
+%%           {boolean, webmachine:wrq(), context()}
+%% @doc Ensure that a Jiak module for the requested bucket is available. 
+%%      This function first checks for a compiled Erlang module with the 
+%%      same name as the bucket.  If no module is found, the bucket 
+%%      configuration metadata in the ring is used, and must contain
+%%      a valid Jiak schema.  
 service_available(ReqData, Context=#ctx{key=container}) ->
     {ServiceAvailable, NewCtx} = 
         case wrq:method(ReqData) of
