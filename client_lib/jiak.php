@@ -5,7 +5,6 @@ class JiakClient {
         $this->jiakIP = $jiakIP;
         $this->jiakPort = $jiakPort;
         $this->JKP = "/jiak/";
-        $this->JWP = "/jaywalker/";
     }
     
     function _do_req($method, $uri, $body = "", $header = array()) {
