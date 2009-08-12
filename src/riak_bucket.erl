@@ -40,7 +40,7 @@ set_bucket(Name, BucketProps) ->
 %% Properties include but are not limited to:
 %% <pre>
 %% n_val: how many replicas of objects in this bucket (default: 3)
-%% allow_mult: can objects in this bucket have siblings? (default: true)
+%% allow_mult: can objects in this bucket have siblings? (default: false)
 %% linkfun: a function returning a m/r FunTerm for link extraction
 %% </pre>
 %% 
