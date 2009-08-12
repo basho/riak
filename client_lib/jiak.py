@@ -46,7 +46,6 @@ class JiakClient:
         self.IP = IP
         self.Port = Port
         self.JKP = JiakPrefix
-        self.JWP = JaywalkPrefix
     def _do_req(self, method, uri, body="", headers={}):
         C = httplib.HTTPConnection(self.IP, self.Port)
         C.request(method, uri, body, headers)
