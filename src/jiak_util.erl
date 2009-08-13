@@ -2,7 +2,7 @@
 -export([jiak_required_props/0,
          jiak_module_for_bucket/1, 
          get_jiak_module/1, 
-         jiak_module_for_bucket/1,
+         default_jiak_module/1,
          bucket_from_uri/1]).
 
 %% @private
@@ -15,7 +15,7 @@ default_jiak_module(BucketName) when is_atom(BucketName) ->
            fun(I) -> 
                    proplists:get_value(I, BucketProps) =:= undefined
            end, 
-           ?JIAK_REQUIRED_PROPS) of
+           jiak_required_props()) of
         [] ->
             jiak_default:new(BucketProps);
         _ ->
