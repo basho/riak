@@ -103,3 +103,23 @@ JiakClient.prototype.walk = function(Start, Spec, Callback) {
 
     return $.ajax(req);
 }
+
+JiakClient.prototype.setBucketSchema = function(Bucket, Schema, Callback) {
+    if (!('required_fields' in Schema))
+        Schema.required_fields = [];
+
+    if (!('read_mask' in Schema))
+        Schema.read_mask = Schema.allowed_fields;
+
+    if (!('write_mask' in Schema))
+        Schema.write_mask = Schema.read_mask;
+
+    $.ajax({
+        type:        'PUT',
+        url:         this.baseurl+Bucket,
+        contentType: 'application/json',
+        data:        JSON.stringify({schema:Schema}),
+        success:     Callback ? function() { Callback(true); } : undefined,
+        error:       Callback ? function() { Callback(false); } : undefined
+    });
+}
