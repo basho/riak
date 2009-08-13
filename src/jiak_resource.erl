@@ -145,9 +145,6 @@
          apply_read_mask/1,
          pretty_print/2]).
 
--define(JIAK_REQUIRED_PROPS, [allowed_fields, required_fields, read_mask,
-                              write_mask]).
-
 %% @type context() = term()
 %% @type jiak_module() = atom()|{jiak_default, list()}
 -record(ctx, {bucket,       %% atom() - Bucket name (from uri)
@@ -187,37 +184,6 @@ init(Props) ->
               key=proplists:get_value(key_type, Props),
               jiak_client=JiakClient}}.
 
-default_jiak_module(BucketName) when is_atom(BucketName) ->
-    BucketProps = riak_bucket:get_bucket(BucketName),
-    case lists:filter(
-           fun(I) -> 
-                   proplists:get_value(I, BucketProps) =:= undefined
-           end, 
-           ?JIAK_REQUIRED_PROPS) of
-        [] ->
-            jiak_default:new(BucketProps);
-        _ ->
-            undefined
-    end.
-
-get_jiak_module(ReqData) ->
-    case bucket_from_uri(ReqData) of
-        {ok, Bucket} when is_atom(Bucket) ->
-            jiak_module_for_bucket(Bucket);
-        {error, no_such_bucket} -> 
-            undefined
-    end.
-
-jiak_module_for_bucket(Bucket) when is_atom(Bucket) ->
-    case code:which(Bucket) of
-        non_existing ->
-            case default_jiak_module(Bucket) of
-                undefined -> undefined;
-                Mod when is_tuple(Mod) -> Mod
-            end;
-        ModPath when is_list(ModPath) -> Bucket
-    end.
-
 %% @spec service_available(webmachine:wrq(), context()) -> 
 %%           {boolean, webmachine:wrq(), context()}
 %% @doc Ensure that a Jiak module for the requested bucket is available. 
@@ -233,7 +199,7 @@ service_available(ReqData, Context=#ctx{key=container}) ->
                 Mod = jiak_default:new([]),
                 {true, Context#ctx{module=Mod, key=schema}};
             _ ->
-                case get_jiak_module(ReqData) of
+                case jiak_util:get_jiak_module(ReqData) of
                     undefined -> {false, Context#ctx{module=no_module_found}};
                     Module -> {true, Context#ctx{module=Module}}
                 end
@@ -241,7 +207,7 @@ service_available(ReqData, Context=#ctx{key=container}) ->
     {ServiceAvailable, ReqData, NewCtx};
 service_available(ReqData, Context) ->
     {ServiceAvailable, NewCtx} = 
-        case get_jiak_module(ReqData) of
+        case jiak_util:get_jiak_module(ReqData) of
             undefined -> {false, Context#ctx{module=no_module_found}};
             Module -> {true, Context#ctx{module=Module}}
         end,
@@ -260,7 +226,7 @@ allowed_methods(RD, Ctx0=#ctx{module=Mod}) ->
               schema -> schema;
               _         -> list_to_binary(wrq:path_info(key, RD))
           end,
-    case bucket_from_uri(RD) of
+    case jiak_util:bucket_from_uri(RD) of
         {ok, Bucket} ->
             {ok, JC} = Mod:init(Key, jiak_context:new(not_diffed_yet, [])),
             Ctx = Ctx0#ctx{bucket=Bucket, key=Key, jiak_context=JC},
@@ -279,15 +245,6 @@ allowed_methods(RD, Ctx0=#ctx{module=Mod}) ->
             %% schema mods
             {['HEAD', 'GET', 'PUT'], RD, Ctx0#ctx{bucket={error, no_such_bucket}}}
     end.
-
-%% @spec bucket_from_uri(webmachine:wrq()) ->
-%%         {ok, atom()}|{error, no_such_bucket}
-%% @doc Extract the bucket name, as an atom, from the request URI.
-%%      The bucket name must be an existing atom, or this function
-%%      will return {error, no_such_bucket}
-bucket_from_uri(RD) ->
-    try {ok, list_to_existing_atom(wrq:path_info(bucket, RD))}
-    catch _:_ -> {error, no_such_bucket} end.
 
 %% @spec malformed_request(webmachine:wrq(), context()) ->
 %%          {boolean(), webmachine:wrq(), context()}
@@ -308,7 +265,7 @@ malformed_request(ReqData, Context=#ctx{key=schema}) ->
     case decode_object(wrq:req_body(ReqData)) of
         {ok, _SchemaObj={struct, SchemaPL0}} ->
             ReqProps = [list_to_binary(atom_to_list(P)) || 
-                           P <- ?JIAK_REQUIRED_PROPS],
+                           P <- jiak_util:jiak_required_props()],
             {struct, SchemaPL} = proplists:get_value(<<"schema">>,SchemaPL0),
             case lists:filter(
                    fun(I) -> 
@@ -795,7 +752,7 @@ diff_objects(ReqData, Context=#ctx{incoming=NewObj0, module=Mod}) ->
 %%      calls apply_read_mask/2.
 apply_read_mask(JiakObject={struct,_}) ->
     Bucket = jiak_object:bucket(JiakObject),
-    apply_read_mask(jiak_module_for_bucket(Bucket), JiakObject).
+    apply_read_mask(jiak_util:jiak_module_for_bucket(Bucket), JiakObject).
 
 %% @spec apply_read_mask(jiak_module(), jiak_object()) -> jiak_object()
 %% @doc Remove fields from the jiak object that are not in the

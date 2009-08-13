@@ -110,7 +110,8 @@ from_riak_object(RiakObject) ->
             [{M,V}] -> {M,V};
             Multiple ->
                 Bucket = riak_object:bucket(RiakObject),
-                Bucket:merge_siblings(Multiple)
+                BucketMod = jiak_util:jiak_module_for_bucket(Bucket),
+                BucketMod:merge_siblings(Multiple)
         end,
     {struct, J0} = new(riak_object:bucket(RiakObject),
                        riak_object:key(RiakObject),
