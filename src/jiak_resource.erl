@@ -110,6 +110,17 @@
 %%            a new, server-generated key.  Response will be empty (unless
 %%            returnbody=true is specified in the query parameters) with
 %%            the Location header set to the new object's URI.
+%%
+%%</dd><dt> PUT /JiakBase/Bucket
+%%</dt><dd>   Create or update the schema for a bucket.  The request body 
+%%            must be a JSON object of the form:
+%%            {"schema":{
+%%                      "allowed_fields":["FieldName1","FieldName2",...],
+%%                      "required_fields":["FieldName1",...],
+%%                      "write_mask":["FieldName1",...],
+%%                      "read_mask":["FieldName1",...]
+%%                     }
+%%            }
 %%</dd></dl>
 -module(jiak_resource).
 
@@ -240,7 +251,7 @@ service_available(ReqData, Context) ->
 %%          {[http_method()], webmachine:wrq(), context()}
 %% @type http_method() = 'HEAD'|'GET'|'POST'|'PUT'|'DELETE'
 %% @doc Determine the list of HTTP methods that can be used on this
-%%      resource.  Should be HEAD/GET/POST for buckets and
+%%      resource.  Should be HEAD/GET/POST/PUT for buckets and
 %%      HEAD/GET/POST/PUT/DELETE for objects.
 %%      Exception: HEAD/GET is returned for an "unknown" bucket.
 allowed_methods(RD, Ctx0=#ctx{module=Mod}) ->
@@ -291,7 +302,8 @@ bucket_from_uri(RD) ->
 %%          bucket component of the URI
 %%        - the "key" field of the object does not match the
 %%          key component of the URI
-
+%%        - when PUTing to a bucket schema, the schema is not of the
+%%          form described above. 
 malformed_request(ReqData, Context=#ctx{key=schema}) ->
     case decode_object(wrq:req_body(ReqData)) of
         {ok, _SchemaObj={struct, SchemaPL0}} ->
@@ -431,7 +443,8 @@ is_authorized(ReqData, Context=#ctx{key=Key,jiak_context=JC,module=Mod}) ->
 %% @doc For an object GET/PUT/POST or a bucket POST, check to see
 %%      whether the write request violates the write mask of the
 %%      bucket.  For a bucket GET, check to see whether the keys of
-%%      the bucket are listable.
+%%      the bucket are listable.  PUT requests to bucket schemas are
+%%      always accepted.
 forbidden(ReqData, Context=#ctx{key=schema}) ->
     %% PUTs to container are for setting schemas and therefore always
     %% allowed
