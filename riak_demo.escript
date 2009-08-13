@@ -1,6 +1,6 @@
 #!/usr/bin/env escript
 %% -*- erlang -*-
-%%! -name riak_demo -pa ebin
+%%! -name riak_demo@127.0.0.1 -pa ebin
 main([ConfigFile]) ->
     case file:consult(ConfigFile) of
         {ok, Config} ->
