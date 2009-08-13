@@ -59,13 +59,13 @@ class JiakClient:
                                       'required_fields': required_fields,
                                       'write_mask': write_mask,
                                       'read_mask': read_mask}})
-        print Body
-        print self.JKP + Bucket
-        return self._expect(204,
-                            self._do_req("PUT",
-                                         self.JKP + Bucket,
-                                         Body,
-                                         {"Content-Type": "application/json"}))
+        Resp = self._do_req("PUT",
+                            self.JKP + Bucket,
+                            Body,
+                            {"Content-Type": "application/json"})
+        if Resp.status == 204:
+            return None
+        raise JiakException(Resp.status, Resp.reason, Resp.read())
     def list_bucket(self, Bucket):
         return self._expect(200, self._do_req("GET", self.JKP + Bucket))
     def store(self, JObj):
