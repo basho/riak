@@ -53,6 +53,19 @@ class JiakClient:
         if Resp.status == Status:
             return json.loads(Resp.read())
         raise JiakException(Resp.status, Resp.reason, Resp.read())
+    def set_bucket_schema(self, Bucket, allowed_fields, required_fields,
+                                        write_mask, read_mask):
+        Body = json.dumps({'schema': {'allowed_fields': allowed_fields,
+                                      'required_fields': required_fields,
+                                      'write_mask': write_mask,
+                                      'read_mask': read_mask}})
+        print Body
+        print self.JKP + Bucket
+        return self._expect(204,
+                            self._do_req("PUT",
+                                         self.JKP + Bucket,
+                                         Body,
+                                         {"Content-Type": "application/json"}))
     def list_bucket(self, Bucket):
         return self._expect(200, self._do_req("GET", self.JKP + Bucket))
     def store(self, JObj):
