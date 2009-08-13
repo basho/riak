@@ -41,8 +41,7 @@ class JiakClient:
     [None, None, None, None, None]
     '''
 
-    def __init__(self, IP, Port,
-                 JiakPrefix="/jiak/", JaywalkPrefix="/jaywalker/"):
+    def __init__(self, IP, Port, JiakPrefix="/jiak/"):
         self.IP = IP
         self.Port = Port
         self.JKP = JiakPrefix
