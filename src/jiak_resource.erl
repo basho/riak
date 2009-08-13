@@ -294,21 +294,30 @@ bucket_from_uri(RD) ->
 
 malformed_request(ReqData, Context=#ctx{key=schema}) ->
     case decode_object(wrq:req_body(ReqData)) of
-        {ok, SchemaObj={struct, SchemaPL}} ->
+        {ok, _SchemaObj={struct, SchemaPL0}} ->
             ReqProps = [list_to_binary(atom_to_list(P)) || 
                            P <- ?JIAK_REQUIRED_PROPS],
+            {struct, SchemaPL} = proplists:get_value(<<"schema">>,SchemaPL0),
             case lists:filter(
                    fun(I) -> 
                            proplists:get_value(I, SchemaPL) =:= undefined
                    end, 
                    ReqProps) of
                 [] ->
-                    {false, ReqData, Context#ctx{incoming=SchemaObj}};
-                _ ->
-                    {true, ReqData, Context}
+                    {false, ReqData, Context#ctx{incoming=SchemaPL}};
+                L ->
+                    {true, 
+                     wrq:append_to_response_body(
+                     io_lib:format("missing required schema fields: ~p~n",[L]),
+                       ReqData),
+                     Context}
             end;
-        _ ->
-            {true, ReqData, Context}
+        Err ->
+            {true,
+             wrq:append_to_response_body(
+               io_lib:format("bad JSON form: ~p~n",[Err]),
+               ReqData),
+             Context}
     end;
 malformed_request(ReqData, Context=#ctx{bucket=Bucket,key=Key}) ->
     % just testing syntax and required fields on POST and PUT
@@ -561,8 +570,7 @@ make_uri(JiakName,Bucket,Path) ->
 %%      effect_write, and after_write functions are called.
 handle_incoming(ReqData, Context=#ctx{key=schema, 
                                       bucket=Bucket,
-                                      incoming=Incoming}) ->
-    {struct, SchemaPL} = Incoming,
+                                      incoming=SchemaPL}) ->
     SchemaProps = [{list_to_atom(binary_to_list(K)),V} || {K,V} <- SchemaPL],
     ok = riak_bucket:set_bucket(Bucket, SchemaProps),
     {<<>>, ReqData, Context};
