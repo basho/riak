@@ -48,6 +48,24 @@ class JiakClient {
         return json_decode($resp, true);
     }
     
+    function set_bucket_schema($bucket, $allowed_fields, 
+        $required_fields = array(),
+        $write_mask = null, $read_mask = null) {
+        if ($write_mask == null)
+            $write_mask = $allowed_fields;
+        if ($read_mask == null)
+            $read_mask = $allowed_fields;
+        return $this->_expect(204,
+            $this->_do_req("PUT", $this->JKP . $bucket,
+                json_encode( array (
+                    "schema" => array (
+                        "allowed_fields" => $allowed_fields,
+                        "required_fields" => $required_fields,
+                        "write_mask" => $write_mask,
+                        "read_mask" => $read_mask))),
+                array("Content-type: application/json")));
+    }
+    
     function bucket_info($bucket) {
         return $this->_expect(200, $this->_do_req("GET", $this->JKP . $bucket));
     }
@@ -161,7 +179,6 @@ class JiakObject {
     }
 }
 
-
 /*****
 
     // jiak.php example
@@ -176,6 +193,10 @@ class JiakObject {
     //
     
     try {
+        //
+        // setup, connect
+        //
+    
         $riak_ip = "127.0.0.1";
         $riak_port = 8999;
         
@@ -183,7 +204,11 @@ class JiakObject {
         $demo_key = "phptest";
     
         $JC = new JiakClient($riak_ip, $riak_port);
-    
+        
+        //
+        // simple fetch, store
+        //
+        
         $obj = $JC->fetch($demo_bucket, $demo_key);
         
         if ($obj === null) {
@@ -201,6 +226,10 @@ class JiakObject {
             "'" . $demo_key . "': ");
         $obj = $JC->fetch($demo_bucket, $demo_key);
         print_r($obj);
+        
+        //
+        // links
+        //
         
         // clear links
         $obj->links = array();
@@ -233,13 +262,17 @@ class JiakObject {
         $obj = $JC->fetch($demo_bucket, $demo_key);
         print_r($obj);
         
+        //
+        // link-walking via "jaywalker"
+        //
+        
         print ("\nTesting walk with parameters '" . $demo_bucket . "'" .
             ", 'tag_one'...\n");
         $ar = $JC->walk($demo_bucket, $demo_key,
             array( array("jiak_example", "tag_one", 1) ));
         print_r($ar);
         
-        print ("Removing objects...");
+        print ("Removing objects...\n\n");
         $JC->delete($demo_bucket, $demo_key);
         $JC->delete($demo_bucket, $kleaf1);
         $JC->delete($demo_bucket, $kleaf2);
@@ -247,8 +280,33 @@ class JiakObject {
         
         $val = $JC->fetch($demo_bucket, $demo_key);
         if ($val === null) {
-            print ("\nObject deleted successfully!\n\n");
+            print ($demo_bucket . ":" . $demo_key . " deleted successfully!\n\n");
         }
+        
+        //
+        // dynamic bucket creation via set_bucket_schema
+        //
+        
+        print ("\nTesting set_bucket_schema('jiak_test', ...)\n\n");
+        $o = $JC->set_bucket_schema("jiak_test", array("name", "title", "description"));
+        print_r($o);
+        
+        print ("Adding record to jiak_test ...\n");
+        $jiak_test = new JiakObject("jiak_test", "test_object");
+        $jiak_test->set("name", "Bob");
+        $jiak_test->set("title", "SVP Megacorp");
+        $jiak_test->set("description", "Bob looks forward to learning Erlang.");
+        $JC->store($jiak_test);
+        
+        print ("\n\nFetching jiak_test object..\n");
+        $jto = $JC->fetch("jiak_test", "test_object");
+        print_r($jto);
+        
+        print ("\nDeleting jiak_test object ('test_object')...\n");
+        $JC->delete("jiak_test", "test_object");
+        
+        print ("\nDone!\n\n");
+        
     } catch (Exception $ex) {
         print ("\n\nException: \n\n");
         print_r($ex);

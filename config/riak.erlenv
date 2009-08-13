@@ -3,8 +3,8 @@
 {ring_creation_size, 16}.
 {gossip_interval, 60000}.
 {doorbell_port, 9000}.
-{storage_backend, riak_fs_backend}.
-{riak_fs_backend_root, "/path/to/riak/store"}.
+{storage_backend, riak_dets_backend}.
+{riak_dets_backend_root, "/path/to/riak/store"}.
 {riak_cookie, default_riak_cookie}.
 {riak_heart_command, "(cd /path/to/riak; ./start-restart.sh /path/to/riak/config/riak.erlenv)"}.
 {riak_nodename, riak}.

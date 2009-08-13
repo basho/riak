@@ -3,9 +3,12 @@
 {ring_creation_size, 16}.
 {gossip_interval, 60000}.
 {doorbell_port, 9000}.
-{storage_backend, riak_fs_backend}.
-{riak_fs_backend_root, "/tmp/riak-demo/store"}.
+{storage_backend, riak_ets_backend}.
+%{riak_dets_backend_root, "priv/store/dets"}.
 {riak_cookie, riak_demo_cookie}.
 {riak_heart_command, "(cd $RIAK; ./start-restart.sh $RIAK/config/riak-demo.erlenv)"}.
 {riak_nodename, riakdemo}.
 {riak_hostname, "127.0.0.1"}.
+{riak_web_ip, "127.0.0.1"}.
+{riak_web_port, 8098}.
+{jiak_name, "jiak"}.
