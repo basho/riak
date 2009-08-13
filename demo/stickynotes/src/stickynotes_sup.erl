@@ -81,6 +81,10 @@ setup_buckets(RiakConfig) ->
             C:set_bucket(groups, [{allow_mult, true}]);
         Error ->
             error_logger:error_msg(
-              "Unable to connect to riak cluster at ~p:~p~n"
-              "Error: ~p", [Error])
+              "Unable to connect to riak cluster at ~p:~p"
+              " with cookie ~p~nError: ~p",
+              [proplists:get_value(riak_hostname, RiakConfig),
+               proplists:get_value(doorbell_port, RiakConfig),
+               proplists:get_value(riak_cookie, RiakConfig),
+               Error])
     end.
