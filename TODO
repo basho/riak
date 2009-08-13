@@ -14,7 +14,6 @@ a sampling of improvements on the way:
  - revisit hibernate when more monitoring abilities are available
  - document why vnode start is a spawn and monitor instead of ... ?
  - remember why riak_vnode_master:vnode_del is a call instead of a cast
- - riak.js: javascript library for jiak/jaywalker
  - riak_mapreduce: provide a version of standard map funs that handles siblings
    (with reconcile)
 -  better mapreduce docs
