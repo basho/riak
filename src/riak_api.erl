@@ -69,6 +69,9 @@ handle_call({list_keys,Bucket}, From, State) ->
 init([]) -> {ok, #state{ring=undefined}}.
 
 %% @private
+handle_cast({send_event, ClientId, EventName, EventDetail}, State) ->
+    riak_eventer:notify(client_event, EventName, {ClientId, EventDetail}),
+    {noreply, State};
 handle_cast(_Msg, State) -> {noreply,State}.
 
 %% @private

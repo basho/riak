@@ -26,7 +26,7 @@
 -export([set_bucket/2,get_bucket/1]).
 -export([reload_all/1]).
 -export([remove_from_cluster/1]).
-
+-export([send_event/2]).
 %% @type default_timeout() = 15000
 -define(DEFAULT_TIMEOUT, 15000).
 
@@ -169,3 +169,9 @@ reload_all(Module) -> gen_server:call({riak_api,Node}, {reload_all, Module}).
 %%      by other nodes.
 remove_from_cluster(ExitingNode) ->
     gen_server:call({riak_api,Node}, {remove_from_cluster,ExitingNode}).
+
+%% @spec send_event(EventName::atom(), EventDetail::term()) -> ok
+%% @doc  Send a client-generated event to the Riak eventer.
+send_event(EventName, EventDetail) ->
+    gen_server:cast({riak_api,Node},
+                    {send_event,ClientId,EventName,EventDetail}).
