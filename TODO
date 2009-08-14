@@ -19,6 +19,5 @@ a sampling of improvements on the way:
 -  better mapreduce docs
 -  good documents for riak_object and reconciliation
 -  better riak_object tests
--  investigate use of global:trans/global:set_lock instead of mnesia locks -
-   mnesia locks use ets tables and are therefore probably less efficient.
+-  better detection of disconnected eventers
 
