@@ -97,10 +97,6 @@ handle_call({get_binary,Storekey},
             From,State=#state{mod=Mod,modstate=ModState}) ->
     async_get_binary(From,Storekey,Mod,ModState),
     {noreply, State};
-handle_call({put_binary,Storekey,Val},
-            From,State=#state{mod=Mod,modstate=ModState}) ->
-    async_put_binary(From,Storekey,Val,Mod,ModState),
-    {noreply, State};
 handle_call(list,From,State=#state{mod=Mod,modstate=ModState}) ->
     async_do_list(From,Mod,ModState),
     {noreply, State}.
@@ -117,12 +113,6 @@ do_get(FSM_pid, Storekey, ReqID,
 async_get_binary(From,Storekey,Mod,ModState) ->
     spawn(fun() ->
                   RetVal = do_get_binary(Storekey,Mod,ModState),
-                  gen_server2:reply(From, RetVal)
-          end).
-
-async_put_binary(From,Storekey,Val,Mod,ModState) ->
-    spawn(fun() ->
-                  RetVal = simple_binary_put(Storekey,Val,Mod,ModState),
                   gen_server2:reply(From, RetVal)
           end).
 
