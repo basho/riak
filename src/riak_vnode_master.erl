@@ -65,14 +65,6 @@ handle_call({vnode_del, {Partition,_Node},
     Pid = get_vnode(Partition, State),
     gen_server:cast(Pid, {delete, From, Storekey, ReqID}),
     % (obligation done, now the problem of the vnodes)
-    {noreply, State};
-handle_call({vnode_put_binary, {Partition,_Node},
-             {Storekey,Val,_ReqID}}, From, State) ->
-    Pid = get_vnode(Partition, State),
-    spawn(fun() ->
-                  Res = gen_server:call(Pid, {put_binary, Storekey, Val}),
-                  gen_server:reply(From,Res)
-          end),
     {noreply, State}.
 
 %% @private
