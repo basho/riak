@@ -73,23 +73,21 @@ handle_cast({map, ClientPid, QTerm, Storekey, KeyData},
             State=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
     riak_eventer:notify(riak_vnode, map, QTerm),
     VNode = self(),
-    spawn(fun() -> 
-              do_map(ClientPid,QTerm,Storekey,KeyData,Cache,Mod,ModState,VNode)
-          end),
+    do_map(ClientPid,QTerm,Storekey,KeyData,Cache,Mod,ModState,VNode),
     {noreply, State};
 handle_cast({put, FSM_pid, Storekey, RObj, ReqID},
             State=#state{mapcache=Cache,idx=Idx}) ->
     riak_eventer:notify(riak_vnode, put, ReqID),
     gen_fsm:send_event(FSM_pid, {w, Idx, ReqID}),
-    spawn(fun() -> do_put(FSM_pid, Storekey, RObj, ReqID, State) end),
+    do_put(FSM_pid, Storekey, RObj, ReqID, State),
     {noreply, State#state{mapcache=dict:erase(Storekey,Cache)}};
 handle_cast({get, FSM_pid, Storekey, ReqID}, State) ->
     riak_eventer:notify(riak_vnode, get, ReqID),
-    spawn(fun() -> do_get(FSM_pid, Storekey, ReqID, State) end),
+    do_get(FSM_pid, Storekey, ReqID, State),
     {noreply, State};
 handle_cast({delete, Client, Storekey, ReqID}, State) ->
     riak_eventer:notify(riak_vnode, delete, ReqID),
-    spawn(fun() -> do_delete(Client, Storekey, ReqID, State) end),
+    do_delete(Client, Storekey, ReqID, State),
     {noreply, State}.
 
 %% @private
@@ -139,43 +137,35 @@ do_get_binary(Storekey, Mod, ModState) ->
 
 do_delete(Client, Storekey, ReqID,
           _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
-    Trans = fun() ->
-            mnesia:lock({global, Storekey, [node()]}, write),
-            case Mod:delete(ModState, Storekey) of
-                ok ->
-                    riak_eventer:notify(riak_vnode,delete_reply,ReqID),
-                    gen_server2:reply(Client, {del, Idx, ReqID});
-                {error, Reason} ->
-                    riak_eventer:notify(riak_vnode,delete_fail,{ReqID,Reason}),
-                    gen_server2:reply(Client, {fail, Idx, ReqID})
-            end
-    end,
-    {atomic, _} = mnesia:transaction(Trans).
+    case Mod:delete(ModState, Storekey) of
+        ok ->
+            riak_eventer:notify(riak_vnode,delete_reply,ReqID),
+            gen_server2:reply(Client, {del, Idx, ReqID});
+        {error, Reason} ->
+            riak_eventer:notify(riak_vnode,delete_fail,{ReqID,Reason}),
+            gen_server2:reply(Client, {fail, Idx, ReqID})
+    end.
 
 simple_binary_put(Storekey, Val, Mod, ModState) ->
     Mod:put(ModState, Storekey, Val).
 
 do_put(FSM_pid, Storekey, RObj, ReqID,
        _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
-    Trans = fun() ->
-            mnesia:lock({global, Storekey, [node()]}, write),
-            case syntactic_put_merge(Mod, ModState, Storekey, RObj) of
-                oldobj -> 
+    case syntactic_put_merge(Mod, ModState, Storekey, RObj) of
+        oldobj -> 
+            riak_eventer:notify(riak_vnode,put_reply,ReqID),
+            gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
+        {newobj, ObjToStore} ->
+            Val = term_to_binary(ObjToStore, [compressed]),
+            case simple_binary_put(Storekey, Val, Mod, ModState) of
+                ok ->
                     riak_eventer:notify(riak_vnode,put_reply,ReqID),
                     gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
-                {newobj, ObjToStore} ->
-                    Val = term_to_binary(ObjToStore, [compressed]),
-                    case simple_binary_put(Storekey, Val, Mod, ModState) of
-                        ok ->
-                            riak_eventer:notify(riak_vnode,put_reply,ReqID),
-                            gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
                 {error, Reason} ->
-                            riak_eventer:notify(riak_vnode,put_fail,{ReqID,Reason}),
-                            gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID})
-                    end
+                    riak_eventer:notify(riak_vnode,put_fail,{ReqID,Reason}),
+                    gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID})
             end
-            end,
-    {atomic, _} = mnesia:transaction(Trans).
+    end.
 
 do_map(ClientPid,{map,FunTerm,Arg,_Acc},
        Storekey,KeyData,Cache,Mod,ModState,VNode) ->

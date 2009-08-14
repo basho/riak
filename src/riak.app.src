@@ -7,4 +7,4 @@
   {registered,   []},
   {mod,          {riak_app, []}},
   {env,          []},
-  {applications, [kernel, stdlib, sasl, crypto, mnesia]}]}.
+  {applications, [kernel, stdlib, sasl, crypto]}]}.

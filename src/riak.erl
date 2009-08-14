@@ -42,7 +42,6 @@ start() ->
     erlang:system_flag(fullsweep_after, 20),
     ensure_started(sasl),
     ensure_started(crypto),
-    ensure_started(mnesia),
     ensure_started(webmachine),
     application:start(riak, permanent).
 
