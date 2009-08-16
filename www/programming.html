@@ -1,0 +1,112 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta name="author" content="Basho Technologies" />
+	<meta name="description" content="riak - a decentralized key value store - basho technologies" />
+	<meta name="keywords" content="riak nosql decentralized distributed key value store" />
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+	<link rel="stylesheet" href="css/style.css" type="text/css" />
+	<title>Riak - A document-oriented Web database</title>
+</head>
+<body>
+	<div id="content">
+		<h1><span class="hr"></span><a href="index.html">riak</a></h1>
+		<ul id="top">
+			<li><a href="index.html">Home</a></li>
+			<li><a href="http://bitbucket.org/justin/riak/">Source Code</a></li>
+                        <li><a href="edoc/index.html">API Docs</a></li>
+			<li><a href="faq.html">FAQ</a></li>
+			<li><a href="contact.html">Contact</a></li>
+		</ul>
+		
+		<div id="intro">
+			<p>Programming Riak</p>
+		</div>
+		<div id="left">
+			
+			<p>Riak's primary programming interface is JSON over HTTP, which is as close as you can come these days to a universal language and protocol for data exchange.  If you can process JSON and issue an HTTP request, you can easily use Riak.  We have provided some example libraries here as a demonstration and we intend to add more in other languages soon as well as adding other features and improvements to these.
+</p><p>
+<h3>Buckets</h3>
+</p><p>
+The first kind of resource that we'll look at is the "Bucket", which is simply a document namespace with some parameters and a loose schema.  Buckets are containers for documents, and so are conventionally at the top of the URL hierarchy in "jiak" -- the JSON entry point to Riak.  If you have a Bucket named "artist", you can address it using a URL on a Riak server having a path of <code>/jiak/artist</code>.  As buckets come into existence on demand, you cannot meaningfully DELETE them, but the other major HTTP methods work:
+</p><p>
+<strong><code>GET /jiak/Bucket</code></strong>
+</p><p>
+Produce a representation of Bucket containing the bucket's schema and list of keys of documents in that bucket.  Either the "schema" or "keys" query parameters can be sent and set to "false" in order to omit that portion of the response.
+</p><p>
+<strong><code>PUT /jiak/Bucket</code></strong>
+</p><p>
+Set the schema for Bucket according to the request body.
+</p><p>
+<strong><code>POST /jiak/Bucket</code></strong>
+</p><p>
+This is the equivalent of <code>PUT /jiak/Bucket/Key</code> with a server-chosen Key.
+</p><p>
+<h3>Documents</h3>
+</p><p>
+The other core resource generally accessed over HTTP interface is the "Document", the fundamental value in Riak's key/value world.  The fundamental operations all act pretty much as you'd expect:
+</p><p>
+<strong><code>GET /jiak/Bucket/Key</code></strong>
+</p><p>
+Produce a representation of the document at Bucket/Key.
+</p><p>
+<strong><code>PUT /jiak/Bucket/Key</code></strong>
+</p><p>
+Given a representation of an updated document in the request body, store it at te named location.  Unless the document is brand-new, the representation should contain the vclock of the document it descended from in order to help resolve conflicts.  The included libraries (python, php, etc) all manage this for you.
+</p><p>
+If the <code>returnbody</code> query param is set to <code>true</code>, then the response body upon success will have the representation of the document that would be returned by a subsequent <code>GET</code>.  Otherwise, there will be no body.
+</p><p>
+<strong><code>DELETE /jiak/Bucket/Key</code></strong>
+</p><p>
+Delete the document at the named location.
+</p><p>
+<strong><code>POST /jiak/Bucket/Key</code></strong>
+</p><p>
+When issued against a document URL, POST is the same as PUT.
+</p><p>
+<h3>Linked Documents</h3>
+</p><p>
+Another sort of resource can be accessed but not directly modified, as it is dynamically created by link-following on the cluster.
+</p><p>
+<strong><code>GET /jiak/Bucket/Key(/LinkSpec)*</code></strong>
+</p><p>
+Return a list of representations of documents that can be found by starting at <code>Bucket/Key</code> and following the list of <code>LinkSpec</code>s.
+</p><p>
+Each <code>LinkSpec</code> is of the form <code>B,T,A</code> where <code>B</code> is a filter on buckets, <code>T</code> is a filter on link tags, and <code>A</code> is either "0" or "1" depending on whether the documents matched by this spec should be returned in the result or only used as the inputs to the next phase.
+</p><p>
+For example, the path <code>/jiak/B1/K1/_,T2,0/B3,_,1</code> would start at the document found at <code>B1/K1</code>, find the set (which I will call <code>S2</code>) of documents which are linked from that starting document, in any bucket, and with link tags matching <code>T2</code>.  All documents linked from any document in <code>S2</code> and matching the bucket filter <code>B3</code> will be found, and this final set will be produced as the return body for the request.
+</p><p>
+As all of the link-walking is done server-side and via a mapreduce computation with locality to the relevant objects, this operation is much more efficient than fetching all of the intermediate documents and finding/following the links on the client.
+</p><p>
+(more documentation on link-walking shall be forthcoming soon)
+</p><p>
+		</div>
+		<div id="right">
+			<h3>riak libraries</h3>
+			<ul>
+<li><a href="http://bitbucket.org/justin/riak/src/tip/client_lib/jiak.py">in Python</a></li>
+<li><a href="http://bitbucket.org/justin/riak/src/tip/client_lib/jiak.php">in PHP</a></li>
+<li><a href="http://bitbucket.org/justin/riak/src/tip/client_lib/jiak.js">in JavaScript</a></li>
+<li><a href="edoc/jiak_client.html">in Erlang (json)</a></li>
+<li><a href="edoc/riak_client.html">in Erlang (raw)</a></li>
+			</ul>
+
+			
+		</div>
+
+
+		<div id="footer">
+
+		</div>
+	</div>
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-10051263-1");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+</body>
+</html>
