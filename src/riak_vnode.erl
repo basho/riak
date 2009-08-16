@@ -77,16 +77,16 @@ handle_cast({map, ClientPid, QTerm, Storekey, KeyData},
     {noreply, State};
 handle_cast({put, FSM_pid, Storekey, RObj, ReqID},
             State=#state{mapcache=Cache,idx=Idx}) ->
-    riak_eventer:notify(riak_vnode, put, ReqID),
+    riak_eventer:notify(riak_vnode, put, {ReqID, Idx}),
     gen_fsm:send_event(FSM_pid, {w, Idx, ReqID}),
     do_put(FSM_pid, Storekey, RObj, ReqID, State),
     {noreply, State#state{mapcache=dict:erase(Storekey,Cache)}};
-handle_cast({get, FSM_pid, Storekey, ReqID}, State) ->
-    riak_eventer:notify(riak_vnode, get, ReqID),
+handle_cast({get, FSM_pid, Storekey, ReqID}, State=#state{idx=Idx}) ->
+    riak_eventer:notify(riak_vnode, get, {ReqID, Idx}),
     do_get(FSM_pid, Storekey, ReqID, State),
     {noreply, State};
-handle_cast({delete, Client, Storekey, ReqID}, State) ->
-    riak_eventer:notify(riak_vnode, delete, ReqID),
+handle_cast({delete, Client, Storekey, ReqID}, State=#state{idx=Idx}) ->
+    riak_eventer:notify(riak_vnode, delete, {ReqID, Idx}),
     do_delete(Client, Storekey, ReqID, State),
     {noreply, State}.
 
