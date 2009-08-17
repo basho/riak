@@ -52,7 +52,7 @@ Produce a representation of the document at Bucket/Key.
 </p><p>
 <strong><code>PUT /jiak/Bucket/Key</code></strong>
 </p><p>
-Given a representation of an updated document in the request body, store it at te named location.  Unless the document is brand-new, the representation should contain the vclock of the document it descended from in order to help resolve conflicts.  The included libraries (python, php, etc) all manage this for you.
+Given a representation of an updated document in the request body, store it at the named location.  Unless the document is brand-new, the representation should contain the vclock of the document it descended from in order to help resolve conflicts.  The included libraries (python, php, etc) all manage this for you.
 </p><p>
 If the <code>returnbody</code> query param is set to <code>true</code>, then the response body upon success will have the representation of the document that would be returned by a subsequent <code>GET</code>.  Otherwise, there will be no body.
 </p><p>
