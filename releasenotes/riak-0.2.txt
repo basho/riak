@@ -1,5 +1,3 @@
-REMEMBER TO TAG IT
-
 riak-0.2
 
 Eventer:
