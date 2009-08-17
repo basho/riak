@@ -1,0 +1,29 @@
+REMEMBER TO TAG IT
+
+riak-0.2
+
+Eventer:
+  - add partition to riak_vnode get/put/delete eventer notifications
+  - export client-side send_event(EventName, EventDetail) for custom events
+  - add Bucket, Key to riak_delete:delete_start event
+
+Documentation:
+  - most pages validate cleanly now (except for edoc)
+  - more detail on the HTTP interface
+
+Performance:
+  - removed an unused async put operation
+  - removed mnesia, locking, and spawn in riak_vnode
+  - set garbage collection fullsweep_after to 20, globally
+
+HTTP Interface:
+  - new PHP client
+  - allow dynamic creation of buckets (and schema) via HTTP/JSON
+  - fix for sibling merge with dynamic json buckets
+  - useful default behavior for linkwalking JSON data
+
+Administration:
+  - note in setup instructions that R13 or later is needed
+  - added debug-restart.sh for interactive shell mode
+  - explicitly put demo node on 127.0.0.1
+  - allow_mult default value is now false; now "last write wins" by default
