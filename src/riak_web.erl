@@ -39,7 +39,7 @@
 config() ->
     [{ip, riak:get_app_env(riak_web_ip)},
      {port, riak:get_app_env(riak_web_port)},
-     {log_dir, riak:get_app_env(riak_web_logdir)},
+     {log_dir, riak:get_app_env(riak_web_logdir, "log")},
      {dispatch, dispatch_table()}].
 
 dispatch_table() ->
