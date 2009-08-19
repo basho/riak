@@ -219,7 +219,7 @@ apply_updates(Object=#r_object{}) ->
                  MDs = [C#r_content.metadata || C <- Object#r_object.contents],
                  case Object#r_object.updatevalue of
                      undefined -> MDs;
-                     _ -> hd(MDs)
+                     _ -> [hd(MDs)]
                  end;
              error ->
 		 [dict:erase(clean,Object#r_object.updatemetadata) || _X <- VL]
