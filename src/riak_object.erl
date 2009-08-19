@@ -99,15 +99,9 @@ equal(Obj1,Obj2) ->
             end
     end.
 equal1(Obj1,Obj2) ->
-    VSet1 = sets:from_list(vclock(Obj1)),
-    VSet2 = sets:from_list(vclock(Obj2)),
-    case length(sets:to_list(sets:subtract(VSet1,VSet2))) > 0 of
-        true -> false;
-        false ->
-            case length(sets:to_list(sets:subtract(VSet2,VSet1))) > 0 of
-                true -> false;
-                false -> equal2(Obj1,Obj2)
-            end
+    case vclock:equal(vclock(Obj1),vclock(Obj2)) of
+        false -> false;
+        true -> equal2(Obj1,Obj2)
     end.
 equal2(Obj1,Obj2) ->
     UM1 = lists:sort(dict:to_list(Obj1#r_object.updatemetadata)),
