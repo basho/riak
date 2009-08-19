@@ -29,7 +29,7 @@
 -author('Andy Gross <andy@basho.com>').
 
 -export([fresh/0,descends/2,merge/1,get_counter/2,get_timestamp/2,
-	increment/2,all_nodes/1]).
+	increment/2,all_nodes/1,equal/2]).
 -export([example_test/0]).
 
 % @type vclock() = [vc_entry].
@@ -148,5 +148,21 @@ increment(Node, VClock) ->
 all_nodes(VClock) ->
     [X || {X,{_,_}} <- VClock].
 
+% @private
 timestamp() ->
     calendar:datetime_to_gregorian_seconds(erlang:universaltime()).
+
+% @doc Compares two VClocks for equality.
+%      Not very fast.
+% @spec equal(VClockA :: vclock(), VClockB :: vclock()) -> true | false
+equal(VA,VB) ->
+    VSet1 = sets:from_list(VA),
+    VSet2 = sets:from_list(VB),
+    case length(sets:to_list(sets:subtract(VSet1,VSet2))) > 0 of
+        true -> false;
+        false ->
+            case length(sets:to_list(sets:subtract(VSet2,VSet1))) > 0 of
+                true -> false;
+                false -> true
+            end
+    end.
