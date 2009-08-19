@@ -71,7 +71,7 @@ do_dump([IP, PortStr, Filename]) ->
     All_I_VN = lists:flatten(
           [gen_server:call({riak_vnode_master, Node},all_possible_vnodes) ||
                   Node <- nodes()]),
-    IV_Lists = [{I, VN, gen_server:call(VN,list)} || {I,VN} <- All_I_VN],
+    IV_Lists = [{I, VN, gen_server2:call(VN,list)} || {I,VN} <- All_I_VN],
     {ok, dumptable} = dets:open_file(dumptable, [{file, Filename}]),
     dump_records(IV_Lists),
     ok = dets:sync(dumptable),
@@ -88,7 +88,7 @@ dump_records([{_I,VN,List}|IVL_Tail]) ->
 %% @private
 dump_records1(_VN,[]) -> ok;
 dump_records1(VN,[K|K_Tail]) ->
-    {ok, V} = gen_server:call(VN, {get_binary, K}),
+    {ok, V} = gen_server2:call(VN, {get_binary, K}),
     Obj = binary_to_term(V),
     Bucket = riak_object:bucket(Obj),
     Key = riak_object:key(Obj),

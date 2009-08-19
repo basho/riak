@@ -79,7 +79,7 @@ waiting_vnode_w({w, Idx, ReqID},
             case DW of
                 0 ->
                     send_key_update(RObj),
-                    gen_server:reply(Client,ok),
+                    gen_server2:reply(Client,ok),
                     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                         {ReqID, ok}),
                     {stop,normal,StateData};
@@ -108,13 +108,13 @@ waiting_vnode_w({fail, Idx, ReqID},
         false ->
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                 {ReqID, {error,too_many_fails,Replied}}),
-            gen_server:reply(Client,{error,too_many_fails}),
+            gen_server2:reply(Client,{error,too_many_fails}),
             {stop,normal,NewStateData}
     end;
 waiting_vnode_w(timeout, StateData=#state{client=Client,req_id=ReqID}) ->
     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                         {ReqID, {error,timeout}}),
-    gen_server:reply(Client,{error,timeout}),
+    gen_server2:reply(Client,{error,timeout}),
     {stop,normal,StateData}.
 
 waiting_vnode_dw({w, _Idx, ReqID},
@@ -129,7 +129,7 @@ waiting_vnode_dw({dw, Idx, ReqID},
             send_key_update(RObj),
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                 {ReqID, ok}),
-            gen_server:reply(Client,ok),
+            gen_server2:reply(Client,ok),
             {stop,normal,StateData};
         false ->
             NewStateData = StateData#state{replied_dw=Replied},
@@ -146,13 +146,13 @@ waiting_vnode_dw({fail, Idx, ReqID},
         false ->
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                 {ReqID, {error,too_many_fails,Replied}}),
-            gen_server:reply(Client,{error,too_many_fails}),
+            gen_server2:reply(Client,{error,too_many_fails}),
             {stop,normal,NewStateData}
     end;
 waiting_vnode_dw(timeout, StateData=#state{client=Client,req_id=ReqID}) ->
     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                         {ReqID, {error,timeout}}),
-    gen_server:reply(Client,{error,timeout}),
+    gen_server2:reply(Client,{error,timeout}),
     {stop,normal,StateData}.
 
 %% @private

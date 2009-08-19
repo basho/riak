@@ -52,7 +52,7 @@ mapred(Inputs,Query) -> mapred(Inputs,Query,?DEFAULT_TIMEOUT).
 %%      See the map/reduce documentation for explanation of behavior.
 mapred(Inputs,Query,Timeout)
   when is_list(Inputs), is_list(Query), is_integer(Timeout) ->
-    gen_server:call({riak_api,Node}, {mapred,Inputs,Query,Timeout}, Timeout).
+    gen_server2:call({riak_api,Node}, {mapred,Inputs,Query,Timeout}, Timeout).
 
 
 %% @spec get(riak_object:bucket(), riak_object:key(), R :: integer()) ->
@@ -76,7 +76,7 @@ get(Bucket, Key, R) -> get(Bucket, Key, R, ?DEFAULT_TIMEOUT).
 get(Bucket, Key, R, Timeout) when is_atom(Bucket),
                                   (is_list(Key) orelse is_binary(Key)),
                                   is_integer(R), is_integer(Timeout) ->
-    gen_server:call({riak_api,Node}, {get,Bucket,Key,R,Timeout}, Timeout).
+    gen_server2:call({riak_api,Node}, {get,Bucket,Key,R,Timeout}, Timeout).
 
 
 %% @spec put(RObj :: riak_object:riak_object(), W :: integer()) ->
@@ -109,7 +109,7 @@ put(RObj, W, DW) -> put(RObj, W, DW, ?DEFAULT_TIMEOUT).
 %%      TimeoutMillisecs passes.
 put(RObj, W, DW, Timeout) ->
     R0 = riak_object:increment_vclock(RObj, ClientId),
-    gen_server:call({riak_api,Node}, {put,R0,W,DW,Timeout}, Timeout).
+    gen_server2:call({riak_api,Node}, {put,R0,W,DW,Timeout}, Timeout).
 
 
 %% @spec delete(riak_object:bucket(), riak_object:key(), RW :: integer()) ->
@@ -133,7 +133,7 @@ delete(Bucket,Key,RW) -> delete(Bucket,Key,RW,?DEFAULT_TIMEOUT).
 %% @doc Delete the object at Bucket/Key.  Return a value as soon as RW
 %%      nodes have responded with a value or error, or TimeoutMillisecs passes.
 delete(Bucket,Key,RW,Timeout) ->
-    gen_server:call({riak_api,Node}, {delete,Bucket,Key,RW,Timeout}, Timeout).
+    gen_server2:call({riak_api,Node}, {delete,Bucket,Key,RW,Timeout}, Timeout).
 
 
 %% @spec list_keys(riak_object:bucket()) ->
@@ -144,7 +144,7 @@ delete(Bucket,Key,RW,Timeout) ->
 %%      Key lists are updated asynchronously, so this may be slightly
 %%      out of date if called immediately after a put or delete.
 list_keys(Bucket) -> 
-    gen_server:call({riak_api,Node}, {list_keys,Bucket}, ?DEFAULT_TIMEOUT*4).
+    gen_server2:call({riak_api,Node}, {list_keys,Bucket}, ?DEFAULT_TIMEOUT*4).
 
 %% @spec set_bucket(riak_object:bucket(), [BucketProp :: {atom(),term()}]) -> ok
 %% @doc Set the given properties for Bucket.
@@ -152,26 +152,26 @@ list_keys(Bucket) ->
 %%      to ensure expected per-bucket behavior.
 %% See riak_bucket for expected useful properties.
 set_bucket(BucketName,BucketProps) ->
-    gen_server:call({riak_api,Node}, {set_bucket,BucketName,BucketProps}).
+    gen_server2:call({riak_api,Node}, {set_bucket,BucketName,BucketProps}).
 %% @spec get_bucket(riak_object:bucket()) -> [BucketProp :: {atom(),term()}]
 %% @doc Get all properties for Bucket.
 %% See riak_bucket for expected useful properties.
 get_bucket(BucketName) ->
-    gen_server:call({riak_api,Node}, {get_bucket,BucketName}).
+    gen_server2:call({riak_api,Node}, {get_bucket,BucketName}).
 
 %% @spec reload_all(Module :: atom()) -> term()
 %% @doc Force all Riak nodes to reload Module.
 %%      This is used when loading new modules for map/reduce functionality.
-reload_all(Module) -> gen_server:call({riak_api,Node}, {reload_all, Module}).
+reload_all(Module) -> gen_server2:call({riak_api,Node}, {reload_all, Module}).
 
 %% @spec remove_from_cluster(ExitingNode :: atom()) -> term()
 %% @doc Cause all partitions owned by ExitingNode to be taken over
 %%      by other nodes.
 remove_from_cluster(ExitingNode) ->
-    gen_server:call({riak_api,Node}, {remove_from_cluster,ExitingNode}).
+    gen_server2:call({riak_api,Node}, {remove_from_cluster,ExitingNode}).
 
 %% @spec send_event(EventName::atom(), EventDetail::term()) -> ok
 %% @doc  Send a client-generated event to the Riak eventer.
 send_event(EventName, EventDetail) ->
-    gen_server:cast({riak_api,Node},
-                    {send_event,ClientId,EventName,EventDetail}).
+    gen_server2:cast({riak_api,Node},
+                     {send_event,ClientId,EventName,EventDetail}).

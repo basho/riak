@@ -41,10 +41,10 @@ home(timeout, StateData=#state{vnode=VNode,idx=Idx,counter=Count}) ->
     Me = node(),
     case riak_ring:index_owner(MyRing, Idx) of
         Me ->
-            gen_server:cast(VNode, activate),
+            gen_server2:cast(VNode, activate),
             case Count > 9 of
                 true ->
-                    gen_server:cast(VNode, cache_purge),
+                    gen_server2:cast(VNode, cache_purge),
                     {next_state,home,StateData#state{counter=0},?TIMEOUT};
                 false ->
                     {next_state,home,StateData#state{counter=Count+1},?TIMEOUT}
@@ -63,13 +63,13 @@ not_home(timeout, StateData=#state{vnode=VNode,idx=Idx}) ->
             case net_adm:ping(TargetNode) of
                 pang -> {next_state,not_home,StateData,?TIMEOUT};
                 pong ->
-                    ObjList = gen_server:call(VNode, list, 60000),
+                    ObjList = gen_server2:call(VNode, list, 60000),
                     case ObjList of
                         [] ->
-                            gen_server:cast(VNode, {rexit, "sidekick"}),
+                            gen_server2:cast(VNode, {rexit, "sidekick"}),
                             {next_state,not_home,StateData,?LONGTIMEOUT};
                         _ -> 
-                            gen_server:cast(VNode, deactivate),
+                            gen_server2:cast(VNode, deactivate),
                             Merk = make_merk(VNode, Idx, ObjList),
                             gen_server:cast({riak_vnode_master, TargetNode},
                                             {vnode_merkle, {VNode,Idx,Merk}}),
@@ -81,7 +81,7 @@ not_home(timeout, StateData=#state{vnode=VNode,idx=Idx}) ->
 make_merk(VNode, Idx, ObjList) ->
     riak_eventer:notify(riak_vnode_sidekick, merkle_prep, Idx),
     merkerl:build_tree([{K,crypto:sha(V)} || {K,{ok,V}} <- 
-                        [{K,gen_server:call(VNode, {get_binary, K})} ||
+                        [{K,gen_server2:call(VNode, {get_binary, K})} ||
                            K <- ObjList]]).
 
 %% @private

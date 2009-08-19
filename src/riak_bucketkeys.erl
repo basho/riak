@@ -112,8 +112,8 @@ do_write_bucket({BucketName,OpList}, Ring) ->
 %% @private
 get_keysobj(Bucket, Ring) ->
     fix_bucket(Ring),
-    case gen_server:call({riak_api,node()},
-                         {get,?BUCK,Bucket,1,120000}) of
+    case gen_server2:call({riak_api,node()},
+                          {get,?BUCK,Bucket,1,120000}) of
         {error, notfound} ->
             riak_object:new(?BUCK,Bucket,{sets:new(), []});
         {error, Err} -> {error, Err};

@@ -106,7 +106,7 @@ waiting_vnode_r({r, {error, notfound}, Idx, ReqID},
         false ->
             riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                 {ReqID, notfound}),
-            gen_server:reply(Client,{error,notfound}),
+            gen_server2:reply(Client,{error,notfound}),
             {stop,normal,NewStateData}
     end;
 waiting_vnode_r({r, {error, Err}, Idx, ReqID},
@@ -124,19 +124,19 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqID},
                     FullErr = [E || {E,_I} <- Replied],
                     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                         {ReqID, {error,FullErr}}),
-                    gen_server:reply(Client,{error,FullErr}),
+                    gen_server2:reply(Client,{error,FullErr}),
                     {stop,normal,NewStateData};
                 _ ->
                     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                         {ReqID, notfound}),
-                    gen_server:reply(Client,{error,notfound}),
+                    gen_server2:reply(Client,{error,notfound}),
                     {stop,normal,NewStateData}
             end
     end;
 waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqID}) ->
     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                         {ReqID, timeout}),
-    gen_server:reply(Client,{error,timeout}),
+    gen_server2:reply(Client,{error,timeout}),
     {stop,normal,StateData}.
 
 waiting_read_repair({r, {ok, RObj}, Idx, ReqID},
@@ -188,7 +188,7 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
                                                 delete_finalize_start,
                                                 {ReqID, Bucket, Key}),
                             riak_bucketkeys:del_key(Bucket,Key),
-                            [gen_server:call({riak_vnode_master, Node},
+                            [gen_server2:call({riak_vnode_master, Node},
                                              {vnode_del, {Idx,Node},
                                               {Storekey,ReqID}}) ||
                                 {Idx,Node} <- IdealNodes];
@@ -238,7 +238,7 @@ code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
 respond(Client,VResponses,AllowMult) ->
     Reply = merge_robjs([R || {R,_I} <- VResponses],AllowMult),
-    gen_server:reply(Client,Reply),
+    gen_server2:reply(Client,Reply),
     Reply.
 
 merge_robjs(RObjs0,AllowMult) ->

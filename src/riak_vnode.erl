@@ -199,8 +199,8 @@ uncached_map1(V,FunTerm,Arg,Storekey,KeyData,VNode) ->
             {qfun,F} -> F(V,KeyData,Arg);
             {modfun,M,F} ->
                 MF_Res = M:F(V,KeyData,Arg),
-                gen_server:cast(VNode,
-                                {mapcache, Storekey,{M,F,Arg,KeyData},MF_Res}),
+                gen_server2:cast(VNode,
+                                 {mapcache, Storekey,{M,F,Arg,KeyData},MF_Res}),
                 MF_Res
         end,
         {mapexec_reply, MapVal, self()}

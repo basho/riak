@@ -82,7 +82,7 @@ init([Ring,Inputs,Query,Timeout,Client]) ->
         {bad_qterm, QTerm} ->
             riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done,
                                 {error, {bad_qterm, QTerm}}),
-            gen_server:reply(Client,{error, {bad_qterm, QTerm}}),
+            gen_server2:reply(Client,{error, {bad_qterm, QTerm}}),
             {stop,normal}
     end.
 
@@ -136,7 +136,7 @@ wait({done,FSM}, StateData=#state{client=Client,acc=Acc,reqid=ReqID,
         [] -> 
             riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done,
                                 {ok, ReqID, length(Acc)}),
-            gen_server:reply(Client,{ok, Acc}),
+            gen_server2:reply(Client,{ok, Acc}),
             {stop,normal,StateData};
         _ ->
             {next_state, wait, StateData#state{fsms=FSMs},
@@ -147,7 +147,7 @@ wait({error, ErrFSM, ErrMsg}, StateData=#state{client=Client,reqid=ReqID,
     FSMs = lists:delete(ErrFSM,FSMs0),
     [gen_fsm:send_event(FSM, die) || FSM <- FSMs],
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done, {error, ReqID}),
-    gen_server:reply(Client,{error, ErrMsg}),
+    gen_server2:reply(Client,{error, ErrMsg}),
     {stop,normal,StateData};
 wait({acc,Data}, StateData=#state{acc=Acc,endtime=End}) ->
     AccData = case Data of
@@ -157,7 +157,7 @@ wait({acc,Data}, StateData=#state{acc=Acc,endtime=End}) ->
     {next_state, wait, StateData#state{acc=AccData},End-riak_util:moment()};
 wait(timeout, StateData=#state{reqid=ReqID,client=Client}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done, {timeout, ReqID}),
-    gen_server:reply(Client,{error, timeout}),
+    gen_server2:reply(Client,{error, timeout}),
     {stop,normal,StateData}.
 
 %% @private
