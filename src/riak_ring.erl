@@ -186,25 +186,43 @@ transfer_node(Idx, Node, MyState) ->
                     meta=MyState#hstate.meta}
     end.
 
+ancestors(RingStates) ->
+    Ancest = [[O2 || O2 <- RingStates,
+     vclock:descends(O1#hstate.vclock,O2#hstate.vclock),
+     (vclock:descends(O2#hstate.vclock,O1#hstate.vclock) == false)]
+		|| O1 <- RingStates],
+    lists:flatten(Ancest).
+
 % @doc Incorporate another node's state into our view of the Riak world.
 % @spec reconcile(ExternState :: hstate(), MyState :: hstate()) ->
 %       {no_change, hstate()} | {new_ring, hstate()}
 reconcile(ExternState, MyState) ->
-    case vclock:descends(MyState#hstate.vclock, ExternState#hstate.vclock) of
-        true ->
-            {no_change, MyState};
-        _ ->
-            case vclock:descends(ExternState#hstate.vclock,
-                                 MyState#hstate.vclock) of
-                true ->
-                    {new_ring, #hstate{nodename=MyState#hstate.nodename,
-                                       vclock=ExternState#hstate.vclock,
-                                       ring=ExternState#hstate.ring,
-                                       meta=ExternState#hstate.meta}};
-                _ ->
-		    {new_ring, reconcile(MyState#hstate.nodename,
-                                         ExternState, MyState)}
-	    end
+    case ancestors([ExternState, MyState]) of
+        [OlderState] ->
+          case vclock:equal(OlderState#hstate.vclock,MyState#hstate.vclock) of
+              true -> 
+                  {new_ring, #hstate{nodename=MyState#hstate.nodename,
+                                     vclock=ExternState#hstate.vclock,
+                                     ring=ExternState#hstate.ring,
+                                     meta=ExternState#hstate.meta}};
+              false ->
+                  {no_change, MyState}
+          end;
+	[] -> 
+            case equal_rings(ExternState,MyState) of
+                true -> {no_change, MyState};
+                false -> {new_ring, reconcile(MyState#hstate.nodename,
+                                              ExternState, MyState)}
+            end
+    end.
+
+% @private
+equal_rings(_A=#hstate{ring=RA,meta=MA},_B=#hstate{ring=RB,meta=MB}) ->
+    MDA = lists:sort(dict:to_list(MA)),
+    MDB = lists:sort(dict:to_list(MB)),
+    case MDA =:= MDB of
+        false -> false;
+        true -> RA =:= RB
     end.
 
 % @doc If two states are mutually non-descendant, merge them anyway.
