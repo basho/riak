@@ -144,7 +144,7 @@ delete(Bucket,Key,RW,Timeout) ->
 %%      Key lists are updated asynchronously, so this may be slightly
 %%      out of date if called immediately after a put or delete.
 list_keys(Bucket) -> 
-    gen_server2:call({riak_api,Node}, {list_keys,Bucket}, ?DEFAULT_TIMEOUT*4).
+    gen_server2:call({riak_api,Node}, {list_keys,Bucket}, ?DEFAULT_TIMEOUT*8).
 
 %% @spec set_bucket(riak_object:bucket(), [BucketProp :: {atom(),term()}]) -> ok
 %% @doc Set the given properties for Bucket.
