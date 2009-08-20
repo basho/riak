@@ -28,7 +28,9 @@ start_link() -> gen_server2:start_link({local, ?MODULE}, ?MODULE, [], []).
 %% @private
 init([]) -> {ok, #state{ring=undefined, eventers=[]}}.
 
-notify(Event) -> gen_server2:cast(?MODULE, {event, Event}).
+notify(Event) ->
+    gen_server2:cast(riak_local_logger, {event, Event}),
+    gen_server2:cast(?MODULE, {event, Event}).
 
 notify(Module, EventName, EventDetail) ->
     notify({Module, EventName, node(), EventDetail}).

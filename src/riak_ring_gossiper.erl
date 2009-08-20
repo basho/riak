@@ -40,30 +40,17 @@ loop(Write) ->
                     riak_ring_manager:set_my_ring(NewRing),
                     {ok, MyNewRing} = maybe_claim(),
                     riak_ring_manager:set_my_ring(MyNewRing),
-                    Changed = riak_ring:diff_nodes(MyNewRing, NewRing),
-                    [gossip_to(X) ||
-                        X <- [riak_ring:random_node(MyNewRing)|Changed],
-                        X =/= node()],
+                    Me = node(),
+                    case riak_ring:random_node(MyNewRing) of
+                        Me -> nop;
+                        RandNode -> gossip_to(RandNode)
+                    end,
                     riak_eventer:notify(riak_ring_gossiper, changed_ring, 
-                                        {gossip_changed, length(Changed)}),
+                                        gossip_changed),
                     loop(write)
             end;
-        {set_ring, ExternRing} ->
-            riak_eventer:notify(riak_ring_gossiper,
-                                fresh_ring, fresh_ring),
-            riak_ring_manager:set_my_ring(
-              riak_ring:fresh_from_extern(ExternRing, node())),
-            {ok, MyNewRing} = maybe_claim(),
-            riak_ring_manager:set_my_ring(MyNewRing),
-            Changed = riak_ring:diff_nodes(MyNewRing, ExternRing),
-            [gossip_to(X) ||
-                X <- [riak_ring:random_node(MyNewRing)|Changed],
-                X =/= node()],
-            riak_eventer:notify(riak_ring_gossiper, changed_ring, 
-                                {set_changed, length(Changed)}),
-            loop(write);
         {get_ring, RemoteNode} ->
-            set_remote_ring(RemoteNode),
+            gossip_to(RemoteNode),
             loop(Write)
     after Interval ->
             riak_eventer:notify(riak_ring_gossiper, interval, interval),
@@ -87,11 +74,6 @@ gossip_to(RemoteNode) ->
     riak_eventer:notify(riak_ring_gossiper, send, RemoteNode),
     {ok, MyRing} = riak_ring_manager:get_my_ring(),
     riak_connect:cast(RemoteNode, {gossip_ring, MyRing}).
-
-set_remote_ring(RemoteNode) ->
-    riak_eventer:notify(riak_ring_gossiper, set_remote_ring, RemoteNode),
-    {ok, MyRing} = riak_ring_manager:get_my_ring(),
-    riak_connect:cast(RemoteNode, {set_ring, MyRing}).
 
 get_ring_from(RemoteNode) ->
     riak_eventer:notify(riak_ring_gossiper, get_remote_ring, RemoteNode),

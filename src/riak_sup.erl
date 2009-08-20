@@ -54,17 +54,21 @@ init([]) ->
     BucketKeys = {riak_bucketkeys,
                  {riak_bucketkeys, start_link, []},
                   permanent, 5000, worker, dynamic},
+    LocalLogger = {riak_local_logger,
+                   {riak_local_logger, start_link, []},
+                   permanent, 5000, worker, dynamic},
     RiakWeb = {webmachine_mochiweb,
                  {webmachine_mochiweb, start, [riak_web:config()]},
                   permanent, 5000, worker, dynamic},
     Processes0 = 
     case riak:get_app_env(riak_web_ip) of
         "undefined" ->
-            [RingMgr,RingGossip,Connect,API,EventGuard,BucketKeys];
+            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger,BucketKeys];
         undefined ->
-            [RingMgr,RingGossip,Connect,API,EventGuard,BucketKeys];
+            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger,BucketKeys];
         _ ->
-            [RingMgr,RingGossip,Connect,API,EventGuard,BucketKeys,RiakWeb]
+            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger,BucketKeys,
+             RiakWeb]
     end,
     Processes1 = 
     case riak:get_app_env(doorbell_port) of

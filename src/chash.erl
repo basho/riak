@@ -30,7 +30,7 @@
 	 successors/2,successors/3,
 	 predecessors/2,predecessors/3,
 	 contains_name/2,key_of/1,
-	 merge_rings/3]).
+	 merge_rings/2]).
 
 -define(RINGTOP, trunc(math:pow(2,160)-1)).  % SHA-1 space
 
@@ -154,30 +154,19 @@ nodes(CHash) ->
     {_NumPartitions, Nodes} = CHash,
     Nodes.
 
-% @doc Return the best possible merge of two rings based on a vclock.
+% @doc Return a randomized merge of two rings based on a vclock.
 %      If multiple nodes are actively claiming nodes in the same
-%      time period, some churn can occur.
-% @spec merge_rings(VClock :: vclock:vclock(),
-%                   CHashA :: chash(), CHashB :: chash()) -> chash()
-merge_rings(VClock,CHashA,CHashB) ->
+%      time period, churn will occur.  Be prepared to live with it.
+% @spec merge_rings(CHashA :: chash(), CHashB :: chash()) -> chash()
+merge_rings(CHashA,CHashB) ->
     {NumPartitions, NodesA} = CHashA,
     {NumPartitions, NodesB} = CHashB,
-    {NumPartitions, [{I,recentnode(VClock,A,B)} || 
+    {NumPartitions, [{I,randomnode(A,B)} || 
 		   {{I,A},{I,B}} <- lists:zip(NodesA,NodesB)]}.
 
-% @spec recentnode(VClock :: vclock:vclock(), NodeA :: node(),
-%                   NodeB :: node()) -> node()
-recentnode(VClock,NodeA,NodeB) ->
-    % note: this can result in node "theft" -- this is okay!
-    % the idea is to gossip often, leading to convergence.
-    CtrA = vclock:get_counter(NodeA,VClock),
-    CtrB = vclock:get_counter(NodeB,VClock),
-    if
-	CtrA > CtrB ->
-	    NodeA;
-	true ->
-	    NodeB
-    end.
+% @spec randomnode(NodeA :: node(), NodeB :: node()) -> node()
+randomnode(NodeA,NodeA) -> NodeA;
+randomnode(NodeA,NodeB) -> lists:nth(crypto:rand_uniform(1,3),[NodeA,NodeB]).
 
 % @doc Return the number of partitions in the ring.
 % @spec size(CHash :: chash()) -> integer()
