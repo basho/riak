@@ -70,19 +70,18 @@
 -export([diff/2, undefined/0]).
 -export([test_roundtrip_vclock/0]).
 
-%% @type jiak_key()=riak_object:binary_key().
 
-%% @spec new(riak_object:bucket(), jiak_key()) -> jiak_object()
+%% @spec new(riak_object:bucket(), riak_object:key()) -> jiak_object()
 %% @doc produces an empty jiak object
 %% @equiv new(B, K, {struct, []}, [])
 new(B, K) -> new(B, K, {struct, []}, []).
 
-%% @spec new(riak_object:bucket(), jiak_key(), mochijson2()) -> jiak_object()
+%% @spec new(riak_object:bucket(),riak_object:key(),mochijson2())->jiak_object()
 %% @doc produces a new jiak object with no links
 %% @equiv new(B, K, O, [])
 new(B, K, O) -> new(B, K, O, []).
 
-%% @spec new(riak_object:bucket(), jiak_key(), mochijson2(), 
+%% @spec new(riak_object:bucket(), riak_object:key(), mochijson2(), 
 %%           [link()]) -> jiak_object()
 %% @doc produces empty jiak object, a mochijson2 structure that
 %%      would encode to the JSON structure:
@@ -239,7 +238,7 @@ remove_link(JiakObject, RemLink) ->
     Links = links(JiakObject),
     set_links(JiakObject, [ L || L <- Links, L /= RemLink]).
 
-%% @spec remove_link(jiak_object, riak_object:bucket(), jiak_key(), term()) 
+%% @spec remove_link(jiak_object, riak_object:bucket(), riak_object:key(), term()) 
 %%         -> jiak_object()
 %% @equiv remove_link(JiakObject, [Bucket, Key, Tag])
 remove_link(JiakObject, Bucket, Key, Tag) ->

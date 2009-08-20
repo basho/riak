@@ -26,16 +26,16 @@
 %% @type riak_object().  Opaque container for Riak objects.
 -record(r_object, {
           bucket :: atom(),
-          key :: string()|binary(),
+          key :: binary(),
           contents :: [#r_content{}],
           vclock :: [vclock:vclock()],
           updatemetadata=dict:store(clean, true, dict:new()) :: dict(),
           updatevalue :: term()
          }).
 
-%% @type binary_key()=binary().
-%% @type string_key()=string().
-%% @type key()=binary_key()|string_key().
+-define(MAX_KEY_SIZE, 65536).
+
+%% @type key()=binary().
 %% @type bucket()=atom().
 %% @type value()=term().
 
@@ -48,7 +48,7 @@
 
 object_test() ->
     B = buckets_are_atoms,
-    K = "keys are strings",
+    K = <<"keys are binaries">>,
     V = <<"values are anything">>,
     O = riak_object:new(B,K,V),
     B = riak_object:bucket(O),
@@ -81,11 +81,26 @@ merge_test() ->
     O3 = riak_object:syntactic_merge(O,O3,node_does_not_matter_here),
     {O,O3}.    
 
+largekey_test() ->
+    TooLargeKey = <<0:(65537*8)>>,
+    try
+        riak_object:new(a, TooLargeKey, <<>>)
+    catch throw:{error, key_too_large} ->
+            ok
+    end.
+            
+
+
 %% @spec new(Bucket::bucket(), Key::key(), Value::value()) -> riak_object()
 %% @doc Constructor for new riak objects.
-new(B, K, V) when is_atom(B), (is_list(K) orelse is_binary(K)) ->
-    Contents = [#r_content{metadata=dict:new(), value=V}],
-    #r_object{bucket=B, key=K, contents=Contents, vclock=vclock:fresh()}.
+new(B, K, V) when is_atom(B), is_binary(K) ->
+    case size(K) > ?MAX_KEY_SIZE of
+        true ->
+            throw({error,key_too_large});
+        false ->
+            Contents = [#r_content{metadata=dict:new(), value=V}],
+            #r_object{bucket=B,key=K,contents=Contents,vclock=vclock:fresh()}
+    end.
 
 %% @spec equal(riak_object(), riak_object()) -> true | false
 %% @doc Deep (expensive) comparison of Riak objects.

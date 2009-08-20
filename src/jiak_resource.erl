@@ -163,7 +163,7 @@
 
 -include_lib("webmachine/include/webmachine.hrl").
 
-%% @type key() = container|riak_object:binary_key()
+%% @type key() = container|schema|riak_object:key()
 
 %% @spec init(proplist()) -> {ok, context()}
 %% @doc Initialize this webmachine resource.  This function will
