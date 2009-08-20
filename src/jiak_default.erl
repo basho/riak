@@ -84,7 +84,7 @@ write_mask() ->
 expires_in_seconds(_Key, ReqData, Context) ->
     {proplists:get_value(expiry_seconds, BucketProps, 600), ReqData, Context}.
 
-%% @spec check_write({container|item, riak_object:binary_key()},
+%% @spec check_write({container|item, riak_object:key()},
 %%                   jiak_object(), webmachine:wrq(), jiak_context()) ->
 %%         {{ok, jiak_object()}|{error, term()},
 %%          webmachine:wrq(), jiak_context()}
