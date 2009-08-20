@@ -16,3 +16,5 @@ log/.*.log$
 priv/log/.*
 ^priv/store
 ^priv/ringstate/*
+^client_lib/java/build/*
+^client_lib/java/dist/*
