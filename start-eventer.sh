@@ -4,7 +4,7 @@
 #  Join riak cluster <clustername> using erlcookie <cookie>
 #  via the node listening at <ip>:<port>
 #  and register a riak event handler
-if [ $# -le 7 ]; then
+if [ $# -ne 7 ]; then
     echo Usage: 1>&2
     echo "    `basename $0` <clustername> <cookie> <ip in ring> " 1>&2
     echo "                  <doorbell port> <nodename> <event module name>" 1>&2
