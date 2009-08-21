@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # start-join <configfile> <ip> <port>
 # join an existing riak ring via a node known to be listening on ip:port
-if [ $# -le 3 ]; then
+if [ $# -lt 3 ]; then
     echo Usage: 1>&2
     echo "    `basename $0` <config file> <ip of node in ring> <doorbell port>" 1>&2
     exit 1
