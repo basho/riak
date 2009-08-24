@@ -8,6 +8,7 @@ www/edoc/*
 www/README
 www/LICENSE
 www/TODO
+www/javadoc/*
 ebin/.*\.(beam|app)$
 (^|/)erl_crash.dump$
 .*~$
@@ -18,3 +19,4 @@ priv/log/.*
 ^priv/ringstate/*
 ^client_lib/java/build/*
 ^client_lib/java/dist/*
+^client_lib/java/javadoc/*

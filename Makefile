@@ -18,6 +18,10 @@ docs:
 	@cp LICENSE www/
 	@cp TODO www/
 
+reldocs: docs
+	@cd client_lib/java && make javadoc && cp -r javadoc ../../www/javadoc
+
+
 clean:
 	@echo "removing:"
 	@rm -fv ebin/*.beam ebin/*.app
