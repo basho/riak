@@ -11,25 +11,30 @@ software distributed under the License is distributed on an
 KIND, either express or implied.  See the License for the
 specific language governing permissions and limitations
 under the License.  
-*/
-
+ */
 package com.basho.riak;
 
+/**
+ * Default Jiak exception.
+ * 
+ * 
+ */
 public class JiakException extends Exception {
 
 	private static final long serialVersionUID = -4739928528628198267L;
 
-	public JiakException() {}
+	public JiakException() {
+	}
 
-	public JiakException(String message) {
+	public JiakException(final String message) {
 		super(message);
 	}
 
-	public JiakException(Throwable cause) {
+	public JiakException(final Throwable cause) {
 		super(cause);
 	}
 
-	public JiakException(String message, Throwable cause) {
+	public JiakException(final String message, final Throwable cause) {
 		super(message, cause);
 	}
 
