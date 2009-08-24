@@ -60,10 +60,8 @@ handle_call(_,_,State) -> {reply,no_call_support,State}.
 
 handle_cast({OpType,Bucket,Key},State=#state{ops=Ops}) ->
     BucketFrag = list_to_binary(
-                   lists:flatten(
-                     io_lib:format("~s-~b", 
-                                   [Bucket, 
-                                    erlang:phash2(Key) rem ?NFRAGS]))),
+                   [atom_to_list(Bucket),"-",
+                    integer_to_list(erlang:phash2(Key) rem ?NFRAGS)]),
     NewState = ensure_ring(State),
     OpList = case dict:find(BucketFrag, Ops) of
         error ->   [{OpType,Key}];
@@ -191,7 +189,8 @@ fix_bucket(Ring) ->
 
 %% @private 
 all_frags(Bucket) when is_atom(Bucket) ->
-    [list_to_binary(F) || F <- [atom_to_list(Bucket) ++ "-" ++ X || X <- [integer_to_list(I) || I <- lists:seq(0, ?NFRAGS-1)]]].
+    LB = atom_to_list(Bucket)++"-",
+    [list_to_binary(LB++integer_to_list(I)) || I <- lists:seq(0, ?NFRAGS-1)].
 %% @private
 ensure_ring(State=#state{ring=undefined}) ->
     riak_ring_manager:subscribe(self()),

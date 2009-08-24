@@ -492,7 +492,7 @@ content_types_accepted(ReqData, Context) ->
 %%          {io_list(), webmachine:wrq(), context()}
 %% @doc Get the representation of this resource that will be
 %%      sent to the client.
-produce_body(ReqData, Context=#ctx{key=container,module=Mod}) ->
+produce_body(ReqData, Context=#ctx{key=container,module=Mod,bucket=Bucket}) ->
     Qopts = wrq:req_qs(ReqData),
     Schema = case proplists:lookup("schema", Qopts) of
                  {"schema", "false"} -> [];
@@ -504,16 +504,39 @@ produce_body(ReqData, Context=#ctx{key=container,module=Mod}) ->
                                {ok, {K, NewCtx}} = retrieve_keylist(Context),
                                {[{keys, K}], NewCtx}
                        end,
+    KeyList = case Keys of
+        [{keys,Ks}] -> Ks;
+        _ -> []
+    end,
+    NewReqData = lists:foldl(fun(K,RD) ->
+                                     add_link_head(Bucket,K,"contained",RD)
+                             end,
+                             ReqData, KeyList),
     JSONSpec = {struct, Schema ++ Keys},
-    {mochijson2:encode(JSONSpec), ReqData, Context1};
-produce_body(ReqData, Context=#ctx{module=Module}) ->
+    {mochijson2:encode(JSONSpec), NewReqData, Context1};
+produce_body(ReqData, Context=#ctx{module=Module,bucket=Bucket}) ->
     {ok, {JiakObject0, Context1}} = retrieve_object(ReqData, Context),
     JiakObject = apply_read_mask(Module, JiakObject0),
+    {struct,JOProps} = JiakObject,
+    Links = proplists:get_value(<<"links">>, JOProps),
+    NewReqData = add_container_link(Bucket,
+                   lists:foldl(fun([B,K,T],RD) -> add_link_head(B,K,T,RD) end,
+                               ReqData, Links)),
     {mochijson2:encode(JiakObject),
      wrq:set_resp_header("X-JIAK-VClock",
                          binary_to_list(jiak_object:vclock(JiakObject)),
-                         ReqData),
+                         NewReqData),
      Context1}.    
+
+add_container_link(Bucket,ReqData) ->
+    Val = io_lib:format("</~s/~s>; rel=\"up\"",
+                    [riak:get_app_env(jiak_name, "jiak"),Bucket]),
+    wrq:merge_resp_headers([{"Link",Val}],ReqData).
+
+add_link_head(Bucket,Key,Tag,ReqData) ->
+    Val = io_lib:format("</~s/~s/~s>; riaktag=\"~s\"",
+                    [riak:get_app_env(jiak_name, "jiak"),Bucket, Key, Tag]),
+    wrq:merge_resp_headers([{"Link",Val}],ReqData).
 
 %% @spec full_schema(riak_object:bucket()) ->
 %%          [{schema_type(), [binary()]}]
