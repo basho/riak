@@ -78,7 +78,6 @@ waiting_vnode_w({w, Idx, ReqID},
         true ->
             case DW of
                 0 ->
-                    send_key_update(RObj),
                     gen_server2:reply(Client,ok),
                     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                         {ReqID, ok}),
@@ -126,7 +125,6 @@ waiting_vnode_dw({dw, Idx, ReqID},
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of
         true ->
-            send_key_update(RObj),
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                 {ReqID, ok}),
             gen_server2:reply(Client,ok),
@@ -225,17 +223,3 @@ make_vtag(RObj) ->
     <<HashAsNum:128/integer>> = crypto:md5(iolist_to_binary(io_lib:format("~p",
                                                  [riak_object:vclock(RObj)]))),
     riak_util:integer_to_list(HashAsNum,62).
-
-send_key_update(RObj) ->
-    case riak_util:is_x_deleted(RObj) of
-        true -> nop;
-        false ->
-            spawn(fun() ->
-                case riak_object:bucket(RObj) of
-                    ' bucketkeys' -> nop; % special keylist bucket, ignore
-                    Bucket ->
-                        riak_bucketkeys:put_key(Bucket,
-                                                  riak_object:key(RObj))
-                          end
-                  end)
-    end.

@@ -187,7 +187,6 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
                             riak_eventer:notify(riak_get_fsm,
                                                 delete_finalize_start,
                                                 {ReqID, Bucket, Key}),
-                            riak_bucketkeys:del_key(Bucket,Key),
                             [gen_server2:call({riak_vnode_master, Node},
                                              {vnode_del, {Idx,Node},
                                               {Storekey,ReqID}}) ||

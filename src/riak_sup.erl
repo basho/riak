@@ -51,9 +51,6 @@ init([]) ->
     EventGuard = {riak_event_guard,
                  {riak_event_guard, start_link, []},
                  permanent, 5000, worker, dynamic},
-    BucketKeys = {riak_bucketkeys,
-                 {riak_bucketkeys, start_link, []},
-                  permanent, 5000, worker, dynamic},
     LocalLogger = {riak_local_logger,
                    {riak_local_logger, start_link, []},
                    permanent, 5000, worker, dynamic},
@@ -63,11 +60,11 @@ init([]) ->
     Processes0 = 
     case riak:get_app_env(riak_web_ip) of
         "undefined" ->
-            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger,BucketKeys];
+            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger];
         undefined ->
-            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger,BucketKeys];
+            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger];
         _ ->
-            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger,BucketKeys,
+            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger,
              RiakWeb]
     end,
     Processes1 = 

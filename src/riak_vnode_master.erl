@@ -52,6 +52,11 @@ handle_cast({vnode_merkle, {RemoteVN,Partition,Merkle}}, State) ->
     Pid = get_vnode(Partition, State),
     gen_server2:cast(Pid, {vnode_merkle, {RemoteVN,Merkle}}),
     % (obligation done, now the problem of the vnodes)
+    {noreply, State};
+handle_cast({vnode_list_bucket, {Partition,_Node},
+            {FSM_pid, Bucket, ReqID}}, State) ->
+    Pid = get_vnode(Partition, State),
+    gen_server2:cast(Pid, {list_bucket, FSM_pid, Bucket, ReqID}),
     {noreply, State}.
 
 

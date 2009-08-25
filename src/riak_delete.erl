@@ -37,7 +37,6 @@ delete(Bucket,Key,RW,Timeout,Client) ->
             Reply = C:put(NewObj, RW, RW, RemainingTime),
             case Reply of
                 ok -> 
-                    spawn(fun()-> riak_bucketkeys:del_key(Bucket,Key) end),
                     spawn(
                       fun()-> reap(Bucket,Key,RemainingTime,Timeout,ReqID) end);
                 _ -> nop
@@ -45,7 +44,6 @@ delete(Bucket,Key,RW,Timeout,Client) ->
             riak_eventer:notify(riak_delete, delete_reply, {ReqID, Reply}),
             gen_server2:reply(Client, Reply);
         {error, notfound} ->
-            spawn(fun()-> riak_bucketkeys:del_key(Bucket,Key) end),
             riak_eventer:notify(riak_delete, delete_reply,
                                 {ReqID, {error, notfound}}),
             gen_server2:reply(Client, {error, notfound});

@@ -143,8 +143,19 @@ delete(Bucket,Key,RW,Timeout) ->
 %% @doc List the keys known to be present in Bucket.
 %%      Key lists are updated asynchronously, so this may be slightly
 %%      out of date if called immediately after a put or delete.
+%% @equiv list_keys(Bucket, default_timeout()*8)
 list_keys(Bucket) -> 
-    gen_server2:call({riak_api,Node}, {list_keys,Bucket}, ?DEFAULT_TIMEOUT*8).
+    list_keys(Bucket, ?DEFAULT_TIMEOUT*8).
+
+%% @spec list_keys(riak_object:bucket(), TimeoutMillisecs :: integer()) ->
+%%       {ok, [Key :: riak_object:key()]} |
+%%       {error, timeout} |
+%%       {error, Err :: term()}
+%% @doc List the keys known to be present in Bucket.
+%%      Key lists are updated asynchronously, so this may be slightly
+%%      out of date if called immediately after a put or delete.
+list_keys(Bucket, Timeout) -> 
+    gen_server2:call({riak_api,Node}, {list_keys,Bucket,Timeout}, Timeout).
 
 %% @spec set_bucket(riak_object:bucket(), [BucketProp :: {atom(),term()}]) -> ok
 %% @doc Set the given properties for Bucket.

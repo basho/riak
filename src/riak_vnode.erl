@@ -88,6 +88,11 @@ handle_cast({get, FSM_pid, Storekey, ReqID}, State=#state{idx=Idx}) ->
 handle_cast({delete, Client, Storekey, ReqID}, State=#state{idx=Idx}) ->
     riak_eventer:notify(riak_vnode, delete, {ReqID, Idx}),
     do_delete(Client, Storekey, ReqID, State),
+    {noreply, State};
+handle_cast({list_bucket, Client, Bucket, ReqID},
+            State=#state{mod=Mod,modstate=ModState,idx=Idx}) ->
+    riak_eventer:notify(riak_vnode, list_bucket, {ReqID, Idx}),
+    do_list_bucket(Client,ReqID,Bucket,Mod,ModState,Idx),
     {noreply, State}.
 
 %% @private
@@ -122,6 +127,11 @@ async_do_list(From,Mod,ModState) ->
                   gen_server2:reply(From, RetVal)
           end).
 
+do_list_bucket(FSM_pid,ReqID,Bucket,Mod,ModState,Idx) ->
+    RetVal = Mod:list_bucket(ModState,Bucket),
+    riak_eventer:notify(riak_vnode, keys_reply, {ReqID, FSM_pid}),
+    gen_fsm:send_event(FSM_pid, {kl, RetVal,Idx,ReqID}).
+
 do_get_binary(Storekey, Mod, ModState) ->
     Mod:get(ModState,Storekey).
 
@@ -136,8 +146,8 @@ do_delete(Client, Storekey, ReqID,
             gen_server2:reply(Client, {fail, Idx, ReqID})
     end.
 
-simple_binary_put(Storekey, Val, Mod, ModState) ->
-    Mod:put(ModState, Storekey, Val).
+simple_binary_put({Bucket, Key}, Storekey, Val, Mod, ModState) ->
+    Mod:put(ModState, {Bucket, Key}, Storekey, Val).
 
 do_put(FSM_pid, Storekey, RObj, ReqID,
        _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
@@ -147,7 +157,9 @@ do_put(FSM_pid, Storekey, RObj, ReqID,
             gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
         {newobj, ObjToStore} ->
             Val = term_to_binary(ObjToStore, [compressed]),
-            case simple_binary_put(Storekey, Val, Mod, ModState) of
+            case simple_binary_put({riak_object:bucket(RObj),
+                                    riak_object:key(RObj)},
+                                   Storekey, Val, Mod, ModState) of
                 ok ->
                     riak_eventer:notify(riak_vnode,put_reply,ReqID),
                     gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});

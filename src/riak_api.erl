@@ -59,10 +59,9 @@ handle_call({get_bucket,BucketName}, From, State) ->
                            riak_bucket:get_bucket(BucketName))
           end),
     {noreply, State};
-handle_call({list_keys,Bucket}, From, State) ->
-    spawn(fun() ->
-        gen_server2:reply(From, riak_bucketkeys:get_keys(Bucket))
-          end),
+handle_call({list_keys,Bucket,Timeout}, From, State) ->
+    NewState = ensure_ring(State),
+    riak_keys_fsm:start(NewState#state.ring, Bucket, Timeout, From),
     {noreply, State}.
 
 %% @private
