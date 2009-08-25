@@ -12,7 +12,7 @@ jar: compile
 clean:
 	@rm -rf build dist
 
-test: compile
+test: jar
 	java -cp dist/jiak_client.jar com.basho.riak.JiakTest
 
 javadoc: compile
