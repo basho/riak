@@ -17,7 +17,7 @@
 -module(riak_dets_backend).
 
 -include_lib("eunit/include/eunit.hrl").
--export([start/1,stop/1,get/2,put/3,list/1,delete/2]).
+-export([start/1,stop/1,get/2,put/4,list/1,list_bucket/2,delete/2]).
 
 % @type state() = term().
 -record(state, {table}).
@@ -70,14 +70,14 @@ stop(#state{table=T}) -> dets:close(T).
 get(#state{table=T}, Key) ->
     case dets:lookup(T, Key) of
         [] -> {error, notfound};
-        [{Key,Val}] -> {ok, Val};
+        [{Key,{_,_,Val}}] -> {ok, Val};
         {error, Err} -> {error, Err}
     end.
 
 % put(state(), Key :: binary(), Val :: binary()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
-put(#state{table=T},Key,Val) -> dets:insert(T, {Key,Val}).
+put(#state{table=T},{B,K},Key,Val) -> dets:insert(T, {Key,{B,K,Val}}).
 
 % delete(state(), Key :: binary()) ->
 %   ok | {error, Reason :: term()}
@@ -91,4 +91,6 @@ list(#state{table=T}) ->
 list([],Acc) -> Acc;
 list([[K]|Rest],Acc) -> list(Rest,[K|Acc]).
 
-
+list_bucket(#state{table=T}, Bucket) ->
+    MList = dets:match(T,{'_',{Bucket,'$1','_'}}),
+    list(MList,[]).
