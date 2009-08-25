@@ -55,9 +55,13 @@ loop(Write) ->
     after Interval ->
             riak_eventer:notify(riak_ring_gossiper, interval, interval),
             {ok, MyRing} = riak_ring_manager:get_my_ring(),
-            Indices = [I || {I,_} <- riak_ring:all_owners(MyRing)],
-            gen_server:cast({riak_vnode_master, node()}, {start_vnode, 
-               lists:nth(crypto:rand_uniform(1, length(Indices)+1), Indices)}),
+            VNodes2Start = case length(riak_ring:all_members(MyRing)) of
+               1 -> riak_ring:my_indices(MyRing);
+               _ -> [riak_ring:random_other_index(MyRing)|
+                     riak_ring:my_indices(MyRing)]
+            end,
+            [gen_server:cast({riak_vnode_master, node()},
+                   {start_vnode, I}) || I <- VNodes2Start],                             
             case Write of
                 no_write -> nop;
                 write -> riak_ring_manager:write_ringfile()
