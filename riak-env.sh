@@ -1,1 +1,2 @@
-export ERL_MAX_ETS_TABLES=100000
+export ERL_FLAGS="+K true"
+
