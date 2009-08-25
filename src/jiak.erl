@@ -14,7 +14,7 @@
 
 %% @doc Jiak: Riak utilities, focused on JSON-encoded data.
 %%
-%%      Riak is meant is web-shaped, and one of the most useful
+%%      Riak is web-shaped, and one of the most useful
 %%      interchange formats on the web is JSON.  The Jiak libraries
 %%      are intended to provide a simple system for serving data from
 %%      Riak in the JSON format.
