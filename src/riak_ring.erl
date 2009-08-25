@@ -181,20 +181,30 @@ ancestors(RingStates) ->
 % @spec reconcile(ExternState :: hstate(), MyState :: hstate()) ->
 %       {no_change, hstate()} | {new_ring, hstate()}
 reconcile(ExternState, MyState) ->
-    case ancestors([ExternState, MyState]) of
-        [OlderState] ->
-          case vclock:equal(OlderState#hstate.vclock,MyState#hstate.vclock) of
-              true -> {new_ring, #hstate{nodename=MyState#hstate.nodename,
-                                         vclock=ExternState#hstate.vclock,
-                                         ring=ExternState#hstate.ring,
-                                         meta=ExternState#hstate.meta}};
-              false -> {no_change, MyState}
-          end;
-	[] -> 
-            case equal_rings(ExternState,MyState) of
-                true -> {no_change, MyState};
-                false -> {new_ring, reconcile(MyState#hstate.nodename,
-                                              ExternState, MyState)}
+    case vclock:equal(MyState#hstate.vclock, vclock:fresh()) of
+        true -> 
+            {new_ring, #hstate{nodename=MyState#hstate.nodename,
+                               vclock=ExternState#hstate.vclock,
+                               ring=ExternState#hstate.ring,
+                               meta=ExternState#hstate.meta}};
+        false ->
+            case ancestors([ExternState, MyState]) of
+                [OlderState] ->
+                    case vclock:equal(OlderState#hstate.vclock,
+                                      MyState#hstate.vclock) of
+                        true ->
+                            {new_ring, #hstate{nodename=MyState#hstate.nodename,
+                                               vclock=ExternState#hstate.vclock,
+                                               ring=ExternState#hstate.ring,
+                                               meta=ExternState#hstate.meta}};
+                        false -> {no_change, MyState}
+                    end;
+                [] -> 
+                    case equal_rings(ExternState,MyState) of
+                        true -> {no_change, MyState};
+                        false -> {new_ring, reconcile(MyState#hstate.nodename,
+                                                      ExternState, MyState)}
+                    end
             end
     end.
 
