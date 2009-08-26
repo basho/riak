@@ -46,10 +46,10 @@ run_demo(Hostname, Port, Cookie) ->
 continue_demo(Client) ->
     io:format("Looking for pre-existing object at {riak_demo, \"demo\"}...~n"),
     WrittenValue =
-        case Client:get(riak_demo, "demo", 1) of
+        case Client:get(riak_demo, <<"demo">>, 1) of
             {error, notfound} ->
                 io:format("  No pre-existing object found, creating new~n"),
-                demo_write(Client, riak_object:new(riak_demo, "demo", undefined));
+                demo_write(Client, riak_object:new(riak_demo, <<"demo">>, undefined));
             {ok, Object} ->
                 io:format("  Pre-existing object found, modifying~n"),
                 demo_write(Client, Object);
@@ -76,7 +76,7 @@ demo_write(Client, Object0) ->
 
 demo_read(Client, WrittenValue) ->
     io:format("Fetching object at {riak_demo, \"demo\"}...~n"),
-    case Client:get(riak_demo, "demo", 1) of
+    case Client:get(riak_demo, <<"demo">>, 1) of
         {ok, Object} ->
             io:format("  Fetched successfully~n"),
             case lists:member(WrittenValue, riak_object:get_values(Object)) of
