@@ -18,7 +18,7 @@
 -export([start/6]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
--export([waiting_vnode_r/2,waiting_read_repair/2]).
+-export([initialize/2,waiting_vnode_r/2,waiting_read_repair/2]).
 
 -record(state, {client :: {pid(), reference()},
                 n :: pos_integer(), 
@@ -33,7 +33,8 @@
                 replied_fail :: list(),
                 repair_sent :: list(), 
                 final_obj :: undefined|riak_object:riak_object(),
-                endtime :: pos_integer(), 
+                timeout :: pos_integer(),
+                endtime :: pos_integer(),
                 bkey :: {riak_object:bucket(), riak_object:key()},
                 ring :: riak_ring:riak_ring()
                }).
@@ -43,6 +44,13 @@ start(Ring,Bucket,Key,R,Timeout,From) ->
 
 %% @private
 init([Ring,Bucket,Key,R,Timeout,Client]) ->
+    StateData = #state{client=Client,r=R, timeout=Timeout,
+                       bkey={Bucket,Key}, ring=Ring},
+    {ok,initialize,StateData,0}.
+
+%% @private
+initialize(timeout, StateData0=#state{timeout=Timeout,
+                                      bkey={Bucket,Key}, ring=Ring}) ->
     RealStartTime = riak_util:moment(),
     DocIdx = chash:key_of({Bucket, Key}),
     ReqID = erlang:phash2({random:uniform(), self(), DocIdx, RealStartTime}),
@@ -61,13 +69,12 @@ init([Ring,Bucket,Key,R,Timeout,Client]) ->
     end,
     riak_eventer:notify(riak_get_fsm, get_fsm_sent,
                                 {ReqID, [{T,S} || {_I,T,S} <- Sent]}),
-    StateData = #state{client=Client,n=N,r=R,allowmult=AllowMult,repair_sent=[],
+    StateData = StateData0#state{n=N,allowmult=AllowMult,repair_sent=[],
                        preflist=Preflist,final_obj=undefined,
                        req_id=ReqID,replied_r=[],replied_fail=[],
                        replied_notfound=[],starttime=riak_util:moment(),
-                       waiting_for=Sent,endtime=Timeout+riak_util:moment(),
-                       bkey={Bucket,Key}, ring=Ring},
-    {ok,waiting_vnode_r,StateData,Timeout}.
+                       waiting_for=Sent,endtime=Timeout+riak_util:moment()},
+    {next_state,waiting_vnode_r,StateData,Timeout}.
 
 waiting_vnode_r({r, {ok, RObj}, Idx, ReqID},
                   StateData=#state{r=R,allowmult=AllowMult,

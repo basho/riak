@@ -18,7 +18,7 @@
 -export([start/6]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
--export([waiting_vnode_w/2,waiting_vnode_dw/2]).
+-export([initialize/2,waiting_vnode_w/2,waiting_vnode_dw/2]).
 
 -record(state, {robj :: riak_object:riak_object(), 
                 client :: {pid(), reference()}, 
@@ -33,6 +33,7 @@
                 replied_w :: list(), 
                 replied_dw :: list(), 
                 replied_fail :: list(),
+                timeout :: pos_integer(), 
                 endtime :: pos_integer(), 
                 ring :: riak_ring:riak_ring()
                }).
@@ -42,6 +43,13 @@ start(Ring,RObj,W,DW,Timeout,From) ->
 
 %% @private
 init([Ring,RObj0,W,DW,Timeout,Client]) ->
+    StateData = #state{robj=RObj0, client=Client, w=W, dw=DW,
+                       timeout=Timeout, ring=Ring},
+    {ok,initialize,StateData,0}.
+
+%% @private
+initialize(timeout, StateData0=#state{robj=RObj0, client=Client, w=W, dw=DW, 
+                                                timeout=Timeout, ring=Ring}) ->
     RealStartTime = riak_util:moment(),
     Bucket = riak_object:bucket(RObj0),
     BucketProps = riak_bucket:get_bucket(Bucket, Ring),
@@ -62,13 +70,12 @@ init([Ring,RObj0,W,DW,Timeout,Client]) ->
     end,
     riak_eventer:notify(riak_put_fsm, put_fsm_sent,
                                 {ReqID, [{T,S} || {_I,T,S} <- Sent]}),
-    StateData = #state{robj=RObj, client=Client, n=N, w=W, dw=DW,
-                       preflist=Preflist, bkey={Bucket,Key}, waiting_for=Sent,
-                       req_id=ReqID, starttime=riak_util:moment(),
-                       replied_w=[], replied_dw=[], replied_fail=[],
-                       endtime=Timeout+riak_util:moment(), ring=Ring},
-    {ok,waiting_vnode_w,StateData,Timeout}.
-
+    StateData = StateData0#state{
+                  robj=RObj, n=N, preflist=Preflist, bkey={Bucket,Key},
+                  waiting_for=Sent, req_id=ReqID, starttime=riak_util:moment(),
+                  replied_w=[], replied_dw=[], replied_fail=[],
+                  endtime=Timeout+riak_util:moment()},
+    {next_state,waiting_vnode_w,StateData,Timeout}.
 
 waiting_vnode_w({w, Idx, ReqID},
                   StateData=#state{w=W,dw=DW,req_id=ReqID,client=Client,
