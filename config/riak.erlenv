@@ -1,14 +1,51 @@
+%% cluster_name can be any short string; it should be the same for all
+%%  nodes that will be participating in the same cluster.
 {cluster_name, "default"}.
+%% ring_state_dir is where ring membership information will be stored.
 {ring_state_dir, "priv/ringstate"}.
+%% ring_creation_size determines the number of partitions used for hashing
+%%  document keys.  This cannot be changed after cluster initialization.
+%%  Ensure that it is at least 10x the number of hosts you might ever
+%%  add to the cluster.
+%% note: make sure you configure your operating system limits for maximum
+%% open files (using ulimit/sysctl) when creating larger ring sizes. 
 {ring_creation_size, 16}.
+%% gossip_interval (milliseconds) is the frequency of gossip messages.
+%%  Making it larger will reduce chatter, but will cause greater delays
+%%  in ring convergence between nodes.
 {gossip_interval, 60000}.
+%% doorbell_port is the UDP port used by clients and other nodes to connect
+%%  to the cluster via this node.  If this is undefined the node will be
+%%  storage-only and cannot be an entry point for API requests or joins.
 {doorbell_port, 9000}.
+%% storage_backend specifies the Erlang module defining the storage mechanism
+%%  that will be used on this node. 
 {storage_backend, riak_dets_backend}.
+%% Different storage backends can use other configuration variables.  For
+%%  instance, riak_dets_backend_root determines the directory under which
+%%  dets files will be placed.
 {riak_dets_backend_root, "/path/to/riak/store"}.
+%% riak_cookie is the Erlang cookie that the cluster shares.  This must be
+%%  the same across all nodes.
 {riak_cookie, default_riak_cookie}.
+%% riak_heart_command will be used by heart to restart the system in case of
+%%  a lockup or certain types of crashes.  Make sure to fix the paths in
+%%  the command if you wish for automatic restarts to work.
 {riak_heart_command, "(cd /path/to/riak; ./start-restart.sh /path/to/riak/config/riak.erlenv)"}.
+%% riak_nodename is the first part of the name that this node will use to
+%%  identify itself.  This must be different for all ndoes with the same
+%%  value of riak_hostname.
 {riak_nodename, riak}.
+%% riak_hostname is the second part of the name that this node will use to
+%%  identify itself.  This must be an IP or hostname that the other nodes
+%%  can use to contact the system.
 {riak_hostname, "127.0.0.1"}.
+%% riak_web_ip is the IP address that Riak's HTTP interface will bind to.
+%%  If this is undefined, the HTTP interface will not run.
 {riak_web_ip, "127.0.0.1"}.
+%% riak_web_port is the TCP port that Riak's HTTP interface will bind to.
 {riak_web_port, 8098}.
+%% jiak_name is the first part of all URLs used by Riak's HTTP interface.
+%%  See the HTTP interface documents for more details.  If you change this,
+%%  the defaults used by some Riak HTTP clients may not work.
 {jiak_name, "jiak"}.

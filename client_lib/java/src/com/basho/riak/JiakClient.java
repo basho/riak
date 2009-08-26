@@ -26,6 +26,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -258,6 +259,60 @@ public class JiakClient {
 			writeRequestBody(requestConn, body);
 		}
 		return requestConn;
+	}
+
+	/**
+	 * Perform a map/reduce link walking operation and return a list of lists of
+	 * JiakObjects for which the "accumulate" flag is true. (see documentation
+	 * on walkSpec below).
+	 * 
+	 * @param bucket
+	 *            The bucket of the "starting object"
+	 * @param key
+	 *            The key of the "starting object"
+	 * @param walkSpec
+	 *            A URL-path (omit beginning /) of the form
+	 *            <code>bucket,tag-spec,accumulateFlag</code> The
+	 *            <code>tag-spec "_"</code> matches all tags.
+	 *            <code>accumulateFlag</code> is either the String "1" or "0".
+	 * @return An <code>ArrayList</code> of <code>ArrayLists</code>, where each
+	 *         sub-list corresponds to a <code>walkSpec</code> element that had
+	 *         <code>accumulateFlag</code> equal to 1.
+	 * @throws IOException
+	 *             If an error occurs communicating with the Riak server.
+	 * @throws JSONException
+	 *             If an error occurs unparsing JSON requests or responses.
+	 * @throws JiakException
+	 *             If the Riak server returns an error or unexpected response
+	 *             code.
+	 */
+	public ArrayList<ArrayList<JiakObject>> walk(final String bucket,
+			final String key, final String walkSpec) throws IOException,
+			JSONException, JiakException {
+		final ArrayList<ArrayList<JiakObject>> results = new ArrayList<ArrayList<JiakObject>>();
+		final String reqURI = makeURI(bucket + "/" + key + "/" + walkSpec);
+		final Map<String, String> reqHeaders = new HashMap<String, String>();
+		reqHeaders.put("Accept", "application/json");
+		final HttpURLConnection requestConn = doRequest("GET", reqURI, null,
+				reqHeaders);
+		final int responseCode = requestConn.getResponseCode();
+		if (responseCode == 404)
+			return null;
+		final JSONArray jsonResults = expect(200, requestConn).getJSONArray(
+				"results");
+		for (int i = 0; i < jsonResults.length(); ++i) {
+			final ArrayList<JiakObject> ra = new ArrayList<JiakObject>();
+			final JSONArray ja = jsonResults.getJSONArray(i);
+			for (int j = 0; j < ja.length(); ++j) {
+				final JSONObject json = ja.getJSONObject(j);
+				final JiakObject jo = new JiakObject(json.getString("bucket"),
+						json.getString("key"));
+				jo.update(json);
+				ra.add(jo);
+			}
+			results.add(ra);
+		}
+		return results;
 	}
 
 	protected JSONObject expect(final int responseCode,

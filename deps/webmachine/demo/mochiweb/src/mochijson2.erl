@@ -42,7 +42,8 @@
 %% @type json_term() = json_string() | json_number() | json_array() |
 %%                     json_object()
 
--record(encoder, {handler=null}).
+-record(encoder, {handler=null,
+                  utf8=false}).
 
 -record(decoder, {object_hook=null,
                   offset=0,
@@ -52,6 +53,8 @@
 
 %% @spec encoder([encoder_option()]) -> function()
 %% @doc Create an encoder/1 with the given options.
+%% @type encoder_option() = handler_option() | utf8_option()
+%% @type utf8_option() = boolean(). Emit unicode as utf8 (default - false)
 encoder(Options) ->
     State = parse_encoder_options(Options, #encoder{}),
     fun (O) -> json_encode(O, State) end.
@@ -80,7 +83,9 @@ test() ->
 parse_encoder_options([], State) ->
     State;
 parse_encoder_options([{handler, Handler} | Rest], State) ->
-    parse_encoder_options(Rest, State#encoder{handler=Handler}).
+    parse_encoder_options(Rest, State#encoder{handler=Handler});
+parse_encoder_options([{utf8, Switch} | Rest], State) ->
+    parse_encoder_options(Rest, State#encoder{utf8=Switch}).
 
 parse_decoder_options([], State) ->
     State;
@@ -131,29 +136,29 @@ json_encode_proplist(Props, State) ->
     [$, | Acc1] = lists:foldl(F, "{", Props),
     lists:reverse([$\} | Acc1]).
 
-json_encode_string(A, _State) when is_atom(A) ->
+json_encode_string(A, State) when is_atom(A) ->
     L = atom_to_list(A),
     case json_string_is_safe(L) of
         true ->
             [?Q, L, ?Q];
         false ->
-            json_encode_string_unicode(xmerl_ucs:from_utf8(L), [?Q])
+            json_encode_string_unicode(xmerl_ucs:from_utf8(L), State, [?Q])
     end;
-json_encode_string(B, _State) when is_binary(B) ->
+json_encode_string(B, State) when is_binary(B) ->
     case json_bin_is_safe(B) of
         true ->
             [?Q, B, ?Q];
         false ->
-            json_encode_string_unicode(xmerl_ucs:from_utf8(B), [?Q])
+            json_encode_string_unicode(xmerl_ucs:from_utf8(B), State, [?Q])
     end;
 json_encode_string(I, _State) when is_integer(I) ->
     [?Q, integer_to_list(I), ?Q];
-json_encode_string(L, _State) when is_list(L) ->
+json_encode_string(L, State) when is_list(L) ->
     case json_string_is_safe(L) of
         true ->
             [?Q, L, ?Q];
         false ->
-            json_encode_string_unicode(L, [?Q])
+            json_encode_string_unicode(L, State, [?Q])
     end.
 
 json_string_is_safe([]) ->
@@ -208,9 +213,9 @@ json_bin_is_safe(<<C, Rest/binary>>) ->
             false
     end.
 
-json_encode_string_unicode([], Acc) ->
+json_encode_string_unicode([], _State, Acc) ->
     lists:reverse([$\" | Acc]);
-json_encode_string_unicode([C | Cs], Acc) ->
+json_encode_string_unicode([C | Cs], State, Acc) ->
     Acc1 = case C of
                ?Q ->
                    [?Q, $\\ | Acc];
@@ -236,14 +241,18 @@ json_encode_string_unicode([C | Cs], Acc) ->
                    [$r, $\\ | Acc];
                $\t ->
                    [$t, $\\ | Acc];
-               C when C >= 0, C < $\s; C >= 16#7f, C =< 16#10FFFF ->
+               C when C >= 0, C < $\s ->
+                   [unihex(C) | Acc];
+               C when C >= 16#7f, C =< 16#10FFFF, State#encoder.utf8 ->
+                   [xmerl_ucs:to_utf8(C) | Acc];
+               C when  C >= 16#7f, C =< 16#10FFFF, not State#encoder.utf8 ->
                    [unihex(C) | Acc];
                C when C < 16#7f ->
                    [C | Acc];
                _ ->
                    exit({json_encode, {bad_char, C}})
            end,
-    json_encode_string_unicode(Cs, Acc1).
+    json_encode_string_unicode(Cs, State, Acc1).
 
 hexdigit(C) when C >= 0, C =< 9 ->
     C + $0;
@@ -541,6 +550,7 @@ equiv_list([V1 | L1], [V2 | L2]) ->
 
 test_all() ->
     [1199344435545.0, 1] = decode(<<"[1199344435545.0,1]">>),
+    test_encoder_utf8(),
     test_one(e2j_test_vec(utf8), 1).
 
 test_one([], _N) ->
@@ -595,3 +605,14 @@ e2j_test_vec(utf8) ->
      {[-123, <<"foo">>, obj_from_list([{<<"bar">>, []}]), null],
       "[-123,\"foo\",{\"bar\":[]},null]"}
     ].
+
+%% test utf8 encoding
+test_encoder_utf8() ->
+    %% safe conversion case (default)
+    [34,"\\u0001","\\u0442","\\u0435","\\u0441","\\u0442",34] = 
+        encode(<<1,"\321\202\320\265\321\201\321\202">>),
+
+    %% raw utf8 output (optional)
+    Enc = mochijson2:encoder([{utf8, true}]),
+    [34,"\\u0001",[209,130],[208,181],[209,129],[209,130],34] =
+        Enc(<<1,"\321\202\320\265\321\201\321\202">>).

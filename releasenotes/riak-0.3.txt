@@ -1,0 +1,33 @@
+riak-0.3
+
+This release includes a backwards-incompatible change to riak_object,
+enforcing all object keys to be binaries.  This only effects users of
+the Erlang native interface.  Users of the HTTP/Jiak interface should
+not be affected.
+
+riak_object:
+  - Enforcement of binary-only object keys.       
+
+HTTP Interface:
+  - new Java client.
+  - HTTP results now include Link: headers (http://tools.ietf.org/html/draft-nottingham-http-link-header-06).
+  - Upgraded to Webmachine-1.4 and mochiweb-trunk.
+  - Fixed default web access log directory.
+
+Eventer:
+  - Performance improvements (only calculate eventers on ring-state changes).
+  - Add a local logfile facility via the riak_local_logfile configuration 
+  parameter.  This should only be used for debugging as the profuse logging
+  can compete with the I/O demands of Riak itself.
+
+Internals:
+  - Fix for a ring-state gossip bug encountered when running large clusters.
+  - Increased value of ERL_MAX_PORTS to 4096 to support larger ring sizes.
+
+Performance:
+  - Turn riak_bucketkeys into a gen_server2 process with tuned GC parameters.
+  - Enable kernel-poll in Erlang VM by default.
+  
+Documentation:
+  - Documented all configuration parameters in config/riak.erlenv
+

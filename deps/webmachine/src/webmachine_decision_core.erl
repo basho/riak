@@ -374,7 +374,7 @@ decision(v3l17) ->
     ReqDate = get_header_val("if-modified-since"),    
     ReqErlDate = webmachine_util:convert_request_date(ReqDate),
     ResErlDate = resource_call(last_modified),
-    decision_test(ResErlDate > ReqErlDate,
+    decision_test(ResErlDate =:= undefined orelse ResErlDate > ReqErlDate,
                   true, v3m16, 304);
 %% "POST?"
 decision(v3m5) ->
