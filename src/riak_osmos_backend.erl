@@ -39,7 +39,7 @@
 %%    under riak_osmos_backend_root.
 -module(riak_osmos_backend).
 
--export([start/1,stop/1,get/2,put/4,list/1,list_bucket/2,delete/2]).
+-export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
 -record(state, {table}).
 
 %% @spec start(Partition :: integer()) ->
@@ -87,40 +87,38 @@ stop(#state{table=Table}) ->
 %% get(state(), Key :: binary()) ->
 %%   {ok, Val :: binary()} | {error, Reason :: term()}
 %% key must be 160b
-get(#state{table=Table}, Key) ->
-    case osmos:read(Table, Key) of
+get(#state{table=Table}, BKey) ->
+    case osmos:read(Table, term_to_binary(BKey)) of
         {ok, <<>>}  -> {error, notfound}; %% sentinal for delete
-        {ok, Value} ->
-            {_,_,RVal} = binary_to_term(Value),
-            {ok, RVal};
+        {ok, Value} -> {ok, Value};
         not_found   -> {error, notfound}
     end.
 
 %% put(state(), Key :: binary(), Val :: binary()) ->
 %%   ok | {error, Reason :: term()}
 %% key must be 160b
-put(#state{table=Table},{B,K},Key,Val) ->       
-    osmos:write(Table, Key, term_to_binary({B,K,Val})).
+put(#state{table=Table},BKey,Val) ->       
+    osmos:write(Table, term_to_binary(BKey), Val).
 
 %% delete(state(), Key :: binary()) ->
 %%   ok | {error, Reason :: term()}
 %% key must be 160b
-delete(#state{table=Table}, Key) ->
-    osmos:write(Table, Key, <<>>). %% sentinal for delete
+delete(#state{table=Table}, BKey) ->
+    osmos:write(Table, term_to_binary(BKey), <<>>). %% sentinal for delete
 
 -define(SELECT_CHUNK, 1000).
 
 %% list(state()) -> [Key :: binary()]
 list(#state{table=Table}) ->
-    accum(Table, fun(K,_) -> {true, K} end).
+    accum(Table, fun(K,_) -> {true, binary_to_term(K)} end).
 
 %% list_bucket(state(), Bucket :: atom()) -> [Key :: binary()]
 list_bucket(#state{table=Table}, Bucket) ->
     accum(Table,
-          fun(_,V) ->
-                  case binary_to_term(V) of
-                      {Bucket, Key, _} -> {true, Key};
-                      _                -> false
+          fun(K,_) ->
+                  case binary_to_term(K) of
+                      {Bucket, Key} -> {true, Key};
+                      _             -> false
                   end
           end).
 
