@@ -18,13 +18,16 @@
 -export([start/4]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
--export([waiting_kl/2]).
+-export([initialize/2,waiting_kl/2]).
 
 -record(state, {client :: {pid(), reference()},
                 keys :: [set()],
                 waiting :: [node()],
+                bucket :: riak_object:bucket(),
+                timeout :: pos_integer(),
                 endtime :: pos_integer(),
-                req_id :: pos_integer()
+                req_id :: pos_integer(),
+                ring :: riak_ring:riak_ring()
                }).
 
 start(Ring,Bucket,Timeout,From) ->
@@ -32,6 +35,13 @@ start(Ring,Bucket,Timeout,From) ->
 
 %% @private
 init([Ring,Bucket,Timeout,Client]) ->
+    StateData = #state{client=Client, timeout=Timeout,
+                       bucket=Bucket, ring=Ring},
+    {ok,initialize,StateData,0}.
+
+%% @private
+initialize(timeout, StateData0=#state{timeout=Timeout,
+                                      bucket=Bucket, ring=Ring}) ->
     RealStartTime = riak_util:moment(),
     ReqID = erlang:phash2({random:uniform(), self(), Bucket, RealStartTime}),
     riak_eventer:notify(riak_keys_fsm, keys_fsm_start,
@@ -51,10 +61,10 @@ init([Ring,Bucket,Timeout,Client]) ->
               end,
               [],
               NodeList),
-    StateData = #state{waiting=Asked, keys=[], client=Client,
+    StateData = StateData0#state{waiting=Asked, keys=[],
                        endtime=Timeout+riak_util:moment(),
                        req_id=ReqID},
-    {ok, waiting_kl, StateData, Timeout}.
+    {next_state, waiting_kl, StateData, Timeout}.
 
 waiting_kl({kl, Keys, Idx, ReqID},
            StateData=#state{keys=Acc,waiting=Waiting,endtime=End}) ->
