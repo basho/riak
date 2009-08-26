@@ -26,7 +26,7 @@
                 w :: pos_integer(), 
                 dw :: non_neg_integer(), 
                 preflist :: [{pos_integer(), atom()}], 
-                storekey :: binary(), 
+                bkey :: {riak_object:bucket(), riak_object:key()},
                 waiting_for :: list(),
                 req_id :: pos_integer(), 
                 starttime :: pos_integer(), 
@@ -50,10 +50,10 @@ init([Ring,RObj0,W,DW,Timeout,Client]) ->
     Key = riak_object:key(RObj),
     riak_eventer:notify(riak_put_fsm, put_fsm_start,
                         {ReqID, RealStartTime, Bucket, Key}),
-    Storekey = chash:key_of({Bucket, Key}),
-    Msg = {self(), Storekey, RObj, ReqID},
+    DocIdx = chash:key_of({Bucket, Key}),
+    Msg = {self(), {Bucket,Key}, RObj, ReqID},
     N = proplists:get_value(n_val,BucketProps),
-    Preflist = riak_ring:filtered_preflist(Storekey, Ring, N),
+    Preflist = riak_ring:filtered_preflist(DocIdx, Ring, N),
     {Targets, Fallbacks} = lists:split(N, Preflist),
     {Sent1, Pangs1} = riak_util:try_cast(vnode_put, Msg, Targets),
     Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
@@ -63,7 +63,7 @@ init([Ring,RObj0,W,DW,Timeout,Client]) ->
     riak_eventer:notify(riak_put_fsm, put_fsm_sent,
                                 {ReqID, [{T,S} || {_I,T,S} <- Sent]}),
     StateData = #state{robj=RObj, client=Client, n=N, w=W, dw=DW,
-                       preflist=Preflist, storekey=Storekey, waiting_for=Sent,
+                       preflist=Preflist, bkey={Bucket,Key}, waiting_for=Sent,
                        req_id=ReqID, starttime=riak_util:moment(),
                        replied_w=[], replied_dw=[], replied_fail=[],
                        endtime=Timeout+riak_util:moment(), ring=Ring},
@@ -72,7 +72,7 @@ init([Ring,RObj0,W,DW,Timeout,Client]) ->
 
 waiting_vnode_w({w, Idx, ReqID},
                   StateData=#state{w=W,dw=DW,req_id=ReqID,client=Client,
-                                robj=RObj,replied_w=Replied0, endtime=End}) ->
+                                   replied_w=Replied0, endtime=End}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= W of
         true ->
@@ -120,7 +120,7 @@ waiting_vnode_dw({w, _Idx, ReqID},
           StateData=#state{req_id=ReqID, endtime=End}) ->
     {next_state,waiting_vnode_dw,StateData,End-riak_util:moment()};
 waiting_vnode_dw({dw, Idx, ReqID},
-                  StateData=#state{dw=DW, client=Client, robj=RObj,
+                  StateData=#state{dw=DW, client=Client,
                                    replied_dw=Replied0, endtime=End}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of

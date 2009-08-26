@@ -18,7 +18,7 @@
 -behaviour(gen_server).
 
 -include_lib("eunit/include/eunit.hrl").
--export([start/1,stop/1,get/2,put/4,list/1,list_bucket/2,delete/2]).
+-export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -51,10 +51,10 @@ handle_cast(_, State) -> {noreply, State}.
 
 %% @private
 handle_call(stop,_From,State) -> {reply, srv_stop(State), State};
-handle_call({get,Key},_From,State) -> {reply, srv_get(State,Key), State};
-handle_call({put,{B,K},Key,Val},_From,State) ->
-    {reply, srv_put(State,{B,K},Key,Val),State};
-handle_call({delete,Key},_From,State) -> {reply, srv_delete(State,Key),State};
+handle_call({get,BKey},_From,State) -> {reply, srv_get(State,BKey), State};
+handle_call({put,BKey,Val},_From,State) ->
+    {reply, srv_put(State,BKey,Val),State};
+handle_call({delete,BKey},_From,State) -> {reply, srv_delete(State,BKey),State};
 handle_call(list,_From,State) -> {reply, srv_list(State), State};
 handle_call({list_bucket,Bucket},_From,State) ->
     {reply, srv_list_bucket(State, Bucket), State}.
@@ -70,11 +70,11 @@ srv_stop(State) ->
 % get(state(), Key :: binary()) ->
 %   {ok, Val :: binary()} | {error, Reason :: term()}
 % key must be 160b
-get(SrvRef, Key) -> gen_server:call(SrvRef,{get,Key}).
-srv_get(State, Key) ->
-    case ets:lookup(State#state.t,Key) of
+get(SrvRef, BKey) -> gen_server:call(SrvRef,{get,BKey}).
+srv_get(State, BKey) ->
+    case ets:lookup(State#state.t,BKey) of
         [] -> {error, notfound};
-        [{Key,{_,_,Val}}] -> {ok, Val};
+        [{BKey,Val}] -> {ok, Val};
         Err -> {error, Err}
     end.
 
@@ -82,9 +82,9 @@ srv_get(State, Key) ->
 %     Val :: binary()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
-put(SrvRef, {B,K}, Key, Val) -> gen_server:call(SrvRef,{put,{B,K},Key,Val}).
-srv_put(State,{B,K},Key,Val) ->       
-   case ets:insert(State#state.t, {Key,{B,K,Val}}) of
+put(SrvRef, BKey, Val) -> gen_server:call(SrvRef,{put,BKey,Val}).
+srv_put(State,BKey,Val) ->
+   case ets:insert(State#state.t, {BKey,Val}) of
         true -> ok;
         Err -> {error, Err}
     end.
@@ -92,9 +92,9 @@ srv_put(State,{B,K},Key,Val) ->
 % delete(state(), Key :: binary()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
-delete(SrvRef, Key) -> gen_server:call(SrvRef,{delete,Key}).
-srv_delete(State, Key) ->
-    case ets:delete(State#state.t, Key) of
+delete(SrvRef, BKey) -> gen_server:call(SrvRef,{delete,BKey}).
+srv_delete(State, BKey) ->
+    case ets:delete(State#state.t, BKey) of
         true -> ok;
         Err -> {error, Err}
     end.
@@ -111,7 +111,7 @@ list([[K]|Rest],Acc) -> list(Rest,[K|Acc]).
 list_bucket(SrvRef, Bucket) ->
     gen_server:call(SrvRef,{list_bucket, Bucket}).
 srv_list_bucket(State, Bucket) ->
-    MList = ets:match(State#state.t,{'_',{Bucket,'$1','_'}}),
+    MList = ets:match(State#state.t,{{Bucket,'$1'},'_'}),
     list(MList,[]).
 
 %% @private

@@ -21,7 +21,7 @@
 
 -export([wait/2]). 
 
--record(state, {bucket,key,qterm,storekey,phase_pid,vnodes,keydata,ring}).
+-record(state, {bkey,qterm,phase_pid,vnodes,keydata,ring}).
 
 % {link, Bucket, Tag, Acc}
 % {map, FunTerm, Arg, Acc}
@@ -38,7 +38,7 @@ start_link(Ring,Input,QTerm,PhasePid) ->
 %% @private
 init([Ring,{{Bucket,Key},KeyData},QTerm0,PhasePid]) ->
     riak_eventer:notify(riak_map_executor, mapexec_start, start),
-    Storekey = chash:key_of({Bucket,Key}),
+    DocIdx = chash:key_of({Bucket,Key}),
     BucketProps = riak_bucket:get_bucket(Bucket, Ring),
     LinkFun = case QTerm0 of
         {link,_,_,_} -> proplists:get_value(linkfun, BucketProps);
@@ -55,29 +55,29 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,PhasePid]) ->
                         {link, LB, LT, LAcc} -> {map, LinkFun, {LB, LT}, LAcc}
                     end,
             N = proplists:get_value(n_val,BucketProps),
-            Preflist = riak_ring:filtered_preflist(Storekey, Ring, N),
+            Preflist = riak_ring:filtered_preflist(DocIdx, Ring, N),
             {Targets, _} = lists:split(N, Preflist),
-            VNodes = try_vnode(QTerm, Storekey, KeyData, Targets),
+            VNodes = try_vnode(QTerm, {Bucket,Key}, KeyData, Targets),
             {ok,wait,
-             #state{bucket=Bucket,key=Key,qterm=QTerm,phase_pid=PhasePid,
-                    storekey=Storekey,vnodes=VNodes,keydata=KeyData,ring=Ring},
+             #state{bkey={Bucket,Key},qterm=QTerm,phase_pid=PhasePid,
+                    vnodes=VNodes,keydata=KeyData,ring=Ring},
              1000}
     end.
 
-try_vnode(QTerm, Storekey, KeyData, [{P,VN}|VNs]) ->
-    riak_eventer:notify(riak_map_executor, try_vnode, {QTerm,Storekey,P,VN}),
+try_vnode(QTerm, BKey, KeyData, [{P,VN}|VNs]) ->
+    riak_eventer:notify(riak_map_executor, try_vnode, {QTerm,BKey,P,VN}),
     gen_server:cast({riak_vnode_master, VN},
                     {vnode_map, {P,node()},
-                     {self(),QTerm,Storekey,KeyData}}),
+                     {self(),QTerm,BKey,KeyData}}),
     VNs.
     
 wait(timeout, StateData=#state{phase_pid=PhasePid,vnodes=[]}) ->
     gen_fsm:send_event(PhasePid, {mapexec_error, self(), "all nodes failed"}),
     {stop,normal,StateData};
 wait(timeout, StateData=
-     #state{vnodes=VNodes,qterm=QTerm,storekey=Storekey,keydata=KeyData}) ->
+     #state{vnodes=VNodes,qterm=QTerm,bkey=BKey,keydata=KeyData}) ->
     {next_state, wait, StateData#state{
-                         vnodes=try_vnode(QTerm, Storekey, KeyData, VNodes)},
+                         vnodes=try_vnode(QTerm, BKey, KeyData, VNodes)},
      1000};
 wait({mapexec_error, VN, ErrMsg},
      StateData=#state{phase_pid=PhasePid,vnodes=[]}) ->
@@ -85,10 +85,10 @@ wait({mapexec_error, VN, ErrMsg},
     gen_fsm:send_event(PhasePid, {mapexec_error, self(), "all nodes failed"}),
     {stop,normal,StateData};
 wait({mapexec_error, VN, ErrMsg},StateData=
-     #state{vnodes=VNodes,qterm=QTerm,storekey=Storekey,keydata=KeyData}) ->
+     #state{vnodes=VNodes,qterm=QTerm,bkey=BKey,keydata=KeyData}) ->
     riak_eventer:notify(riak_map_executor, mapexec_vnode_err, {VN,ErrMsg}),    
     {next_state, wait, StateData#state{
-                         vnodes=try_vnode(QTerm, Storekey, KeyData, VNodes)},
+                         vnodes=try_vnode(QTerm, BKey, KeyData, VNodes)},
      1000};
 wait({mapexec_reply, RetVal, _VN}, StateData=#state{phase_pid=PhasePid}) ->
     gen_fsm:send_event(PhasePid, {mapexec_reply, RetVal, self()}),

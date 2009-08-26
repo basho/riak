@@ -25,7 +25,6 @@
                 r :: pos_integer(), 
                 allowmult :: bool(), 
                 preflist :: [{pos_integer(), atom()}], 
-                storekey :: binary(), 
                 waiting_for :: [{pos_integer(), atom(), atom()}],
                 req_id :: pos_integer(), 
                 starttime :: pos_integer(), 
@@ -35,8 +34,7 @@
                 repair_sent :: list(), 
                 final_obj :: undefined|riak_object:riak_object(),
                 endtime :: pos_integer(), 
-                bucket :: riak_object:bucket(), 
-                key :: riak_object:key(), 
+                bkey :: {riak_object:bucket(), riak_object:key()},
                 ring :: riak_ring:riak_ring()
                }).
 
@@ -46,15 +44,15 @@ start(Ring,Bucket,Key,R,Timeout,From) ->
 %% @private
 init([Ring,Bucket,Key,R,Timeout,Client]) ->
     RealStartTime = riak_util:moment(),
-    Storekey = chash:key_of({Bucket,Key}),
-    ReqID = erlang:phash2({random:uniform(), self(), Storekey, RealStartTime}),
+    DocIdx = chash:key_of({Bucket, Key}),
+    ReqID = erlang:phash2({random:uniform(), self(), DocIdx, RealStartTime}),
     riak_eventer:notify(riak_get_fsm, get_fsm_start,
                         {ReqID, RealStartTime, Bucket, Key}),
-    Msg = {self(), Storekey, ReqID},
+    Msg = {self(), {Bucket,Key}, ReqID},
     BucketProps = riak_bucket:get_bucket(Bucket, Ring),
     N = proplists:get_value(n_val,BucketProps),
     AllowMult = proplists:get_value(allow_mult,BucketProps),
-    Preflist = riak_ring:filtered_preflist(Storekey, Ring, N),
+    Preflist = riak_ring:filtered_preflist(DocIdx, Ring, N),
     {Targets, Fallbacks} = lists:split(N, Preflist),
     {Sent1, Pangs1} = riak_util:try_cast(vnode_get, Msg, Targets),
     Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
@@ -64,11 +62,11 @@ init([Ring,Bucket,Key,R,Timeout,Client]) ->
     riak_eventer:notify(riak_get_fsm, get_fsm_sent,
                                 {ReqID, [{T,S} || {_I,T,S} <- Sent]}),
     StateData = #state{client=Client,n=N,r=R,allowmult=AllowMult,repair_sent=[],
-                       preflist=Preflist,storekey=Storekey,final_obj=undefined,
+                       preflist=Preflist,final_obj=undefined,
                        req_id=ReqID,replied_r=[],replied_fail=[],
                        replied_notfound=[],starttime=riak_util:moment(),
                        waiting_for=Sent,endtime=Timeout+riak_util:moment(),
-                       bucket=Bucket,key=Key, ring=Ring},
+                       bkey={Bucket,Key}, ring=Ring},
     {ok,waiting_vnode_r,StateData,Timeout}.
 
 waiting_vnode_r({r, {ok, RObj}, Idx, ReqID},
@@ -158,23 +156,24 @@ waiting_read_repair({r, {error, Err}, Idx, ReqID},
     NewStateData = StateData#state{replied_fail=Replied},
     {next_state,waiting_read_repair,NewStateData,End-riak_util:moment()};
 waiting_read_repair(timeout, StateData=#state{final_obj=Final,
-                                               replied_r=RepliedR,
-                                               storekey=Storekey,req_id=ReqID,
-                                               replied_notfound=NotFound,
-                                               ring=Ring}) ->
+                                              replied_r=RepliedR,
+                                              bkey=BKey,
+                                              req_id=ReqID,
+                                              replied_notfound=NotFound,
+                                              ring=Ring}) ->
     case Final of
         {error, notfound} ->
             maybe_finalize_delete(StateData);
         {ok,_} ->
-            maybe_do_read_repair(Ring,Final,RepliedR,NotFound,Storekey,ReqID);
+            maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,ReqID);
         _ -> nop
     end,
     {stop,normal,StateData}.
 
 maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
-                                        replied_r=RepliedR,storekey=Storekey,
+                                        replied_r=RepliedR,
                                         waiting_for=Sent,req_id=ReqID,
-                                        bucket=Bucket,key=Key}) ->
+                                        bkey=BKey}) ->
     spawn(fun() ->
     IdealNodes = [{I,Node} || {I,Node,Node} <- Sent],
     case length(IdealNodes) of
@@ -186,10 +185,10 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
                         true -> % and every response was X-Deleted, go!
                             riak_eventer:notify(riak_get_fsm,
                                                 delete_finalize_start,
-                                                {ReqID, Bucket, Key}),
+                                                {ReqID, BKey}),
                             [gen_server2:call({riak_vnode_master, Node},
                                              {vnode_del, {Idx,Node},
-                                              {Storekey,ReqID}}) ||
+                                              {BKey,ReqID}}) ||
                                 {Idx,Node} <- IdealNodes];
                         _ -> nop
                     end;
@@ -199,11 +198,11 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
     end
     end).
 
-maybe_do_read_repair(Ring,Final,RepliedR,NotFound,Storekey,ReqID) ->
+maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,ReqID) ->
     Targets0 = ancestor_indices(Final, RepliedR) ++ NotFound,
     Targets = [{Idx,riak_ring:index_owner(Ring,Idx)} || Idx <- Targets0],
     {ok, FinalRObj} = Final,
-    Msg = {self(), Storekey, FinalRObj, ReqID},
+    Msg = {self(), BKey, FinalRObj, ReqID},
     case Targets of
         [] -> nop;
         _ ->

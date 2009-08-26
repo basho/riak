@@ -43,14 +43,14 @@ init([VNodeIndex]) ->
                 sidekick=Sidekick,mapcache=Cache,mod=Mod,modstate=ModState}}.
 
 %% @private
-handle_cast({mapcache, Storekey,{M,F,Arg,KeyData},MF_Res},
+handle_cast({mapcache,BKey,{M,F,Arg,KeyData},MF_Res},
             State=#state{mapcache=Cache}) ->
-    KeyCache0 = case dict:find(Storekey, Cache) of
+    KeyCache0 = case dict:find(BKey, Cache) of
         error -> dict:new();
         {ok,CDict} -> CDict
     end,
     KeyCache = dict:store({M,F,Arg,KeyData},MF_Res,KeyCache0),
-    {noreply, State#state{mapcache=dict:store(Storekey,KeyCache,Cache)}};
+    {noreply, State#state{mapcache=dict:store(BKey,KeyCache,Cache)}};
 handle_cast(cache_purge, State=#state{idx=Idx}) ->
     riak_eventer:notify(riak_vnode, cache_purge, Idx),
     {noreply, State#state{mapcache=dict:new()}};
@@ -69,25 +69,25 @@ handle_cast({vnode_merkle, {RemoteVN,Merkle}}, State) ->
     {noreply, State};
 handle_cast(_, State=#state{active=false}) -> % below here requires "active"
     {noreply, State};
-handle_cast({map, ClientPid, QTerm, Storekey, KeyData},
+handle_cast({map, ClientPid, QTerm, BKey, KeyData},
             State=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
     riak_eventer:notify(riak_vnode, map, QTerm),
     VNode = self(),
-    do_map(ClientPid,QTerm,Storekey,KeyData,Cache,Mod,ModState,VNode),
+    do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,VNode),
     {noreply, State};
-handle_cast({put, FSM_pid, Storekey, RObj, ReqID},
+handle_cast({put, FSM_pid, BKey, RObj, ReqID},
             State=#state{mapcache=Cache,idx=Idx}) ->
     riak_eventer:notify(riak_vnode, put, {ReqID, Idx}),
     gen_fsm:send_event(FSM_pid, {w, Idx, ReqID}),
-    do_put(FSM_pid, Storekey, RObj, ReqID, State),
-    {noreply, State#state{mapcache=dict:erase(Storekey,Cache)}};
-handle_cast({get, FSM_pid, Storekey, ReqID}, State=#state{idx=Idx}) ->
+    do_put(FSM_pid, BKey, RObj, ReqID, State),
+    {noreply, State#state{mapcache=dict:erase(BKey,Cache)}};
+handle_cast({get, FSM_pid, BKey, ReqID}, State=#state{idx=Idx}) ->
     riak_eventer:notify(riak_vnode, get, {ReqID, Idx}),
-    do_get(FSM_pid, Storekey, ReqID, State),
+    do_get(FSM_pid, BKey, ReqID, State),
     {noreply, State};
-handle_cast({delete, Client, Storekey, ReqID}, State=#state{idx=Idx}) ->
+handle_cast({delete, Client, BKey, ReqID}, State=#state{idx=Idx}) ->
     riak_eventer:notify(riak_vnode, delete, {ReqID, Idx}),
-    do_delete(Client, Storekey, ReqID, State),
+    do_delete(Client, BKey, ReqID, State),
     {noreply, State};
 handle_cast({list_bucket, Client, Bucket, ReqID},
             State=#state{mod=Mod,modstate=ModState,idx=Idx}) ->
@@ -98,26 +98,26 @@ handle_cast({list_bucket, Client, Bucket, ReqID},
 %% @private
 handle_call(is_backup_node,_From,State) ->
     {reply, riak:get_app_env(backup, false), State};
-handle_call({get_binary,Storekey},
+handle_call({get_binary,BKey},
             From,State=#state{mod=Mod,modstate=ModState}) ->
-    async_get_binary(From,Storekey,Mod,ModState),
+    async_get_binary(From,BKey,Mod,ModState),
     {noreply, State};
 handle_call(list,From,State=#state{mod=Mod,modstate=ModState}) ->
     async_do_list(From,Mod,ModState),
     {noreply, State}.
 
-do_get(FSM_pid, Storekey, ReqID,
+do_get(FSM_pid, BKey, ReqID,
        _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
-    RetVal = case do_get_binary(Storekey, Mod, ModState) of
+    RetVal = case do_get_binary(BKey, Mod, ModState) of
         {ok, Binary} -> {ok, binary_to_term(Binary)};
         X -> X
     end,
     riak_eventer:notify(riak_vnode, get_reply, ReqID),
     gen_fsm:send_event(FSM_pid, {r, RetVal, Idx, ReqID}).
 
-async_get_binary(From,Storekey,Mod,ModState) ->
+async_get_binary(From,BKey,Mod,ModState) ->
     spawn(fun() ->
-                  RetVal = do_get_binary(Storekey,Mod,ModState),
+                  RetVal = do_get_binary(BKey,Mod,ModState),
                   gen_server2:reply(From, RetVal)
           end).
 
@@ -132,12 +132,12 @@ do_list_bucket(FSM_pid,ReqID,Bucket,Mod,ModState,Idx) ->
     riak_eventer:notify(riak_vnode, keys_reply, {ReqID, FSM_pid}),
     gen_fsm:send_event(FSM_pid, {kl, RetVal,Idx,ReqID}).
 
-do_get_binary(Storekey, Mod, ModState) ->
-    Mod:get(ModState,Storekey).
+do_get_binary(BKey, Mod, ModState) ->
+    Mod:get(ModState,BKey).
 
-do_delete(Client, Storekey, ReqID,
+do_delete(Client, BKey, ReqID,
           _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
-    case Mod:delete(ModState, Storekey) of
+    case Mod:delete(ModState, BKey) of
         ok ->
             riak_eventer:notify(riak_vnode,delete_reply,ReqID),
             gen_server2:reply(Client, {del, Idx, ReqID});
@@ -146,20 +146,18 @@ do_delete(Client, Storekey, ReqID,
             gen_server2:reply(Client, {fail, Idx, ReqID})
     end.
 
-simple_binary_put({Bucket, Key}, Storekey, Val, Mod, ModState) ->
-    Mod:put(ModState, {Bucket, Key}, Storekey, Val).
+simple_binary_put(BKey, Val, Mod, ModState) ->
+    Mod:put(ModState, BKey, Val).
 
-do_put(FSM_pid, Storekey, RObj, ReqID,
+do_put(FSM_pid, BKey, RObj, ReqID,
        _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
-    case syntactic_put_merge(Mod, ModState, Storekey, RObj) of
+    case syntactic_put_merge(Mod, ModState, BKey, RObj) of
         oldobj -> 
             riak_eventer:notify(riak_vnode,put_reply,ReqID),
             gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
         {newobj, ObjToStore} ->
             Val = term_to_binary(ObjToStore, [compressed]),
-            case simple_binary_put({riak_object:bucket(RObj),
-                                    riak_object:key(RObj)},
-                                   Storekey, Val, Mod, ModState) of
+            case simple_binary_put(BKey, Val, Mod, ModState) of
                 ok ->
                     riak_eventer:notify(riak_vnode,put_reply,ReqID),
                     gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
@@ -170,12 +168,12 @@ do_put(FSM_pid, Storekey, RObj, ReqID,
     end.
 
 do_map(ClientPid,{map,FunTerm,Arg,_Acc},
-       Storekey,KeyData,Cache,Mod,ModState,VNode) ->
-    riak_eventer:notify(riak_vnode, map_start, {FunTerm,Arg,Storekey}),
+       BKey,KeyData,Cache,Mod,ModState,VNode) ->
+    riak_eventer:notify(riak_vnode, map_start, {FunTerm,Arg,BKey}),
     CacheVal = case FunTerm of
         {qfun,_} -> not_cached; % live funs are not cached
         {modfun,CMod,CFun} ->
-            case dict:find(Storekey, Cache) of
+            case dict:find(BKey, Cache) of
                 error -> not_cached;
                 {ok,CDict} ->
                     case dict:find({CMod,CFun,Arg,KeyData},CDict) of
@@ -186,33 +184,33 @@ do_map(ClientPid,{map,FunTerm,Arg,_Acc},
     end,
     RetVal = case CacheVal of
         not_cached ->
-             uncached_map(Storekey,Mod,ModState,FunTerm,Arg,KeyData,VNode);
+             uncached_map(BKey,Mod,ModState,FunTerm,Arg,KeyData,VNode);
         CV ->
-             riak_eventer:notify(riak_vnode,cached_map,{FunTerm,Arg,Storekey}),
+             riak_eventer:notify(riak_vnode,cached_map,{FunTerm,Arg,BKey}),
              {mapexec_reply, CV, self()}
     end,
-    riak_eventer:notify(riak_vnode, map_reply, {FunTerm,Arg,Storekey}),
+    riak_eventer:notify(riak_vnode, map_reply, {FunTerm,Arg,BKey}),
     gen_fsm:send_event(ClientPid, RetVal).
 
-uncached_map(Storekey,Mod,ModState,FunTerm,Arg,KeyData,VNode) ->
-    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm,Arg,Storekey}),
-    case do_get_binary(Storekey, Mod, ModState) of
+uncached_map(BKey,Mod,ModState,FunTerm,Arg,KeyData,VNode) ->
+    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm,Arg,BKey}),
+    case do_get_binary(BKey, Mod, ModState) of
         {ok, Binary} ->
             V = binary_to_term(Binary),
-            uncached_map1(V,FunTerm,Arg,Storekey,KeyData,VNode);
+            uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode);
         {error, notfound} ->
-            uncached_map1({error, notfound},FunTerm,Arg,Storekey,KeyData,VNode);
+            uncached_map1({error, notfound},FunTerm,Arg,BKey,KeyData,VNode);
         X -> {mapexec_error, self(), X}
     end.
 
-uncached_map1(V,FunTerm,Arg,Storekey,KeyData,VNode) ->
+uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode) ->
     try
         MapVal = case FunTerm of
             {qfun,F} -> F(V,KeyData,Arg);
             {modfun,M,F} ->
                 MF_Res = M:F(V,KeyData,Arg),
                 gen_server2:cast(VNode,
-                                 {mapcache, Storekey,{M,F,Arg,KeyData},MF_Res}),
+                                 {mapcache, BKey,{M,F,Arg,KeyData},MF_Res}),
                 MF_Res
         end,
         {mapexec_reply, MapVal, self()}
@@ -270,8 +268,8 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %% @private
-syntactic_put_merge(Mod, ModState, Storekey, Obj1) ->
-    case Mod:get(ModState, Storekey) of
+syntactic_put_merge(Mod, ModState, BKey, Obj1) ->
+    case Mod:get(ModState, BKey) of
         {error, notfound} -> {newobj, Obj1};
         {ok, Val0} ->
             Obj0 = binary_to_term(Val0),

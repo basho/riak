@@ -31,21 +31,21 @@ handle_cast({start_vnode, Partition}, State) ->
     _Pid = get_vnode(Partition, State),
     {noreply, State};
 handle_cast({vnode_map, {Partition,_Node},
-             {ClientPid,QTerm,Storekey,KeyData}}, State) ->
+             {ClientPid,QTerm,BKey,KeyData}}, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {map, ClientPid, QTerm, Storekey, KeyData}),
+    gen_server2:cast(Pid, {map, ClientPid, QTerm, BKey, KeyData}),
     % (obligation done, now the problem of the vnodes)
     {noreply, State};
 handle_cast({vnode_put, {Partition,_Node},
-             {FSM_pid,Storekey,RObj,ReqID}}, State) ->
+             {FSM_pid,BKey,RObj,ReqID}}, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {put, FSM_pid, Storekey, RObj, ReqID}),
+    gen_server2:cast(Pid, {put, FSM_pid, BKey, RObj, ReqID}),
     % (obligation done, now the problem of the vnodes)
     {noreply, State};
 handle_cast({vnode_get, {Partition,_Node},
-             {FSM_pid,Storekey,ReqID}}, State) ->
+             {FSM_pid,BKey,ReqID}}, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {get, FSM_pid, Storekey, ReqID}),
+    gen_server2:cast(Pid, {get, FSM_pid, BKey, ReqID}),
     % (obligation done, now the problem of the vnodes)
     {noreply, State};
 handle_cast({vnode_merkle, {RemoteVN,Partition,Merkle}}, State) ->
@@ -66,9 +66,9 @@ handle_call(all_possible_vnodes, _From, State) ->
 handle_call(all_vnodes, _From, State) ->
     {reply, all_vnodes(State), State};
 handle_call({vnode_del, {Partition,_Node},
-             {Storekey,ReqID}}, From, State) ->
+             {BKey,ReqID}}, From, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {delete, From, Storekey, ReqID}),
+    gen_server2:cast(Pid, {delete, From, BKey, ReqID}),
     % (obligation done, now the problem of the vnodes)
     {noreply, State}.
 
