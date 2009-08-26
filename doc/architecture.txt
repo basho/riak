@@ -30,15 +30,11 @@ The Ring
 (Much of this section is discussed in the Dynamo paper, but it's a
 good summary of how Riak implements the necessities.)
 
-Riak's client interface speaks of "buckets" and "keys", but this is
-just an aid to data organization.  Once inside Riak, the concept of a
-bucket disappears, and all values are referenced simply by unique
-160-bit keys.  An internal key is simply the SHA-1 hash of the bucket
-and key taken together.
-
-Riak thinks of these 160-bit keys as being arranged in-order around a
-ring.  The ring is divided into partitions.  Each Riak vnode is
-responsible for a partition (we say that it "claims" that partition).
+Riak's client interface speaks of "buckets" and "keys".  Internally,
+Riak computes a 160-bit binary hash of the bucket/key pair, and maps
+this value to a position on an ordered "ring" of all such values.
+This ring is divided into partitions.  Each Riak vnode is responsible
+for a partition (we say that it "claims" that partition).
 
 The nodes of a Riak cluster each attempt to run roughly an equal
 number of vnodes.  In the general case, this means that each node in
