@@ -15,7 +15,7 @@
 % @doc riak_fs_backend is a simple filesystem storage system.
 
 -module(riak_fs_backend).
--export([start/1,stop/1,get/2,put/3,list/1,delete/2]).
+-export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
 % @type state() = term().
 -record(state, {dir}).
 
@@ -38,8 +38,8 @@ stop(_State) -> ok.
 % get(state(), Key :: binary()) ->
 %   {ok, Val :: binary()} | {error, Reason :: term()}
 % key must be 160b
-get(State, Key) ->
-    File = location(State,Key),
+get(State, BKey) ->
+    File = location(State,BKey),
     case filelib:is_file(File) of
         false -> {error, notfound};
         true -> file:read_file(File)
@@ -48,8 +48,8 @@ get(State, Key) ->
 % put(state(), Key :: binary(), Val :: binary()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
-put(State,Key,Val) ->       
-    File = location(State,Key),
+put(State,BKey,Val) ->       
+    File = location(State,BKey),
     case filelib:ensure_dir(File) of
         ok -> file:write_file(File,Val);
         X -> X
@@ -58,8 +58,8 @@ put(State,Key,Val) ->
 % delete(state(), Key :: binary()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
-delete(State, Key) ->
-    File = location(State,Key),
+delete(State, BKey) ->
+    File = location(State,BKey),
     case file:delete(File) of
         ok -> ok;
         {error, enoent} -> ok;
@@ -69,19 +69,61 @@ delete(State, Key) ->
 % list(state()) -> [Key :: binary()]
 list(State) ->
     % this is slow slow slow
-    [location_to_key(X) || X <- filelib:wildcard("*/*/*/*/*/*/*/*/*/*",
-                                                 State#state.dir)].
+    %                                              B,N,N,N,K
+    [location_to_bkey(X) || X <- filelib:wildcard("*/*/*/*/*",
+                                                  State#state.dir)].
 
-location_to_key(Path) ->
-    % Path is a list of strings giving the path beneath Dir to a file
-    list_to_binary([list_to_integer(A) || A <- 
-      lists:append([string:tokens(X,".") || X <- string:tokens(Path,"/")])]).
+list_bucket(State, Bucket) ->
+    B64 = encode_bucket(Bucket),
+    L = length(State#state.dir),
+    [ K || {_,K} <- [ location_to_bkey(lists:nthtail(L, X)) ||
+                        X <- filelib:wildcard(
+                               filename:join([State#state.dir,
+                                              B64,"*/*/*/*"])) ]].
 
-% location(state(), Key :: binary()) -> Path :: string()
-location(State, Key) ->
-    location(Key,State#state.dir,
-             [integer_to_list(X) || X <- binary_to_list(Key)]).
-location(_Key,Dir,[A|[B|[]]]) ->
-    filename:join([Dir,A++"."++B]);
-location(Key,Dir,[A|[B|Rest]]) ->
-    location(Key,filename:join([Dir,A++"."++B]),Rest).
+location(State, {Bucket, Key}) ->
+    B64 = encode_bucket(Bucket),
+    K64 = encode_key(Key),
+    [N1,N2,N3] = nest(K64),
+    filename:join([State#state.dir, B64, N1, N2, N3, K64]).
+
+location_to_bkey(Path) ->
+    [B64,_,_,_,K64] = string:tokens(Path, "/"),
+    {decode_bucket(B64), decode_key(K64)}.
+
+encode_bucket(Bucket) ->
+    clean(base64:encode_to_string(atom_to_list(Bucket))).
+
+decode_bucket(B64) ->
+    list_to_binary(base64:decode_to_string(dirty(B64))).
+
+encode_key(Key) ->
+    clean(base64:encode_to_string(Key)).
+
+decode_key(K64) ->
+    base64:decode(dirty(K64)).
+
+clean(Str64) ->
+    lists:map(fun($=) -> $-;
+                 ($+) -> $_;
+                 ($/) -> $,;
+                 (C)  -> C
+              end,
+              Str64).
+
+dirty(Str64) ->
+    lists:map(fun($-) -> $=;
+                 ($_) -> $+;
+                 ($/) -> $,;
+                 (C)  -> C
+              end,
+              Str64).
+
+nest([N1a,N1b,N2a,N2b,N3a,N3b|_]) ->
+    [[N1a,N1b],[N2a,N2b],[N3a,N3b]];
+nest([N2a,N2b,N3a,N3b]) ->
+    ["0",[N2a,N2b],[N3a,N3b]];
+nest([N3a,N3b]) ->
+    ["0","0",[N3a,N3b]];
+nest(_) ->
+    ["0","0","0"].
