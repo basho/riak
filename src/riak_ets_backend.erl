@@ -62,10 +62,8 @@ handle_call({list_bucket,Bucket},_From,State) ->
 % @spec stop(state()) -> ok | {error, Reason :: term()}
 stop(SrvRef) -> gen_server:call(SrvRef,stop).
 srv_stop(State) ->
-    case ets:delete(State#state.t) of
-        true -> ok;
-        Err -> {error, Err}
-    end.
+    true = ets:delete(State#state.t),
+    ok.
 
 % get(state(), Key :: binary()) ->
 %   {ok, Val :: binary()} | {error, Reason :: term()}
@@ -84,20 +82,16 @@ srv_get(State, BKey) ->
 % key must be 160b
 put(SrvRef, BKey, Val) -> gen_server:call(SrvRef,{put,BKey,Val}).
 srv_put(State,BKey,Val) ->
-   case ets:insert(State#state.t, {BKey,Val}) of
-        true -> ok;
-        Err -> {error, Err}
-    end.
+    true = ets:insert(State#state.t, {BKey,Val}),
+    ok.
 
 % delete(state(), Key :: binary()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
 delete(SrvRef, BKey) -> gen_server:call(SrvRef,{delete,BKey}).
 srv_delete(State, BKey) ->
-    case ets:delete(State#state.t, BKey) of
-        true -> ok;
-        Err -> {error, Err}
-    end.
+    true = ets:delete(State#state.t, BKey),
+    ok.
 
 % list(state()) -> [Key :: binary()]
 list(SrvRef) -> gen_server:call(SrvRef,list).
