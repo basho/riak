@@ -6,7 +6,6 @@ a sampling of improvements on the way:
  - better cleanup of node storage after handoff
  - move bucket properties out of gossiped ring state
     (allowing unlimited buckets)
- - make default bucket properties configurable at application scope
  - improved efficiency of vnode handoff and bootstrapping
  - more explicit UTF-8 support and testing
  - making nodes that have finished exiting a cluster more obvious

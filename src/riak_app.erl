@@ -73,12 +73,14 @@ check_erlenv(ConfigPath) ->
     [ClusterName,RingStateDir,RingCreationSize,
      WantsClaimFun,ChooseClaimFun,GossipInterval,
      DoorbellPort,StorageBackend,RiakCookie,RiakAddPaths,
-     RiakNodeName,RiakHostName,RiakHeartCommand] =
+     RiakNodeName,RiakHostName,RiakHeartCommand,
+     DefaultBucketProps] =
         [riak:get_app_env(X) || X <- 
            [cluster_name,ring_state_dir,ring_creation_size,
             wants_claim_fun,choose_claim_fun,gossip_interval,
             doorbell_port,storage_backend,riak_cookie,add_paths,
-            riak_nodename,riak_hostname,riak_heart_command]],
+            riak_nodename,riak_hostname,riak_heart_command,
+            default_bucket_props]],
     if
         ClusterName =:= undefined ->
             riak:stop(io_lib:format(
@@ -203,4 +205,21 @@ check_erlenv(ConfigPath) ->
                  "riak_heart_command in ~p non-list, failing.",[ConfigPath]));
         true -> ok
     end,
+    if
+        DefaultBucketProps =:= undefined ->
+            set_bucket_params([]);
+        is_list(DefaultBucketProps) ->
+            set_bucket_params(DefaultBucketProps);
+        true ->
+            riak:stop(io_lib:format(
+                        "default_bucket_props in ~p non-list, failing.",
+                        [ConfigPath]))
+    end,
     ok.
+
+set_bucket_params(In) ->
+    application:set_env(
+      riak, default_bucket_props,
+      lists:ukeymerge(1,
+                      lists:keysort(1, lists:keydelete(name, 1, In)),
+                      lists:keysort(1, riak_bucket:defaults()))).
