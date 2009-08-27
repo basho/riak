@@ -12,18 +12,18 @@
 //      Client.store(note);
 //   });
 //
-//   Client.store({'bucket':'note'
+//   Client.store({'bucket':'note',
 //                 'object':{'text':'a new note'},
 //                 'links':[]},
 //                function(note) {
-//                  alert('new note's key: '+note.key);
+//                  alert("new note's key: "+note.key);
 //                });
 //
 //   Client.walk(['note', '456'],
 //               [{'bucket':'person', 'tag':'author'}],
 //               function(data) {
 //                 var authors = data.results[0];
-//                 alert('note's author is: '+
+//                 alert("note's author is: "+
 //                       authors[0].object.name);
 //               });
 
