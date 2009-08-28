@@ -25,7 +25,7 @@
 moment_test() ->
     M1 = riak_util:moment(),
     M2 = riak_util:moment(),
-    M2 >= M1.
+    ?assert(M2 >= M1).
 
 %% @spec moment() -> integer()
 %% @doc Get the current "moment".  Current implementation is the

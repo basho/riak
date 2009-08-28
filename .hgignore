@@ -20,3 +20,5 @@ priv/log/.*
 ^client_lib/java/build/*
 ^client_lib/java/dist/*
 ^client_lib/java/javadoc/*
+test\.log
+^test/.*

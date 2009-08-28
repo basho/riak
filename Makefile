@@ -33,3 +33,6 @@ ebin/$(APP).app: src/$(APP).app.src
 dialyzer: erl 
 	@dialyzer -Wno_return -c ebin/ | tee priv/log/dialyzer.log
 
+test: erl
+	scripts/run_tests.escript ebin | tee test.log
+

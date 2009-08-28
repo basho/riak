@@ -24,6 +24,9 @@
 
 % @private
 simple_test() ->
+    application:set_env(riak, riak_dets_backend_root,
+                        "test/dets-backend"),
+    ?assertCmd("rm -rf test/dets-backend"),
     {ok,S} = riak_dets_backend:start(42),
     ok = riak_dets_backend:put(S,<<"k1">>,<<"v1">>),
     ok = riak_dets_backend:put(S,<<"k2">>,<<"v2">>),
