@@ -68,8 +68,8 @@
          mapreduce_identity/3,
          mapreduce_wrap_fun/3]).
 -export([diff/2, undefined/0]).
--export([test_roundtrip_vclock/0]).
 
+-include_lib("eunit/include/eunit.hrl").
 
 %% @spec new(riak_object:bucket(), riak_object:key()) -> jiak_object()
 %% @doc produces an empty jiak object
@@ -401,7 +401,153 @@ diff_links(FromObj, ToObj) ->
 %% TEST
 %%
 
-test_roundtrip_vclock() ->
+roundtrip_vclock_test() ->
     Vclock = vclock:increment(riak_util:mkclientid(node()),
                               vclock:fresh()),
-    Vclock = headers_to_vclock(vclock_to_headers(Vclock)).
+    ?assertEqual(Vclock, headers_to_vclock(vclock_to_headers(Vclock))).
+
+roundtrip_riak_object_test_() ->
+    [fun test_to_riak_object/0,
+     fun test_from_riak_object/0].
+
+test_to_riak_object() ->
+    Object = {struct, [{<<"fake_field">>, <<"fake_value">>}]},
+    Links = [[other_fake_bucket,<<"other_fake_key">>,<<"fake_tag">>]],
+    J0 = jiak_object:new(fake_bucket, <<"fake_key">>, Object, Links),
+    R0 = to_riak_object(J0),
+    ?assertEqual(bucket(J0), riak_object:bucket(R0)),
+    ?assertEqual(key(J0), riak_object:key(R0)),
+    ?assertEqual({Object, Links}, riak_object:get_value(R0)),
+    ?assertEqual(vclock:fresh(), riak_object:vclock(R0)),
+    VClock = vclock:increment(<<"a">>, vclock:fresh()),
+    J1 = setf(J0, <<"vclock">>, vclock_to_headers(VClock)),
+    R1 = to_riak_object(J1),
+    ?assertEqual(VClock, riak_object:vclock(R1)).
+
+test_from_riak_object() ->
+    R0 = to_riak_object(
+           setf(jiak_object:new(
+                  fake_bucket, <<"fake_key">>,
+                  {struct, [{<<"fake_field">>, <<"fake_value">>}]},
+                  [[other_fake_bucket,<<"other_fake_key">>,
+                    <<"fake_tag">>]]),
+                <<"vclock">>,
+                vclock_to_headers(vclock:increment(<<"a">>, vclock:fresh())))),
+    LM = httpd_util:rfc1123_date(),
+    [{M, D}] = riak_object:get_contents(R0),
+    R1 = riak_object:set_contents(
+           R0, [{dict:store(
+                   <<"X-Riak-Last-Modified">>, LM,
+                   dict:store(<<"X-Riak-VTag">>, "hello", M)), D}]),
+    J1 = from_riak_object(R1),
+    ?assertEqual(riak_object:bucket(R1), bucket(J1)),
+    ?assertEqual(riak_object:key(R1), key(J1)),
+    ?assertEqual(element(1, riak_object:get_value(R1)),
+                 getf(J1, <<"object">>)),
+    ?assertEqual(element(2, riak_object:get_value(R1)),
+                 getf(J1, <<"links">>)),
+    ?assertEqual(riak_object:vclock(R1), headers_to_vclock(vclock(J1))),
+    ?assertEqual(dict:fetch(<<"X-Riak-Last-Modified">>,
+                            riak_object:get_metadata(R1)),
+                 binary_to_list(lastmod(J1))),
+    ?assertEqual(dict:fetch(<<"X-Riak-VTag">>,
+                            riak_object:get_metadata(R1)),
+                 binary_to_list(vtag(J1))).
+
+object_props_test() ->
+    A = jiak_object:new(fake_bucket, <<"fake_key">>),
+    ?assertEqual([], props(A)),
+
+    B = setp(A, <<"foo">>, 42),
+    ?assertEqual([<<"foo">>], props(B)),
+    ?assertEqual(42, getp(B, <<"foo">>)),
+
+    C = setp(B, <<"foo">>, <<"forty-two">>),
+    ?assertEqual([<<"foo">>], props(C)),
+    ?assertEqual(<<"forty-two">>, getp(C, <<"foo">>)),
+
+    D = setp(C, <<"bar">>, <<"check">>),
+    ?assertEqual(2, length(props(D))),
+    ?assert(lists:all(fun(P) -> lists:member(P, props(D)) end,
+                      [<<"foo">>, <<"bar">>])),
+    ?assertEqual(<<"forty-two">>, getp(D, <<"foo">>)),
+    ?assertEqual(<<"check">>, getp(D, <<"bar">>)),
+
+    E = removep(D, <<"foo">>),
+    ?assertEqual([<<"bar">>], props(E)),
+    ?assertEqual(<<"check">>, getp(E, <<"bar">>)).
+
+links_test() ->
+    A = jiak_object:new(fake_object, <<"fake_key">>),
+    ?assertEqual([], links(A)),
+    
+    L0 = [other_fake_bucket,<<"other_fake_key">>,<<"fake_tag">>],
+    B = add_link(A, L0),
+    ?assertEqual([L0], links(B)),
+    ?assertEqual([L0], links(B, other_fake_bucket)),
+    ?assertEqual([],   links(B, wrong_fake_bucket)),
+    ?assertEqual([L0], links(B, '_', <<"fake_tag">>)),
+    ?assertEqual([],   links(B, '_', <<"wrong_tag">>)),
+    ?assertEqual([L0], links(B, other_fake_bucket, <<"fake_tag">>)),
+    ?assertEqual([],   links(B, other_fake_bucket, <<"wrong_tag">>)),
+    ?assertEqual([],   links(B, wrong_fake_bucket, <<"fake_tag">>)),
+    
+    ?assertEqual(B, add_link(B, L0)), %%don't double-add links
+    
+    ?assertEqual([], links(remove_link(B, L0))),
+    
+    L1 = [other_fake_bucket,<<"second_fake_key">>,<<"new_fake_tag">>],
+    L2 = [new_fake_bucket,<<"third_fake_key">>,<<"fake_tag">>],
+    C = add_link(add_link(B, L1), L2),
+    ?assertEqual(3, length(links(C))),
+    ?assertEqual(2, length(links(C, other_fake_bucket))),
+    ?assertEqual(2, length(links(C, '_', <<"fake_tag">>))),
+    ?assertEqual([L1], links(C, '_', <<"new_fake_tag">>)),
+    ?assertEqual([L2], links(C, new_fake_bucket)).
+
+mapreduce_test_() ->
+    [fun test_linkfun/0,
+     fun test_identity/0,
+     fun test_wrap_fun/0].
+
+mr_riak_object() ->
+    R0 = to_riak_object(
+           jiak_object:new(fake_bucket, <<"fake_key">>,
+                           {struct, [{<<"a">>, 1}]},
+                           [[b1, <<"k1">>, <<"t1">>],
+                            [b1, <<"k2">>, <<"t2">>],
+                            [b2, <<"k3">>, <<"t1">>]])),
+    [{M,V}] = riak_object:get_contents(R0),
+    riak_object:set_contents(
+      R0,
+      [{dict:store(<<"X-Riak-Last-Modified">>,
+                   httpd_util:rfc1123_date(),
+                   dict:store(<<"X-Riak-VTag">>, "hello", M)),
+        V}]).
+                                  
+test_linkfun() ->
+    ?assertEqual([], mapreduce_linkfun({error, notfound}, ignored, ignored)),
+    ?assertEqual([{{b2, <<"k3">>}, <<"t1">>}],
+                 mapreduce_linkfun(mr_riak_object(), ignored, {b2, '_'})).
+
+test_identity() ->
+    ?assertEqual([], mapreduce_identity({error, notfound}, ignored, ignored)),
+    ?assertEqual([from_riak_object(mr_riak_object())],
+                 mapreduce_identity(mr_riak_object(), undefined, ignored)),
+    ?assertEqual([{from_riak_object(mr_riak_object()), keydata}],
+                 mapreduce_identity(mr_riak_object(), keydata, ignored)).
+
+test_wrap_fun() ->
+    ?assertEqual(test_pass,
+                 mapreduce_wrap_fun(
+                   {error, notfound}, keydata_ignored,
+                   {{qfun, fun({error, notfound},
+                               keydata_ignored,
+                               arg_ignored) ->
+                                   test_pass
+                           end},
+                    arg_ignored})),
+    ?assertEqual([[b1, <<"k2">>, <<"t2">>]],
+                 mapreduce_wrap_fun(
+                   mr_riak_object(), '_',
+                   {{modfun, jiak_object, links}, <<"t2">>})).
