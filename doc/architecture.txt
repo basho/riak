@@ -15,7 +15,7 @@ consistency.
 
 A Riak cluster is generally run on a set of well-connected physical
 hosts.  Each host in the cluster runs one Riak node.  Each Riak node
-runs a set of virutal nodes, or "vnodes", that are each responsible
+runs a set of virtual nodes, or "vnodes", that are each responsible
 for storing a separate portion of the key space.
 
 Nodes are not clones of each other, nor do they all participate in

@@ -13,8 +13,10 @@ ebin/.*\.(beam|app)$
 (^|/)erl_crash.dump$
 .*~$
 log/.*.log$
+log/.*.log.*$
 .*\.orig$
 priv/log/.*
+priv/weblogs/.*
 ^priv/store
 ^priv/ringstate/*
 ^client_lib/java/build/*
