@@ -161,6 +161,7 @@
               incoming,     %% jiak_object() - object the client is storing
               storedobj}).  %% jiak_object() - object stored in Riak
 
+-include_lib("eunit/include/eunit.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
 
 %% @type key() = container|schema|riak_object:key()
@@ -837,3 +838,35 @@ integer_query(ParamName, Default, ReqData) ->
         String    -> list_to_integer(String)
     end.
 
+%%
+%% Tests
+%%
+
+mochijson_roundtrip_test() ->
+    J0 = jiak_object:new(fake_bucket, <<"fake_key">>,
+                         {struct, [{<<"a">>, 1}]},
+                         [[other_bucket, <<"other_key">>, <<"fake_tag">>]]),
+    R0 = jiak_object:to_riak_object(J0),
+    [{M,V}] = riak_object:get_contents(R0),
+    R1 = riak_object:set_vclock(
+           riak_object:set_contents(
+             R0,
+             [{dict:store(<<"X-Riak-Last-Modified">>,
+                          httpd_util:rfc1123_date(),
+                          dict:store(<<"X-Riak-VTag">>, "hello", M)),
+               V}]),
+           vclock:increment(<<"foo">>, vclock:fresh())),
+    J1 = jiak_object:from_riak_object(R1),
+    {ok, J2} = atomify_buckets(mochijson2:decode(mochijson2:encode(J1))),
+    ?assertEqual(jiak_object:bucket(J1), jiak_object:bucket(J2)),
+    ?assertEqual(jiak_object:key(J1), jiak_object:key(J2)),
+    ?assertEqual(jiak_object:vclock(J1), jiak_object:vclock(J2)),
+    
+    ?assertEqual(jiak_object:props(J1), jiak_object:props(J2)),
+    ?assert(lists:all(fun(P) ->
+                              jiak_object:getp(J1, P) ==
+                                  jiak_object:getp(J2, P)
+                      end,
+                      jiak_object:props(J2))),
+
+    ?assertEqual(jiak_object:links(J1), jiak_object:links(J2)).
