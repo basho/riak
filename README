@@ -96,8 +96,8 @@ $ erl -name riaktest@127.0.0.1 -pa $RIAK/ebin
                  "20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664"}}
 
 riaktest@127.0.0.1)2> %% Create a shopping list for bread at /groceries/mine
-riaktest@127.0.0.1)2> O0 = riak_object:new(groceries, "mine", ["bread"]).
-{r_object,groceries,"mine",
+riaktest@127.0.0.1)2> O0 = riak_object:new(groceries, <<"mine">>, ["bread"]).
+{r_object,groceries,<<"mine">>,
           [{r_content,{dict,0,16,16,8,80,48,
                             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                             {{[],[],[],[],[],[],[],[],[],[],[],[],...}}},
@@ -113,8 +113,8 @@ riaktest@127.0.0.1)2> O0 = riak_object:new(groceries, "mine", ["bread"]).
 ok
 
 (riaktest@127.0.0.1)4> %% retrieve the list
-(riaktest@127.0.0.1)4> {ok, O1} = C:get(groceries, "mine", 1).
-{ok,{r_object,groceries,"mine",
+(riaktest@127.0.0.1)4> {ok, O1} = C:get(groceries, <<"mine">>, 1).
+{ok,{r_object,groceries,<<"mine">>,
               [{r_content,{dict,2,16,16,8,80,48,
                                 {[],[],[],[],[],[],[],[],[],[],[],[],...},
                                 {{[],[],[],[],[],[],
@@ -134,7 +134,7 @@ ok
 
 (riaktest@127.0.0.1)6> %% add milk to the list
 (riaktest@127.0.0.1)6> O2 = riak_object:update_value(O1, ["milk"|V]).
-{r_object,groceries,"mine",
+{r_object,groceries,<<"mine">>,
           [{r_content,{dict,2,16,16,8,80,48,
                             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                             {{[],[],[],[],[],[],
