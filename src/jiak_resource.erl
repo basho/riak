@@ -902,3 +902,23 @@ copy_unreadable_test() ->
     
     %% Should not have copied non-existent unreadable value
     ?assertEqual(undefined, jiak_object:getp(Copied, <<"unread1">>)).
+
+apply_read_mask_test() ->
+    Mod = jiak_default:new([{read_mask,
+                             [<<"read0">>,<<"read1">>,<<"read2">>]}]),
+    UnMasked = jiak_object:new(
+                 fake_bucket, <<"fake_key">>,
+                 {struct, [{<<"read0">>, <<"val1">>},
+                           {<<"read1">>, <<"val2">>},
+                           {<<"unreadable0">>, <<"val1">>},
+                           {<<"unreadable1">>, <<"val2">>}]}),
+    Masked = apply_read_mask(Mod, UnMasked),
+
+    %% unreadables removed
+    ?assertEqual(2, length(jiak_object:props(Masked))),
+
+    %% readables not removed
+    ?assertEqual(jiak_object:getp(UnMasked, <<"read0">>),
+                 jiak_object:getp(Masked, <<"read0">>)),
+    ?assertEqual(jiak_object:getp(UnMasked, <<"read1">>),
+                 jiak_object:getp(Masked, <<"read1">>)).
