@@ -2,7 +2,7 @@
 {application, 
  riak,
  [{description,  "riak"},
-  {vsn,          "0.17"},
+  {vsn,          "0.4"},
   {modules,      [__MODULES__]},
   {registered,   []},
   {mod,          {riak_app, []}},
