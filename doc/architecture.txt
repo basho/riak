@@ -63,7 +63,7 @@ The riak node startup is defined by the riak_sup module.
 
 The riak ring is defined by the riak_ring module.
 
-Vnodes are defined by the riak_vnode mdoule.
+Vnodes are defined by the riak_vnode module.
 
 Gets and Puts are driven by the riak_get_fsm and riak_put_fsm modules,
 respectively.
