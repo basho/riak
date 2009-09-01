@@ -52,7 +52,6 @@ handle_call({add_handler, HandlerMod, Arg},_From,State) ->
                  [X || X <- Eventers0, net_adm:ping(X) =:= pong])),
     NewRing = riak_ring:update_meta(eventers, Eventers, MyRing),
     riak_ring_manager:set_my_ring(NewRing),
-    io:format("RINGY ~p~n",[NewRing]),
     riak_ring_manager:write_ringfile(),
     Reply = gen_event:swap_sup_handler(riak_event,
                                        {{HandlerMod,{node(),now()}}, swap},

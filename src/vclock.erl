@@ -30,7 +30,8 @@
 
 -export([fresh/0,descends/2,merge/1,get_counter/2,get_timestamp/2,
 	increment/2,all_nodes/1,equal/2]).
--export([example_test/0]).
+
+-include_lib("eunit/include/eunit.hrl").
 
 % @type vclock() = [vc_entry].
 % @type   vc_entry() = {node(), {counter(), timestamp()}}.

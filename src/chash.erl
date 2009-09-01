@@ -27,12 +27,15 @@
 -author('Andy Gross <andy@basho.com>').
 
 -export([fresh/2,update/3,lookup/2,members/1,size/1,nodes/1,
-	 successors/2,successors/3,
-	 predecessors/2,predecessors/3,
-	 contains_name/2,key_of/1,
-	 merge_rings/2]).
+     successors/2,successors/3,
+     predecessors/2,predecessors/3,
+     contains_name/2,key_of/1,
+     merge_rings/2]).
+    
+-export ([update_test/0]).
 
 -define(RINGTOP, trunc(math:pow(2,160)-1)).  % SHA-1 space
+-include_lib("eunit/include/eunit.hrl").
 
 % @type chash() = {NumPartitions, [NodeEntry]}
 %  NumPartitions = integer()
@@ -59,7 +62,7 @@
 fresh(NumPartitions, SeedNode) ->
     Inc = ?RINGTOP div NumPartitions,
     {NumPartitions, [{IndexAsInt, SeedNode} ||
-		   IndexAsInt <- lists:seq(0,(?RINGTOP-1),Inc)]}.
+           IndexAsInt <- lists:seq(0,(?RINGTOP-1),Inc)]}.
 
 % @doc Find the Node that owns the partition identified by IndexAsInt.
 % @spec lookup(IndexAsInt :: integer(), CHash :: chash()) -> node()
@@ -73,10 +76,10 @@ lookup(IndexAsInt, CHash) ->
 contains_name(Name, CHash) ->
     {_NumPartitions, Nodes} = CHash,
     case [X || {_,X} <- Nodes, X == Name] of
-	[] ->
-	    false;
-	_ ->
-	    true
+    [] ->
+        false;
+    _ ->
+        true
     end.
 
 % @doc Make the partition beginning at IndexAsInt owned by Name'd node.
@@ -84,9 +87,8 @@ contains_name(Name, CHash) ->
 %                -> chash()
 update(IndexAsInt, Name, CHash) ->
     {NumPartitions, Nodes} = CHash,
-    GapList = [{I,N} || {I,N} <- Nodes, I /= IndexAsInt],
-    {A, B} = lists:partition(fun({K1,_}) -> K1 < IndexAsInt end, GapList),
-    {NumPartitions, A ++ [{IndexAsInt,Name}] ++ B}.
+    NewNodes = lists:keyreplace(IndexAsInt, 1, Nodes, {IndexAsInt, Name}),
+    {NumPartitions, NewNodes}.
 
 % @doc Given an object key, return all NodeEntries in order starting at Index.
 % @spec successors(Index :: index(), CHash :: chash()) -> [NodeEntry]
@@ -121,10 +123,10 @@ predecessors(Index, CHash, N) ->
 % @spec max_n(N :: integer(), CHash :: chash()) -> integer()
 max_n(N, {NumPartitions, _Nodes}) ->
     if
-	N > NumPartitions ->
-	    NumPartitions;
-	true ->
-	    N
+    N > NumPartitions ->
+        NumPartitions;
+    true ->
+        N
     end.    
 
 % @doc Given an object key, return all NodeEntries in order starting at Index.
@@ -162,7 +164,7 @@ merge_rings(CHashA,CHashB) ->
     {NumPartitions, NodesA} = CHashA,
     {NumPartitions, NodesB} = CHashB,
     {NumPartitions, [{I,randomnode(A,B)} || 
-		   {{I,A},{I,B}} <- lists:zip(NodesA,NodesB)]}.
+           {{I,A},{I,B}} <- lists:zip(NodesA,NodesB)]}.
 
 % @spec randomnode(NodeA :: node(), NodeB :: node()) -> node()
 randomnode(NodeA,NodeA) -> NodeA;
@@ -175,3 +177,15 @@ size(CHash) ->
     NumPartitions.
 
 
+update_test() ->
+    Node = 'old@host', NewNode = 'new@host',
+    
+    % Create a fresh ring...
+    CHash = chash:fresh(5, Node),
+    GetNthIndex = fun(N, {_, Nodes}) -> {Index, _} = lists:nth(N, Nodes), Index end,
+    
+    % Test update...
+    FirstIndex = GetNthIndex(1, CHash),
+    ThirdIndex = GetNthIndex(3, CHash),
+    {5, [{_, NewNode}, {_, Node}, {_, Node}, {_, Node}, {_, Node}, {_, Node}]} = update(FirstIndex, NewNode, CHash),
+    {5, [{_, Node}, {_, Node}, {_, NewNode}, {_, Node}, {_, Node}, {_, Node}]} = update(ThirdIndex, NewNode, CHash).
