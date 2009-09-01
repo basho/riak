@@ -20,13 +20,11 @@
 
 -export([notify/1,notify/3,eventer_config/1,do_eventer/1]).
 
--record(state, {ring, eventers}).
-
 %% @private
 start_link() -> gen_server2:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @private
-init([]) -> {ok, #state{ring=undefined, eventers=[]}}.
+init([]) -> {ok, stateless_server}.
 
 notify(Event) ->
     gen_server2:cast(riak_local_logger, {event, Event}),
@@ -36,16 +34,11 @@ notify(Module, EventName, EventDetail) ->
     notify({Module, EventName, node(), EventDetail}).
 
 %% @private
-handle_cast({event, _Event}, State=#state{eventers=[],ring=undefined}) ->
-    NewState = ensure_ring(State),
-    {noreply, NewState};
-handle_cast({event, _Event}, State=#state{eventers=[]}) ->
-    {noreply, State};
-handle_cast({event, Event}, State=#state{}) ->
-    NewState = ensure_ring(State),
-    Eventers = NewState#state.eventers,
+handle_cast({event, Event}, State) ->
+    {ok, Ring} = riak_ring_manager:get_my_ring(),    %%%% TEST EVENTS!
+    Eventers = get_eventers(Ring),
     [gen_event:notify({riak_event,Node},Event) || Node <- Eventers],
-    {noreply, NewState}.
+    {noreply, State}.
     
 eventer_config([Cluster, CookieStr]) ->
     RipConf = [{no_config, true}, {cluster_name, Cluster},
@@ -67,23 +60,12 @@ do_eventer([IP, PortStr, HandlerName, HandlerArg]) ->
     riak_event_guard:add_handler(list_to_atom(HandlerName), HandlerArg),
     ok.
 
-%% @private
-ensure_ring(State=#state{ring=undefined}) ->
-    riak_ring_manager:subscribe(self()),
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
-    State#state{ring=Ring, eventers=get_eventers(Ring)};
-ensure_ring(State) -> State.
-
-
 get_eventers(Ring) ->
     case riak_ring:get_meta(eventers, Ring) of
         undefined -> [];
         {ok, X} -> sets:to_list(X)
     end.        
 
-%% @private
-handle_info({set_ring, Ring}, State) -> 
-    {noreply, State#state{ring=Ring, eventers=get_eventers(Ring)}};
 handle_info(_Info, State) -> {noreply, State}.
 
 %% @private

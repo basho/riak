@@ -53,7 +53,7 @@
 -module(riak_mapreduce_fsm).
 -behaviour(gen_fsm).
 
--export([start/5]).
+-export([start/4]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
@@ -61,10 +61,11 @@
 
 -record(state, {client, reqid, acc, fsms, starttime, endtime, ring}).
 
-start(Ring,Inputs,Query,Timeout,Client) ->
-    gen_fsm:start(?MODULE, [Ring,Inputs,Query,Timeout,Client], []).
+start(Inputs,Query,Timeout,Client) ->
+    gen_fsm:start(?MODULE, [Inputs,Query,Timeout,Client], []).
 %% @private
-init([Ring,Inputs,Query,Timeout,Client]) ->
+init([Inputs,Query,Timeout,Client]) ->
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
     RealStartTime = riak_util:moment(),
     ReqID = erlang:phash2({random:uniform(), self(), RealStartTime}),
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_start,
@@ -82,7 +83,7 @@ init([Ring,Inputs,Query,Timeout,Client]) ->
         {bad_qterm, QTerm} ->
             riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done,
                                 {error, {bad_qterm, QTerm}}),
-            gen_server2:reply(Client,{error, {bad_qterm, QTerm}}),
+            Client ! {error, {bad_qterm, QTerm}},
             {stop,normal}
     end.
 
@@ -136,7 +137,7 @@ wait({done,FSM}, StateData=#state{client=Client,acc=Acc,reqid=ReqID,
         [] -> 
             riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done,
                                 {ok, ReqID, length(Acc)}),
-            gen_server2:reply(Client,{ok, Acc}),
+            Client ! {ok, Acc},
             {stop,normal,StateData};
         _ ->
             {next_state, wait, StateData#state{fsms=FSMs},
@@ -147,7 +148,7 @@ wait({error, ErrFSM, ErrMsg}, StateData=#state{client=Client,reqid=ReqID,
     FSMs = lists:delete(ErrFSM,FSMs0),
     [gen_fsm:send_event(FSM, die) || FSM <- FSMs],
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done, {error, ReqID}),
-    gen_server2:reply(Client,{error, ErrMsg}),
+    Client ! {error, ErrMsg},
     {stop,normal,StateData};
 wait({acc,Data}, StateData=#state{acc=Acc,endtime=End}) ->
     AccData = case Data of
@@ -157,7 +158,7 @@ wait({acc,Data}, StateData=#state{acc=Acc,endtime=End}) ->
     {next_state, wait, StateData#state{acc=AccData},End-riak_util:moment()};
 wait(timeout, StateData=#state{reqid=ReqID,client=Client}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done, {timeout, ReqID}),
-    gen_server2:reply(Client,{error, timeout}),
+    Client ! {error, timeout},
     {stop,normal,StateData}.
 
 %% @private

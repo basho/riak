@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
-%% @doc Interface used by riak_api for object deletion.
+%% @doc Interface for object deletion.
 
 -module(riak_delete).
 
@@ -26,14 +26,13 @@ delete(Bucket,Key,RW,Timeout,Client) ->
     RealStartTime = riak_util:moment(),
     ReqID = erlang:phash2({random:uniform(),self(),Bucket,Key,RealStartTime}),
     riak_eventer:notify(riak_delete, delete_start, {ReqID, Bucket, Key}),
-    case gen_server2:call({riak_api, node()},
-                          {get,Bucket,Key,RW,Timeout}) of
+    {ok,C} = riak:local_client(),
+    case C:get(Bucket,Key,RW,Timeout) of
         {ok, OrigObj} ->
             RemainingTime = Timeout - (riak_util:moment() - RealStartTime),
             OrigMD = hd([MD || {MD,_V} <- riak_object:get_contents(OrigObj)]),
             NewObj = riak_object:update_metadata(OrigObj,
                             dict:store(<<"X-Riak-Deleted">>, "true", OrigMD)),
-            {ok, C} = riak:local_client(),
             Reply = C:put(NewObj, RW, RW, RemainingTime),
             case Reply of
                 ok -> 
@@ -42,20 +41,20 @@ delete(Bucket,Key,RW,Timeout,Client) ->
                 _ -> nop
             end,
             riak_eventer:notify(riak_delete, delete_reply, {ReqID, Reply}),
-            gen_server2:reply(Client, Reply);
+            Client ! Reply;
         {error, notfound} ->
             riak_eventer:notify(riak_delete, delete_reply,
                                 {ReqID, {error, notfound}}),
-            gen_server2:reply(Client, {error, notfound});
+            Client ! {error, notfound};
         X ->
             riak_eventer:notify(riak_delete, delete_reply, {ReqID, X}),
-            gen_server2:reply(Client, X)
+            Client ! X
     end.
 
 reap(Bucket, Key, WaitTime, Timeout, ReqId) ->
     timer:sleep(WaitTime),
-    case gen_server2:call({riak_api, node()}, 
-                          {get, Bucket, Key, 1, Timeout}) of
+    {ok,C} = riak:local_client(),
+    case C:get(Bucket,Key,1,Timeout) of
         {error, notfound} ->
             riak_eventer:notify(riak_delete, finalize_reap, 
                                 {ReqId, Bucket, Key, ok});

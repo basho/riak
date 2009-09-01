@@ -15,7 +15,7 @@
 -module(riak_put_fsm).
 -behaviour(gen_fsm).
 
--export([start/6]).
+-export([start/5]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 -export([initialize/2,waiting_vnode_w/2,waiting_vnode_dw/2]).
@@ -38,18 +38,19 @@
                 ring :: riak_ring:riak_ring()
                }).
 
-start(Ring,RObj,W,DW,Timeout,From) ->
-    gen_fsm:start(?MODULE, [Ring, RObj,W,DW,Timeout,From], []).
+start(RObj,W,DW,Timeout,From) ->
+    gen_fsm:start(?MODULE, [RObj,W,DW,Timeout,From], []).
 
 %% @private
-init([Ring,RObj0,W,DW,Timeout,Client]) ->
+init([RObj0,W,DW,Timeout,Client]) ->
+    {ok,Ring} = riak_ring_manager:get_my_ring(),
     StateData = #state{robj=RObj0, client=Client, w=W, dw=DW,
                        timeout=Timeout, ring=Ring},
     {ok,initialize,StateData,0}.
 
 %% @private
-initialize(timeout, StateData0=#state{robj=RObj0, client=Client, w=W, dw=DW, 
-                                                timeout=Timeout, ring=Ring}) ->
+initialize(timeout, StateData0=#state{robj=RObj0,
+                                      timeout=Timeout, ring=Ring}) ->
     RealStartTime = riak_util:moment(),
     Bucket = riak_object:bucket(RObj0),
     BucketProps = riak_bucket:get_bucket(Bucket, Ring),
@@ -85,7 +86,7 @@ waiting_vnode_w({w, Idx, ReqID},
         true ->
             case DW of
                 0 ->
-                    gen_server2:reply(Client,ok),
+                    Client ! ok,
                     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                         {ReqID, ok}),
                     {stop,normal,StateData};
@@ -114,13 +115,13 @@ waiting_vnode_w({fail, Idx, ReqID},
         false ->
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                 {ReqID, {error,too_many_fails,Replied}}),
-            gen_server2:reply(Client,{error,too_many_fails}),
+            Client ! {error,too_many_fails},
             {stop,normal,NewStateData}
     end;
 waiting_vnode_w(timeout, StateData=#state{client=Client,req_id=ReqID}) ->
     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                         {ReqID, {error,timeout}}),
-    gen_server2:reply(Client,{error,timeout}),
+    Client ! {error,timeout},
     {stop,normal,StateData}.
 
 waiting_vnode_dw({w, _Idx, ReqID},
@@ -134,7 +135,7 @@ waiting_vnode_dw({dw, Idx, ReqID},
         true ->
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                 {ReqID, ok}),
-            gen_server2:reply(Client,ok),
+            Client ! ok,
             {stop,normal,StateData};
         false ->
             NewStateData = StateData#state{replied_dw=Replied},
@@ -151,13 +152,13 @@ waiting_vnode_dw({fail, Idx, ReqID},
         false ->
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                 {ReqID, {error,too_many_fails,Replied}}),
-            gen_server2:reply(Client,{error,too_many_fails}),
+            Client ! {error,too_many_fails},
             {stop,normal,NewStateData}
     end;
 waiting_vnode_dw(timeout, StateData=#state{client=Client,req_id=ReqID}) ->
     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                         {ReqID, {error,timeout}}),
-    gen_server2:reply(Client,{error,timeout}),
+    Client ! {error,timeout},
     {stop,normal,StateData}.
 
 %% @private

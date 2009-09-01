@@ -89,11 +89,15 @@ fresh(RingSize, NodeName) ->
 my_indices(State) ->
     [I || {I,Owner} <- ?MODULE:all_owners(State), Owner =:= node()].
 
-% @doc Return a partition indices not owned by the node executing this function.
+% @doc Return a partition index not owned by the node executing this function.
+%      If this node owns all partitions, return any index.
 % @spec random_other_index(State :: hstate()) -> integer()
 random_other_index(State) ->
     L = [I || {I,Owner} <- ?MODULE:all_owners(State), Owner =/= node()],
-    lists:nth(crypto:rand_uniform(1, length(L)+1), L).
+    case L of
+        [] -> hd(my_indices(State));
+        _ -> lists:nth(crypto:rand_uniform(1, length(L)+1), L)
+    end.
 
 % @doc Return the node that owns the given index.
 % @spec index_owner(State :: hstate(), Idx :: integer()) -> Node :: term()

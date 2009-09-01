@@ -15,7 +15,7 @@
 -module(riak_keys_fsm).
 -behaviour(gen_fsm).
 
--export([start/4]).
+-export([start/3]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 -export([initialize/2,waiting_kl/2]).
@@ -30,11 +30,12 @@
                 ring :: riak_ring:riak_ring()
                }).
 
-start(Ring,Bucket,Timeout,From) ->
-    gen_fsm:start(?MODULE, [Ring,Bucket,Timeout,From], []).
+start(Bucket,Timeout,From) ->
+    gen_fsm:start(?MODULE, [Bucket,Timeout,From], []).
 
 %% @private
-init([Ring,Bucket,Timeout,Client]) ->
+init([Bucket,Timeout,Client]) ->
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
     StateData = #state{client=Client, timeout=Timeout,
                        bucket=Bucket, ring=Ring},
     {ok,initialize,StateData,0}.
@@ -88,7 +89,7 @@ waiting_kl(timeout, StateData=#state{keys=Acc,client=Client,req_id=ReqID}) ->
 %% @private
 respond(Client, KeyLists) ->
     Reply = sets:to_list(sets:union(KeyLists)),
-    gen_server2:reply(Client, {ok, Reply}),
+    Client ! {ok, Reply},
     Reply.
 
 %% @private

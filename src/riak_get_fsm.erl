@@ -15,7 +15,7 @@
 -module(riak_get_fsm).
 -behaviour(gen_fsm).
 
--export([start/6]).
+-export([start/5]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 -export([initialize/2,waiting_vnode_r/2,waiting_read_repair/2]).
@@ -39,11 +39,12 @@
                 ring :: riak_ring:riak_ring()
                }).
 
-start(Ring,Bucket,Key,R,Timeout,From) ->
-    gen_fsm:start(?MODULE, [Ring,Bucket,Key,R,Timeout,From], []).
+start(Bucket,Key,R,Timeout,From) ->
+    gen_fsm:start(?MODULE, [Bucket,Key,R,Timeout,From], []).
 
 %% @private
-init([Ring,Bucket,Key,R,Timeout,Client]) ->
+init([Bucket,Key,R,Timeout,Client]) ->
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
     StateData = #state{client=Client,r=R, timeout=Timeout,
                        bkey={Bucket,Key}, ring=Ring},
     {ok,initialize,StateData,0}.
@@ -111,7 +112,7 @@ waiting_vnode_r({r, {error, notfound}, Idx, ReqID},
         false ->
             riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                 {ReqID, notfound}),
-            gen_server2:reply(Client,{error,notfound}),
+            Client ! {error,notfound},
             {stop,normal,NewStateData}
     end;
 waiting_vnode_r({r, {error, Err}, Idx, ReqID},
@@ -129,19 +130,19 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqID},
                     FullErr = [E || {E,_I} <- Replied],
                     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                         {ReqID, {error,FullErr}}),
-                    gen_server2:reply(Client,{error,FullErr}),
+                    Client ! {error,FullErr},
                     {stop,normal,NewStateData};
                 _ ->
                     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                         {ReqID, notfound}),
-                    gen_server2:reply(Client,{error,notfound}),
+                    Client ! {error,notfound},
                     {stop,normal,NewStateData}
             end
     end;
 waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqID}) ->
     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                         {ReqID, timeout}),
-    gen_server2:reply(Client,{error,timeout}),
+    Client ! {error,timeout},
     {stop,normal,StateData}.
 
 waiting_read_repair({r, {ok, RObj}, Idx, ReqID},
@@ -243,7 +244,7 @@ code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
 respond(Client,VResponses,AllowMult) ->
     Reply = merge_robjs([R || {R,_I} <- VResponses],AllowMult),
-    gen_server2:reply(Client,Reply),
+    Client ! Reply,
     Reply.
 
 merge_robjs(RObjs0,AllowMult) ->

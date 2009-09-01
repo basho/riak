@@ -42,9 +42,6 @@ init([]) ->
     Connect = {riak_connect,
              {riak_connect, start_link, []},
              permanent, 5000, worker, [riak_connect]},
-    API = {riak_api,
-           {riak_api, start_link, []},
-           permanent, 5000, worker, [riak_api]},
     VMaster = {riak_vnode_master,
                {riak_vnode_master, start_link, []},
                permanent, 5000, worker, [riak_vnode_master]},
@@ -60,11 +57,11 @@ init([]) ->
     Processes0 = 
     case riak:get_app_env(riak_web_ip) of
         "undefined" ->
-            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger];
+            [RingMgr,RingGossip,Connect,EventGuard,LocalLogger];
         undefined ->
-            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger];
+            [RingMgr,RingGossip,Connect,EventGuard,LocalLogger];
         _ ->
-            [RingMgr,RingGossip,Connect,API,EventGuard,LocalLogger,
+            [RingMgr,RingGossip,Connect,EventGuard,LocalLogger,
              RiakWeb]
     end,
     Processes1 = 

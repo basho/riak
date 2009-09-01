@@ -28,49 +28,12 @@
 start_link() -> gen_server2:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @private
-handle_call({reload_all, Mod}, _From, State) ->
-    {reply, riak_util:reload_all(Mod), State};
-handle_call({remove_from_cluster,ExitingNode}, _From, State) ->
-    {reply, riak_ring_gossiper:remove_from_cluster(ExitingNode), State};
-handle_call({mapred,Inputs,Query,Timeout}, From, State) ->
-    NewState = ensure_ring(State),
-    riak_mapreduce_fsm:start(NewState#state.ring,Inputs,Query,Timeout,From),
-    {noreply, NewState};
-handle_call({put,RObj,W,DW,Timeout}, From, State) ->
-    NewState = ensure_ring(State),
-    riak_put_fsm:start(NewState#state.ring, RObj,W,DW,Timeout,From),
-    {noreply, NewState};
-handle_call({get,Bucket,Key,R,Timeout}, From, State) ->
-    NewState = ensure_ring(State),
-    riak_get_fsm:start(NewState#state.ring, Bucket,Key,R,Timeout,From),
-    {noreply, NewState};
-handle_call({delete,Bucket,Key,RW,Timeout}, From, State) ->
-    spawn(fun() -> riak_delete:delete(Bucket,Key,RW,Timeout,From) end),
-    {noreply, State};
-handle_call({set_bucket,BucketName,BucketProps}, From, State) ->
-    spawn(fun() ->
-          gen_server2:reply(From,
-                           riak_bucket:set_bucket(BucketName, BucketProps))
-          end),
-    {noreply, State};
-handle_call({get_bucket,BucketName}, From, State) ->
-    spawn(fun() ->
-          gen_server2:reply(From,
-                           riak_bucket:get_bucket(BucketName))
-          end),
-    {noreply, State};
-handle_call({list_keys,Bucket,Timeout}, From, State) ->
-    NewState = ensure_ring(State),
-    riak_keys_fsm:start(NewState#state.ring, Bucket, Timeout, From),
-    {noreply, State}.
+handle_call(_,_From,State) -> {noreply,State}.
 
 %% @private
 init([]) -> {ok, #state{ring=undefined}}.
 
 %% @private
-handle_cast({send_event, ClientId, EventName, EventDetail}, State) ->
-    riak_eventer:notify(client_event, EventName, {ClientId, EventDetail}),
-    {noreply, State};
 handle_cast(_Msg, State) -> {noreply,State}.
 
 %% @private
@@ -85,10 +48,3 @@ terminate(_Reason, _State) -> ok.
 %% @private
 code_change(_OldVsn, State, _Extra) ->  {ok, State}.
 
-%% @private
-ensure_ring(State=#state{ring=undefined}) ->
-    riak_ring_manager:subscribe(self()),
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
-    State#state{ring=Ring};
-ensure_ring(State) -> State.
-    
