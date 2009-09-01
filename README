@@ -155,4 +155,4 @@ ok
 
 (riaktest@127.0.0.1)8> %% find out what else is in the groceries bucket
 (riaktest@127.0.0.1)8> C:list_keys(groceries).
-{ok,["mine"]}
+{ok,[<<"mine">>]}
