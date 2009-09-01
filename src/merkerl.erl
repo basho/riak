@@ -22,7 +22,7 @@
 % versioning information it will be much easier to resolve which
 % node's view for any given object is newer.
 %
-% See the code of test_merkle/0 for trivial example usage.
+% See the code of merkle_test/0 for trivial example usage.
 %
 % Application usage note: the 'crypto' OTP application must be started
 % before any of this module's functions will work.
@@ -40,7 +40,9 @@
 %% limitations under the License.
 
 -module(merkerl).
--export([insert/2,delete/2,build_tree/1,diff/2,test_merkle/0,allkeys/1]).
+-export([insert/2,delete/2,build_tree/1,diff/2,allkeys/1]).
+
+-include_lib("eunit/include/eunit.hrl").
 
 % TODO: fix doc, userdata is the ONLY user-exposed key
 -record(merk, {nodetype,           % atom: expected values are 'leaf' or 'inner'
@@ -320,36 +322,38 @@ getkids(Tree) ->
 sha(X) ->
     crypto:sha(term_to_binary(X)).
 
-assert(X, X) -> true.
-
-% @spec test_merkle() -> bool()
+% @spec merkle_test() -> bool()
 % @doc A test function and example code.
 %
 % This should be changed into a proper unit test suite.
-test_merkle() ->
+merkle_test() ->
+    case lists:keymember(crypto, 1, application:loaded_applications()) of
+        true  -> ok;
+        false -> ok = application:start(crypto)
+    end,
     A = [{one,"one data"},{two,"two data"},{three,"three data"},
 	 {four,"four data"},{five,"five data"}],
     B = [{one,"one data"},{two,"other two"},{three,"three data"},
 	 {four,"other four"},{five,"five data"}],
     A2 = build_tree(A),
     B2 = build_tree(B),
-    assert(diff(A2,B2), lists:usort([two, four])),
+    ?assertEqual(lists:usort([two, four]), diff(A2,B2)),
     C = [{one,"one data"}],
     C2 = build_tree(C),
-    assert(diff(A2,C2), lists:usort([two, three, four, five])),
+    ?assertEqual(lists:usort([two, three, four, five]), diff(A2,C2)),
     D = insert({four, sha("changed!")}, A2),
-    assert(diff(A2,D), [four]),
+    ?assertEqual([four], diff(A2,D)),
     E = insert({five, sha("changed more!")}, D),
-    assert(diff(D,E), [five]),
-    assert(diff(A2,E), lists:usort([four, five])),
+    ?assertEqual([five], diff(D,E)),
+    ?assertEqual(lists:usort([four, five]), diff(A2,E)),
     F = delete(five,D),
     G = delete(five,E),
-    assert(diff(F,G), []),
+    ?assertEqual([], diff(F,G)),
     H = delete(two,A2),
-    assert(diff(A2,H), [two]),
-    assert(diff(C2,undefined), [one]),
+    ?assertEqual([two], diff(A2,H)),
+    ?assertEqual([one], diff(C2,undefined)),
     STree1 = build_tree([{"hello", "hi"},{"and", "what"}]),
     STree2 = build_tree([{"hello", "hi"},{"goodbye", "bye"}]),
-    assert(diff(STree1, STree2), lists:usort(["and", "goodbye"])).
+    ?assertEqual(lists:usort(["and", "goodbye"]), diff(STree1, STree2)).
 
 
