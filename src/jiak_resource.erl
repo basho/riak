@@ -870,3 +870,35 @@ mochijson_roundtrip_test() ->
                       jiak_object:props(J2))),
 
     ?assertEqual(jiak_object:links(J1), jiak_object:links(J2)).
+
+copy_unreadable_test() ->
+    Mod = jiak_default:new([{allowed_fields,
+                             [<<"read0">>, <<"read1">>,
+                              <<"unread0">>, <<"unread1">>]},
+                            {read_mask,
+                             [<<"read0">>, <<"read1">>]}]),
+    Masked = jiak_object:new(
+               fake_bucket, <<"fake_key">>,
+               {struct, [{<<"read0">>, <<"val0">>}]},
+               []),
+    UnMasked = jiak_object:new(
+                 fake_bucket, <<"fake_key">>,
+                 {struct, [{<<"read0">>, <<"val1">>},
+                           {<<"read1">>, <<"val2">>},
+                           {<<"unread0">>, <<"val3">>}]},
+                 []),
+    Copied = copy_unreadable_props(Mod, UnMasked, Masked),
+    
+    %% should not have overwritten readable value
+    ?assertEqual(jiak_object:getp(Masked, <<"read0">>),
+                 jiak_object:getp(Copied, <<"read0">>)),
+    
+    %% should not have copied non-existent readable value
+    ?assertEqual(undefined, jiak_object:getp(Copied, <<"read1">>)),
+    
+    %% should have copied unreadable value
+    ?assertEqual(jiak_object:getp(UnMasked, <<"unread0">>),
+                 jiak_object:getp(Copied, <<"unread0">>)),
+    
+    %% Should not have copied non-existent unreadable value
+    ?assertEqual(undefined, jiak_object:getp(Copied, <<"unread1">>)).
