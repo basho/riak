@@ -311,35 +311,14 @@ mapreduce_wrap_fun(RiakObject, KeyData, {FunTerm, Arg}) ->
 %% @doc Convert a vclock to a binary appropriate for storing in
 %%      a Jiak object.
 vclock_to_headers(VClock) ->
-    base64:encode(zlib:zip(make_vclock_headers(lists:sort(VClock), []))).
-
-%% @private
-make_vclock_headers([], Acc) ->
-    list_to_binary(string:join(lists:reverse(Acc), ","));
-make_vclock_headers([{Node, {Counter, Timestamp}}|T], Acc) ->
-    Hdr = format_vclock_header(Node, Counter, Timestamp),
-    make_vclock_headers(T, [Hdr|Acc]).    
-
-%% @private
-format_vclock_header(Node, Counter, Timestamp) when is_list(Node); is_binary(Node) ->
-    io_lib:format("~s/~B/~B", [Node, 
-                               Counter, 
-                               Timestamp]);
-format_vclock_header(Node, Counter, Timestamp) ->
-    format_vclock_header(atom_to_list(Node), Counter, Timestamp).
+    base64:encode(zlib:zip(term_to_binary(VClock))).
 
 %% @spec headers_to_vclock(binary()) -> riak:vclock()
 %% @doc Convert a Jiak object vclock (a binary created by
 %%      vclock_to_headers/1) into a vclock appropriate for storing
 %%      in a riak_object.
-headers_to_vclock(Header) when is_binary(Header) ->
-    headers_to_vclock(binary_to_list(zlib:unzip(base64:decode(Header))));
 headers_to_vclock(Header) ->
-    [{list_to_binary(N), 
-      {list_to_integer(C), list_to_integer(T)}} || 
-	{N, C, T} <- 
-	    [list_to_tuple(string:tokens(H, "/")) 
-	     || H <- [string:strip(S) || S <- string:tokens(Header, ",")]]].
+    binary_to_term(zlib:unzip(base64:decode(Header))).
 
 %%
 %% Diffing Objects
@@ -404,7 +383,9 @@ diff_links(FromObj, ToObj) ->
 roundtrip_vclock_test() ->
     Vclock = vclock:increment(riak_util:mkclientid(node()),
                               vclock:fresh()),
-    ?assertEqual(Vclock, headers_to_vclock(vclock_to_headers(Vclock))).
+    ?assertEqual(Vclock, headers_to_vclock(vclock_to_headers(Vclock))),
+    Vclock2 = vclock:increment(node(), vclock:fresh()),
+    ?assertEqual(Vclock2, headers_to_vclock(vclock_to_headers(Vclock2))).
 
 roundtrip_riak_object_test_() ->
     [fun test_to_riak_object/0,
@@ -484,6 +465,7 @@ links_test() ->
     L0 = [other_fake_bucket,<<"other_fake_key">>,<<"fake_tag">>],
     B = add_link(A, L0),
     ?assertEqual([L0], links(B)),
+    ?assertEqual([L0], links(B, '_', '_')),
     ?assertEqual([L0], links(B, other_fake_bucket)),
     ?assertEqual([],   links(B, wrong_fake_bucket)),
     ?assertEqual([L0], links(B, '_', <<"fake_tag">>)),
@@ -493,8 +475,16 @@ links_test() ->
     ?assertEqual([],   links(B, wrong_fake_bucket, <<"fake_tag">>)),
     
     ?assertEqual(B, add_link(B, L0)), %%don't double-add links
+
+    %% add_link/4 should do same as add_link/2
+    ?assertEqual(add_link(A, L0),
+                 add_link(A, hd(L0), hd(tl(L0)), hd(tl(tl(L0))))),
     
     ?assertEqual([], links(remove_link(B, L0))),
+
+    %% remove_link/4 should do same as remove_link/2
+    ?assertEqual(remove_link(B, L0),
+                 remove_link(B, hd(L0), hd(tl(L0)), hd(tl(tl(L0))))),
     
     L1 = [other_fake_bucket,<<"second_fake_key">>,<<"new_fake_tag">>],
     L2 = [new_fake_bucket,<<"third_fake_key">>,<<"fake_tag">>],

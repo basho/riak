@@ -9,13 +9,14 @@ main([Ebin]) ->
     {ok, [{application, riak, App}]} =
         file:consult(filename:join([Ebin, "riak.app"])),
     {ok, NonTestRe} = re:compile("_tests$"),
-    crypto:start(),
-    setup_mock_ring(),
     Modules = lists:filter(
                 fun(M) ->
                         nomatch == re:run(atom_to_list(M), NonTestRe)
                 end,
                 proplists:get_value(modules, App)),
+
+    crypto:start(),
+    setup_mock_ring(),
 
     start_cover(Modules),
     eunit:test(Modules, [verbose]),
