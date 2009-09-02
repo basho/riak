@@ -14,7 +14,7 @@
 
 -module(riak_eventer).
 -behaviour(gen_server2).
--export([start_link/0]).
+-export([start_link/0,start_link/1,stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 
@@ -22,9 +22,12 @@
 
 %% @private
 start_link() -> gen_server2:start_link({local, ?MODULE}, ?MODULE, [], []).
+start_link(test) -> % when started this way, run a mock server (nop)
+    gen_server2:start_link({local, ?MODULE}, ?MODULE, [test], []).
 
 %% @private
-init([]) -> {ok, stateless_server}.
+init([]) -> {ok, stateless_server};
+init([test]) -> {ok, test}.
 
 notify(Event) ->
     gen_server2:cast(riak_local_logger, {event, Event}),
@@ -33,7 +36,13 @@ notify(Event) ->
 notify(Module, EventName, EventDetail) ->
     notify({Module, EventName, node(), EventDetail}).
 
+%% @private (only used for test instances)
+stop() -> gen_server2:cast(?MODULE, stop).
+
 %% @private
+handle_cast(stop, State) -> {stop,normal,State};
+
+handle_cast({event, _Event}, test) -> {noreply,test};
 handle_cast({event, Event}, State) ->
     {ok, Ring} = riak_ring_manager:get_my_ring(),    %%%% TEST EVENTS!
     Eventers = get_eventers(Ring),

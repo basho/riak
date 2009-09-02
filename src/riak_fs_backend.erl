@@ -20,8 +20,12 @@
 % @type state() = term().
 -record(state, {dir}).
 
-% @spec start(Partition :: integer()) ->
-%                        {ok, state()} | {{error, Reason :: term()}, state()}
+%% @spec start(Partition :: integer()) ->
+%%          {ok, state()} | {{error, Reason :: term()}, state()}
+%% @doc Start this backend.  'riak_fs_backend_root' must be
+%%      set in Riak's application environment.  It must be set to
+%%      a string representing the base directory where this backend
+%%      should store its files.
 start(Partition) ->
     PartitionName = integer_to_list(Partition),
     ConfigRoot = riak:get_app_env(riak_fs_backend_root),
@@ -33,12 +37,12 @@ start(Partition) ->
     Dir = filename:join([ConfigRoot,PartitionName]),
     {filelib:ensure_dir(Dir), #state{dir=Dir}}.
 
-% @spec stop(state()) -> ok | {error, Reason :: term()}
+%% @spec stop(state()) -> ok | {error, Reason :: term()}
 stop(_State) -> ok.
 
-% get(state(), Key :: binary()) ->
-%   {ok, Val :: binary()} | {error, Reason :: term()}
-% key must be 160b
+%% @spec get(state(), BKey :: riak_object:bkey()) ->
+%%         {ok, Val :: binary()} | {error, Reason :: term()}
+%% @doc Get the object stored at the given bucket/key pair
 get(State, BKey) ->
     File = location(State,BKey),
     case filelib:is_file(File) of
@@ -46,9 +50,9 @@ get(State, BKey) ->
         true -> file:read_file(File)
     end.
 
-% put(state(), Key :: binary(), Val :: binary()) ->
-%   ok | {error, Reason :: term()}
-% key must be 160b
+%% @spec put(state(), BKey :: riak_object:bkey(), Val :: binary()) ->
+%%         ok | {error, Reason :: term()}
+%% @doc Store Val under Bkey
 put(State,BKey,Val) ->       
     File = location(State,BKey),
     case filelib:ensure_dir(File) of
@@ -56,9 +60,9 @@ put(State,BKey,Val) ->
         X -> X
     end.
 
-% delete(state(), Key :: binary()) ->
-%   ok | {error, Reason :: term()}
-% key must be 160b
+%% @spec delete(state(), BKey :: riak_object:bkey()) ->
+%%          ok | {error, Reason :: term()}
+%% @doc Delete the object stored at BKey
 delete(State, BKey) ->
     File = location(State,BKey),
     case file:delete(File) of
@@ -67,13 +71,18 @@ delete(State, BKey) ->
         {error, Err} -> {error, Err}
     end.
 
-% list(state()) -> [Key :: binary()]
+%% @spec list(state()) -> [{Bucket :: riak_object:bucket(),
+%%                          Key :: riak_object:key()}]
+%% @doc Get a list of all bucket/key pairs stored by this backend
 list(State) ->
     % this is slow slow slow
     %                                              B,N,N,N,K
     [location_to_bkey(X) || X <- filelib:wildcard("*/*/*/*/*",
                                                   State#state.dir)].
 
+%% @spec list_bucket(state(), riak_object:bucket()) ->
+%%           [riak_object:key()]
+%% @doc Get a list of the keys in a bucket
 list_bucket(State, Bucket) ->
     B64 = encode_bucket(Bucket),
     L = length(State#state.dir),
@@ -82,28 +91,49 @@ list_bucket(State, Bucket) ->
                                filename:join([State#state.dir,
                                               B64,"*/*/*/*"])) ]].
 
+%% @spec location(state(), {riak_object:bucket(), riak_object:key()})
+%%          -> string()
+%% @doc produce the file-path at which the object for the given Bucket
+%%      and Key should be stored
 location(State, {Bucket, Key}) ->
     B64 = encode_bucket(Bucket),
     K64 = encode_key(Key),
     [N1,N2,N3] = nest(K64),
     filename:join([State#state.dir, B64, N1, N2, N3, K64]).
 
+%% @spec location_to_bkey(string()) ->
+%%           {riak_object:bucket(), riak_object:key()}
+%% @doc reconstruct a Riak bucket/key pair, given the location at
+%%      which its object is stored on-disk
 location_to_bkey(Path) ->
     [B64,_,_,_,K64] = string:tokens(Path, "/"),
     {decode_bucket(B64), decode_key(K64)}.
 
+%% @spec encode_bucket(atom()) -> string()
+%% @doc make a filename out of a Riak bucket
 encode_bucket(Bucket) ->
     clean(base64:encode_to_string(atom_to_list(Bucket))).
 
+%% @spec decode_bucket(string()) -> atom()
+%% @doc reconstruct a Riak bucket, given a filename
+%% @see encode_bucket/1
 decode_bucket(B64) ->
     list_to_atom(base64:decode_to_string(dirty(B64))).
 
+%% @spec encode_key(binary()) -> string()
+%% @doc make a filename out of a Riak object key
 encode_key(Key) ->
     clean(base64:encode_to_string(Key)).
 
+%% @spec decode_key(string()) -> binary()
+%% @doc reconstruct a Riak object key, given a filename
+%% @see encode_key/1
 decode_key(K64) ->
     base64:decode(dirty(K64)).
 
+%% @spec clean(string()) -> string()
+%% @doc remove characters from base64 encoding, which may
+%%      cause trouble with filenames
 clean(Str64) ->
     lists:map(fun($=) -> $-;
                  ($+) -> $_;
@@ -112,22 +142,28 @@ clean(Str64) ->
               end,
               Str64).
 
+%% @spec dirty(string()) -> string()
+%% @doc replace filename-troublesome base64 characters
+%% @see clean/1
 dirty(Str64) ->
     lists:map(fun($-) -> $=;
                  ($_) -> $+;
-                 ($/) -> $,;
+                 ($,) -> $/;
                  (C)  -> C
               end,
               Str64).
 
-nest([N1a,N1b,N2a,N2b,N3a,N3b|_]) ->
-    [[N1a,N1b],[N2a,N2b],[N3a,N3b]];
-nest([N2a,N2b,N3a,N3b]) ->
-    ["0",[N2a,N2b],[N3a,N3b]];
-nest([N3a,N3b]) ->
-    ["0","0",[N3a,N3b]];
-nest(_) ->
-    ["0","0","0"].
+%% @spec nest(string()) -> [string()]
+%% @doc create a directory nesting, to keep the number of
+%%      files in a directory smaller
+nest(Key) -> nest(lists:reverse(string:substr(Key, 1, 6)), 3, []).
+nest(_, 0, Parts) -> Parts;
+nest([Nb,Na|Rest],N,Acc) ->
+    nest(Rest, N-1, [[Na,Nb]|Acc]);
+nest([Na],N,Acc) ->
+    nest([],N-1,[[Na]|Acc]);
+nest([],N,Acc) ->
+    nest([],N-1,["0"|Acc]).
 
 %%
 %% Test
@@ -138,3 +174,19 @@ simple_test() ->
                         "test/fs-backend"),
     ?assertCmd("rm -rf test/fs-backend"),
     riak_test_util:standard_backend_test(riak_fs_backend).
+
+dirty_clean_test() ->
+    Dirty = "abc=+/def",
+    Clean = clean(Dirty),
+    [ ?assertNot(lists:member(C, Clean)) || C <- "=+/" ],
+    ?assertEqual(Dirty, dirty(Clean)).
+
+nest_test() ->
+    ?assertEqual(["ab","cd","ef"],nest("abcdefg")),
+    ?assertEqual(["ab","cd","ef"],nest("abcdef")),
+    ?assertEqual(["a","bc","de"], nest("abcde")),
+    ?assertEqual(["0","ab","cd"], nest("abcd")),
+    ?assertEqual(["0","a","bc"],  nest("abc")),
+    ?assertEqual(["0","0","ab"],  nest("ab")),
+    ?assertEqual(["0","0","a"],   nest("a")),
+    ?assertEqual(["0","0","0"],   nest([])).

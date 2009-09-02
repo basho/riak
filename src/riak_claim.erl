@@ -48,5 +48,10 @@ default_choose_claim(Ring) ->
 never_wants_claim(_) -> no.
 
 wants_claim_test() ->
+    riak_ring_manager:start_link(test),
+    riak_eventer:start_link(test),
+    riak_test_util:setup_mockring1(),
     {ok, Ring} = riak_ring_manager:get_my_ring(),
-    {yes, _}  = default_wants_claim(Ring).
+    ?assertEqual(yes, erlang:element(1,default_wants_claim(Ring))),
+    riak_ring_manager:stop(),
+    riak_eventer:stop().
