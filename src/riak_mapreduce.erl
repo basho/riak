@@ -31,6 +31,8 @@
          reduce_sum/2,
          reduce_plist_sum/2]).
 
+-include_lib("eunit/include/eunit.hrl").
+
 %%
 %% Map Phases
 %%
@@ -133,3 +135,29 @@ reduce_plist_sum(PList, _) ->
         if is_tuple(hd(PList)) -> PList;
            true -> lists:flatten(PList)
         end)).
+
+%% unit tests %%
+
+map_identity_test() ->
+    O1 = riak_object:new(a, <<"1">>, "value1"),
+    [O1] = map_identity(O1, test, test).
+
+map_object_value_test() ->
+    O1 = riak_object:new(a, <<"1">>, "value1"),
+    O2 = riak_object:new(a, <<"1">>, ["value1"]),
+    ["value1"] = map_object_value(O1, test, test),
+    ["value1"] = map_object_value_list(O2, test, test).
+
+reduce_set_union_test() ->
+    [bar,baz,foo] = lists:sort(reduce_set_union([foo,foo,bar,baz], test)).
+
+reduce_sum_test() ->
+    [10] = reduce_sum([1,2,3,4], test).
+
+reduce_plist_sum_test() ->
+    PLs = [[{a, 1}], [{a, 2}],
+           [{b, 1}], [{b, 4}]],
+    [{a,3},{b,5}] = reduce_plist_sum(PLs, test).
+
+
+
