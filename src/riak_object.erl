@@ -81,6 +81,25 @@ merge_test() ->
     O3 = riak_object:syntactic_merge(O,O3,node_does_not_matter_here),
     {O,O3}.    
 
+equality1_test() ->
+    MD0 = dict:new(),
+    MD = dict:store("X-Riak-Test", "value", MD0),
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"a">>, "value"),
+    O3 = riak_object:increment_vclock(O1, self()),
+    O4 = riak_object:increment_vclock(O2, self()),
+    O5 = riak_object:update_metadata(O3, MD),
+    O6 = riak_object:update_metadata(O4, MD),
+    true = riak_object:equal(O3, O4).
+
+inequality1_test() ->
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"a">>, "value1"),
+    O3 = riak_object:increment_vclock(O1, self()),
+    O4 = riak_object:increment_vclock(O2, self()),
+    false = riak_object:equal(O3, O4).
+    
+
 largekey_test() ->
     TooLargeKey = <<0:(65537*8)>>,
     try
