@@ -484,6 +484,7 @@ links_test() ->
     L0 = [other_fake_bucket,<<"other_fake_key">>,<<"fake_tag">>],
     B = add_link(A, L0),
     ?assertEqual([L0], links(B)),
+    ?assertEqual([L0], links(B, '_', '_')),
     ?assertEqual([L0], links(B, other_fake_bucket)),
     ?assertEqual([],   links(B, wrong_fake_bucket)),
     ?assertEqual([L0], links(B, '_', <<"fake_tag">>)),
@@ -493,8 +494,16 @@ links_test() ->
     ?assertEqual([],   links(B, wrong_fake_bucket, <<"fake_tag">>)),
     
     ?assertEqual(B, add_link(B, L0)), %%don't double-add links
+
+    %% add_link/4 should do same as add_link/2
+    ?assertEqual(add_link(A, L0),
+                 add_link(A, hd(L0), hd(tl(L0)), hd(tl(tl(L0))))),
     
     ?assertEqual([], links(remove_link(B, L0))),
+
+    %% remove_link/4 should do same as remove_link/2
+    ?assertEqual(remove_link(B, L0),
+                 remove_link(B, hd(L0), hd(tl(L0)), hd(tl(tl(L0))))),
     
     L1 = [other_fake_bucket,<<"second_fake_key">>,<<"new_fake_tag">>],
     L2 = [new_fake_bucket,<<"third_fake_key">>,<<"fake_tag">>],
