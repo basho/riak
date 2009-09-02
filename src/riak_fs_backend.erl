@@ -120,14 +120,14 @@ dirty(Str64) ->
               end,
               Str64).
 
-nest([N1a,N1b,N2a,N2b,N3a,N3b|_]) ->
-    [[N1a,N1b],[N2a,N2b],[N3a,N3b]];
-nest([N2a,N2b,N3a,N3b]) ->
-    ["0",[N2a,N2b],[N3a,N3b]];
-nest([N3a,N3b]) ->
-    ["0","0",[N3a,N3b]];
-nest(_) ->
-    ["0","0","0"].
+nest(Key) -> nest(lists:reverse(string:substr(Key, 1, 6)), 3, []).
+nest(_, 0, Parts) -> Parts;
+nest([Nb,Na|Rest],N,Acc) ->
+    nest(Rest, N-1, [[Na,Nb]|Acc]);
+nest([Na],N,Acc) ->
+    nest([],N-1,[[Na]|Acc]);
+nest([],N,Acc) ->
+    nest([],N-1,["0"|Acc]).
 
 %%
 %% Test
@@ -144,3 +144,13 @@ dirty_clean_test() ->
     Clean = clean(Dirty),
     [ ?assertNot(lists:member(C, Clean)) || C <- "=+/" ],
     ?assertEqual(Dirty, dirty(Clean)).
+
+nest_test() ->
+    ?assertEqual(["ab","cd","ef"],nest("abcdefg")),
+    ?assertEqual(["ab","cd","ef"],nest("abcdef")),
+    ?assertEqual(["a","bc","de"], nest("abcde")),
+    ?assertEqual(["0","ab","cd"], nest("abcd")),
+    ?assertEqual(["0","a","bc"],  nest("abc")),
+    ?assertEqual(["0","0","ab"],  nest("ab")),
+    ?assertEqual(["0","0","a"],   nest("a")),
+    ?assertEqual(["0","0","0"],   nest([])).
