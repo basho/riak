@@ -23,7 +23,7 @@ main(_) ->
     halt(1).
 
 start_cover(Modules) ->
-    {ok, Cover} = cover:start(),
+    {ok, _Cover} = cover:start(),
     io:format("Cover compiling...~n"),
     Compiled = [ M || {ok, M} <- [ cover:compile(
                                      filename:join(["src",atom_to_list(M)]))
