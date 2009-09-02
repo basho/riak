@@ -16,6 +16,7 @@
 %% @type riak_bucketprops() = [{Propkey :: atom(), Propval :: term()}]
 
 -module(riak_bucket).
+-include_lib("eunit/include/eunit.hrl").
 -export([set_bucket/2, get_bucket/1, get_bucket/2]).
 -export([defaults/0]).
 
@@ -69,3 +70,12 @@ defaults() ->
      {young_vclock, 21600},
      {big_vclock, 50},
      {small_vclock, 10}].
+
+simple_set_test() ->
+    riak_ring_manager:start_link(test),
+    riak_eventer:start_link(test),
+    ok = set_bucket(a_bucket,[{key,value}]),
+    Bucket = get_bucket(a_bucket),
+    riak_ring_manager:stop(),
+    riak_eventer:stop(),
+    ?assertEqual(value, proplists:get_value(key, Bucket)).

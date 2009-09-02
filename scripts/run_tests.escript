@@ -14,10 +14,7 @@ main([Ebin]) ->
                         nomatch == re:run(atom_to_list(M), NonTestRe)
                 end,
                 proplists:get_value(modules, App)),
-
     crypto:start(),
-    setup_mock_ring(),
-
     start_cover(Modules),
     eunit:test(Modules, [verbose]),
     analyze_cover(Modules);
@@ -89,16 +86,3 @@ percentage(_, 0) -> 1000.0;
 percentage(Part, Total) ->
     (Part/Total)*100.
 
-setup_mock_ring() ->
-    Ring0 = lists:foldl(fun(_,R) ->
-                               riak_ring:transfer_node(
-                                 hd(riak_ring:my_indices(R)),
-                                 othernode@otherhost, R) end,
-                       riak_ring:fresh(16,node()),[1,2,3,4,5,6]),
-    Ring = lists:foldl(fun(_,R) ->
-                               riak_ring:transfer_node(
-                                 hd(riak_ring:my_indices(R)),
-                                 othernode2@otherhost2, R) end,
-                       Ring0,[1,2,3,4,5,6]),
-    ets:new(nodelocal_ring, [protected, named_table]),
-    ets:insert(nodelocal_ring, {ring, Ring}).
