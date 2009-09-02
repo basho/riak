@@ -206,7 +206,7 @@ uncached_map(BKey,Mod,ModState,FunTerm,Arg,KeyData,VNode) ->
 uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode) ->
     try
         MapVal = case FunTerm of
-            {qfun,F} -> F(V,KeyData,Arg);
+            {qfun,F} -> (F)(V,KeyData,Arg);
             {modfun,M,F} ->
                 MF_Res = M:F(V,KeyData,Arg),
                 gen_server2:cast(VNode,
