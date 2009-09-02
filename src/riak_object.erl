@@ -90,7 +90,7 @@ equality1_test() ->
     O4 = riak_object:increment_vclock(O2, self()),
     O5 = riak_object:update_metadata(O3, MD),
     O6 = riak_object:update_metadata(O4, MD),
-    true = riak_object:equal(O3, O4).
+    true = riak_object:equal(O5, O6).
 
 inequality1_test() ->
     O1 = riak_object:new(test, <<"a">>, "value"),
