@@ -40,6 +40,7 @@
 -module(riak_osmos_backend).
 
 -export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-include_lib("eunit/include/eunit.hrl").
 -record(state, {table}).
 
 %% @spec start(Partition :: integer()) ->
@@ -150,3 +151,21 @@ accum2(Table, Fun, {ok, NewList, Continue}, Acc) ->
     accum2(Table, Fun,
            osmos:select_continue(Table, Continue, ?SELECT_CHUNK),
            [[ A || {true, A} <- [ Fun(K,V) || {K,V} <- NewList]]|Acc]).
+
+%%
+%% Test
+%%
+
+simple_test() ->
+    application:set_env(riak, riak_osmos_backend_root,
+                        "test/osmos-backend"),
+    ?assertCmd("rm -rf test/osmos-backend"),
+    {ok, S} = riak_osmos_backend:start(42),
+    ok = riak_osmos_backend:put(S,<<"k1">>,<<"v1">>),
+    ok = riak_osmos_backend:put(S,<<"k2">>,<<"v2">>),
+    {ok,<<"v2">>} = riak_osmos_backend:get(S,<<"k2">>),
+    {error, notfound} = riak_osmos_backend:get(S, <<"k3">>),
+    [<<"k1">>,<<"k2">>] = lists:sort(riak_osmos_backend:list(S)),
+    ok = riak_osmos_backend:delete(S,<<"k2">>),
+    [<<"k1">>] = riak_osmos_backend:list(S),
+    ok = riak_osmos_backend:stop(S).
