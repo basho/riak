@@ -160,12 +160,4 @@ simple_test() ->
     application:set_env(riak, riak_osmos_backend_root,
                         "test/osmos-backend"),
     ?assertCmd("rm -rf test/osmos-backend"),
-    {ok, S} = riak_osmos_backend:start(42),
-    ok = riak_osmos_backend:put(S,<<"k1">>,<<"v1">>),
-    ok = riak_osmos_backend:put(S,<<"k2">>,<<"v2">>),
-    {ok,<<"v2">>} = riak_osmos_backend:get(S,<<"k2">>),
-    {error, notfound} = riak_osmos_backend:get(S, <<"k3">>),
-    [<<"k1">>,<<"k2">>] = lists:sort(riak_osmos_backend:list(S)),
-    ok = riak_osmos_backend:delete(S,<<"k2">>),
-    [<<"k1">>] = riak_osmos_backend:list(S),
-    ok = riak_osmos_backend:stop(S).
+    riak_test_util:standard_backend_test(riak_osmos_backend).

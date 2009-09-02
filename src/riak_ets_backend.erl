@@ -28,14 +28,7 @@
 
 % @private
 simple_test() ->
-    {ok,S} = riak_ets_backend:start(42),
-    ok = riak_ets_backend:put(S,<<"k1">>,<<"v1">>),
-    ok = riak_ets_backend:put(S,<<"k2">>,<<"v2">>),
-    {ok,<<"v2">>} = riak_ets_backend:get(S,<<"k2">>),
-    [<<"k1">>,<<"k2">>] = lists:sort(riak_ets_backend:list(S)),
-    ok = riak_ets_backend:delete(S,<<"k2">>),
-    [<<"k1">>] = riak_ets_backend:list(S),
-    ok = riak_ets_backend:stop(S).
+    riak_test_util:standard_backend_test(riak_ets_backend).
 
 % @spec start(Partition :: integer()) ->
 %                        {ok, state()} | {{error, Reason :: term()}, state()}
