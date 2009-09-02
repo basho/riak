@@ -31,6 +31,7 @@ simple_test() ->
     ok = riak_dets_backend:put(S,<<"k1">>,<<"v1">>),
     ok = riak_dets_backend:put(S,<<"k2">>,<<"v2">>),
     {ok,<<"v2">>} = riak_dets_backend:get(S,<<"k2">>),
+    {error, notfound} = riak_dets_backend:get(S, <<"k3">>),
     [<<"k1">>,<<"k2">>] = lists:sort(riak_dets_backend:list(S)),
     ok = riak_dets_backend:delete(S,<<"k2">>),
     [<<"k1">>] = riak_dets_backend:list(S),
