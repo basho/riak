@@ -56,7 +56,8 @@ jiak_module_for_bucket(Bucket) when is_atom(Bucket) ->
                 undefined -> undefined;
                 Mod when is_tuple(Mod) -> Mod
             end;
-        ModPath when is_list(ModPath) -> Bucket
+        ModPath when is_list(ModPath) -> Bucket;
+        cover_compiled -> Bucket %% used during eunit testing
     end.
 
 %% @spec bucket_from_uri(webmachine:wrq()) ->
