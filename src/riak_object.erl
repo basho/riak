@@ -32,7 +32,7 @@
           updatemetadata=dict:store(clean, true, dict:new()) :: dict(),
           updatevalue :: term()
          }).
--compile(export_all).
+
 -define(MAX_KEY_SIZE, 65536).
 
 %% @type key()=binary().
@@ -45,94 +45,6 @@
 -export([get_update_metadata/1, get_update_value/1, get_contents/1]).
 -export([merge/2, apply_updates/1, syntactic_merge/3]).
 -export([set_contents/2, set_vclock/2]). %% INTERNAL, only for riak_*
-
-object_test() ->
-    B = buckets_are_atoms,
-    K = <<"keys are binaries">>,
-    V = <<"values are anything">>,
-    O = riak_object:new(B,K,V),
-    B = riak_object:bucket(O),
-    K = riak_object:key(O),
-    V = riak_object:get_value(O),
-    O.
-
-update_test() ->
-    O = object_test(),
-    V2 = <<"testvalue2">>,
-    O1 = riak_object:update_value(O, V2),
-    O2 = riak_object:apply_updates(O1),
-    V2 = riak_object:get_value(O2),
-    {O,O2}.
-
-ancestor_test() ->
-    {O,O2} = update_test(),
-    O3 = riak_object:increment_vclock(O2,self()),
-    [O] = riak_object:ancestors([O,O3]),
-    {O,O3}.
-
-reconcile_test() ->
-    {O,O3} = ancestor_test(),
-    O3 = riak_object:reconcile([O,O3],true),
-    O3 = riak_object:reconcile([O,O3],false),
-    {O,O3}.
-
-merge1_test() ->
-    {O,O3} = reconcile_test(),
-    O3 = riak_object:syntactic_merge(O,O3,node_does_not_matter_here),
-    {O,O3}.    
-
-equality1_test() ->
-    MD0 = dict:new(),
-    MD = dict:store("X-Riak-Test", "value", MD0),
-    O1 = riak_object:new(test, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"a">>, "value"),
-    O3 = riak_object:increment_vclock(O1, self()),
-    O4 = riak_object:increment_vclock(O2, self()),
-    O5 = riak_object:update_metadata(O3, MD),
-    O6 = riak_object:update_metadata(O4, MD),
-    true = riak_object:equal(O5, O6).
-
-inequality_value_test() ->
-    O1 = riak_object:new(test, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"a">>, "value1"),
-    false = riak_object:equal(O1, O2).    
-
-inequality_key_test() ->
-    O1 = riak_object:new(test, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"b">>, "value"),
-    false = riak_object:equal(O1, O2).    
-
-inequality_vclock_test() ->
-    O1 = riak_object:new(test, <<"a">>, "value"),
-    false = riak_object:equal(O1, riak_object:increment_vclock(O1, foo)).
-
-inequality_bucket_test() ->
-    O1 = riak_object:new(test1, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"a">>, "value"),
-    false = riak_object:equal(O1, O2). 
-
-inequality_updatecontents_test() ->
-    MD1 = dict:new(),
-    MD2 = dict:store("X-Riak-Test", "value", MD1),
-    MD3 = dict:store("X-Riak-Test", "value1", MD1),
-    O1 = riak_object:new(test, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"a">>, "value"),    
-    O3 = riak_object:update_metadata(O1, MD2),
-    false = riak_object:equal(O3, riak_object:update_metadata(O2, MD3)),
-    O5 = riak_object:update_value(O1, "value1"),
-    false = riak_object:equal(O5, riak_object:update_value(O2, "value2")).
-
-
-
-largekey_test() ->
-    TooLargeKey = <<0:(65537*8)>>,
-    try
-        riak_object:new(a, TooLargeKey, <<>>)
-    catch throw:{error, key_too_large} ->
-            ok
-    end.
-            
-
 
 %% @spec new(Bucket::bucket(), Key::key(), Value::value()) -> riak_object()
 %% @doc Constructor for new riak objects.
@@ -401,3 +313,99 @@ syntactic_merge(CurrentObject, NewObject, FromClientId) ->
                       merge(CurrentObject, NewObject), FromClientId)
             end
     end.
+
+object_test() ->
+    B = buckets_are_atoms,
+    K = <<"keys are binaries">>,
+    V = <<"values are anything">>,
+    O = riak_object:new(B,K,V),
+    B = riak_object:bucket(O),
+    K = riak_object:key(O),
+    V = riak_object:get_value(O),
+    1 = riak_object:value_count(O),
+    1 = length(riak_object:get_values(O)),
+    1 = length(riak_object:get_metadatas(O)),
+    O.
+
+update_test() ->
+    O = object_test(),
+    V2 = <<"testvalue2">>,
+    O1 = riak_object:update_value(O, V2),
+    O2 = riak_object:apply_updates(O1),
+    V2 = riak_object:get_value(O2),
+    {O,O2}.
+
+ancestor_test() ->
+    {O,O2} = update_test(),
+    O3 = riak_object:increment_vclock(O2,self()),
+    [O] = riak_object:ancestors([O,O3]),
+    {O,O3}.
+
+reconcile_test() ->
+    {O,O3} = ancestor_test(),
+    O3 = riak_object:reconcile([O,O3],true),
+    O3 = riak_object:reconcile([O,O3],false),
+    {O,O3}.
+
+merge1_test() ->
+    {O,O3} = reconcile_test(),
+    O3 = riak_object:syntactic_merge(O,O3,node_does_not_matter_here),
+    {O,O3}.    
+
+merge2_test() ->
+    O1 = riak_object:increment_vclock(object_test(), node1),
+    O2 = riak_object:increment_vclock(object_test(), node2),
+    O3 = riak_object:syntactic_merge(O1, O2, other_node),
+    [other_node, node1, node2] = [N || {N,_} <- riak_object:vclock(O3)],
+    2 = riak_object:value_count(O3).
+
+equality1_test() ->
+    MD0 = dict:new(),
+    MD = dict:store("X-Riak-Test", "value", MD0),
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"a">>, "value"),
+    O3 = riak_object:increment_vclock(O1, self()),
+    O4 = riak_object:increment_vclock(O2, self()),
+    O5 = riak_object:update_metadata(O3, MD),
+    O6 = riak_object:update_metadata(O4, MD),
+    true = riak_object:equal(O5, O6).
+
+inequality_value_test() ->
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"a">>, "value1"),
+    false = riak_object:equal(O1, O2).    
+
+inequality_key_test() ->
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"b">>, "value"),
+    false = riak_object:equal(O1, O2).    
+
+inequality_vclock_test() ->
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    false = riak_object:equal(O1, riak_object:increment_vclock(O1, foo)).
+
+inequality_bucket_test() ->
+    O1 = riak_object:new(test1, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"a">>, "value"),
+    false = riak_object:equal(O1, O2). 
+
+inequality_updatecontents_test() ->
+    MD1 = dict:new(),
+    MD2 = dict:store("X-Riak-Test", "value", MD1),
+    MD3 = dict:store("X-Riak-Test", "value1", MD1),
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"a">>, "value"),    
+    O3 = riak_object:update_metadata(O1, MD2),
+    false = riak_object:equal(O3, riak_object:update_metadata(O2, MD3)),
+    O5 = riak_object:update_value(O1, "value1"),
+    false = riak_object:equal(O5, riak_object:update_value(O2, "value2")).
+
+largekey_test() ->
+    TooLargeKey = <<0:(65537*8)>>,
+    try
+        riak_object:new(a, TooLargeKey, <<>>)
+    catch throw:{error, key_too_large} ->
+            ok
+    end.
+            
+

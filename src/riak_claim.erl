@@ -23,6 +23,8 @@
 -export([default_wants_claim/1, default_choose_claim/1,
          never_wants_claim/1]).
 
+-include_lib("eunit/include/eunit.hrl").
+
 %% @spec default_wants_claim(riak_ring()) -> {yes, integer()} | no
 %% @doc Want a partition if we currently have less than floor(ringsize/nodes).
 default_wants_claim(Ring) ->
@@ -44,3 +46,7 @@ default_choose_claim(Ring) ->
 %% @spec never_wants_claim(riak_ring()) -> no
 %% @doc For use by nodes that should not claim any partitions.
 never_wants_claim(_) -> no.
+
+wants_claim_test() ->
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {yes, _}  = default_wants_claim(Ring).
