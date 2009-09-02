@@ -187,3 +187,8 @@ update_test() ->
     ThirdIndex = GetNthIndex(3, CHash),
     {5, [{_, NewNode}, {_, Node}, {_, Node}, {_, Node}, {_, Node}, {_, Node}]} = update(FirstIndex, NewNode, CHash),
     {5, [{_, Node}, {_, Node}, {_, NewNode}, {_, Node}, {_, Node}, {_, Node}]} = update(ThirdIndex, NewNode, CHash).
+
+contains_test() ->
+    CHash = chash:fresh(5, the_node),
+    ?assertEqual(true, contains_name(the_node,CHash)),
+    ?assertEqual(false, contains_name(some_other_node,CHash)).
