@@ -26,6 +26,8 @@
 -export([get_app_env/1,get_app_env/2]).
 -export([client_connect/3,client_connect/4,local_client/0]).
 
+-include_lib("eunit/include/eunit.hrl").
+
 %% @spec start([ConfigPath :: list()]) -> ok
 %% @doc Start the riak server.
 %%      ConfigPath specifies the location of the riak configuration file.
@@ -108,3 +110,14 @@ ensure_started(App) ->
 	    ok
     end.
 	
+local_client_test() ->
+    Node = node(),
+    {ok, {riak_client, Node, _ClientId}} = riak:local_client().
+
+remote_client_test() ->
+    application:set_env(riak, doorbell_port, 9002),   
+    application:set_env(riak, riak_cookie, remote_client_test),
+    riak_doorbell:start_link(),
+    {ok, {riak_client, _, _}} = riak:client_connect("127.0.0.1", 9002, 
+                                                    remote_client_test),
+    riak_doorbell:stop().

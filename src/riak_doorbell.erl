@@ -20,7 +20,7 @@
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
--export([ring/2,knock/3]).
+-export([ring/2,knock/3, stop/0]).
 
 -include_lib("eunit/include/eunit.hrl").
 	 
@@ -55,6 +55,8 @@ ring(IP, Port) ->
     gen_udp:close(SendSock),
     Res.
 
+stop() -> gen_server:cast(?MODULE, stop).
+    
 % @private
 init([Port]) ->
     Opts = [{active, true},
@@ -88,7 +90,7 @@ handle_info({udp, _Socket, IP, _InPortNo, Packet0},State) ->
 handle_info(_Info, State) -> {noreply, State}.
 
 %% @private
-handle_cast(_Request, State) -> {noreply,State}.
+handle_cast(stop, State) -> {stop, normal,State}.
 
 %% @private
 handle_call(_Request, _From, State) -> {reply, no_call, State}.
@@ -111,7 +113,8 @@ knock_test() ->
             ok
     after 1000 ->
             throw(knock_test_timeout)
-    end.
+    end,
+    riak_doorbell:stop().
        
     
             
