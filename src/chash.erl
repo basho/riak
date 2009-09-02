@@ -106,7 +106,8 @@ successors(Index, CHash, N) ->
 %      starting at Index.
 % @spec predecessors(Index :: index(), CHash :: chash()) -> [NodeEntry]
 predecessors(Index, CHash) ->
-    predecessors(Index, CHash, length(CHash)).
+    {NumPartitions, _Nodes} = CHash,
+    predecessors(Index, CHash, NumPartitions).
 % @doc Given an object key, return the next N NodeEntries in reverse order
 %      starting at Index.
 % @spec predecessors(Index :: index(), CHash :: chash(), N :: integer())
@@ -154,7 +155,7 @@ nodes(CHash) ->
     {_NumPartitions, Nodes} = CHash,
     Nodes.
 
-% @doc Return a randomized merge of two rings based on a vclock.
+% @doc Return a randomized merge of two rings.
 %      If multiple nodes are actively claiming nodes in the same
 %      time period, churn will occur.  Be prepared to live with it.
 % @spec merge_rings(CHashA :: chash(), CHashB :: chash()) -> chash()
@@ -174,7 +175,6 @@ size(CHash) ->
     {NumPartitions,_Nodes} = CHash,
     NumPartitions.
 
-
 update_test() ->
     Node = 'old@host', NewNode = 'new@host',
     
@@ -189,12 +189,29 @@ update_test() ->
     {5, [{_, Node}, {_, Node}, {_, NewNode}, {_, Node}, {_, Node}, {_, Node}]} = update(ThirdIndex, NewNode, CHash).
 
 contains_test() ->
-    CHash = chash:fresh(5, the_node),
+    CHash = chash:fresh(8, the_node),
     ?assertEqual(true, contains_name(the_node,CHash)),
     ?assertEqual(false, contains_name(some_other_node,CHash)).
 
 max_n_test() ->
-    CHash = chash:fresh(5, the_node),
+    CHash = chash:fresh(8, the_node),
     ?assertEqual(1, max_n(1,CHash)),
-    ?assertEqual(5, max_n(7,CHash)).
+    ?assertEqual(8, max_n(11,CHash)).
     
+simple_size_test() ->
+    ?assertEqual(8, length(chash:nodes(chash:fresh(8,the_node)))).
+
+successors_length_test() ->
+    ?assertEqual(8, length(chash:successors(chash:key_of(0),
+                                            chash:fresh(8,the_node)))).
+inverse_pred_test() ->
+    CHash = chash:fresh(8,the_node),
+    S = [I || {I,_} <- chash:successors(chash:key_of(4),CHash)],
+    P = [I || {I,_} <- chash:predecessors(chash:key_of(4),CHash)],
+    ?assertEqual(S,lists:reverse(P)).
+
+merge_test() ->
+    CHashA = chash:fresh(8,node_one),
+    CHashB = chash:update(0,node_one,chash:fresh(8,node_two)),
+    CHash = chash:merge_rings(CHashA,CHashB),
+    ?assertEqual(node_one,chash:lookup(0,CHash)).
