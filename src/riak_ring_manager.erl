@@ -15,6 +15,7 @@
 %% @doc this owns the local view of the cluster's ring configuration
 
 -module(riak_ring_manager).
+-include_lib("eunit/include/eunit.hrl").
 
 -behaviour(gen_server2).
 -export([start_link/0]).
@@ -24,6 +25,11 @@
         read_ringfile/1,find_latest_ringfile/0]).
 
 start_link() -> gen_server2:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+verify_get_test() ->
+    % not a real test, just verifying mock setup
+    {ok, R} = get_my_ring(),
+    ?assertEqual(length(riak_ring:my_indices(R)), 4).
 
 %% @private
 init([]) ->
