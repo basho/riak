@@ -115,7 +115,7 @@ clean(Str64) ->
 dirty(Str64) ->
     lists:map(fun($-) -> $=;
                  ($_) -> $+;
-                 ($/) -> $,;
+                 ($,) -> $/;
                  (C)  -> C
               end,
               Str64).
@@ -138,3 +138,9 @@ simple_test() ->
                         "test/fs-backend"),
     ?assertCmd("rm -rf test/fs-backend"),
     riak_test_util:standard_backend_test(riak_fs_backend).
+
+dirty_clean_test() ->
+    Dirty = "abc=+/def",
+    Clean = clean(Dirty),
+    [ ?assertNot(lists:member(C, Clean)) || C <- "=+/" ],
+    ?assertEqual(Dirty, dirty(Clean)).
