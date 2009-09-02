@@ -83,13 +83,17 @@ dynamic_bucket_test() ->
     ?assertEqual([<<"test">>], Mod:write_mask()),
     riak_ring_manager:stop(),
     riak_eventer:stop().
-    
-    
 
-bucket_from_uri_test() ->
+existing_bucket_from_uri_test() ->
     foo, %% make sure the atom exists
     PI = dict:store(bucket, "foo", dict:new()),
     RD0 = wrq:create('PUT', "1.1", "/jiak/foo", mochiweb_headers:empty()),
     RD = wrq:load_dispatch_data(PI, none, none, none, none, RD0),
-    {ok, foo} = bucket_from_uri(RD).
+    ?assertEqual({ok, foo}, bucket_from_uri(RD)).
+
+nonexisiting_bucket_from_uri_test() ->
+    PI = dict:store(bucket, "thisatomshouldntexistever", dict:new()),
+    RD0 = wrq:create('PUT', "1.1", "/jiak/foo", mochiweb_headers:empty()),
+    RD = wrq:load_dispatch_data(PI, none, none, none, none, RD0),    
+    ?assertEqual({error, no_such_bucket}, bucket_from_uri(RD)).
     
