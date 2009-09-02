@@ -68,6 +68,24 @@ bucket_from_uri(RD) ->
     try {ok, list_to_existing_atom(wrq:path_info(bucket, RD))}
     catch _:_ -> {error, no_such_bucket} end.
 
+dynamic_bucket_test() ->
+    riak_ring_manager:start_link(test),
+    riak_eventer:start_link(test),    
+    BucketProps = [{allowed_fields, [<<"test">>]},
+                   {required_fields, []},
+                   {read_mask, [<<"test">>]},
+                   {write_mask, [<<"test">>]}],
+    riak_bucket:set_bucket(dynamic_bucket_test, BucketProps),
+    Mod = jiak_module_for_bucket(dynamic_bucket_test),
+    ?assertEqual([<<"test">>], Mod:allowed_fields()),
+    ?assertEqual([], Mod:required_fields()),
+    ?assertEqual([<<"test">>], Mod:read_mask()),
+    ?assertEqual([<<"test">>], Mod:write_mask()),
+    riak_ring_manager:stop(),
+    riak_eventer:stop().
+    
+    
+
 bucket_from_uri_test() ->
     foo, %% make sure the atom exists
     PI = dict:store(bucket, "foo", dict:new()),
