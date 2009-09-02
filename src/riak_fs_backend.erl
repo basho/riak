@@ -16,6 +16,7 @@
 
 -module(riak_fs_backend).
 -export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-include_lib("eunit/include/eunit.hrl").
 % @type state() = term().
 -record(state, {dir}).
 
@@ -95,7 +96,7 @@ encode_bucket(Bucket) ->
     clean(base64:encode_to_string(atom_to_list(Bucket))).
 
 decode_bucket(B64) ->
-    list_to_binary(base64:decode_to_string(dirty(B64))).
+    list_to_atom(base64:decode_to_string(dirty(B64))).
 
 encode_key(Key) ->
     clean(base64:encode_to_string(Key)).
@@ -127,3 +128,13 @@ nest([N3a,N3b]) ->
     ["0","0",[N3a,N3b]];
 nest(_) ->
     ["0","0","0"].
+
+%%
+%% Test
+%%
+
+simple_test() ->
+    application:set_env(riak, riak_fs_backend_root,
+                        "test/fs-backend"),
+    ?assertCmd("rm -rf test/fs-backend"),
+    riak_test_util:standard_backend_test(riak_fs_backend).
