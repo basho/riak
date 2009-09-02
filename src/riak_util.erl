@@ -21,12 +21,6 @@
          unique_id_62/0]).
 -export([try_cast/3, fallback/4, mkclientid/1]).
 
-%% @spec moment_test() -> boolean()
-moment_test() ->
-    M1 = riak_util:moment(),
-    M2 = riak_util:moment(),
-    ?assert(M2 >= M1).
-
 %% @spec moment() -> integer()
 %% @doc Get the current "moment".  Current implementation is the
 %%      number of seconds from year 0 to now, universal time, in
@@ -184,3 +178,17 @@ mkclientid(RemoteNode) ->
            "~4.4.0w~2.2.0w~2.2.0w~2.2.0w~2.2.0w~2.2.0w-~s-~s-~p",
                     [Y,Mo,D,H,Mi,S,node(),RemoteNode,NowPart]))).
 
+%% @spec moment_test() -> boolean()
+moment_test() ->
+    M1 = riak_util:moment(),
+    M2 = riak_util:moment(),
+    ?assert(M2 >= M1).
+
+deleted_test() ->
+    O = riak_object:new(test, <<"k">>, "v"),
+    false = is_x_deleted(O),
+    MD = dict:new(),
+    O1 = riak_object:apply_updates(
+           riak_object:update_metadata(
+             O, dict:store(<<"X-Riak-Deleted">>, true, MD))),
+    true = is_x_deleted(O1).
