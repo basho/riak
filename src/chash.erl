@@ -117,7 +117,7 @@ predecessors(Index, CHash, N) ->
     Res.
 
 % @doc Return either N or the number of partitions in the ring, whichever
-%      is greater.
+%      is lesser.
 % @spec max_n(N :: integer(), CHash :: chash()) -> integer()
 max_n(N, {NumPartitions, _Nodes}) ->
     if
@@ -192,3 +192,9 @@ contains_test() ->
     CHash = chash:fresh(5, the_node),
     ?assertEqual(true, contains_name(the_node,CHash)),
     ?assertEqual(false, contains_name(some_other_node,CHash)).
+
+max_n_test() ->
+    CHash = chash:fresh(5, the_node),
+    ?assertEqual(1, max_n(1,CHash)),
+    ?assertEqual(5, max_n(7,CHash)).
+    
