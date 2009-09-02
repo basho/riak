@@ -20,6 +20,8 @@
          default_jiak_module/1,
          bucket_from_uri/1]).
 
+-include_lib("eunit/include/eunit.hrl").
+
 %% @private
 jiak_required_props() -> [allowed_fields,required_fields,read_mask,write_mask].
 
@@ -65,3 +67,11 @@ jiak_module_for_bucket(Bucket) when is_atom(Bucket) ->
 bucket_from_uri(RD) ->
     try {ok, list_to_existing_atom(wrq:path_info(bucket, RD))}
     catch _:_ -> {error, no_such_bucket} end.
+
+bucket_from_uri_test() ->
+    foo, %% make sure the atom exists
+    PI = dict:store(bucket, "foo", dict:new()),
+    RD0 = wrq:create('PUT', "1.1", "/jiak/foo", mochiweb_headers:empty()),
+    RD = wrq:load_dispatch_data(PI, none, none, none, none, RD0),
+    {ok, foo} = bucket_from_uri(RD).
+    
