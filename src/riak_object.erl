@@ -404,4 +404,27 @@ largekey_test() ->
             ok
     end.
             
-
+date_reconcile_test() ->
+    {O,O3} = reconcile_test(),
+    D = calendar:datetime_to_gregorian_seconds(
+          httpd_util:convert_request_date(
+            httpd_util:rfc1123_date())),
+    O2 = apply_updates(
+           riak_object:update_metadata(
+             increment_vclock(O, date),
+             dict:store(
+               <<"X-Riak-Last-Modified">>,
+               httpd_util:rfc1123_date(
+                 calendar:gregorian_seconds_to_datetime(D)),
+               get_metadata(O)))),
+    O4 = apply_updates(
+           riak_object:update_metadata(
+             O3,
+             dict:store(
+               <<"X-Riak-Last-Modified">>,
+               httpd_util:rfc1123_date(
+                 calendar:gregorian_seconds_to_datetime(D+1)),
+               get_metadata(O3)))),
+    O5 = riak_object:reconcile([O2,O4], false),
+    false = riak_object:equal(O2, O5),
+    false = riak_object:equal(O4, O5).
