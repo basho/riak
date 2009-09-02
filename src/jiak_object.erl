@@ -611,3 +611,39 @@ diff_complex_test() ->
     ?assert(lists:member(hd(jiak_object:links(OldObj, remove_me)),
                          RemovedLinks)),
     ?assertEqual(1, length(RemovedLinks)).
+
+sibling_test() ->
+    %% don't need to do any interesting merges here - tests
+    %% for that are in jiak:standard_sibling_merge_test/0,
+    %% just need to make sure that the sibling merge branch
+    %% gets called
+    J0 = jiak_object:new(fake, <<"fake">>,
+                         {struct, [{<<"a">>, 1}]},
+                         [[a,<<"a">>,<<"a">>]]),
+    J1 = jiak_object:new(fake, <<"fake">>,
+                         {struct, [{<<"b">>, 2}]},
+                         [[b,<<"b">>,<<"b">>]]),
+    [{M0,V0}] = riak_object:get_contents(to_riak_object(J0)),
+    [{M1,V1}] = riak_object:get_contents(to_riak_object(J1)),
+    M0p = dict:store(<<"X-Riak-Last-Modified">>,
+                     httpd_util:rfc1123_date(),
+                     dict:store(<<"X-Riak-VTag">>, "hello", M0)),
+    M1p = dict:store(<<"X-Riak-Last-Modified">>,
+                     httpd_util:rfc1123_date(),
+                     dict:store(<<"X-Riak-VTag">>, "goodbye", M1)),
+    
+    R = riak_object:increment_vclock(
+          riak_object:set_contents(
+            riak_object:new(jiak_example, <<"fake">>, ignore),
+            [{M0p,V0},{M1p,V1}]),
+          <<"tester">>),
+
+    J = from_riak_object(R),
+
+    ?assertEqual(getp(J0, <<"a">>), getp(J, <<"a">>)),
+    ?assertEqual(getp(J1, <<"b">>), getp(J, <<"b">>)),
+    ?assertEqual(2, length(props(J))),
+    
+    ?assertEqual(links(J0, a), links(J, a)),
+    ?assertEqual(links(J1, b), links(J, b)),
+    ?assertEqual(2, length(links(J))).
