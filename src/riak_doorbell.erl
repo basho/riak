@@ -21,6 +21,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 -export([ring/2,knock/3]).
+
+-include_lib("eunit/include/eunit.hrl").
 	 
 -record(state, {port, sock}).
 
@@ -98,4 +100,22 @@ terminate(_Reason, _State=#state{sock=Sock}) ->
 
 %% @private
 code_change(_OldVsn, State, _Extra) ->  {ok, State}.
+
+knock_test() ->
+    application:set_env(riak, doorbell_port, 9001),
+    application:set_env(riak, riak_cookie, default_riak_cookie),
+    {ok, _Pid} = riak_doorbell:start_link(),
+    Nonce = riak_doorbell:knock("127.0.0.1", 9001, default_riak_cookie),
+    receive
+        {riak_connect, Nonce, _} ->
+            ok
+    after 1000 ->
+            throw(knock_test_timeout)
+    end.
+       
+    
+            
+    
+
+    
 
