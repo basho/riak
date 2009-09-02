@@ -32,8 +32,6 @@
      contains_name/2,key_of/1,
      merge_rings/2]).
     
--export ([update_test/0]).
-
 -define(RINGTOP, trunc(math:pow(2,160)-1)).  % SHA-1 space
 -include_lib("eunit/include/eunit.hrl").
 
