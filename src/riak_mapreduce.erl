@@ -129,7 +129,7 @@ reduce_plist_sum(PList, _) ->
     dict:to_list(
       lists:foldl(
         fun({K,V},Dict) ->
-                dict:update(K, fun(DV) -> V+DV end, 0, Dict)
+                dict:update(K, fun(DV) -> V+DV end, V, Dict)
         end,
         dict:new(),
         if is_tuple(hd(PList)) -> PList;
