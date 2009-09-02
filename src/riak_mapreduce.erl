@@ -161,3 +161,18 @@ reduce_plist_sum_test() ->
     [{a,3},{b,5}] = reduce_plist_sum(lists:flatten(PLs), test),
     [] = reduce_plist_sum([], test).
 
+map_spec_form_test_() ->
+    lists:append(
+      [ [?_assertMatch({map, {modfun, riak_mapreduce, F}, _, true},
+                       riak_mapreduce:F(true)),
+         ?_assertMatch({map, {modfun, riak_mapreduce, F}, _, false},
+                       riak_mapreduce:F(false))]
+        || F <- [map_identity, map_object_value, map_object_value_list] ]).
+
+reduce_spec_form_test_() ->
+    lists:append(
+      [ [?_assertMatch({reduce, {modfun, riak_mapreduce, F}, _, true},
+                       riak_mapreduce:F(true)),
+         ?_assertMatch({reduce, {modfun, riak_mapreduce, F}, _, false},
+                       riak_mapreduce:F(false))]
+        || F <- [reduce_set_union, reduce_sum, reduce_plist_sum] ]).
