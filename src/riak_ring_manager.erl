@@ -18,25 +18,27 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -behaviour(gen_server2).
--export([start_link/0]).
+-export([start_link/0,start_link/1,stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 -export([get_my_ring/0,set_my_ring/1,write_ringfile/0,prune_ringfiles/0,
         read_ringfile/1,find_latest_ringfile/0]).
 
 start_link() -> gen_server2:start_link({local, ?MODULE}, ?MODULE, [], []).
-
-verify_get_test() ->
-    % not a real test, just verifying mock setup
-    {ok, R} = get_my_ring(),
-    ?assertEqual(length(riak_ring:my_indices(R)), 4).
+start_link(test) -> % when started this way, run a mock server (no disk, etc)
+    gen_server2:start_link({local, ?MODULE}, ?MODULE, [test], []).
 
 %% @private
 init([]) ->
     Ring = riak_ring:fresh(),
     ets:new(nodelocal_ring, [protected, named_table]),
     ets:insert(nodelocal_ring, {ring, Ring}),
-    {ok, stateless_server}.
+    {ok, stateless_server};
+init([test]) ->
+    Ring = riak_ring:fresh(16,node()),
+    ets:new(nodelocal_ring, [protected, named_table]),
+    ets:insert(nodelocal_ring, {ring, Ring}),
+    {ok, test}.
 
 %% @spec get_my_ring() -> {ok, riak_ring:riak_ring()} | {error, Reason}
 get_my_ring() ->
@@ -45,15 +47,16 @@ get_my_ring() ->
         [] -> {error, no_ring}
     end.
 %% @spec set_my_ring(riak_ring:riak_ring()) -> ok
-set_my_ring(Ring) -> gen_server2:cast(?MODULE, {set_my_ring, Ring}).
+set_my_ring(Ring) -> gen_server2:call(?MODULE, {set_my_ring, Ring}).
 %% @spec write_ringfile() -> ok
 write_ringfile() -> gen_server2:cast(?MODULE, write_ringfile).
+%% @private (only used for test instances)
+stop() -> gen_server2:cast(?MODULE, stop).
 
 %% @private
-handle_cast({set_my_ring, Ring}, State) -> 
-    ets:insert(nodelocal_ring, {ring, Ring}),
-    {noreply,State};
+handle_cast(stop, State) -> {stop,normal,State};
 
+handle_cast(write_ringfile, test) -> {noreply,test};
 handle_cast(write_ringfile, State) ->
     {ok, Ring} = get_my_ring(),
     spawn(fun() -> do_write_ringfile(Ring) end),
@@ -62,7 +65,9 @@ handle_cast(write_ringfile, State) ->
 handle_info(_Info, State) -> {noreply, State}.
 
 %% @private
-handle_call(_Msg,_From,State) -> {noreply, State}.
+handle_call({set_my_ring, Ring}, _From, State) -> 
+    ets:insert(nodelocal_ring, {ring, Ring}),
+    {reply,ok,State}.
 
 %% @private
 terminate(_Reason, _State) -> ok.

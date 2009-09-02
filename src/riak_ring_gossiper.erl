@@ -72,9 +72,13 @@ loop(Write) ->
     end.
 
 gossip_to(RemoteNode) ->
-    riak_eventer:notify(riak_ring_gossiper, send, RemoteNode),
-    {ok, MyRing} = riak_ring_manager:get_my_ring(),
-    riak_connect:cast(RemoteNode, {gossip_ring, MyRing}).
+    case lists:member(riak_ring_gossiper, registered()) of
+        false -> nop; % only gossip if we can also receive
+        true ->
+            riak_eventer:notify(riak_ring_gossiper, send, RemoteNode),
+            {ok, MyRing} = riak_ring_manager:get_my_ring(),
+            riak_connect:cast(RemoteNode, {gossip_ring, MyRing})
+    end.
 
 gossip_ring_to(RemoteNode,Ring) ->
     riak_eventer:notify(riak_ring_gossiper, send, RemoteNode),
