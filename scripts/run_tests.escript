@@ -10,10 +10,17 @@ main([Ebin]) ->
         file:consult(filename:join([Ebin, "riak.app"])),
     {ok, NonTestRe} = re:compile("_tests$"),
     Modules = lists:filter(
-                fun(M) ->
+                fun(M) when M =:= gen_server2 ->
+                        false;
+                   (M) when M =:= priority_queue ->
+                        false;
+                   (M) when M =:= json_pp ->
+                        false;
+                   (M) ->
                         nomatch == re:run(atom_to_list(M), NonTestRe)
                 end,
                 proplists:get_value(modules, App)),
+    
     crypto:start(),
     start_cover(Modules),
     eunit:test(Modules, [verbose]),
