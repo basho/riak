@@ -32,7 +32,7 @@
           updatemetadata=dict:store(clean, true, dict:new()) :: dict(),
           updatevalue :: term()
          }).
-
+-compile(export_all).
 -define(MAX_KEY_SIZE, 65536).
 
 %% @type key()=binary().
@@ -76,7 +76,7 @@ reconcile_test() ->
     O3 = riak_object:reconcile([O,O3],false),
     {O,O3}.
 
-merge_test() ->
+merge1_test() ->
     {O,O3} = reconcile_test(),
     O3 = riak_object:syntactic_merge(O,O3,node_does_not_matter_here),
     {O,O3}.    
@@ -92,13 +92,37 @@ equality1_test() ->
     O6 = riak_object:update_metadata(O4, MD),
     true = riak_object:equal(O5, O6).
 
-inequality1_test() ->
+inequality_value_test() ->
     O1 = riak_object:new(test, <<"a">>, "value"),
     O2 = riak_object:new(test, <<"a">>, "value1"),
-    O3 = riak_object:increment_vclock(O1, self()),
-    O4 = riak_object:increment_vclock(O2, self()),
-    false = riak_object:equal(O3, O4).
-    
+    false = riak_object:equal(O1, O2).    
+
+inequality_key_test() ->
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"b">>, "value"),
+    false = riak_object:equal(O1, O2).    
+
+inequality_vclock_test() ->
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    false = riak_object:equal(O1, riak_object:increment_vclock(O1, foo)).
+
+inequality_bucket_test() ->
+    O1 = riak_object:new(test1, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"a">>, "value"),
+    false = riak_object:equal(O1, O2). 
+
+inequality_updatecontents_test() ->
+    MD1 = dict:new(),
+    MD2 = dict:store("X-Riak-Test", "value", MD1),
+    MD3 = dict:store("X-Riak-Test", "value1", MD1),
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"a">>, "value"),    
+    O3 = riak_object:update_metadata(O1, MD2),
+    false = riak_object:equal(O3, riak_object:update_metadata(O2, MD3)),
+    O5 = riak_object:update_value(O1, "value1"),
+    false = riak_object:equal(O5, riak_object:update_value(O2, "value2")).
+
+
 
 largekey_test() ->
     TooLargeKey = <<0:(65537*8)>>,
