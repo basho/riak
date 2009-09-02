@@ -541,3 +541,73 @@ test_wrap_fun() ->
                  mapreduce_wrap_fun(
                    mr_riak_object(), '_',
                    {{modfun, jiak_object, links}, <<"t2">>})).
+
+undefined_test() ->
+    ?assertEqual(?UNDEFINED, undefined()).
+
+diff_base_empty_test() ->
+    %% base empty - no added props or links
+    ?assertEqual({[],{[],[]}},
+                 diff(undefined, jiak_object:new(fake, <<"fake">>))).
+
+diff_base_full_test() ->
+    Obj = jiak_object:new(fake, <<"fake">>,
+                          {struct, [{<<"f1">>, <<"v1">>},
+                                    {<<"f2">>, <<"v2">>}]},
+                          [[fake1, <<"fake1">>, <<"tag1">>],
+                           [fake2, <<"fake2">>, <<"tag2">>]]),
+    {PropDiff,{AddedLinks,RemovedLinks}} = diff(undefined, Obj),
+    
+    [ ?assertEqual({value, {P, ?UNDEFINED, getp(Obj, P)}},
+                   lists:keysearch(P, 1, PropDiff))
+      || P <- jiak_object:props(Obj) ],
+    ?assertEqual(length(jiak_object:props(Obj)), length(PropDiff)),
+    
+    [ ?assert(lists:member(L, AddedLinks))
+      || L <- jiak_object:links(Obj) ],
+    ?assertEqual(length(jiak_object:links(Obj)), length(AddedLinks)),
+    
+    ?assertEqual([], RemovedLinks).
+
+diff_complex_test() ->
+    OldObj = jiak_object:new(fake, <<"fake">>,
+                             {struct, [{<<"changeme">>, <<"v1">>},
+                                       {<<"remme">>,    <<"v2">>},
+                                       {<<"leaveme">>,   <<"v3">>}]},
+                             [[remove_me, <<"rem1">>, <<"tag1">>],
+                              [leave_me, <<"leave2">>, <<"tag2">>]]),
+    NewObj = jiak_object:setp(
+               jiak_object:removep(
+                 jiak_object:setp(
+                   jiak_object:remove_link(
+                     jiak_object:add_link(
+                       OldObj, [im_added, <<"added3">>, <<"tag3">>]),
+                     [remove_me, <<"rem1">>, <<"tag1">>]),
+                   <<"imadded">>, <<"v4">>),
+                 <<"remme">>),
+               <<"changeme">>, <<"didchange">>),
+    {PropDiff,{AddedLinks,RemovedLinks}} = diff(OldObj, NewObj),
+    
+    ?assertEqual({value, {<<"changeme">>,
+                          jiak_object:getp(OldObj, <<"changeme">>),
+                          jiak_object:getp(NewObj, <<"changeme">>)}},
+                 lists:keysearch(<<"changeme">>, 1, PropDiff)),
+    ?assertEqual({value, {<<"remme">>,
+                          jiak_object:getp(OldObj, <<"remme">>),
+                          ?UNDEFINED}},
+                 lists:keysearch(<<"remme">>, 1, PropDiff)),
+    ?assertEqual(false,
+                 lists:keysearch(<<"leaveme">>, 1, PropDiff)),
+    ?assertEqual({value, {<<"imadded">>,
+                          ?UNDEFINED,
+                          jiak_object:getp(NewObj, <<"imadded">>)}},
+                 lists:keysearch(<<"imadded">>, 1, PropDiff)),
+    ?assertEqual(3, length(PropDiff)),
+    
+    ?assert(lists:member(hd(jiak_object:links(NewObj, im_added)),
+                         AddedLinks)),
+    ?assertEqual(1, length(AddedLinks)),
+
+    ?assert(lists:member(hd(jiak_object:links(OldObj, remove_me)),
+                         RemovedLinks)),
+    ?assertEqual(1, length(RemovedLinks)).
