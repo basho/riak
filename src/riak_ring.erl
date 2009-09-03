@@ -285,6 +285,32 @@ preflist_test() ->
     ?assertEqual([a,b,c],
                  lists:sort([N || {_I,N} <- 
                                     filtered_preflist(chash:key_of(0),R,3)])),
-    FirstFour = lists:split(4,[N || {_I,N} <- 
+    {FirstFour,_} = lists:split(4,[N || {_I,N} <- 
                                      filtered_preflist(chash:key_of(0),R,4)]),
     ?assertEqual([a,c,a,a],FirstFour).
+
+reconcile_test() ->
+    Ring0 = fresh(2,node()),
+    Ring1 = transfer_node(0,x,Ring0),
+    ?assertEqual({no_change,Ring1},reconcile(fresh(2,someone_else),Ring1)),
+    RingB0 = fresh(2,node()),
+    RingB1 = transfer_node(0,x,RingB0),
+    RingB2 = RingB1#hstate{nodename=b},
+    ?assertEqual({no_change,RingB2},reconcile(Ring1,RingB2)).
+
+metadata_inequality_test() ->
+    Ring0 = fresh(2,node()),
+    Ring1 = update_meta(key,val,Ring0),
+    ?assertNot(equal_rings(Ring0,Ring1)),
+    ?assertEqual(Ring1#hstate.meta,
+                 merge_meta(Ring0#hstate.meta,Ring1#hstate.meta)),
+    timer:sleep(1001), % ensure that lastmod is at least a second later
+    Ring2 = update_meta(key,val2,Ring1),
+    ?assertEqual(get_meta(key,Ring2),
+                 get_meta(key,#hstate{meta=
+                            merge_meta(Ring1#hstate.meta,Ring2#hstate.meta)})),
+    ?assertEqual(get_meta(key,Ring2),
+                 get_meta(key,#hstate{meta=
+                            merge_meta(Ring2#hstate.meta,Ring1#hstate.meta)})).
+    
+
