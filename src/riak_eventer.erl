@@ -20,6 +20,8 @@
 
 -export([notify/1,notify/3,eventer_config/1,do_eventer/1]).
 
+-include_lib("eunit/include/eunit.hrl").
+
 %% @private
 start_link() -> gen_server2:start_link({local, ?MODULE}, ?MODULE, [], []).
 start_link(test) -> % when started this way, run a mock server (nop)
@@ -45,10 +47,11 @@ handle_cast(stop, State) -> {stop,normal,State};
 handle_cast({event, _Event}, test) -> {noreply,test};
 handle_cast({event, Event}, State) ->
     {ok, Ring} = riak_ring_manager:get_my_ring(),    %%%% TEST EVENTS!
-    Eventers = get_eventers(Ring),
+    Eventers = match_eventers(get_eventers(Ring), Event, []),
     [gen_event:notify({riak_event,Node},Event) || Node <- Eventers],
     {noreply, State}.
-    
+  
+  
 eventer_config([Cluster, CookieStr]) ->
     RipConf = [{no_config, true}, {cluster_name, Cluster},
        {riak_cookie, list_to_atom(CookieStr)}, {ring_state_dir, "<nostore>"},
@@ -63,10 +66,17 @@ eventer_config([Cluster, CookieStr]) ->
     ok = application:start(sasl),
     [application:set_env(riak,K,V) || {K,V} <- RipConf].
 
+parse_matchspec(MatchSpec) when is_list(MatchSpec) ->
+    [NM,MM,TM] = string:tokens(MatchSpec, ":"),
+    {list_to_atom(NM),list_to_atom(MM),list_to_atom(TM)}.
+
 do_eventer([IP, PortStr, HandlerName, HandlerArg]) ->
+    do_eventer([IP, PortStr, HandlerName, HandlerArg, "_:_:_"]);
+do_eventer([IP, PortStr, HandlerName, HandlerArg, MatchSpec]) ->
+    MS = parse_matchspec(MatchSpec),
     riak_startup:join_cluster([IP, PortStr]),
     timer:sleep(random:uniform(1000)), % let some gossip happen
-    riak_event_guard:add_handler(list_to_atom(HandlerName), HandlerArg),
+    riak_event_guard:add_handler(list_to_atom(HandlerName),HandlerArg, MS),
     ok.
 
 get_eventers(Ring) ->
@@ -74,6 +84,27 @@ get_eventers(Ring) ->
         undefined -> [];
         {ok, X} -> sets:to_list(X)
     end.        
+
+match_eventers([], _, Acc) ->
+    Acc;
+match_eventers([{Eventer,MS}|Rest], Event, Acc) ->
+    case match_event(MS,Event) of
+        true ->
+            match_eventers(Rest, Event, [Eventer|Acc]);
+        false ->
+            match_eventers(Rest, Event, Acc)
+    end.
+
+match_event({'_','_','_'}, _) -> true;
+match_event({'_',Module,Type},{M,T,_N,_}) -> match_event({Module,Type},{M,T});
+match_event({N,Module,Type}, {M,T,N,_}) -> match_event({Module,Type},{M,T});
+match_event({_Node,_Module,_Type}, {_M,_T,_N,_}) -> false;
+match_event({'_', Type}, {_M,T}) -> match_event({Type}, {T});
+match_event({M,Type}, {M,T}) -> match_event({Type}, {T});
+match_event({_Module, _Type}, {_M, _T}) -> false;
+match_event({'_'}, {_}) -> true;
+match_event({T}, {T}) -> true;
+match_event(_, _) -> false.
 
 handle_info(_Info, State) -> {noreply, State}.
 
@@ -85,3 +116,20 @@ code_change(_OldVsn, State, _Extra) ->  {ok, State}.
 
 %% @private
 handle_call(_, _From, State) -> {reply, no_call_support, State}.
+
+match_eventer_test() ->
+    Event1 = {some_mod, some_type, some_node, {some_detail}},
+    Event2 = {some_mod, some_type, other_node, {some_detail}},
+    Event3 = {some_mod, other_type, other_node, {some_detail}},
+    Event4 = {other_mod, other_type, other_node, {some_detail}},
+    MS1 = {'_', '_', '_'},
+    MS2 = {some_node, '_', '_'},
+    MS3 = {some_node, some_mod, '_'},
+    MS4 = {some_node, some_mod, some_type},
+    ?assertEqual(match_event(MS1, Event1), true),
+    ?assertEqual(match_event(MS2, Event1), true),
+    ?assertEqual(match_event(MS2, Event2), false),
+    ?assertEqual(match_event(MS3, Event1), true),
+    ?assertEqual(match_event(MS3, Event3), false),
+    ?assertEqual(match_event(MS4, Event1), true),
+    ?assertEqual(match_event(MS4, Event4), false).
