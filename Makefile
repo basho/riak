@@ -2,9 +2,9 @@ ERL          ?= erl
 EBIN_DIRS    := $(wildcard deps/*/ebin)
 APP          := riak
 
-all:  webmachine erl ebin/$(APP).app
+all:  webmachine erl 
 
-erl:
+erl: ebin/$(APP).app
 	@$(ERL) -pa ebin -pa $(EBIN_DIRS) -noinput +B \
 	  -eval 'case make:all() of up_to_date -> halt(0); error -> halt(1) end.'
 
