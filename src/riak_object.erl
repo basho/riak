@@ -371,6 +371,22 @@ inequality_value_test() ->
     O2 = riak_object:new(test, <<"a">>, "value1"),
     false = riak_object:equal(O1, O2).    
 
+inequality_multivalue_test() ->
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    [C] = riak_object:get_contents(O1),
+    O1p = riak_object:set_contents(O1, [C,C]),
+    false = riak_object:equal(O1, O1p),
+    false = riak_object:equal(O1p, O1).
+
+inequality_metadata_test() ->
+    O1 = riak_object:new(test, <<"a">>, "value"),
+    O2 = riak_object:new(test, <<"a">>, "value"),
+    O1p = riak_object:apply_updates(
+            riak_object:update_metadata(
+              O1, dict:store(<<"X-Riak-Test">>, "value",
+                             riak_object:get_metadata(O1)))),
+    false = riak_object:equal(O1p, O2).
+
 inequality_key_test() ->
     O1 = riak_object:new(test, <<"a">>, "value"),
     O2 = riak_object:new(test, <<"b">>, "value"),
