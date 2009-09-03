@@ -277,3 +277,14 @@ index_test() ->
     ?assertEqual(node(),index_owner(Ring0,0)),
     ?assertEqual(x,index_owner(Ring1,0)),
     ?assertEqual(lists:sort([x,node()]),lists:sort(diff_nodes(Ring0,Ring1))).
+
+preflist_test() ->
+    IB = 274031556999544297163190906134303066185487351808,
+    IC = 1004782375664995756265033322492444576013453623296,
+    R = transfer_node(IB,b,transfer_node(IC,c,fresh(16,a))),
+    ?assertEqual([a,b,c],
+                 lists:sort([N || {_I,N} <- 
+                                    filtered_preflist(chash:key_of(0),R,3)])),
+    FirstFour = lists:split(4,[N || {_I,N} <- 
+                                     filtered_preflist(chash:key_of(0),R,4)]),
+    ?assertEqual([a,c,a,a],FirstFour).
