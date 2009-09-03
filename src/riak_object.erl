@@ -460,3 +460,13 @@ get_update_metadata_test() ->
     ?assertEqual(NewMD,
                  riak_object:get_update_metadata(
                    riak_object:update_metadata(O, NewMD))).
+
+is_updated_test() ->
+    O = riak_object:new(test, <<"test">>, test),
+    ?assertNot(is_updated(O)),
+    OMu = riak_object:update_metadata(
+            O, dict:store(<<"X-Test-Update">>, "testupdate",
+                          riak_object:get_metadata(O))),
+    ?assert(is_updated(OMu)),
+    OVu = riak_object:update_value(O, testupdate),
+    ?assert(is_updated(OVu)).
