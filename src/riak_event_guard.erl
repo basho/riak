@@ -17,7 +17,7 @@
 -module(riak_event_guard).
 
 -export([start_link/0]).
--export([add_handler/2]).
+-export([add_handler/3]).
 -export([init/1, handle_info/2]).
 -export([handle_call/3,handle_cast/2,code_change/3,terminate/2]).
 
@@ -35,26 +35,30 @@ init([]) ->
         X -> {stop, {error_in_init, X}}
     end.
 
-%% @spec add_handler(HandlerMod :: atom(), Arg :: term()) ->
+%% @spec add_handler(HandlerMod :: atom(), Arg :: term(), 
+%%                   MatchSpec :: string()) ->
 %%       ok | {error, Error :: term()}
 %% @doc Attach a new HandlerMod to riak events, started with Arg.
-add_handler(HandlerMod, Arg) ->
-    gen_server:call(?MODULE, {add_handler, HandlerMod, Arg}).
+add_handler(HandlerMod, Arg, MatchSpec) ->
+    gen_server:call(?MODULE, {add_handler, HandlerMod, Arg, MatchSpec}).
 
 %% @private
-handle_call({add_handler, HandlerMod, Arg},_From,State) -> 
+handle_call({add_handler, HandlerMod, Arg, MatchSpec},_From,State) -> 
     {ok, MyRing} = riak_ring_manager:get_my_ring(),
     Eventers0 = case riak_ring:get_meta(eventers, MyRing) of
         undefined -> [];
         {ok, X} -> sets:to_list(X)
     end,
-    Eventers = sets:add_element(node(), sets:from_list(
-                 [X || X <- Eventers0, net_adm:ping(X) =:= pong])),
+    
+    Eventers = sets:add_element({node(),MatchSpec}, sets:from_list(
+                 [{N,MS} || {N,MS} <- Eventers0,
+                       net_adm:ping(N) =:= pong,
+                       N /= node()])),
     NewRing = riak_ring:update_meta(eventers, Eventers, MyRing),
     riak_ring_manager:set_my_ring(NewRing),
     riak_ring_manager:write_ringfile(),
     Reply = gen_event:swap_sup_handler(riak_event,
-                                       {{HandlerMod,{node(),now()}}, swap},
+                                       {{HandlerMod,{node(),now()}}, swap}, 
                                        {{HandlerMod,{node(),now()}}, Arg}),
     riak_ring_gossiper:gossip_to(
       riak_ring:index_owner(NewRing,riak_ring:random_other_index(NewRing))),
