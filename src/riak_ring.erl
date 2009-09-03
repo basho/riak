@@ -35,34 +35,6 @@
                  meta}). % dict of cluster-wide other data
                          % (primarily bucket N-value, etc)
 
-% need to re-create this test now that we no longer have fresh_from_extern
-%% sequence_test() ->
-%%     test_ensure(crypto),
-%%     I1 = 365375409332725729550921208179070754913983135744,
-%%     I2 = 730750818665451459101842416358141509827966271488,
-%%     A = fresh(4,a),
-%%     B1 = fresh_from_extern(A,b),
-%%     B2 = transfer_node(I1, b, B1),
-%%     {new_ring, A1} = reconcile(B1,A),
-%%     C1 = fresh_from_extern(A,c),
-%%     C2 = transfer_node(I1, c, C1),
-%%     {new_ring, A2} = reconcile(C2,A1),
-%%     {new_ring, A3} = reconcile(B2,A2),
-%%     C3 = transfer_node(I2,c,C2),
-%%     {new_ring, C4} = reconcile(A3,C3),
-%%     {new_ring, A4} = reconcile(C4,A3),
-%%     {new_ring, B3} = reconcile(A4,B2),
-%%     (A4#hstate.ring == B3#hstate.ring) == (
-%%       B3#hstate.ring == C4#hstate.ring).
-%% % @spec test_ensure(App :: atom()) -> ok
-%% test_ensure(App) ->
-%%     case [X || {X,_,_} <- application:which_applications(), X == App] of
-%% 	[] ->
-%% 	    application:start(App);
-%% 	_ ->
-%% 	    ok
-%%     end.
-
 % @doc This is used only when this node is creating a brand new cluster.
 % @spec fresh() -> hstate()
 fresh() ->
@@ -272,3 +244,36 @@ update_meta(Key, Val, State) ->
     VClock = vclock:increment(State#hstate.nodename,
                               State#hstate.vclock),
     State#hstate{vclock=VClock, meta=dict:store(Key, I1, State#hstate.meta)}.
+
+sequence_test() ->
+    I1 = 365375409332725729550921208179070754913983135744,
+    I2 = 730750818665451459101842416358141509827966271488,
+    A = fresh(4,a),
+    B1 = A#hstate{nodename=b},
+    B2 = transfer_node(I1, b, B1),
+    ?assertEqual(B2, transfer_node(I1, b, B2)),
+    {new_ring, A1} = reconcile(B1,A),
+    C1 = A#hstate{nodename=c},
+    C2 = transfer_node(I1, c, C1),
+    {new_ring, A2} = reconcile(C2,A1),
+    {new_ring, A3} = reconcile(B2,A2),
+    C3 = transfer_node(I2,c,C2),
+    {new_ring, C4} = reconcile(A3,C3),
+    {new_ring, A4} = reconcile(C4,A3),
+    {new_ring, B3} = reconcile(A4,B2),
+    ?assertEqual(A4#hstate.ring, B3#hstate.ring),
+    ?assertEqual(B3#hstate.ring, C4#hstate.ring).
+
+param_fresh_test() ->
+    application:set_env(riak,ring_creation_size,4),
+    ?assertEqual(fresh(), fresh(4,node())),
+    ?assertEqual(owner_node(fresh()),node()).
+
+index_test() ->
+    Ring0 = fresh(2,node()),
+    Ring1 = transfer_node(0,x,Ring0),
+    ?assertEqual(0,random_other_index(Ring0)),
+    ?assertEqual(0,random_other_index(Ring1)),
+    ?assertEqual(node(),index_owner(Ring0,0)),
+    ?assertEqual(x,index_owner(Ring1,0)),
+    ?assertEqual(lists:sort([x,node()]),lists:sort(diff_nodes(Ring0,Ring1))).
