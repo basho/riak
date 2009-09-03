@@ -192,3 +192,7 @@ deleted_test() ->
            riak_object:update_metadata(
              O, dict:store(<<"X-Riak-Deleted">>, true, MD))),
     true = is_x_deleted(O1).
+
+clientid_uniqueness_test() ->
+    ClientIds = [mkclientid('somenode@somehost') || I <- lists:seq(0, 10000)],
+    length(ClientIds) =:= length(sets:to_list(sets:from_list(ClientIds))).
