@@ -157,7 +157,13 @@ accum2(Table, Fun, {ok, NewList, Continue}, Acc) ->
 %%
 
 simple_test() ->
-    application:set_env(riak, riak_osmos_backend_root,
-                        "test/osmos-backend"),
-    ?assertCmd("rm -rf test/osmos-backend"),
-    riak_test_util:standard_backend_test(riak_osmos_backend).
+    case application:start(osmos) of
+       ok ->
+            application:set_env(riak, riak_osmos_backend_root,
+                                "test/osmos-backend"),
+            ?assertCmd("rm -rf test/osmos-backend"),
+            riak_test_util:standard_backend_test(riak_osmos_backend);
+       Error ->
+            ?debugFmt("Skipping osmos tests: ~p", [Error])
+    end.
+
