@@ -444,3 +444,19 @@ date_reconcile_test() ->
     O5 = riak_object:reconcile([O2,O4], false),
     false = riak_object:equal(O2, O5),
     false = riak_object:equal(O4, O5).
+
+get_update_value_test() ->
+    O = riak_object:new(test, <<"test">>, old_val),
+    NewVal = new_val,
+    ?assertEqual(NewVal,
+                 riak_object:get_update_value(
+                   riak_object:update_value(O, NewVal))).
+
+get_update_metadata_test() ->
+    O = riak_object:new(test, <<"test">>, val),
+    OldMD = riak_object:get_metadata(O),
+    NewMD = dict:store(<<"X-Riak-Test">>, "testval", OldMD),
+    ?assertNot(NewMD =:= OldMD),
+    ?assertEqual(NewMD,
+                 riak_object:get_update_metadata(
+                   riak_object:update_metadata(O, NewMD))).
