@@ -355,6 +355,23 @@ merge2_test() ->
     [other_node, node1, node2] = [N || {N,_} <- riak_object:vclock(O3)],
     2 = riak_object:value_count(O3).
 
+merge3_test() ->
+    O0 = riak_object:new(test, <<"test">>, hi),
+    O1 = riak_object:increment_vclock(O0, x),
+    ?assertEqual(O1, riak_object:syntactic_merge(O1, O1, z)).
+
+merge4_test() ->
+    O0 = riak_object:new(test, <<"test">>, hi),
+    O1 = riak_object:increment_vclock(
+           riak_object:update_value(O0, bye), x),
+    OM = riak_object:syntactic_merge(O0, O1, y),
+    ?assertNot(O0 =:= OM),
+    ?assertNot(O1 =:= OM), %% vclock should have updated
+    ?assertEqual(bye, riak_object:get_value(OM)),
+    OMp = riak_object:syntactic_merge(O1, O0, y),
+    ?assertEqual(OM, OMp), %% merge should be symmetric here
+    {O0, O1}.
+
 equality1_test() ->
     MD0 = dict:new(),
     MD = dict:store("X-Riak-Test", "value", MD0),
