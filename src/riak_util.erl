@@ -194,5 +194,5 @@ deleted_test() ->
     true = is_x_deleted(O1).
 
 clientid_uniqueness_test() ->
-    ClientIds = [mkclientid('somenode@somehost') || I <- lists:seq(0, 10000)],
+    ClientIds = [mkclientid('somenode@somehost') || _I <- lists:seq(0, 10000)],
     length(ClientIds) =:= length(sets:to_list(sets:from_list(ClientIds))).
