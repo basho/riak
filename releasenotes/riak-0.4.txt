@@ -1,0 +1,37 @@
+riak-0.4
+
+This release changes the storage backend API in a backward-
+incompatible fashion, invalidating old stores.  However, translation
+from the old form to the new is not difficult.  Please feel free to
+contact the Riak developers if you need assistance.
+
+tests:
+  - an eunit harness which is run via "make test"
+  - unit tests cover over 40% of code in riak source
+
+riak_api:
+  - removed this gen_server entirely, allowing shorter request paths
+
+riak_bucket:
+  - default bucket properties are now configurable via riak.erlenv
+
+riak_client:
+  - now directly starts remote FSMs
+
+riak_ring_manager:
+  - the ring state is now in an ets table instead of gen_server state
+    (for improved speed with many readers and occasional writes)
+
+riak_sup:
+  - more OTP-friendly child specifications
+
+riak_keys_fsm:
+  - a new and improved way of providing a list of a bucket's keys
+
+riak_eventer:
+  - eventers can specify a pattern, and only matching events will be sent
+
+general:
+  - storage backends are now aware of {Bucket,Key} instead of just a hash
+  - many small improvements made in the course of expanding test coverage
+  - initialization work in core FSMs deferred to reduce start() blocking
