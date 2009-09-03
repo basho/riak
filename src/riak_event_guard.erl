@@ -35,7 +35,8 @@ init([]) ->
         X -> {stop, {error_in_init, X}}
     end.
 
-%% @spec add_handler(HandlerMod :: atom(), Arg :: term()) ->
+%% @spec add_handler(HandlerMod :: atom(), Arg :: term(), 
+%%                   MatchSpec :: string()) ->
 %%       ok | {error, Error :: term()}
 %% @doc Attach a new HandlerMod to riak events, started with Arg.
 add_handler(HandlerMod, Arg, MatchSpec) ->
