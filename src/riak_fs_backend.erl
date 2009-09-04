@@ -84,12 +84,27 @@ list(State) ->
 %%           [riak_object:key()]
 %% @doc Get a list of the keys in a bucket
 list_bucket(State, Bucket) ->
-    B64 = encode_bucket(Bucket),
-    L = length(State#state.dir),
-    [ K || {_,K} <- [ location_to_bkey(lists:nthtail(L, X)) ||
-                        X <- filelib:wildcard(
-                               filename:join([State#state.dir,
-                                              B64,"*/*/*/*"])) ]].
+    case Bucket of
+        '_' ->
+            lists:usort(lists:map(fun({B, _}) -> B end, list(State)));
+        {filter, B, Fun} ->
+            [ hd(K) || K <-
+                lists:filter(Fun,
+                    [ EV || EV <- lists:map(fun(K) ->
+                                                case K of
+                                                    {B, Key} -> [Key];
+                                                    _ -> []
+                                                end
+                                            end, list(State)),
+                            EV /= [] ]) ];
+        _ ->
+            B64 = encode_bucket(Bucket),
+            L = length(State#state.dir),
+            [ K || {_,K} <- [ location_to_bkey(lists:nthtail(L, X)) ||
+                                X <- filelib:wildcard(
+                                       filename:join([State#state.dir,
+                                                      B64,"*/*/*/*"])) ]]
+    end.
 
 %% @spec location(state(), {riak_object:bucket(), riak_object:key()})
 %%          -> string()
