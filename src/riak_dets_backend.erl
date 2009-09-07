@@ -87,6 +87,14 @@ list(#state{table=T}) ->
 list([],Acc) -> Acc;
 list([[K]|Rest],Acc) -> list(Rest,[K|Acc]).
 
+list_bucket(#state{table=T}, {filter, Bucket, Fun}) ->
+    MList = lists:filter(Fun, dets:match(T,{{Bucket,'$1'},'_'})),
+    list(MList,[]);
 list_bucket(#state{table=T}, Bucket) ->
-    MList = dets:match(T,{{Bucket,'$1'},'_'}),
+    case Bucket of
+        '_' -> MatchSpec = {{'$1','_'},'_'};
+        _ -> MatchSpec = {{Bucket,'$1'},'_'}
+    end,
+    MList = dets:match(T,MatchSpec),
     list(MList,[]).
+

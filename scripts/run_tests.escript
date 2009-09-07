@@ -43,7 +43,7 @@ start_cover(Modules) ->
     end.
 
 analyze_cover(Modules) ->
-    io:format("Anazlyzing cover...~n"),
+    io:format("Analyzing cover...~n"),
     CoverBase = filename:join(["test", "cover"]),
     ok = filelib:ensure_dir(filename:join([CoverBase, "fake"])),
     Coverages = lists:foldl(

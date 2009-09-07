@@ -116,10 +116,18 @@ list(#state{table=Table}) ->
 %% list_bucket(state(), Bucket :: atom()) -> [Key :: binary()]
 list_bucket(#state{table=Table}, Bucket) ->
     accum(Table,
-          fun(K,_) ->
-                  case binary_to_term(K) of
-                      {Bucket, Key} -> {true, Key};
-                      _             -> false
+          fun(Key,_) ->
+                  {B, K} = binary_to_term(Key),
+                  case Bucket of
+                      '_' -> {true, B};
+                      {filter, B, Fun} -> 
+                                  case Fun([K]) of
+                                      true -> {true, K};
+                                      _    -> false
+                                  end;
+                      {filter, _, _} -> false;
+                      B -> {true, K};
+                      _ -> false
                   end
           end).
 

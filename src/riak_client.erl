@@ -23,6 +23,8 @@
 -export([put/2,put/3,put/4]).
 -export([delete/3,delete/4]).
 -export([list_keys/1,list_keys/2]).
+-export([filter_keys/2,filter_keys/3]).
+-export([list_buckets/0,list_buckets/1]).
 -export([set_bucket/2,get_bucket/1]).
 -export([reload_all/1]).
 -export([remove_from_cluster/1]).
@@ -183,6 +185,54 @@ list_keys(Bucket, Timeout) ->
     after Timeout ->
             {error, timeout}
     end.
+
+%% @spec filter_keys(riak_object:bucket(), Fun :: function()) ->
+%%       {ok, [Key :: riak_object:key()]} |
+%%       {error, timeout} |
+%%       {error, Err :: term()}
+%% @doc List the keys known to be present in Bucket, 
+%%      filtered at the vnode according to Fun, via lists:filter.
+%%      Key lists are updated asynchronously, so this may be slightly
+%%      out of date if called immediately after a put or delete.
+%% @equiv filter_keys(Bucket, Fun, default_timeout()*8)
+filter_keys(Bucket, Fun) -> 
+    list_keys({filter, Bucket, Fun}, ?DEFAULT_TIMEOUT*8).
+
+%% @spec filter_keys(riak_object:bucket(), Fun :: function(), TimeoutMillisecs :: integer()) ->
+%%       {ok, [Key :: riak_object:key()]} |
+%%       {error, timeout} |
+%%       {error, Err :: term()}
+%% @doc List the keys known to be present in Bucket, 
+%%      filtered at the vnode according to Fun, via lists:filter.
+%%      Key lists are updated asynchronously, so this may be slightly
+%%      out of date if called immediately after a put or delete.
+filter_keys(Bucket, Fun, Timeout) -> 
+    list_keys({filter, Bucket, Fun}, Timeout).
+
+%% @spec list_buckets() ->
+%%       {ok, [Bucket :: riak_object:bucket()]} |
+%%       {error, timeout} |
+%%       {error, Err :: term()}
+%% @doc List buckets known to have keys.
+%%      Key lists are updated asynchronously, so this may be slightly
+%%      out of date if called immediately after any operation that
+%%      either adds the first key or removes the last remaining key from
+%%      a bucket.
+%% @equiv list_buckets(default_timeout()*8)
+list_buckets() -> 
+    list_buckets(?DEFAULT_TIMEOUT*8).
+
+%% @spec list_buckets(TimeoutMillisecs :: integer()) ->
+%%       {ok, [Bucket :: riak_object:bucket()]} |
+%%       {error, timeout} |
+%%       {error, Err :: term()}
+%% @doc List buckets known to have keys.
+%%      Key lists are updated asynchronously, so this may be slightly
+%%      out of date if called immediately after any operation that
+%%      either adds the first key or removes the last remaining key from
+%%      a bucket.
+list_buckets(Timeout) -> 
+    list_keys('_', Timeout).
 
 %% @spec set_bucket(riak_object:bucket(), [BucketProp :: {atom(),term()}]) -> ok
 %% @doc Set the given properties for Bucket.

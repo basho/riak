@@ -97,8 +97,15 @@ list([[K]|Rest],Acc) -> list(Rest,[K|Acc]).
 % list_bucket(Bucket :: atom(), state()) -> [Key :: binary()]
 list_bucket(SrvRef, Bucket) ->
     gen_server:call(SrvRef,{list_bucket, Bucket}).
+srv_list_bucket(State, {filter, Bucket, Fun}) ->
+    MList = lists:filter(Fun, ets:match(State#state.t,{{Bucket,'$1'},'_'})),
+    list(MList,[]);
 srv_list_bucket(State, Bucket) ->
-    MList = ets:match(State#state.t,{{Bucket,'$1'},'_'}),
+    case Bucket of
+        '_' -> MatchSpec = {{'$1','_'},'_'};
+        _ -> MatchSpec = {{Bucket,'$1'},'_'}
+    end,
+    MList = ets:match(State#state.t,MatchSpec),
     list(MList,[]).
 
 %% @private
