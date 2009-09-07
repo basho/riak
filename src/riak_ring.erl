@@ -118,17 +118,17 @@ preflist(Key, State) ->
 
 filtered_preflist(Key, State, N) ->
     Preflist = preflist(Key, State),
-    Try1 = filtered_preflist1(Preflist, [], []),
+    Try1 = filtered_preflist1(Preflist, [], [], []),
     case length(Try1) >= N of
         true -> Try1;
         false -> Preflist
     end.
-filtered_preflist1([], _Seen, Acc) ->
-    Acc;
-filtered_preflist1([{I,Node}|Preflist], Seen, Acc) ->
+filtered_preflist1([], _Seen, Passed, Acc) ->
+    Acc ++ Passed;
+filtered_preflist1([{I,Node}|Preflist], Seen, Passed, Acc) ->
     case lists:member(Node, Seen) of
-        true -> filtered_preflist1(Preflist, Seen, Acc);
-        false -> filtered_preflist1(Preflist, [Node|Seen], [{I,Node}|Acc])
+        true -> filtered_preflist1(Preflist,Seen,[{I,Node}|Passed],Acc);
+        false -> filtered_preflist1(Preflist,[Node|Seen],Passed,[{I,Node}|Acc])
     end.
 
 % @doc Transfer ownership of partition at Idx to Node.
@@ -282,12 +282,9 @@ preflist_test() ->
     IB = 274031556999544297163190906134303066185487351808,
     IC = 1004782375664995756265033322492444576013453623296,
     R = transfer_node(IB,b,transfer_node(IC,c,fresh(16,a))),
-    ?assertEqual([a,b,c],
-                 lists:sort([N || {_I,N} <- 
-                                    filtered_preflist(chash:key_of(0),R,3)])),
     {FirstFour,_} = lists:split(4,[N || {_I,N} <- 
                                      filtered_preflist(chash:key_of(0),R,4)]),
-    ?assertEqual([a,c,a,a],FirstFour).
+    ?assertEqual([a,a,b,c],lists:sort(FirstFour)).
 
 reconcile_test() ->
     Ring0 = fresh(2,node()),
@@ -313,4 +310,11 @@ metadata_inequality_test() ->
                  get_meta(key,#hstate{meta=
                             merge_meta(Ring2#hstate.meta,Ring1#hstate.meta)})).
     
+
+full_preflist_test() ->
+    Ring0 = fresh(4,a),
+    I = 365375409332725729550921208179070754913983135744,
+    Ring = transfer_node(I,b,Ring0),
+    ?assertEqual(filtered_preflist(chash:key_of(zzzzzzzzz),Ring,2),
+                 filtered_preflist(chash:key_of(zzzzzzzzz),Ring,3)).
 
