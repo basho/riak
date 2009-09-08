@@ -13,6 +13,7 @@
 %% under the License.    
 
 -module(riak_put_fsm).
+-include_lib("eunit/include/eunit.hrl").
 -behaviour(gen_fsm).
 
 -export([start/5]).
@@ -231,3 +232,54 @@ make_vtag(RObj) ->
     <<HashAsNum:128/integer>> = crypto:md5(iolist_to_binary(io_lib:format("~p",
                                                  [riak_object:vclock(RObj)]))),
     riak_util:integer_to_list(HashAsNum,62).
+
+% following two are just utility functions for test assist
+vc_obj(VC) -> riak_object:set_vclock(riak_object:new(b,<<"k">>,<<"v">>), VC).
+obj_vc(OB) -> riak_object:vclock(OB).
+
+prune_small_vclock_test() ->
+    % vclock with less entries than small_vclock will be untouched
+    OldTime = calendar:datetime_to_gregorian_seconds(erlang:universaltime())
+               - 32000000,
+    SmallVC = [{<<"1">>, {1, OldTime}},
+               {<<"2">>, {2, OldTime}},
+               {<<"3">>, {3, OldTime}}],
+    Props = [{small_vclock,4}],
+    ?assertEqual(SmallVC, obj_vc(prune_vclock(vc_obj(SmallVC), Props))).
+
+prune_young_vclock_test() ->
+    % vclock with all entries younger than young_vclock will be untouched
+    NewTime = calendar:datetime_to_gregorian_seconds(erlang:universaltime())
+               - 1,
+    VC = [{<<"1">>, {1, NewTime}},
+          {<<"2">>, {2, NewTime}},
+          {<<"3">>, {3, NewTime}}],
+    Props = [{small_vclock,1},{young_vclock,1000}],
+    ?assertEqual(VC, obj_vc(prune_vclock(vc_obj(VC), Props))).
+
+prune_big_vclock_test() ->
+    % vclock not preserved by small or young will be pruned down to
+    % no larger than big_vclock entries
+    NewTime = calendar:datetime_to_gregorian_seconds(erlang:universaltime())
+               - 1000,
+    VC = [{<<"1">>, {1, NewTime}},
+          {<<"2">>, {2, NewTime}},
+          {<<"3">>, {3, NewTime}}],
+    Props = [{small_vclock,1},{young_vclock,1},
+             {big_vclock,2},{old_vclock,100000}],
+    ?assert(length(obj_vc(prune_vclock(vc_obj(VC), Props))) =:= 2).
+
+prune_old_vclock_test() ->
+    % vclock not preserved by small or young will be pruned down to
+    % no larger than big_vclock and no entries more than old_vclock ago
+    NewTime = calendar:datetime_to_gregorian_seconds(erlang:universaltime())
+               - 1000,
+    OldTime = calendar:datetime_to_gregorian_seconds(erlang:universaltime())
+               - 100000,    
+    VC = [{<<"1">>, {1, NewTime}},
+          {<<"2">>, {2, OldTime}},
+          {<<"3">>, {3, OldTime}}],
+    Props = [{small_vclock,1},{young_vclock,1},
+             {big_vclock,2},{old_vclock,10000}],
+    ?assert(length(obj_vc(prune_vclock(vc_obj(VC), Props))) =:= 1).
+
