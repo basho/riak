@@ -283,3 +283,7 @@ prune_old_vclock_test() ->
              {big_vclock,2},{old_vclock,10000}],
     ?assert(length(obj_vc(prune_vclock(vc_obj(VC), Props))) =:= 1).
 
+make_vtag_test() ->
+    Obj = riak_object:new(b,<<"k">>,<<"v1">>),
+    ?assertNot(make_vtag(Obj) =:= 
+               make_vtag(riak_object:increment_vclock(Obj,<<"client_id">>))).
