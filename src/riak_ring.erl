@@ -29,11 +29,19 @@
          get_meta/2, update_meta/3]).	 
 
 % @type riak_ring(). The opaque data type used for partition ownership.
--record(hstate, {nodename, % the Node responsible for this hstate
-		 vclock, % for this hstate object, entries are {Node, Ctr}
-		 ring, % chash ring of {IndexAsInt, Node} mappings
-                 meta}). % dict of cluster-wide other data
-                         % (primarily bucket N-value, etc)
+-record(hstate, {
+    nodename, % the Node responsible for this hstate
+	vclock,   % for this hstate object, entries are {Node, Ctr}
+	ring,     % chash ring of {IndexAsInt, Node} mappings
+    meta      % dict of cluster-wide other data (primarily bucket N-value, etc)
+}). 
+
+% @type meta_entry(). Record for each entry in #hstate.meta
+-record(meta_entry, {
+    value,    % The value stored under this entry
+    lastmod   % The last modified time of this entry, 
+              % from calendar:datetime_to_gregorian_seconds(calendar:universal_time()), 
+}).
 
 % @doc This is used only when this node is creating a brand new cluster.
 % @spec fresh() -> hstate()
@@ -212,13 +220,13 @@ reconcile(MyNodeName, StateA, StateB) ->
 merge_meta(M1,M2) ->
     dict:merge(fun(_,D1,D2) -> pick_val(D1,D2) end, M1, M2).
 
-pick_val(D1,D2) ->
-    {ok, L1} = dict:find(lastmod, D1),
-    {ok, L2} = dict:find(lastmod, D2),
-    case L1 > L2 of
-        true -> D1;
-        false -> D2
+
+pick_val(M1,M2) ->
+    case M1#meta_entry.lastmod > M2#meta_entry.lastmod of
+        true -> M1;
+        false -> M2
     end.
+    
 
 % @doc Return a value from the cluster metadata dict
 % @spec get_meta(Key :: term(), State :: hstate()) -> 
@@ -226,24 +234,21 @@ pick_val(D1,D2) ->
 get_meta(Key, State) -> 
     case dict:find(Key, State#hstate.meta) of
         error -> undefined;
-        {ok, InnerDict} -> dict:find(Key, InnerDict)
+        {ok, M} -> {ok, M#meta_entry.value}
     end.
+
                 
 % @doc Set a key in the cluster metadata dict
 % @spec update_meta(Key :: term(), Val :: term(), State :: hstate()) ->
 %     State :: hstate() | error
 update_meta(Key, Val, State) ->
-    InnerDict = case dict:find(Key, State#hstate.meta) of
-        error -> dict:new();
-        {ok, X} -> X
-    end,
-    I1 = dict:store(lastmod,
-                    calendar:datetime_to_gregorian_seconds(
-                      calendar:universal_time()),
-                    dict:store(Key, Val, InnerDict)),
-    VClock = vclock:increment(State#hstate.nodename,
-                              State#hstate.vclock),
-    State#hstate{vclock=VClock, meta=dict:store(Key, I1, State#hstate.meta)}.
+    M = #meta_entry { 
+        lastmod = calendar:datetime_to_gregorian_seconds(calendar:universal_time()),
+        value = Val
+    },    
+    VClock = vclock:increment(State#hstate.nodename, State#hstate.vclock),
+    State#hstate{vclock=VClock, meta=dict:store(Key, M, State#hstate.meta)}.
+
 
 sequence_test() ->
     I1 = 365375409332725729550921208179070754913983135744,
