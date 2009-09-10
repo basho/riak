@@ -19,7 +19,8 @@ docs:
 	@cp TODO www/
 
 reldocs: docs
-	@cd client_lib/java && make javadoc && cp -r javadoc ../../www/javadoc
+	@cd client_lib/java && make javadoc && \
+		cp -r javadoc ../../www/java_client_api
 
 
 clean:
