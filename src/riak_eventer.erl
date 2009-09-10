@@ -51,7 +51,7 @@ handle_cast({event, Event}, State) ->
     [gen_event:notify({riak_event,Node},Event) || Node <- Eventers],
     {noreply, State}.
   
-  
+
 eventer_config([Cluster, CookieStr]) ->
     RipConf = [{no_config, true}, {cluster_name, Cluster},
        {riak_cookie, list_to_atom(CookieStr)}, {ring_state_dir, "<nostore>"},
@@ -95,16 +95,17 @@ match_eventers([{Eventer,MS}|Rest], Event, Acc) ->
             match_eventers(Rest, Event, Acc)
     end.
 
-match_event({'_','_','_'}, _) -> true;
-match_event({'_',Module,Type},{M,T,_N,_}) -> match_event({Module,Type},{M,T});
-match_event({N,Module,Type}, {M,T,N,_}) -> match_event({Module,Type},{M,T});
-match_event({_Node,_Module,_Type}, {_M,_T,_N,_}) -> false;
-match_event({'_', Type}, {_M,T}) -> match_event({Type}, {T});
-match_event({M,Type}, {M,T}) -> match_event({Type}, {T});
-match_event({_Module, _Type}, {_M, _T}) -> false;
-match_event({'_'}, {_}) -> true;
-match_event({T}, {T}) -> true;
+% Match an event to the event filter.
+% The idea is that the filter values (in the first tuple)
+% must either be a wildcard ('_'), or must match 
+% the value within the event tuple.
+% Return true if the filter matches the event.
+match_event({Node1, Module1, Type1}, {Module2, Type2, Node2, _}) when
+    (Node1 == '_' orelse Node1 == Node2) andalso
+    (Module1 == '_' orelse Module1 == Module2) andalso
+    (Type1 == '_' orelse Type1 == Type2) -> true;
 match_event(_, _) -> false.
+    
 
 handle_info(_Info, State) -> {noreply, State}.
 
