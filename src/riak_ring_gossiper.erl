@@ -63,7 +63,9 @@ loop(Write) ->
                    {start_vnode, I}) || I <- VNodes2Start],                             
             case Write of
                 no_write -> nop;
-                write -> riak_ring_manager:write_ringfile()
+                write ->
+                    riak_ring_manager:prune_ringfiles(),
+                    riak_ring_manager:write_ringfile()
             end,
             riak_ring_gossiper:gossip_to(
               riak_ring:index_owner(MyRing,
