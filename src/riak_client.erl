@@ -125,7 +125,8 @@ put(RObj, W, DW, Timeout) ->
     Me = self(),
     spawn(Node, riak_put_fsm, start, [R0,W,DW,Timeout,Me]),
     receive
-        ok -> ok
+        ok -> ok;
+        {error, Err} -> {error, Err}
     after Timeout ->
             {error, timeout}
     end.
@@ -154,7 +155,8 @@ delete(Bucket,Key,RW,Timeout) ->
     Me = self(),
     spawn(Node, riak_delete, delete, [Bucket,Key,RW,Timeout,Me]),
     receive
-        ok -> ok
+        ok -> ok;
+        {error, Err} -> {error, Err}    
     after Timeout ->
             {error, timeout}
     end.
@@ -181,7 +183,8 @@ list_keys(Bucket, Timeout) ->
     Me = self(),
     spawn(Node, riak_keys_fsm, start, [Bucket,Timeout,Me]),
     receive
-        {ok, Reply} -> {ok, Reply}
+        {ok, Reply} -> {ok, Reply};
+        {error, Err} -> {error, Err}
     after Timeout ->
             {error, timeout}
     end.
