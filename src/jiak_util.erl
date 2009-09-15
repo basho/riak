@@ -66,7 +66,8 @@ jiak_module_for_bucket(Bucket) when is_atom(Bucket) ->
 %%      The bucket name must be an existing atom, or this function
 %%      will return {error, no_such_bucket}
 bucket_from_uri(RD) ->
-    try {ok, list_to_existing_atom(wrq:path_info(bucket, RD))}
+    try {ok, list_to_existing_atom(mochiweb_util:unquote(
+                                     wrq:path_info(bucket, RD)))}
     catch _:_ -> {error, no_such_bucket} end.
 
 dynamic_bucket_test() ->

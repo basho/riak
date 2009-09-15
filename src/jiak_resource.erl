@@ -196,7 +196,8 @@ service_available(ReqData, Context=#ctx{key=container}) ->
     {ServiceAvailable, NewCtx} = 
         case wrq:method(ReqData) of
             'PUT' -> 
-                _ = list_to_atom(wrq:path_info(bucket, ReqData)),
+                _ = list_to_atom(mochiweb_util:unquote(
+                                   wrq:path_info(bucket, ReqData))),
                 Mod = jiak_default:new([]),
                 {true, Context#ctx{module=Mod, key=schema}};
             _ ->
@@ -225,7 +226,8 @@ allowed_methods(RD, Ctx0=#ctx{module=Mod}) ->
     Key = case Ctx0#ctx.key of
               container -> container;
               schema -> schema;
-              _         -> list_to_binary(wrq:path_info(key, RD))
+              _         -> list_to_binary(mochiweb_util:unquote(
+                                            wrq:path_info(key, RD)))
           end,
     case jiak_util:bucket_from_uri(RD) of
         {ok, Bucket} ->
@@ -531,12 +533,15 @@ produce_body(ReqData, Context=#ctx{module=Module,bucket=Bucket}) ->
 
 add_container_link(Bucket,ReqData) ->
     Val = io_lib:format("</~s/~s>; rel=\"up\"",
-                    [riak:get_app_env(jiak_name, "jiak"),Bucket]),
+                    [riak:get_app_env(jiak_name, "jiak"),
+                     mochiweb_util:quote_plus(Bucket)]),
     wrq:merge_resp_headers([{"Link",Val}],ReqData).
 
 add_link_head(Bucket,Key,Tag,ReqData) ->
     Val = io_lib:format("</~s/~s/~s>; riaktag=\"~s\"",
-                    [riak:get_app_env(jiak_name, "jiak"),Bucket, Key, Tag]),
+                    [riak:get_app_env(jiak_name, "jiak")|
+                     [mochiweb_util:quote_plus(E) ||
+                         E <- [Bucket, Key, Tag] ]]),
     wrq:merge_resp_headers([{"Link",Val}],ReqData).
 
 %% @spec full_schema(riak_object:bucket()) ->
@@ -555,7 +560,9 @@ full_schema(Mod) ->
 %% @spec make_uri(string(), riak_object:bucket(), string()) -> string()
 %% @doc Get the string-path for the bucket and subpath under jiak.
 make_uri(JiakName,Bucket,Path) ->
-    "/" ++ JiakName ++ "/" ++ atom_to_list(Bucket) ++ "/" ++ Path.
+    "/" ++ JiakName ++ 
+        "/" ++ mochiweb_util:quote_plus(atom_to_list(Bucket)) ++
+        "/" ++ Path.
 
 %% @spec handle_incoming(webmachine:wrq(), context()) ->
 %%          {true, webmachine:wrq(), context()}
@@ -581,7 +588,7 @@ handle_incoming(ReqData, Context=#ctx{bucket=Bucket,key=Key,
                                      make_uri(JiakName,Bucket,
                                               wrq:disp_path(ReqData)),
                                      ReqData),
-                 list_to_binary(wrq:disp_path(ReqData))};
+                 list_to_binary(mochiweb_util:unquote(wrq:disp_path(ReqData)))};
             _ ->
                 {item, ReqData, Key}
         end,
@@ -654,9 +661,10 @@ post_is_create(ReqData, Context) ->
 %%      case of a POST to a bucket, or the path for the given object
 %%      in the case of a POST to a specific object.
 create_path(ReqData, Context=#ctx{key=container}) ->
+    %% riak_util:unique_id_62 produces url-safe strings
     {riak_util:unique_id_62(), ReqData, Context};
 create_path(ReqData, Context=#ctx{key=Key}) ->
-    {Key, ReqData, Context}.
+    {mochiweb_util:quote_plus(Key), ReqData, Context}.
 
 %% @spec delete_resource(webmachine:wrq(), context()) ->
 %%          {boolean(), webmachine:wrq(), context()}
