@@ -15,6 +15,7 @@
 # under the License.    
 
 import httplib
+import urllib
 try:
     import json
 except ImportError:
@@ -77,24 +78,29 @@ class JiakClient:
                                       'write_mask': write_mask,
                                       'read_mask': read_mask}})
         Resp = self._do_req("PUT",
-                            self.JKP + Bucket,
+                            self.JKP + urllib.quote_plus(Bucket),
                             Body,
                             {"Content-Type": "application/json"})
         if Resp.status == 204:
             return None
         raise JiakException(Resp.status, Resp.reason, Resp.read())
     def list_bucket(self, Bucket):
-        return self._expect(200, self._do_req("GET", self.JKP + Bucket))
+        return self._expect(200,
+                 self._do_req("GET", self.JKP + urllib.quote_plus(Bucket)))
     def store(self, JObj):
         NewData = self._expect(200,
                      self._do_req("PUT",
-                                  self.JKP + JObj.bucket + "/" + JObj.key
-                                     + "?returnbody=true",
+                                  self.JKP
+                                  + urllib.quote_plus(JObj.bucket) + "/"
+                                  + urllib.quote_plus(JObj.key)
+                                  + "?returnbody=true",
                                   JObj.to_json(),
                                   {"Content-Type": "application/json"}))
         JObj.update(NewData)
     def fetch(self, bucket, key):
-        Resp = self._do_req("GET", self.JKP + bucket + "/" + key)
+        Resp = self._do_req("GET",
+                            self.JKP + urllib.quote_plus(bucket)
+                            + "/" + urllib.quote_plus(key))
         if Resp.status == 404:
             return None
         Data = self._expect(200,Resp)
@@ -102,7 +108,9 @@ class JiakClient:
         Obj.update(Data)
         return Obj
     def delete(self, bucket, key):
-        Resp = self._do_req("DELETE", self.JKP + bucket + "/" + key)
+        Resp = self._do_req("DELETE",
+                            self.JKP + urllib.quote_plus(bucket)
+                            + "/" + urllib.quote_plus(key))
         if Resp.status == 404:
             return None
         elif Resp.status == 204:
@@ -118,7 +126,9 @@ class JiakClient:
         # if the walk succeeds, this will return a list, where each
         #  element is a list of JiakObjects corresponding to a spec
         #  element that had acc == "1"
-        Resp = self._do_req("GET", self.JKP + bucket + "/" + key + "/"
+        Resp = self._do_req("GET",
+                            self.JKP + urllib.quote_plus(bucket)
+                            + "/" + urllib.quote_plus(key) + "/"
                             + _convert_walk_spec(spec))
         if Resp.status == 404:
             return None
@@ -136,7 +146,8 @@ def _make_object(data):
     return O
 
 def _convert_walk_spec(spec):
-    return "/".join([b + "," + t + "," + a for (b,t,a) in spec])
+    return "/".join([urllib.quote_plus(b) + "," + urllib.quote_plus(t)
+                     + "," + a for (b,t,a) in spec])
 
 class JiakObject:
     def __init__(self, bucket, key, links=None, obj=None):
