@@ -317,6 +317,12 @@ public class JiakClient {
 		return results;
 	}
 
+	public ArrayList<ArrayList<JiakObject>> walk(final String bucket,
+			final String key, final JiakWalkSpec walkSpec) throws IOException,
+			JSONException, JiakException {
+		return walk(bucket, key, walkSpec.toString());
+        }
+
 	protected JSONObject expect(final int responseCode,
 			final HttpURLConnection connection) throws JSONException,
 			JiakException, IOException {
