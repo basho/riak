@@ -29,6 +29,8 @@
 -export([reload_all/1]).
 -export([remove_from_cluster/1]).
 -export([send_event/2]).
+-export ([add_event_handler/2, add_event_handler/3, add_event_handler/4]).
+-export ([remove_event_handler/3]).
 %% @type default_timeout() = 15000
 -define(DEFAULT_TIMEOUT, 15000).
 
@@ -265,3 +267,30 @@ remove_from_cluster(ExitingNode) ->
 send_event(EventName, EventDetail) ->
     rpc:call(Node,riak_eventer,notify,
              [client_event, EventName, {ClientId, EventDetail}]).
+
+
+%% @spec add_handler(Pid :: pid(), 
+%%                   Desc :: string(), 
+%%                   MatchHead :: match_head(), 
+%%                   MatchSpec :: match_spec()) ->
+%%       ok | {error, Error :: term()}
+%% @doc Attach a new handler pid to Riak events. 
+%% See http://erlang.org/doc/apps/erts/match_spec.html for more 
+%% information about match head and match guard.
+%% Desc is simply a human readable string used by the WebUI.
+add_event_handler(Pid, Desc) -> 
+    add_event_handler(Pid, Desc, {'_', '_', '_', '_'}).
+    
+add_event_handler(Pid, Desc, MatchHead) -> 
+    add_event_handler(Pid, Desc, MatchHead, []).
+    
+add_event_handler(Pid, Desc, MatchHead, MatchGuard) ->
+    rpc:call(Node, riak_eventer, add_handler, [Pid, Desc, MatchHead, MatchGuard]). 
+
+%% remove_handler/N - 
+%% Remove a previously added handler, if it still exists.
+%% Handlers are automatically removed for dead processes
+%% every (gossip_interval) seconds, or upon adding
+%% or deleting.
+remove_event_handler(Pid, MatchHead, MatchGuard) ->
+    rpc:call(Node, riak_eventer, remove_handler, [Pid, MatchHead, MatchGuard]). 
