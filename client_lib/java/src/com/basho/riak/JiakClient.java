@@ -277,7 +277,7 @@ public class JiakClient {
 	 *            <code>bucket,tag-spec,accumulateFlag</code> The
 	 *            <code>tag-spec "_"</code> matches all tags.
 	 *            <code>accumulateFlag</code> is either the String "1" or "0".
-	 * @return An <code>ArrayList</code> of <code>ArrayLists</code>, where each
+	 * @return A <code>List</code> of <code>Lists</code>, where each
 	 *         sub-list corresponds to a <code>walkSpec</code> element that had
 	 *         <code>accumulateFlag</code> equal to 1.
 	 * @throws IOException
@@ -288,7 +288,7 @@ public class JiakClient {
 	 *             If the Riak server returns an error or unexpected response
 	 *             code.
 	 */
-	public ArrayList<ArrayList<JiakObject>> walk(final String bucket,
+	public List<? extends List<JiakObject>> walk(final String bucket,
 			final String key, final String walkSpec) throws IOException,
 			JSONException, JiakException {
 		final ArrayList<ArrayList<JiakObject>> results = new ArrayList<ArrayList<JiakObject>>();
@@ -317,7 +317,7 @@ public class JiakClient {
 		return results;
 	}
 
-	public ArrayList<ArrayList<JiakObject>> walk(final String bucket,
+	public List<? extends List<JiakObject>> walk(final String bucket,
 			final String key, final JiakWalkSpec walkSpec) throws IOException,
 			JSONException, JiakException {
 		return walk(bucket, key, walkSpec.toString());
