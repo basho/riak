@@ -13,8 +13,29 @@
 %% under the License.    
 
 
-%% TODO
-%% - Start a loop to remove dead handlers.
+%% @doc
+%% riak_eventer allows you to attach event handlers to a running Riak cluster to
+%% receive event notifications (in the form of Erlang messages) about what is happening
+%% in the application. 
+%%
+%% Events are generated using notify/1 or notify/3. Each event consists
+%% of a Module, an EventName, the Node on which the event is generated,
+%% and additional detail about the event.
+%%
+%% This is stored in a tuple of the form {event, {Module, EventName, Node, EventDetail}}.
+%% For example, a 'put' operation will generate an event such as 
+%% {event,{riak_vnode,put, 'node@hostname', ...}}.
+%%
+%% Event handlers are added via add_handler(Pid, Description, MatchHead, MatchGuard),
+%% and can be removed via remove_handler(Pid, MatchHead, MatchGuard).
+%%
+%% Full MatchSpec style matching is allowed (see http://erlang.org/doc/apps/erts/match_spec.html)
+%% to filter events at the server level, and the system fully supports registering 
+%% a single process for multiple events.
+%%
+%% Riak monitors running handlers, and automatically removes 
+%% handlers of dead processors.
+
 
 -module(riak_eventer).
 -behaviour(gen_server2).
@@ -47,14 +68,8 @@ start_link(test) -> % when started this way, run a mock server (nop)
     gen_server2:start_link({local, ?MODULE}, ?MODULE, [test], []).
 
 %% @private
-init(Arg) ->
-    % Remove dead handlers every 5 seconds. Only
-    % regossip the ring if something has changed.
-    timer:apply_after(?REMOVE_INTERVAL, gen_server, call, [?MODULE, {remove_dead_handlers, true}]),
-    case Arg of
-        [] -> {ok, stateless_server};
-        [test] -> {ok, test}
-    end.
+init([]) -> {ok, stateless_server};
+init([test]) -> {ok, test}.
 
 notify(Event) ->
     gen_server2:cast(riak_local_logger, {event, Event}),
@@ -81,10 +96,11 @@ stop() -> gen_server2:cast(?MODULE, stop).
 
 %% @private
 handle_call({add_handler, Pid, Desc, MatchHead, MatchSpec},_From,State) -> 
-    % Get the ring...
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
-    
+    % Monitor the pid, we want to know when to remove it...
+    erlang:monitor(process, Pid),
+
     % Add the handler...
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
     Handler = make_handler(Pid, Desc, MatchHead, MatchSpec),
     Ring1 = add_handler_to_ring(Handler, Ring),
     
@@ -98,10 +114,8 @@ handle_call({add_handler, Pid, Desc, MatchHead, MatchSpec},_From,State) ->
     {reply, ok, State};
     
 handle_call({remove_handler, HandlerID},_From,State) -> 
-    % Get the ring...
+    % Remove the handler...
     {ok, Ring} = riak_ring_manager:get_my_ring(),
-    
-    % Add the handler...
     Ring1 = remove_handler_from_ring(HandlerID, Ring),
     
     % Set and save the new ring...
@@ -113,43 +127,6 @@ handle_call({remove_handler, HandlerID},_From,State) ->
     riak_ring_gossiper:gossip_to(RandomNode),
     {reply, ok, State};
     
-handle_call({remove_dead_handlers, Loop}, _From, State) ->
-    % If we are looping, then set up a new timer...
-    case Loop of
-        true ->  timer:apply_after(?REMOVE_INTERVAL, gen_server, call, [?MODULE, {remove_dead_handlers, true}]);
-        false -> ignore
-    end,
-
-    % Get the handlers...
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
-    OldHandlers = get_handlers(Ring),
-    
-    % Filter out any dead handlers...
-    F = fun(Handler, R) ->
-        io:format("Handler: ~p~n", [Handler]),
-        case is_remote_process_alive(Handler#handler.pid) of
-            false -> remove_handler_from_ring(Handler#handler.id, R); 
-            true -> R
-        end
-    end,
-    Ring1 = lists:foldl(F, Ring, OldHandlers),
-    NewHandlers = get_handlers(Ring1),
-    
-    % Write and gossip the ring if it has changed...
-    RingHasChanged = OldHandlers /= NewHandlers,
-    case RingHasChanged of
-        true ->
-            % Set and save the new ring...
-            riak_ring_manager:set_my_ring(Ring1),
-            riak_ring_manager:write_ringfile(),
-    
-            % Gossip the new ring...
-            RandomNode = riak_ring:index_owner(Ring1,riak_ring:random_other_index(Ring1)),
-            riak_ring_gossiper:gossip_to(RandomNode);
-        false -> ignore
-    end,
-    {noreply, State};
-
     
 handle_call(_, _From, State) -> {reply, no_call_support, State}.
 
@@ -172,6 +149,31 @@ handle_cast({event, Event}, State) ->
     {noreply, State};
     
 handle_cast(_, State) -> {noreply, State}.
+
+handle_info({'DOWN', _, process, Pid, _}, State) ->
+    % Get a 'DOWN' message, so remove any handlers from this Pid...
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    OldHandlers = get_handlers(Ring),
+    
+    % Filter out any dead handlers...
+    F = fun(Handler) -> Handler#handler.pid /= Pid end,
+    NewHandlers = lists:filter(F, OldHandlers),
+    
+    % Write and gossip the ring if it has changed...
+    RingHasChanged = OldHandlers /= NewHandlers,
+    case RingHasChanged of
+        true ->
+            % Set and save the new ring...
+            Ring1 = set_handlers(NewHandlers, Ring),
+            riak_ring_manager:set_my_ring(Ring1),
+            riak_ring_manager:write_ringfile(),
+    
+            % Gossip the new ring...
+            RandomNode = riak_ring:index_owner(Ring1,riak_ring:random_other_index(Ring1)),
+            riak_ring_gossiper:gossip_to(RandomNode);
+        false -> ignore
+    end,
+    {noreply, State};
 
 handle_info(_Info, State) -> {noreply, State}.
 
@@ -246,11 +248,6 @@ set_handlers(Handlers, Ring) ->
     
 get_handler_id(Pid, MatchHead, MatchGuard) ->
     erlang:md5(term_to_binary({Pid, MatchHead, MatchGuard})).
-    
-is_remote_process_alive(Pid) ->
-    is_pid(Pid) andalso
-    lists:member(node(Pid), [node()|nodes()]) andalso
-    rpc:call(node(Pid), erlang, is_process_alive, [Pid]).
     
 %% TESTS %%%
     

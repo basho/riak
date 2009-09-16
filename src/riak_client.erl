@@ -269,11 +269,6 @@ send_event(EventName, EventDetail) ->
              [client_event, EventName, {ClientId, EventDetail}]).
 
 
-%% @spec add_handler(Pid :: pid(), 
-%%                   Desc :: string(), 
-%%                   MatchHead :: match_head(), 
-%%                   MatchSpec :: match_spec()) ->
-%%       ok | {error, Error :: term()}
 %% @doc Attach a new handler pid to Riak events. 
 %% See http://erlang.org/doc/apps/erts/match_spec.html for more 
 %% information about match head and match guard.
