@@ -21,6 +21,7 @@ import java.io.OutputStream;
 import java.io.OutputStreamWriter;
 import java.net.URL;
 import java.net.URLConnection;
+import java.net.URLEncoder;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -173,8 +174,9 @@ public class JiakClient {
 		final HashMap<String, String> reqHeaders = new HashMap<String, String>();
 		reqHeaders.put("Content-Type", "application/json");
 		reqHeaders.put("Accept", "application/json");
-		final String reqURI = makeURI(object.getBucket() + "/"
-				+ object.getKey() + "?returnbody=true");
+		final String reqURI = makeURI(object.getBucket(),
+                                              object.getKey(),
+                                              "?returnbody=true");
 		final HttpURLConnection requestConn = doRequest("PUT", reqURI, object
 				.toJSONObject(), reqHeaders);
 		final JSONObject updated = expect(200, requestConn);
@@ -205,7 +207,7 @@ public class JiakClient {
 		final HashMap<String, String> reqHeaders = new HashMap<String, String>();
 		reqHeaders.put("Content-Type", "application/json");
 		reqHeaders.put("Accept", "application/json");
-		final String reqURI = makeURI(bucket + "/" + key);
+		final String reqURI = makeURI(bucket, key);
 		final HttpURLConnection requestConn = doRequest("GET", reqURI, null,
 				reqHeaders);
 		if (requestConn.getResponseCode() == 404)
@@ -230,11 +232,11 @@ public class JiakClient {
 	 *             If an error occurs during communication with the Riak server.
 	 * @throws JiakException
 	 *             If the Riak server returns an error or or an unexpected
-	 *             response code.
+	 *             response code.,
 	 */
 	public void delete(final String bucket, final String key)
 			throws IOException, JiakException {
-		final String reqURI = makeURI(bucket + "/" + key);
+		final String reqURI = makeURI(bucket, key);
 		final HashMap<String, String> reqHeaders = new HashMap<String, String>();
 		reqHeaders.put("Accept", "*/*");
 		final HttpURLConnection requestConn = doRequest("DELETE", reqURI, null,
@@ -275,7 +277,7 @@ public class JiakClient {
 	 *            <code>bucket,tag-spec,accumulateFlag</code> The
 	 *            <code>tag-spec "_"</code> matches all tags.
 	 *            <code>accumulateFlag</code> is either the String "1" or "0".
-	 * @return An <code>ArrayList</code> of <code>ArrayLists</code>, where each
+	 * @return A <code>List</code> of <code>Lists</code>, where each
 	 *         sub-list corresponds to a <code>walkSpec</code> element that had
 	 *         <code>accumulateFlag</code> equal to 1.
 	 * @throws IOException
@@ -286,11 +288,11 @@ public class JiakClient {
 	 *             If the Riak server returns an error or unexpected response
 	 *             code.
 	 */
-	public ArrayList<ArrayList<JiakObject>> walk(final String bucket,
+	public List<? extends List<JiakObject>> walk(final String bucket,
 			final String key, final String walkSpec) throws IOException,
 			JSONException, JiakException {
 		final ArrayList<ArrayList<JiakObject>> results = new ArrayList<ArrayList<JiakObject>>();
-		final String reqURI = makeURI(bucket + "/" + key + "/" + walkSpec);
+		final String reqURI = makeURI(bucket, key, walkSpec);
 		final Map<String, String> reqHeaders = new HashMap<String, String>();
 		reqHeaders.put("Accept", "application/json");
 		final HttpURLConnection requestConn = doRequest("GET", reqURI, null,
@@ -315,6 +317,12 @@ public class JiakClient {
 		return results;
 	}
 
+	public List<? extends List<JiakObject>> walk(final String bucket,
+			final String key, final JiakWalkSpec walkSpec) throws IOException,
+			JSONException, JiakException {
+		return walk(bucket, key, walkSpec.toString());
+        }
+
 	protected JSONObject expect(final int responseCode,
 			final HttpURLConnection connection) throws JSONException,
 			JiakException, IOException {
@@ -325,8 +333,14 @@ public class JiakClient {
 		throw new JiakException(connection.getResponseMessage());
 	}
 
-	protected String makeURI(final String path) {
-		return "http://" + ip + ":" + port + prefix + path;
+	protected String makeURI(final String bucket) {
+		return "http://" + ip + ":" + port + prefix + URLEncoder.encode(bucket);
+	}
+	protected String makeURI(final String bucket, final String key) {
+		return makeURI(bucket) + "/" + URLEncoder.encode(key);
+	}
+	protected String makeURI(final String bucket, final String key, final String extra) {
+		return makeURI(bucket, key) + "/" + extra;
 	}
 
 	protected static void writeRequestBody(final URLConnection connection,

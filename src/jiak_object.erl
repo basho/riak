@@ -92,7 +92,7 @@ new(B, K, O) -> new(B, K, O, []).
 %%        "links" :L
 %%       }
 %%     Important: O should be a valid mochijson2 object
-new(B, K, O={struct, _}, L) when is_atom(B), is_binary(K), is_list(L) ->
+new(B, K, O={struct, _}, L) when is_binary(B), is_binary(K), is_list(L) ->
     {struct, [{<<"bucket">>, B},
               {<<"key">>, K},
               {<<"object">>, O},
@@ -219,7 +219,7 @@ link_match_fun(Bucket, Tag) ->
 %% @spec add_link(jiak_object(), link()) -> jiak_object()
 %% @doc Add NewLink to the object's links.  If the link is already in
 %%      JiakObject, then JiakObject is not modified.
-add_link(JiakObject, NewLink=[B, K, _T]) when is_atom(B), is_binary(K) ->
+add_link(JiakObject, NewLink=[B, K, _T]) when is_binary(B), is_binary(K) ->
     Links = links(JiakObject),
     case lists:member(NewLink, Links) of
         true  -> JiakObject;
@@ -393,8 +393,8 @@ roundtrip_riak_object_test_() ->
 
 test_to_riak_object() ->
     Object = {struct, [{<<"fake_field">>, <<"fake_value">>}]},
-    Links = [[other_fake_bucket,<<"other_fake_key">>,<<"fake_tag">>]],
-    J0 = jiak_object:new(fake_bucket, <<"fake_key">>, Object, Links),
+    Links = [[<<"other_fake_bucket">>,<<"other_fake_key">>,<<"fake_tag">>]],
+    J0 = jiak_object:new(<<"fake_bucket">>, <<"fake_key">>, Object, Links),
     R0 = to_riak_object(J0),
     ?assertEqual(bucket(J0), riak_object:bucket(R0)),
     ?assertEqual(key(J0), riak_object:key(R0)),
@@ -408,9 +408,9 @@ test_to_riak_object() ->
 test_from_riak_object() ->
     R0 = to_riak_object(
            setf(jiak_object:new(
-                  fake_bucket, <<"fake_key">>,
+                  <<"fake_bucket">>, <<"fake_key">>,
                   {struct, [{<<"fake_field">>, <<"fake_value">>}]},
-                  [[other_fake_bucket,<<"other_fake_key">>,
+                  [[<<"other_fake_bucket">>,<<"other_fake_key">>,
                     <<"fake_tag">>]]),
                 <<"vclock">>,
                 vclock_to_headers(vclock:increment(<<"a">>, vclock:fresh())))),
@@ -436,7 +436,7 @@ test_from_riak_object() ->
                  binary_to_list(vtag(J1))).
 
 object_props_test() ->
-    A = jiak_object:new(fake_bucket, <<"fake_key">>),
+    A = jiak_object:new(<<"fake_bucket">>, <<"fake_key">>),
     ?assertEqual([], props(A)),
 
     B = setp(A, <<"foo">>, 42),
@@ -459,20 +459,20 @@ object_props_test() ->
     ?assertEqual(<<"check">>, getp(E, <<"bar">>)).
 
 links_test() ->
-    A = jiak_object:new(fake_object, <<"fake_key">>),
+    A = jiak_object:new(<<"fake_object">>, <<"fake_key">>),
     ?assertEqual([], links(A)),
     
-    L0 = [other_fake_bucket,<<"other_fake_key">>,<<"fake_tag">>],
+    L0 = [<<"other_fake_bucket">>,<<"other_fake_key">>,<<"fake_tag">>],
     B = add_link(A, L0),
     ?assertEqual([L0], links(B)),
     ?assertEqual([L0], links(B, '_', '_')),
-    ?assertEqual([L0], links(B, other_fake_bucket)),
-    ?assertEqual([],   links(B, wrong_fake_bucket)),
+    ?assertEqual([L0], links(B, <<"other_fake_bucket">>)),
+    ?assertEqual([],   links(B, <<"wrong_fake_bucket">>)),
     ?assertEqual([L0], links(B, '_', <<"fake_tag">>)),
     ?assertEqual([],   links(B, '_', <<"wrong_tag">>)),
-    ?assertEqual([L0], links(B, other_fake_bucket, <<"fake_tag">>)),
-    ?assertEqual([],   links(B, other_fake_bucket, <<"wrong_tag">>)),
-    ?assertEqual([],   links(B, wrong_fake_bucket, <<"fake_tag">>)),
+    ?assertEqual([L0], links(B, <<"other_fake_bucket">>, <<"fake_tag">>)),
+    ?assertEqual([],   links(B, <<"other_fake_bucket">>, <<"wrong_tag">>)),
+    ?assertEqual([],   links(B, <<"wrong_fake_bucket">>, <<"fake_tag">>)),
     
     ?assertEqual(B, add_link(B, L0)), %%don't double-add links
 
@@ -486,14 +486,14 @@ links_test() ->
     ?assertEqual(remove_link(B, L0),
                  remove_link(B, hd(L0), hd(tl(L0)), hd(tl(tl(L0))))),
     
-    L1 = [other_fake_bucket,<<"second_fake_key">>,<<"new_fake_tag">>],
-    L2 = [new_fake_bucket,<<"third_fake_key">>,<<"fake_tag">>],
+    L1 = [<<"other_fake_bucket">>,<<"second_fake_key">>,<<"new_fake_tag">>],
+    L2 = [<<"new_fake_bucket">>,<<"third_fake_key">>,<<"fake_tag">>],
     C = add_link(add_link(B, L1), L2),
     ?assertEqual(3, length(links(C))),
-    ?assertEqual(2, length(links(C, other_fake_bucket))),
+    ?assertEqual(2, length(links(C, <<"other_fake_bucket">>))),
     ?assertEqual(2, length(links(C, '_', <<"fake_tag">>))),
     ?assertEqual([L1], links(C, '_', <<"new_fake_tag">>)),
-    ?assertEqual([L2], links(C, new_fake_bucket)).
+    ?assertEqual([L2], links(C, <<"new_fake_bucket">>)).
 
 mapreduce_test_() ->
     [fun test_linkfun/0,
@@ -502,7 +502,7 @@ mapreduce_test_() ->
 
 mr_riak_object() ->
     R0 = to_riak_object(
-           jiak_object:new(fake_bucket, <<"fake_key">>,
+           jiak_object:new(<<"fake_bucket">>, <<"fake_key">>,
                            {struct, [{<<"a">>, 1}]},
                            [[b1, <<"k1">>, <<"t1">>],
                             [b1, <<"k2">>, <<"t2">>],
@@ -548,10 +548,10 @@ undefined_test() ->
 diff_base_empty_test() ->
     %% base empty - no added props or links
     ?assertEqual({[],{[],[]}},
-                 diff(undefined, jiak_object:new(fake, <<"fake">>))).
+                 diff(undefined, jiak_object:new(<<"fake">>, <<"fake">>))).
 
 diff_base_full_test() ->
-    Obj = jiak_object:new(fake, <<"fake">>,
+    Obj = jiak_object:new(<<"fake">>, <<"fake">>,
                           {struct, [{<<"f1">>, <<"v1">>},
                                     {<<"f2">>, <<"v2">>}]},
                           [[fake1, <<"fake1">>, <<"tag1">>],
@@ -570,19 +570,19 @@ diff_base_full_test() ->
     ?assertEqual([], RemovedLinks).
 
 diff_complex_test() ->
-    OldObj = jiak_object:new(fake, <<"fake">>,
+    OldObj = jiak_object:new(<<"fake">>, <<"fake">>,
                              {struct, [{<<"changeme">>, <<"v1">>},
                                        {<<"remme">>,    <<"v2">>},
                                        {<<"leaveme">>,   <<"v3">>}]},
-                             [[remove_me, <<"rem1">>, <<"tag1">>],
-                              [leave_me, <<"leave2">>, <<"tag2">>]]),
+                             [[<<"remove_me">>, <<"rem1">>, <<"tag1">>],
+                              [<<"leave_me">>, <<"leave2">>, <<"tag2">>]]),
     NewObj = jiak_object:setp(
                jiak_object:removep(
                  jiak_object:setp(
                    jiak_object:remove_link(
                      jiak_object:add_link(
-                       OldObj, [im_added, <<"added3">>, <<"tag3">>]),
-                     [remove_me, <<"rem1">>, <<"tag1">>]),
+                       OldObj, [<<"im_added">>, <<"added3">>, <<"tag3">>]),
+                     [<<"remove_me">>, <<"rem1">>, <<"tag1">>]),
                    <<"imadded">>, <<"v4">>),
                  <<"remme">>),
                <<"changeme">>, <<"didchange">>),
@@ -604,11 +604,11 @@ diff_complex_test() ->
                  lists:keysearch(<<"imadded">>, 1, PropDiff)),
     ?assertEqual(3, length(PropDiff)),
     
-    ?assert(lists:member(hd(jiak_object:links(NewObj, im_added)),
+    ?assert(lists:member(hd(jiak_object:links(NewObj, <<"im_added">>)),
                          AddedLinks)),
     ?assertEqual(1, length(AddedLinks)),
 
-    ?assert(lists:member(hd(jiak_object:links(OldObj, remove_me)),
+    ?assert(lists:member(hd(jiak_object:links(OldObj, <<"remove_me">>)),
                          RemovedLinks)),
     ?assertEqual(1, length(RemovedLinks)).
 
@@ -617,12 +617,17 @@ sibling_test() ->
     %% for that are in jiak:standard_sibling_merge_test/0,
     %% just need to make sure that the sibling merge branch
     %% gets called
-    J0 = jiak_object:new(fake, <<"fake">>,
+    riak_ring_manager:start_link(test),
+    riak_eventer:start_link(test),    
+    riak_bucket:set_bucket(<<"jiak_example">>,
+                           [{bucket_mod, jiak_example}]),
+
+    J0 = jiak_object:new(<<"fake">>, <<"fake">>,
                          {struct, [{<<"a">>, 1}]},
-                         [[a,<<"a">>,<<"a">>]]),
-    J1 = jiak_object:new(fake, <<"fake">>,
+                         [[<<"a">>,<<"a">>,<<"a">>]]),
+    J1 = jiak_object:new(<<"fake">>, <<"fake">>,
                          {struct, [{<<"b">>, 2}]},
-                         [[b,<<"b">>,<<"b">>]]),
+                         [[<<"b">>,<<"b">>,<<"b">>]]),
     [{M0,V0}] = riak_object:get_contents(to_riak_object(J0)),
     [{M1,V1}] = riak_object:get_contents(to_riak_object(J1)),
     M0p = dict:store(<<"X-Riak-Last-Modified">>,
@@ -634,16 +639,19 @@ sibling_test() ->
     
     R = riak_object:increment_vclock(
           riak_object:set_contents(
-            riak_object:new(jiak_example, <<"fake">>, ignore),
+            riak_object:new(<<"jiak_example">>, <<"fake">>, ignore),
             [{M0p,V0},{M1p,V1}]),
           <<"tester">>),
 
     J = from_riak_object(R),
 
+    riak_ring_manager:stop(),
+    riak_eventer:stop(),
+
     ?assertEqual(getp(J0, <<"a">>), getp(J, <<"a">>)),
     ?assertEqual(getp(J1, <<"b">>), getp(J, <<"b">>)),
     ?assertEqual(2, length(props(J))),
     
-    ?assertEqual(links(J0, a), links(J, a)),
-    ?assertEqual(links(J1, b), links(J, b)),
+    ?assertEqual(links(J0, <<"a">>), links(J, <<"a">>)),
+    ?assertEqual(links(J1, <<"b">>), links(J, <<"b">>)),
     ?assertEqual(2, length(links(J))).

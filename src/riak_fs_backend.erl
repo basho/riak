@@ -124,16 +124,16 @@ location_to_bkey(Path) ->
     [B64,_,_,_,K64] = string:tokens(Path, "/"),
     {decode_bucket(B64), decode_key(K64)}.
 
-%% @spec encode_bucket(atom()) -> string()
+%% @spec encode_bucket(binary()) -> string()
 %% @doc make a filename out of a Riak bucket
 encode_bucket(Bucket) ->
-    clean(base64:encode_to_string(atom_to_list(Bucket))).
+    clean(base64:encode_to_string(Bucket)).
 
-%% @spec decode_bucket(string()) -> atom()
+%% @spec decode_bucket(string()) -> binary()
 %% @doc reconstruct a Riak bucket, given a filename
 %% @see encode_bucket/1
 decode_bucket(B64) ->
-    list_to_atom(base64:decode_to_string(dirty(B64))).
+    base64:decode(dirty(B64)).
 
 %% @spec encode_key(binary()) -> string()
 %% @doc make a filename out of a Riak object key

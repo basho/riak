@@ -234,7 +234,7 @@ make_vtag(RObj) ->
     riak_util:integer_to_list(HashAsNum,62).
 
 % following two are just utility functions for test assist
-vc_obj(VC) -> riak_object:set_vclock(riak_object:new(b,<<"k">>,<<"v">>), VC).
+vc_obj(VC) -> riak_object:set_vclock(riak_object:new(<<"b">>,<<"k">>,<<"v">>), VC).
 obj_vc(OB) -> riak_object:vclock(OB).
 
 prune_small_vclock_test() ->
@@ -284,6 +284,6 @@ prune_old_vclock_test() ->
     ?assert(length(obj_vc(prune_vclock(vc_obj(VC), Props))) =:= 1).
 
 make_vtag_test() ->
-    Obj = riak_object:new(b,<<"k">>,<<"v1">>),
+    Obj = riak_object:new(<<"b">>,<<"k">>,<<"v1">>),
     ?assertNot(make_vtag(Obj) =:= 
                make_vtag(riak_object:increment_vclock(Obj,<<"client_id">>))).

@@ -85,7 +85,7 @@ start(Partition) ->
 stop(#state{table=Table}) ->
     osmos:close(Table).
 
-%% get(state(), Key :: binary()) ->
+%% get(state(), BKey :: riak_object:bkey()) ->
 %%   {ok, Val :: binary()} | {error, Reason :: term()}
 %% key must be 160b
 get(#state{table=Table}, BKey) ->
@@ -95,13 +95,13 @@ get(#state{table=Table}, BKey) ->
         not_found   -> {error, notfound}
     end.
 
-%% put(state(), Key :: binary(), Val :: binary()) ->
+%% put(state(), BKey :: riak_object:bkey(), Val :: binary()) ->
 %%   ok | {error, Reason :: term()}
 %% key must be 160b
 put(#state{table=Table},BKey,Val) ->       
     osmos:write(Table, term_to_binary(BKey), Val).
 
-%% delete(state(), Key :: binary()) ->
+%% delete(state(), Key :: riak_object:key()) ->
 %%   ok | {error, Reason :: term()}
 %% key must be 160b
 delete(#state{table=Table}, BKey) ->
@@ -109,11 +109,11 @@ delete(#state{table=Table}, BKey) ->
 
 -define(SELECT_CHUNK, 1000).
 
-%% list(state()) -> [Key :: binary()]
+%% list(state()) -> [Key :: riak_object:key()]
 list(#state{table=Table}) ->
     accum(Table, fun(K,_) -> {true, binary_to_term(K)} end).
 
-%% list_bucket(state(), Bucket :: atom()) -> [Key :: binary()]
+%% list_bucket(state(), Bucket :: riak_object:bucket()) -> [Key :: binary()]
 list_bucket(#state{table=Table}, Bucket) ->
     accum(Table,
           fun(Key,_) ->

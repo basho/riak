@@ -181,7 +181,7 @@ code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
 %% @private
 convert_input(I={{_B,_K},_D})
-  when is_atom(_B) andalso (is_list(_K) orelse is_binary(_K)) -> I;
+  when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> I;
 convert_input(I={_B,_K})
-  when is_atom(_B) andalso (is_list(_K) orelse is_binary(_K)) -> {I,undefined}.
+  when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> {I,undefined}.
 

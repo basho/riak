@@ -185,7 +185,7 @@ moment_test() ->
     ?assert(M2 >= M1).
 
 deleted_test() ->
-    O = riak_object:new(test, <<"k">>, "v"),
+    O = riak_object:new(<<"test">>, <<"k">>, "v"),
     false = is_x_deleted(O),
     MD = dict:new(),
     O1 = riak_object:apply_updates(

@@ -55,6 +55,16 @@ read_config(ConfigPath) ->
     set_erlenv(ConfigPairs),
     check_erlenv(ConfigPath),
     [code:add_path(Path) || Path <- riak:get_app_env(add_paths)],
+    [application:start(App) || App <- riak:get_app_env(start_apps)],
+    StorageBackend = riak:get_app_env(storage_backend),
+    case code:ensure_loaded(StorageBackend) of
+        {error,nofile} ->
+            riak:stop(lists:flatten(io_lib:format(
+                        "storage_backend ~p in ~p non-loadable, failing.",
+                        [StorageBackend, ConfigPath])));
+        _ ->
+            ok
+    end,
     ok.
 
 %% @private
@@ -74,13 +84,13 @@ check_erlenv(ConfigPath) ->
      WantsClaimFun,ChooseClaimFun,GossipInterval,
      DoorbellPort,StorageBackend,RiakCookie,RiakAddPaths,
      RiakNodeName,RiakHostName,RiakHeartCommand,
-     DefaultBucketProps] =
+     DefaultBucketProps,RiakStartApps] =
         [riak:get_app_env(X) || X <- 
            [cluster_name,ring_state_dir,ring_creation_size,
             wants_claim_fun,choose_claim_fun,gossip_interval,
             doorbell_port,storage_backend,riak_cookie,add_paths,
             riak_nodename,riak_hostname,riak_heart_command,
-            default_bucket_props]],
+            default_bucket_props,start_apps]],
     if
         ClusterName =:= undefined ->
             riak:stop(io_lib:format(
@@ -147,15 +157,7 @@ check_erlenv(ConfigPath) ->
         not is_atom(StorageBackend) ->
             riak:stop(io_lib:format(
                     "storage_backend in ~p non-atom, failing.",[ConfigPath]));
-        true ->
-            case code:ensure_loaded(StorageBackend) of
-                {error,nofile} ->
-                    riak:stop(io_lib:format(
-                           "storage_backend ~p in ~p non-loadable, failing.",
-                           [StorageBackend, ConfigPath]));
-                _ ->
-                    ok
-            end
+        true -> ok
     end,
     if
         RiakCookie =:= undefined ->
@@ -214,6 +216,17 @@ check_erlenv(ConfigPath) ->
             riak:stop(io_lib:format(
                         "default_bucket_props in ~p non-list, failing.",
                         [ConfigPath]))
+    end,
+    if 
+        RiakStartApps =:= undefined ->
+            error_logger:info_msg(
+              "start_apps unset in ~p, setting to []~n",
+              [ConfigPath]),
+            application:set_env(riak, start_apps, []);
+        not is_list(RiakStartApps) ->
+            riak:stop(io_lib:format(
+                        "start_apps in ~p non-list, failing.",[ConfigPath]));
+        true -> ok
     end,
     ok.
 

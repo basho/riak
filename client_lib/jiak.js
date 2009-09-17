@@ -61,7 +61,7 @@ JiakClient.prototype.store = function(Object, Callback, NoReturnBody) {
     else
         req.type = 'PUT';
     
-    req.url = this.baseurl+Object.bucket+'/';
+    req.url = this.path(Object.bucket);
     if (Object.key) req.url += Object.key;
     
     if (!(this.opts.noReturnBody || NoReturnBody))
@@ -77,7 +77,7 @@ JiakClient.prototype.store = function(Object, Callback, NoReturnBody) {
 
 JiakClient.prototype.fetch = function(Bucket, Key, Callback) {
     return $.ajax({
-        url:      this.baseurl+Bucket+'/'+Key,
+        url:      this.path(Bucket, Key),
         dataType: "json",
         success:  Callback
     });
@@ -86,7 +86,7 @@ JiakClient.prototype.fetch = function(Bucket, Key, Callback) {
 JiakClient.prototype.remove = function(Bucket, Key, Callback) {
     return $.ajax({
         type:    'DELETE',
-        url:     this.baseurl+Bucket+'/'+Key,
+        url:     this.path(Bucket, Key),
         success: Callback
     });
 }
@@ -100,9 +100,9 @@ JiakClient.prototype.walk = function(Start, Spec, Callback) {
     // Start can be either and object with {bucket:B, key:K}
     // or a list with [Bucket, Key, ...]
     if ('bucket' in Start)
-        req.url = this.baseurl+Start.bucket+'/'+Start.key+'/';
+        req.url = this.path(Start.bucket, Start.key)+'/';
     else
-        req.url = this.baseurl+Start[0]+'/'+Start[1]+'/';
+        req.url = this.path(Start[0], Start[1])+'/';
 
     // Spec should be a list of objects with
     //    {bucket:B, tag:T, acc:A}
@@ -112,8 +112,8 @@ JiakClient.prototype.walk = function(Start, Spec, Callback) {
     //   false to have them excluded from the response (always true
     //   for the last step
     for (i in Spec) {
-        req.url += (Spec[i].bucket||'_')+','+
-            (Spec[i].tag||'_')+','+
+        req.url += encodeURIComponent(Spec[i].bucket||'_')+','+
+            encodeURIComponent(Spec[i].tag||'_')+','+
             ((Spec[i].acc || i == Spec.length-1) ? '1' : '_')+'/';
     }
 
@@ -132,10 +132,20 @@ JiakClient.prototype.setBucketSchema = function(Bucket, Schema, Callback) {
 
     $.ajax({
         type:        'PUT',
-        url:         this.baseurl+Bucket,
+        url:         this.path(Bucket),
         contentType: 'application/json',
         data:        JSON.stringify({schema:Schema}),
         success:     Callback ? function() { Callback(true); } : undefined,
         error:       Callback ? function() { Callback(false); } : undefined
     });
+}
+
+JiakClient.prototype.path = function(Bucket, Key) {
+    var p = this.baseurl;
+    if (Bucket) {
+        p += encodeURIComponent(Bucket)+'/';
+        if (Key)
+            p += encodeURIComponent(Key);
+    }
+    return p;
 }

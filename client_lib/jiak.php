@@ -72,7 +72,7 @@ class JiakClient {
         if ($read_mask == null)
             $read_mask = $allowed_fields;
         return $this->_expect(204,
-            $this->_do_req("PUT", $this->JKP . $bucket,
+            $this->_do_req("PUT", $this->JKP . urlencode($bucket),
                 json_encode( array (
                     "schema" => array (
                         "allowed_fields" => $allowed_fields,
@@ -83,7 +83,8 @@ class JiakClient {
     }
     
     function bucket_info($bucket) {
-        return $this->_expect(200, $this->_do_req("GET", $this->JKP . $bucket));
+        return $this->_expect(200,
+            $this->_do_req("GET", $this->JKP . urlencode($bucket)));
     }
     
     function store_all($ar) {
@@ -95,8 +96,8 @@ class JiakClient {
     function store($obj) {
         $new_data = $this->_expect(200,
             $this->_do_req("PUT",
-                $this->JKP . $obj->bucket . "/" . $obj->key .
-                "?returnbody=true",
+                $this->JKP . urlencode($obj->bucket) . "/" .
+                urlencode($obj->key) . "?returnbody=true",
                 $obj->to_json(),
                 array("Content-type: application/json;charset=UTF-8")));
         $obj->update($new_data);
@@ -104,7 +105,8 @@ class JiakClient {
     }
     
     function fetch($bucket, $key) {
-        $resp = $this->_do_req("GET", $this->JKP . $bucket . "/" . $key);
+        $resp = $this->_do_req("GET",
+                    $this->JKP . urlencode($bucket) . "/" . urlencode($key));
         if ($resp['http_code'] == 404) {
             return null;
         }
@@ -114,7 +116,7 @@ class JiakClient {
     
     function delete($bucket, $key) {
         $resp = $this->_do_req("DELETE", $this->JKP .
-            $bucket . "/" . $key);
+                    urlencode($bucket) . "/" . urlencode($key));
         $http_code = $resp['http_code'];
         if ($http_code == 404) return false;
         else if ($http_code == 204) return true;
@@ -122,8 +124,8 @@ class JiakClient {
     }
     
     function walk($bucket, $key, $spec) {
-        $resp = $this->_do_req("GET", $this->JKP . $bucket . "/" . $key . "/" .
-            $this->_convert_walk_spec($spec));
+        $resp = $this->_do_req("GET", $this->JKP . urlencode($bucket) .
+            "/" . urlencode($key) . "/" . $this->_convert_walk_spec($spec));
         
         if ($resp['http_code'] == 404) {
             return array();
@@ -151,11 +153,10 @@ class JiakClient {
     }
     
     function _convert_walk_spec($spec) {
-        $s = "/";
+        $s = "";
         foreach($spec as $el) {
-            $s .= $el[0] . "," . $el[1] . "," . $el[2] . ",";
+            $s .= urlencode($el[0]) . "," . urlencode($el[1]) . "," . $el[2] . "/";
         }
-        $s = str_replace(",\n", "", $s."\n");
         return $s;
     }
 }

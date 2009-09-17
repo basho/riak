@@ -147,7 +147,7 @@
 
 %% @type context() = term()
 %% @type jiak_module() = atom()|{jiak_default, list()}
--record(ctx, {bucket,       %% atom() - Bucket name (from uri)
+-record(ctx, {bucket,       %% binary() - Bucket name (from uri)
               key,          %% binary()|container|schema - Key (or sentinal
                             %%   meaning "no key provided")
               module,       %% atom()
@@ -196,7 +196,8 @@ service_available(ReqData, Context=#ctx{key=container}) ->
     {ServiceAvailable, NewCtx} = 
         case wrq:method(ReqData) of
             'PUT' -> 
-                _ = list_to_atom(wrq:path_info(bucket, ReqData)),
+                _ = list_to_binary(mochiweb_util:unquote(
+                                     wrq:path_info(bucket, ReqData))),
                 Mod = jiak_default:new([]),
                 {true, Context#ctx{module=Mod, key=schema}};
             _ ->
@@ -225,26 +226,21 @@ allowed_methods(RD, Ctx0=#ctx{module=Mod}) ->
     Key = case Ctx0#ctx.key of
               container -> container;
               schema -> schema;
-              _         -> list_to_binary(wrq:path_info(key, RD))
+              _         -> list_to_binary(mochiweb_util:unquote(
+                                            wrq:path_info(key, RD)))
           end,
-    case jiak_util:bucket_from_uri(RD) of
-        {ok, Bucket} ->
-            {ok, JC} = Mod:init(Key, jiak_context:new(not_diffed_yet, [])),
-            Ctx = Ctx0#ctx{bucket=Bucket, key=Key, jiak_context=JC},
-            case Key of
-                container ->
-                    %% buckets have GET for list_keys, POST for create
-                    {['HEAD', 'GET', 'POST'], RD, Ctx};
-                schema ->
-                    {['PUT'], RD, Ctx};
-                _ ->
-                    %% keys have the "full" doc store set
-                    {['HEAD', 'GET', 'POST', 'PUT', 'DELETE'], RD, Ctx}
-            end;
-        {error, no_such_bucket} ->
-            %% no bucket, nothing but GET/HEAD allowed, and POST for 
-            %% schema mods
-            {['HEAD', 'GET', 'PUT'], RD, Ctx0#ctx{bucket={error, no_such_bucket}}}
+    Bucket = jiak_util:bucket_from_reqdata(RD),
+    {ok, JC} = Mod:init(Key, jiak_context:new(not_diffed_yet, [])),
+    Ctx = Ctx0#ctx{bucket=Bucket, key=Key, jiak_context=JC},
+    case Key of
+        container ->
+            %% buckets have GET for list_keys, POST for create
+            {['HEAD', 'GET', 'POST'], RD, Ctx};
+        schema ->
+            {['PUT'], RD, Ctx};
+        _ ->
+            %% keys have the "full" doc store set
+            {['HEAD', 'GET', 'POST', 'PUT', 'DELETE'], RD, Ctx}
     end.
 
 %% @spec malformed_request(webmachine:wrq(), context()) ->
@@ -253,8 +249,7 @@ allowed_methods(RD, Ctx0=#ctx{module=Mod}) ->
 %%      GET is always properly constructed
 %%      PUT/POST is malformed if:
 %%        - request body is not a valid JSON object
-%%        - the object contains a link to a bucket that is
-%%          "unknown" (non-existent atom)
+%%        - the object is in a bucket that is "undefined"
 %%      PUT is malformed if:
 %%        - the "bucket" field of the object does not match the
 %%          bucket component of the URI
@@ -296,28 +291,20 @@ malformed_request(ReqData, Context=#ctx{bucket=Bucket,key=Key}) ->
         false -> {false, ReqData, Context};
         true ->
             case decode_object(wrq:req_body(ReqData)) of
-                {ok, JiakObject0={struct,_}} ->
-                    case atomify_buckets(JiakObject0) of
-                        {ok, JiakObject} ->
-                            PT = wrq:method(ReqData) == 'PUT',
-                            KM = jiak_object:key(JiakObject) == Key,
-                            BM = jiak_object:bucket(JiakObject) == Bucket,
-                            if (not PT); (PT andalso KM andalso BM) ->
-                                    {false, ReqData, Context#ctx{incoming=JiakObject}};
-                               not KM ->
-                                    {true,
-                                     wrq:append_to_response_body("Object key does not match URI",
-                                                                 ReqData),
-                                     Context};
-                               not BM ->
-                                    {true,
-                                     wrq:append_to_response_body("Object bucket does not match URI",
-                                                                 ReqData),
-                                     Context}
-                            end;
-                        _ ->
+                {ok, JiakObject={struct,_}} ->
+                    PT = wrq:method(ReqData) == 'PUT',
+                    KM = jiak_object:key(JiakObject) == Key,
+                    BM = jiak_object:bucket(JiakObject) == Bucket,
+                    if (not PT); (PT andalso KM andalso BM) ->
+                            {false, ReqData, Context#ctx{incoming=JiakObject}};
+                       not KM ->
                             {true,
-                             wrq:append_to_response_body("Unknown bucket in link.",
+                             wrq:append_to_response_body("Object key does not match URI",
+                                                         ReqData),
+                             Context};
+                       not BM ->
+                            {true,
+                             wrq:append_to_response_body("Object bucket does not match URI",
                                                          ReqData),
                              Context}
                     end;
@@ -335,24 +322,6 @@ malformed_request(ReqData, Context=#ctx{bucket=Bucket,key=Key}) ->
 decode_object(Body) ->
     try {ok, mochijson2:decode(Body)}
     catch _:_ -> {error, bad_json} end.
-
-%% @spec atomify_buckets(mochijson2()) ->
-%%         {ok, mochijson2()}|{error, no_such_bucket}
-%% @doc Convert binary() bucket names into atom() bucket names in the
-%%      "bucket" and "links" fields.  This is necessary because
-%%      mochijson2:encode/1 converts Erlang atoms to JSON strings, but
-%%      mochijson2:decode/1 converts JSON strings to Erlange binaries.
-atomify_buckets({struct,JOProps}) ->
-    try
-        BinBucket = proplists:get_value(<<"bucket">>, JOProps),
-        Bucket = list_to_existing_atom(binary_to_list(BinBucket)),
-        BinLinks = proplists:get_value(<<"links">>, JOProps),
-        Links = [ [list_to_existing_atom(binary_to_list(B)), K, T] || [B,K,T] <- BinLinks],
-        {ok, {struct, [{<<"bucket">>, Bucket},
-                       {<<"links">>, Links}
-                       |[{K,V} || {K,V} <- JOProps,
-                                  K /= <<"bucket">>, K /= <<"links">>]]}}
-    catch _:_ -> {error, no_such_bucket} end.
 
 %% @spec check_required(jiak_object(), [binary()]) -> boolean()
 %% @doc Determine whether Obj contains all of the fields named in
@@ -531,12 +500,15 @@ produce_body(ReqData, Context=#ctx{module=Module,bucket=Bucket}) ->
 
 add_container_link(Bucket,ReqData) ->
     Val = io_lib:format("</~s/~s>; rel=\"up\"",
-                    [riak:get_app_env(jiak_name, "jiak"),Bucket]),
+                    [riak:get_app_env(jiak_name, "jiak"),
+                     mochiweb_util:quote_plus(Bucket)]),
     wrq:merge_resp_headers([{"Link",Val}],ReqData).
 
 add_link_head(Bucket,Key,Tag,ReqData) ->
     Val = io_lib:format("</~s/~s/~s>; riaktag=\"~s\"",
-                    [riak:get_app_env(jiak_name, "jiak"),Bucket, Key, Tag]),
+                    [riak:get_app_env(jiak_name, "jiak")|
+                     [mochiweb_util:quote_plus(E) ||
+                         E <- [Bucket, Key, Tag] ]]),
     wrq:merge_resp_headers([{"Link",Val}],ReqData).
 
 %% @spec full_schema(riak_object:bucket()) ->
@@ -555,7 +527,9 @@ full_schema(Mod) ->
 %% @spec make_uri(string(), riak_object:bucket(), string()) -> string()
 %% @doc Get the string-path for the bucket and subpath under jiak.
 make_uri(JiakName,Bucket,Path) ->
-    "/" ++ JiakName ++ "/" ++ atom_to_list(Bucket) ++ "/" ++ Path.
+    "/" ++ JiakName ++ 
+        "/" ++ mochiweb_util:quote_plus(Bucket) ++
+        "/" ++ Path.
 
 %% @spec handle_incoming(webmachine:wrq(), context()) ->
 %%          {true, webmachine:wrq(), context()}
@@ -565,7 +539,7 @@ make_uri(JiakName,Bucket,Path) ->
 handle_incoming(ReqData, Context=#ctx{key=schema, 
                                       bucket=Bucket,
                                       incoming=SchemaPL}) ->
-    SchemaProps = [{list_to_atom(binary_to_list(K)),V} || {K,V} <- SchemaPL],
+    SchemaProps = [{list_to_atom(binary_to_list(K)), V} || {K,V} <- SchemaPL],
     ok = riak_bucket:set_bucket(Bucket, SchemaProps),
     {<<>>, ReqData, Context};
 handle_incoming(ReqData, Context=#ctx{bucket=Bucket,key=Key,
@@ -581,7 +555,7 @@ handle_incoming(ReqData, Context=#ctx{bucket=Bucket,key=Key,
                                      make_uri(JiakName,Bucket,
                                               wrq:disp_path(ReqData)),
                                      ReqData),
-                 list_to_binary(wrq:disp_path(ReqData))};
+                 list_to_binary(mochiweb_util:unquote(wrq:disp_path(ReqData)))};
             _ ->
                 {item, ReqData, Key}
         end,
@@ -654,9 +628,10 @@ post_is_create(ReqData, Context) ->
 %%      case of a POST to a bucket, or the path for the given object
 %%      in the case of a POST to a specific object.
 create_path(ReqData, Context=#ctx{key=container}) ->
+    %% riak_util:unique_id_62 produces url-safe strings
     {riak_util:unique_id_62(), ReqData, Context};
 create_path(ReqData, Context=#ctx{key=Key}) ->
-    {Key, ReqData, Context}.
+    {mochiweb_util:quote_plus(Key), ReqData, Context}.
 
 %% @spec delete_resource(webmachine:wrq(), context()) ->
 %%          {boolean(), webmachine:wrq(), context()}
@@ -843,9 +818,9 @@ integer_query(ParamName, Default, ReqData) ->
 %%
 
 mochijson_roundtrip_test() ->
-    J0 = jiak_object:new(fake_bucket, <<"fake_key">>,
+    J0 = jiak_object:new(<<"fake_bucket">>, <<"fake_key">>,
                          {struct, [{<<"a">>, 1}]},
-                         [[other_bucket, <<"other_key">>, <<"fake_tag">>]]),
+                         [[<<"other_bucket">>, <<"other_key">>, <<"fake_tag">>]]),
     R0 = jiak_object:to_riak_object(J0),
     [{M,V}] = riak_object:get_contents(R0),
     R1 = riak_object:set_vclock(
@@ -857,7 +832,7 @@ mochijson_roundtrip_test() ->
                V}]),
            vclock:increment(<<"foo">>, vclock:fresh())),
     J1 = jiak_object:from_riak_object(R1),
-    {ok, J2} = atomify_buckets(mochijson2:decode(mochijson2:encode(J1))),
+    J2 = mochijson2:decode(mochijson2:encode(J1)),
     ?assertEqual(jiak_object:bucket(J1), jiak_object:bucket(J2)),
     ?assertEqual(jiak_object:key(J1), jiak_object:key(J2)),
     ?assertEqual(jiak_object:vclock(J1), jiak_object:vclock(J2)),
@@ -878,11 +853,11 @@ copy_unreadable_test() ->
                             {read_mask,
                              [<<"read0">>, <<"read1">>]}]),
     Masked = jiak_object:new(
-               fake_bucket, <<"fake_key">>,
+               <<"fake_bucket">>, <<"fake_key">>,
                {struct, [{<<"read0">>, <<"val0">>}]},
                []),
     UnMasked = jiak_object:new(
-                 fake_bucket, <<"fake_key">>,
+                 <<"fake_bucket">>, <<"fake_key">>,
                  {struct, [{<<"read0">>, <<"val1">>},
                            {<<"read1">>, <<"val2">>},
                            {<<"unread0">>, <<"val3">>}]},
@@ -907,7 +882,7 @@ apply_read_mask_test() ->
     Mod = jiak_default:new([{read_mask,
                              [<<"read0">>,<<"read1">>,<<"read2">>]}]),
     UnMasked = jiak_object:new(
-                 fake_bucket, <<"fake_key">>,
+                 <<"fake_bucket">>, <<"fake_key">>,
                  {struct, [{<<"read0">>, <<"val1">>},
                            {<<"read1">>, <<"val2">>},
                            {<<"unreadable0">>, <<"val1">>},

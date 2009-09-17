@@ -43,8 +43,8 @@ public class JiakTest {
 		client.store(jLeaf1);
 		client.store(jLeaf2);
 		client.store(jLeaf3);
-		ArrayList<ArrayList<JiakObject>> res = client.walk("jiak_example", "jroot", "jiak_example,tag_one,1");
-		for (ArrayList<JiakObject> i : res) {
+		List<? extends List<JiakObject>> res = client.walk("jiak_example", "jroot", "jiak_example,tag_one,1");
+		for (List<JiakObject> i : res) {
 			for (JiakObject j: i) {
 				assert(j.get("foo").equals("in results"));
 			}

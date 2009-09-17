@@ -139,12 +139,12 @@ reduce_plist_sum(PList, _) ->
 %% unit tests %%
 
 map_identity_test() ->
-    O1 = riak_object:new(a, <<"1">>, "value1"),
+    O1 = riak_object:new(<<"a">>, <<"1">>, "value1"),
     [O1] = map_identity(O1, test, test).
 
 map_object_value_test() ->
-    O1 = riak_object:new(a, <<"1">>, "value1"),
-    O2 = riak_object:new(a, <<"1">>, ["value1"]),
+    O1 = riak_object:new(<<"a">>, <<"1">>, "value1"),
+    O2 = riak_object:new(<<"a">>, <<"1">>, ["value1"]),
     ["value1"] = map_object_value(O1, test, test),
     ["value1"] = map_object_value_list(O2, test, test).
 

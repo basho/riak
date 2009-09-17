@@ -17,8 +17,7 @@
 -export([jiak_required_props/0,
          jiak_module_for_bucket/1, 
          get_jiak_module/1, 
-         default_jiak_module/1,
-         bucket_from_uri/1]).
+         bucket_from_reqdata/1]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -26,48 +25,35 @@
 jiak_required_props() -> [allowed_fields,required_fields,read_mask,write_mask].
 
 %% @private
-default_jiak_module(BucketName) when is_atom(BucketName) ->
+jiak_module_for_bucket(BucketName) when is_binary(BucketName) ->
     BucketProps = riak_bucket:get_bucket(BucketName),
-    case lists:filter(
-           fun(I) -> 
-                   proplists:get_value(I, BucketProps) =:= undefined
-           end, 
-           jiak_required_props()) of
-        [] ->
-            jiak_default:new(BucketProps);
-        _ ->
-            undefined
+    case proplists:lookup(bucket_mod, BucketProps) of
+        {bucket_mod, Module} ->
+            Module;
+        none ->
+            case bucket_props_defined(BucketProps) of
+                true ->
+                    jiak_default:new(BucketProps);
+                false ->
+                    undefined
+            end
     end.
+
+bucket_props_defined(BucketProps) ->
+    [] == lists:filter(
+            fun(I) -> 
+                    proplists:get_value(I, BucketProps) =:= undefined
+            end, 
+            jiak_required_props()).
 
 %% @private
 get_jiak_module(ReqData) ->
-    case bucket_from_uri(ReqData) of
-        {ok, Bucket} when is_atom(Bucket) ->
-            jiak_module_for_bucket(Bucket);
-        {error, no_such_bucket} -> 
-            undefined
-    end.
+    jiak_module_for_bucket(bucket_from_reqdata(ReqData)).
 
-%% @private
-jiak_module_for_bucket(Bucket) when is_atom(Bucket) ->
-    case code:which(Bucket) of
-        non_existing ->
-            case default_jiak_module(Bucket) of
-                undefined -> undefined;
-                Mod when is_tuple(Mod) -> Mod
-            end;
-        ModPath when is_list(ModPath) -> Bucket;
-        cover_compiled -> Bucket %% used during eunit testing
-    end.
-
-%% @spec bucket_from_uri(webmachine:wrq()) ->
-%%         {ok, atom()}|{error, no_such_bucket}
-%% @doc Extract the bucket name, as an atom, from the request URI.
-%%      The bucket name must be an existing atom, or this function
-%%      will return {error, no_such_bucket}
-bucket_from_uri(RD) ->
-    try {ok, list_to_existing_atom(wrq:path_info(bucket, RD))}
-    catch _:_ -> {error, no_such_bucket} end.
+%% @spec bucket_from_reqdata(webmachine:wrq()) -> binary()
+%% @doc Extract the bucket name, as a binary, from the request URI.
+bucket_from_reqdata(RD) ->
+    list_to_binary(mochiweb_util:unquote(wrq:path_info(bucket, RD))).
 
 dynamic_bucket_test() ->
     riak_ring_manager:start_link(test),
@@ -76,8 +62,8 @@ dynamic_bucket_test() ->
                    {required_fields, []},
                    {read_mask, [<<"test">>]},
                    {write_mask, [<<"test">>]}],
-    riak_bucket:set_bucket(dynamic_bucket_test, BucketProps),
-    Mod = jiak_module_for_bucket(dynamic_bucket_test),
+    riak_bucket:set_bucket(<<"dynamic_bucket_test">>, BucketProps),
+    Mod = jiak_module_for_bucket(<<"dynamic_bucket_test">>),
     ?assertEqual([<<"test">>], Mod:allowed_fields()),
     ?assertEqual([], Mod:required_fields()),
     ?assertEqual([<<"test">>], Mod:read_mask()),
@@ -85,16 +71,23 @@ dynamic_bucket_test() ->
     riak_ring_manager:stop(),
     riak_eventer:stop().
 
-existing_bucket_from_uri_test() ->
-    foo, %% make sure the atom exists
+module_bucket_test() ->
+    riak_ring_manager:start_link(test),
+    riak_eventer:start_link(test),    
+    BucketProps = [{bucket_mod, jiak_example}],
+    riak_bucket:set_bucket(<<"module_bucket_test">>, BucketProps),
+    Mod = jiak_module_for_bucket(<<"module_bucket_test">>),
+    ?assertEqual([<<"foo">>,<<"bar">>,<<"baz">>,<<"quux">>],
+                 Mod:allowed_fields()),
+    ?assertEqual([<<"foo">>], Mod:required_fields()),
+    ?assertEqual([<<"foo">>,<<"bar">>], Mod:read_mask()),
+    ?assertEqual([<<"foo">>,<<"baz">>], Mod:write_mask()),
+    riak_ring_manager:stop(),
+    riak_eventer:stop().
+    
+
+bucket_from_uri_test() ->
     PI = dict:store(bucket, "foo", dict:new()),
     RD0 = wrq:create('PUT', "1.1", "/jiak/foo", mochiweb_headers:empty()),
     RD = wrq:load_dispatch_data(PI, none, none, none, none, RD0),
-    ?assertEqual({ok, foo}, bucket_from_uri(RD)).
-
-nonexisiting_bucket_from_uri_test() ->
-    PI = dict:store(bucket, "thisatomshouldntexistever", dict:new()),
-    RD0 = wrq:create('PUT', "1.1", "/jiak/foo", mochiweb_headers:empty()),
-    RD = wrq:load_dispatch_data(PI, none, none, none, none, RD0),    
-    ?assertEqual({error, no_such_bucket}, bucket_from_uri(RD)).
-    
+    ?assertEqual(<<"foo">>, bucket_from_reqdata(RD)).
