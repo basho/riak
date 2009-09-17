@@ -167,6 +167,19 @@ do_put(FSM_pid, BKey, RObj, ReqID,
             end
     end.
 
+do_map(ClientPid,{link,LBucket,LTag,LAcc},
+       BKey,KeyData,Cache,Mod,ModState,VNode) ->
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {Bucket,_Key} = BKey,
+    BucketProps = riak_bucket:get_bucket(Bucket, Ring),
+    LinkFun = proplists:get_value(linkfun, BucketProps),
+    case LinkFun of
+        linkfun_unset ->
+            {mapexec_error, {BKey,KeyData}, self(), "no linkfun"};
+        _ ->
+            do_map(ClientPid,{map,LinkFun,{LBucket,LTag},LAcc},
+                   BKey,KeyData,Cache,Mod,ModState,VNode)
+    end;
 do_map(ClientPid,{map,FunTerm,Arg,_Acc},
        BKey,KeyData,Cache,Mod,ModState,VNode) ->
     riak_eventer:notify(riak_vnode, map_start, {FunTerm,Arg,BKey}),
@@ -187,7 +200,7 @@ do_map(ClientPid,{map,FunTerm,Arg,_Acc},
              uncached_map(BKey,Mod,ModState,FunTerm,Arg,KeyData,VNode);
         CV ->
              riak_eventer:notify(riak_vnode,cached_map,{FunTerm,Arg,BKey}),
-             {mapexec_reply, CV, self()}
+             {mapexec_reply, {BKey,KeyData}, CV, self()}
     end,
     riak_eventer:notify(riak_vnode, map_reply, {FunTerm,Arg,BKey}),
     gen_fsm:send_event(ClientPid, RetVal).
@@ -200,7 +213,7 @@ uncached_map(BKey,Mod,ModState,FunTerm,Arg,KeyData,VNode) ->
             uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode);
         {error, notfound} ->
             uncached_map1({error, notfound},FunTerm,Arg,BKey,KeyData,VNode);
-        X -> {mapexec_error, self(), X}
+        X -> {mapexec_error, {BKey,KeyData}, self(), X}
     end.
 
 uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode) ->
@@ -213,10 +226,10 @@ uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode) ->
                                  {mapcache, BKey,{M,F,Arg,KeyData},MF_Res}),
                 MF_Res
         end,
-        {mapexec_reply, MapVal, self()}
+        {mapexec_reply, {BKey,KeyData}, MapVal, self()}
     catch C:R ->
          Reason = {C, R, erlang:get_stacktrace()},
-         {mapexec_error, self(), Reason}
+         {mapexec_error, {BKey,KeyData}, self(), Reason}
     end.
 
 do_merkle(RemoteVN,RemoteMerkle,

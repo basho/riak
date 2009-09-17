@@ -118,16 +118,16 @@ check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest])
 check_query_syntax([BadQTerm|_]) -> {bad_qterm,BadQTerm}.
 
 make_phase_fsms(Query, Ring) -> 
-    make_phase_fsms(lists:reverse(Query),final,[], Ring).
-make_phase_fsms([], _NextFSM, FSMs, _Ring) -> FSMs;
-make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring) -> 
+    make_phase_fsms(lists:reverse(Query),final,final,[], Ring).
+make_phase_fsms([], _NextFSM, _NextQTerm, FSMs, _Ring) -> FSMs;
+make_phase_fsms([QTerm|Rest], NextFSM, NextQTerm, FSMs, Ring) -> 
     PhaseMod = case QTerm of
         {reduce, _, _, _} -> riak_reduce_phase_fsm;
         {map, _, _, _} -> riak_map_phase_fsm;
         {link, _, _, _} -> riak_map_phase_fsm
     end,
-    {ok, Pid} = PhaseMod:start_link(Ring, QTerm, NextFSM, self()),
-    make_phase_fsms(Rest,Pid,[Pid|FSMs], Ring).
+    {ok, Pid} = PhaseMod:start_link(Ring, QTerm, NextFSM, NextQTerm, self()),
+    make_phase_fsms(Rest,Pid,QTerm,[Pid|FSMs], Ring).
 
 wait({done,FSM}, StateData=#state{client=Client,acc=Acc,reqid=ReqID,
                                   endtime=End,fsms=FSMs0}) ->
