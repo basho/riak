@@ -77,8 +77,8 @@ setup_buckets(RiakConfig) ->
            proplists:get_value(doorbell_port, RiakConfig),
            proplists:get_value(riak_cookie, RiakConfig)) of
         {ok, C} ->
-            C:set_bucket(notes, [{allow_mult, true}]),
-            C:set_bucket(groups, [{allow_mult, true}]);
+            C:set_bucket(<<"notes">>, [{bucket_mod, notes},{allow_mult, true}]),
+            C:set_bucket(<<"groups">>, [{bucket_mod, groups},{allow_mult, true}]);
         Error ->
             error_logger:error_msg(
               "Unable to connect to riak cluster at ~p:~p"

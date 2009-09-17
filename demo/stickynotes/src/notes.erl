@@ -129,11 +129,11 @@ effect_write(_Key, JiakObject, ReqData, Context) ->
 %%      opportunity to act on that information.
 after_write(_Key, JiakObject, ReqData, Context) ->
     spawn(fun() ->
-                  [[_, GroupKey, _]] = jiak_object:links(JiakObject, groups),
+                  [[_, GroupKey, _]] = jiak_object:links(JiakObject, <<"groups">>),
                   {ok, C} = jiak:local_client(),
-                  {ok, G} = C:get(groups, GroupKey, 2),
+                  {ok, G} = C:get(<<"groups">>, GroupKey, 2),
                   Key = Context:get_prop(key),
-                  C:put(jiak_object:add_link(G, notes, Key, <<"note">>), 2)
+                  C:put(jiak_object:add_link(G, <<"notes">>, Key, <<"note">>), 2)
           end),
     {ok, ReqData, Context}.
 
