@@ -107,8 +107,19 @@ do_restore([IP, PortStr, Cookie, Filename]) ->
     {ok, r_table} = dets:open_file(r_table, [{file, Filename}]),
     {ok, Client} = riak:client_connect(IP,list_to_integer(PortStr),list_to_atom(Cookie)),
     Trav = dets:traverse(r_table,
-      fun({{Bucket,Key},V}) ->
-              RObj0 = binary_to_term(V),
+      fun({{Bucket0,Key},V}) ->
+              RObj00 = binary_to_term(V),
+              {Bucket, RObj0} =
+                  if is_binary(Bucket0) -> {Bucket0, RObj00};
+                     is_atom(Bucket0) ->
+                          BN = list_to_binary(atom_to_list(Bucket0)),
+                          {BN,
+                           riak_object:set_vclock(
+                             riak_object:set_contents(
+                               riak_object:new(BN, Key, backup_placeholder),
+                               riak_object:get_contents(RObj00)),
+                             riak_object:vclock(RObj00))}
+                  end,
               RObj = riak_object:update_metadata(RObj0,
                        dict:store("no_update",no_update,
                          riak_object:get_update_metadata(RObj0))),
@@ -136,8 +147,19 @@ do_restore_mdbinary(Filename) ->
     {ok, r_table} = dets:open_file(r_table, [{file, Filename}]),
     {ok, Client} = riak:local_client(),
     Trav = dets:traverse(r_table,
-      fun({{Bucket,Key},V}) ->
-              RObj0 = binary_to_term(V),
+      fun({{Bucket0,Key},V}) ->
+              RObj00 = binary_to_term(V),
+              {Bucket, RObj0} =
+                  if is_binary(Bucket0) -> {Bucket0, RObj00};
+                     is_atom(Bucket0) ->
+                          BN = list_to_binary(atom_to_list(Bucket0)),
+                          {BN,
+                           riak_object:set_vclock(
+                             riak_object:set_contents(
+                               riak_object:new(BN, Key, backup_placeholder),
+                               riak_object:get_contents(RObj00)),
+                             riak_object:vclock(RObj00))}
+                  end,
               MD0 = dict:store("no_update",no_update, 
                                riak_object:get_update_metadata(RObj0)),
               {ObjMD,_} = hd(riak_object:get_contents(RObj0)),
