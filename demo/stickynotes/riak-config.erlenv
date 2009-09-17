@@ -15,4 +15,5 @@
 {riak_web_port, 8098}.
 {riak_web_logdir, "priv/weblogs"}.
 {jiak_buckets, [notes, groups]}. %% just to get atoms loaded in node
+{riak_local_logfile, "restart.log"}.
 

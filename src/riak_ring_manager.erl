@@ -105,7 +105,7 @@ find_latest_ringfile() ->
 read_ringfile(RingFile) ->
     {ok, Binary} = file:read_file(RingFile),
     riak_eventer:notify(riak_ring_manager, read_ringfile, RingFile),
-    binary_to_term(Binary).
+    riak_ring:atom_to_binary_bucket_names(binary_to_term(Binary)).
 
 %% @spec prune_ringfiles() -> ok
 prune_ringfiles() ->

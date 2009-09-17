@@ -26,7 +26,8 @@
 	 owner_node/1,all_members/1,num_partitions/1,all_owners/1,
          transfer_node/3,reconcile/2, my_indices/1,
 	 index_owner/2,diff_nodes/2,random_node/1, random_other_index/1,
-         get_meta/2, update_meta/3]).	 
+         get_meta/2, update_meta/3]).
+-export([atom_to_binary_bucket_names/1]).
 
 % @type riak_ring(). The opaque data type used for partition ownership.
 -record(chstate, {
@@ -253,6 +254,25 @@ update_meta(Key, Val, State) ->
     VClock = vclock:increment(State#chstate.nodename, State#chstate.vclock),
     State#chstate{vclock=VClock, meta=dict:store(Key, M, State#chstate.meta)}.
 
+%% @doc utility for converting from pre riak-0.5 bucket names,
+%%      which were atoms to riak-0.5 bucket names, which
+%%      are binaries
+atom_to_binary_bucket_names(Ring=#chstate{meta=Meta0}) ->
+    AtomBuckets = [ B || {bucket, B} <- dict:fetch_keys(Meta0),
+                         is_atom(B) ],
+    Meta = lists:foldl(
+             fun(B, Acc) ->
+                     BN = list_to_binary(atom_to_list(B)),
+                     BM = dict:fetch({bucket, B}, Meta0),
+                     BP = [{name, BN}|
+                           proplists:delete(name, BM#meta_entry.value)],
+                     dict:store({bucket, BN}, BM#meta_entry{value=BP},
+                                dict:erase({bucket, B}, Acc))
+             end,
+             Meta0,
+             AtomBuckets),
+    Ring#chstate{meta=Meta}.
+
 sequence_test() ->
     I1 = 365375409332725729550921208179070754913983135744,
     I2 = 730750818665451459101842416358141509827966271488,
@@ -326,4 +346,3 @@ full_preflist_test() ->
     Ring = transfer_node(I,b,Ring0),
     ?assertEqual(filtered_preflist(chash:key_of(zzzzzzzzz),Ring,2),
                  filtered_preflist(chash:key_of(zzzzzzzzz),Ring,3)).
-
