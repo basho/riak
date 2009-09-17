@@ -2,7 +2,10 @@ ERL          ?= erl
 EBIN_DIRS    := $(wildcard deps/*/ebin)
 APP          := riak
 
-all:  webmachine erl 
+all:  otp_release webmachine erl 
+
+otp_release:
+	@scripts/otp_release.escript
 
 erl: ebin/$(APP).app
 	@$(ERL) -pa ebin -pa $(EBIN_DIRS) -noinput +B \
