@@ -93,8 +93,8 @@ expires(RD, Ctx=#ctx{cache_secs=Secs}) ->
      RD, Ctx}.
 
 resource_exists(RD, Ctx=#ctx{jiak_client=JiakClient}) ->
-    Bucket = list_to_atom(mochiweb_util:unquote(
-                            wrq:path_info(bucket, RD))),
+    Bucket = list_to_binary(mochiweb_util:unquote(
+                              wrq:path_info(bucket, RD))),
     Key = list_to_binary(mochiweb_util:unquote(
                            wrq:path_info(key, RD))),
     case JiakClient:get(Bucket, Key, 2) of
@@ -146,7 +146,7 @@ parts_to_query([], Acc) -> lists:reverse(Acc);
 parts_to_query([[B,T,A]|Rest], Acc) ->
     parts_to_query(Rest,
                    [{if B == "_" -> '_';
-                        true     -> list_to_atom(mochiweb_util:unquote(B))
+                        true     -> list_to_binary(mochiweb_util:unquote(B))
                      end,
                      if T == "_" -> '_';
                         true     -> list_to_binary(mochiweb_util:unquote(T))

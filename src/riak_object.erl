@@ -25,7 +25,7 @@
 
 %% @type riak_object().  Opaque container for Riak objects.
 -record(r_object, {
-          bucket :: atom(),
+          bucket :: binary(),
           key :: binary(),
           contents :: [#r_content{}],
           vclock :: [vclock:vclock()],
@@ -36,7 +36,8 @@
 -define(MAX_KEY_SIZE, 65536).
 
 %% @type key()=binary().
-%% @type bucket()=atom().
+%% @type bucket()=binary().
+%% @type bkey()={bucket(),key()}
 %% @type value()=term().
 
 -export([new/3, ancestors/1, reconcile/2, increment_vclock/2, equal/2]).
@@ -48,7 +49,7 @@
 
 %% @spec new(Bucket::bucket(), Key::key(), Value::value()) -> riak_object()
 %% @doc Constructor for new riak objects.
-new(B, K, V) when is_atom(B), is_binary(K) ->
+new(B, K, V) when is_binary(B), is_binary(K) ->
     case size(K) > ?MAX_KEY_SIZE of
         true ->
             throw({error,key_too_large});
@@ -311,7 +312,7 @@ syntactic_merge(CurrentObject, NewObject, FromClientId) ->
     end.
 
 object_test() ->
-    B = buckets_are_atoms,
+    B = <<"buckets_are_binaries">>,
     K = <<"keys are binaries">>,
     V = <<"values are anything">>,
     O = riak_object:new(B,K,V),
@@ -356,12 +357,12 @@ merge2_test() ->
     2 = riak_object:value_count(O3).
 
 merge3_test() ->
-    O0 = riak_object:new(test, <<"test">>, hi),
+    O0 = riak_object:new(<<"test">>, <<"test">>, hi),
     O1 = riak_object:increment_vclock(O0, x),
     ?assertEqual(O1, riak_object:syntactic_merge(O1, O1, z)).
 
 merge4_test() ->
-    O0 = riak_object:new(test, <<"test">>, hi),
+    O0 = riak_object:new(<<"test">>, <<"test">>, hi),
     O1 = riak_object:increment_vclock(
            riak_object:update_value(O0, bye), x),
     OM = riak_object:syntactic_merge(O0, O1, y),
@@ -375,8 +376,8 @@ merge4_test() ->
 equality1_test() ->
     MD0 = dict:new(),
     MD = dict:store("X-Riak-Test", "value", MD0),
-    O1 = riak_object:new(test, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"a">>, "value"),
+    O1 = riak_object:new(<<"test">>, <<"a">>, "value"),
+    O2 = riak_object:new(<<"test">>, <<"a">>, "value"),
     O3 = riak_object:increment_vclock(O1, self()),
     O4 = riak_object:increment_vclock(O2, self()),
     O5 = riak_object:update_metadata(O3, MD),
@@ -384,20 +385,20 @@ equality1_test() ->
     true = riak_object:equal(O5, O6).
 
 inequality_value_test() ->
-    O1 = riak_object:new(test, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"a">>, "value1"),
+    O1 = riak_object:new(<<"test">>, <<"a">>, "value"),
+    O2 = riak_object:new(<<"test">>, <<"a">>, "value1"),
     false = riak_object:equal(O1, O2).    
 
 inequality_multivalue_test() ->
-    O1 = riak_object:new(test, <<"a">>, "value"),
+    O1 = riak_object:new(<<"test">>, <<"a">>, "value"),
     [C] = riak_object:get_contents(O1),
     O1p = riak_object:set_contents(O1, [C,C]),
     false = riak_object:equal(O1, O1p),
     false = riak_object:equal(O1p, O1).
 
 inequality_metadata_test() ->
-    O1 = riak_object:new(test, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"a">>, "value"),
+    O1 = riak_object:new(<<"test">>, <<"a">>, "value"),
+    O2 = riak_object:new(<<"test">>, <<"a">>, "value"),
     O1p = riak_object:apply_updates(
             riak_object:update_metadata(
               O1, dict:store(<<"X-Riak-Test">>, "value",
@@ -405,25 +406,25 @@ inequality_metadata_test() ->
     false = riak_object:equal(O1p, O2).
 
 inequality_key_test() ->
-    O1 = riak_object:new(test, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"b">>, "value"),
+    O1 = riak_object:new(<<"test">>, <<"a">>, "value"),
+    O2 = riak_object:new(<<"test">>, <<"b">>, "value"),
     false = riak_object:equal(O1, O2).    
 
 inequality_vclock_test() ->
-    O1 = riak_object:new(test, <<"a">>, "value"),
+    O1 = riak_object:new(<<"test">>, <<"a">>, "value"),
     false = riak_object:equal(O1, riak_object:increment_vclock(O1, foo)).
 
 inequality_bucket_test() ->
-    O1 = riak_object:new(test1, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"a">>, "value"),
+    O1 = riak_object:new(<<"test1">>, <<"a">>, "value"),
+    O2 = riak_object:new(<<"test">>, <<"a">>, "value"),
     false = riak_object:equal(O1, O2). 
 
 inequality_updatecontents_test() ->
     MD1 = dict:new(),
     MD2 = dict:store("X-Riak-Test", "value", MD1),
     MD3 = dict:store("X-Riak-Test", "value1", MD1),
-    O1 = riak_object:new(test, <<"a">>, "value"),
-    O2 = riak_object:new(test, <<"a">>, "value"),    
+    O1 = riak_object:new(<<"test">>, <<"a">>, "value"),
+    O2 = riak_object:new(<<"test">>, <<"a">>, "value"),    
     O3 = riak_object:update_metadata(O1, MD2),
     false = riak_object:equal(O3, riak_object:update_metadata(O2, MD3)),
     O5 = riak_object:update_value(O1, "value1"),
@@ -432,7 +433,7 @@ inequality_updatecontents_test() ->
 largekey_test() ->
     TooLargeKey = <<0:(65537*8)>>,
     try
-        riak_object:new(a, TooLargeKey, <<>>)
+        riak_object:new(<<"a">>, TooLargeKey, <<>>)
     catch throw:{error, key_too_large} ->
             ok
     end.
@@ -463,14 +464,14 @@ date_reconcile_test() ->
     false = riak_object:equal(O4, O5).
 
 get_update_value_test() ->
-    O = riak_object:new(test, <<"test">>, old_val),
+    O = riak_object:new(<<"test">>, <<"test">>, old_val),
     NewVal = new_val,
     ?assertEqual(NewVal,
                  riak_object:get_update_value(
                    riak_object:update_value(O, NewVal))).
 
 get_update_metadata_test() ->
-    O = riak_object:new(test, <<"test">>, val),
+    O = riak_object:new(<<"test">>, <<"test">>, val),
     OldMD = riak_object:get_metadata(O),
     NewMD = dict:store(<<"X-Riak-Test">>, "testval", OldMD),
     ?assertNot(NewMD =:= OldMD),
@@ -479,7 +480,7 @@ get_update_metadata_test() ->
                    riak_object:update_metadata(O, NewMD))).
 
 is_updated_test() ->
-    O = riak_object:new(test, <<"test">>, test),
+    O = riak_object:new(<<"test">>, <<"test">>, test),
     ?assertNot(is_updated(O)),
     OMu = riak_object:update_metadata(
             O, dict:store(<<"X-Test-Update">>, "testupdate",
@@ -489,8 +490,8 @@ is_updated_test() ->
     ?assert(is_updated(OVu)).
 
 remove_duplicates_test() ->
-    O0 = riak_object:new(test, <<"test">>, zero),
-    O1 = riak_object:new(test, <<"test">>, one),
+    O0 = riak_object:new(<<"test">>, <<"test">>, zero),
+    O1 = riak_object:new(<<"test">>, <<"test">>, one),
     ND = remove_duplicate_objects([O0, O0, O1, O1, O0, O1]),
     ?assertEqual(2, length(ND)),
     ?assert(lists:member(O0, ND)),

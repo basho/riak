@@ -60,7 +60,7 @@ get(Bucket, Key, R) -> get(Bucket, Key, R, ?DEFAULT_TIMEOUT).
 %%       {error, Err :: term()}
 %% @doc Fetch the object at Bucket/Key.  Return a value as soon as R
 %%      nodes have responded with a value or error, or TimeoutMillisecs passes.
-get(Bucket, Key, R, Timeout) when is_atom(Bucket), is_binary(Key) ->
+get(Bucket, Key, R, Timeout) when is_binary(Bucket), is_binary(Key) ->
     case RiakClient:get(Bucket, Key, R, Timeout) of
         {ok, RiakObject} ->
             JiakObject = jiak_object:from_riak_object(RiakObject),

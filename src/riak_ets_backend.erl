@@ -69,8 +69,7 @@ srv_get(State, BKey) ->
         Err -> {error, Err}
     end.
 
-% put(state(), {B :: atom(), K :: binary()}, Key :: binary(),
-%     Val :: binary()) ->
+% put(state(), riak_object:bkey(), Val :: binary()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
 put(SrvRef, BKey, Val) -> gen_server:call(SrvRef,{put,BKey,Val}).
@@ -94,7 +93,7 @@ srv_list(State) ->
 list([],Acc) -> Acc;
 list([[K]|Rest],Acc) -> list(Rest,[K|Acc]).
 
-% list_bucket(Bucket :: atom(), state()) -> [Key :: binary()]
+% list_bucket(term(), Bucket :: riak_object:bucket()) -> [Key :: binary()]
 list_bucket(SrvRef, Bucket) ->
     gen_server:call(SrvRef,{list_bucket, Bucket}).
 srv_list_bucket(State, {filter, Bucket, Fun}) ->

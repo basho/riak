@@ -54,7 +54,7 @@ expires_test_() ->
 
 write_test_() ->
     M = jiak_default:new([]),
-    O = jiak_object:new(bucket_ignored, <<"key_ignored">>),
+    O = jiak_object:new(<<"bucket_ignored">>, <<"key_ignored">>),
     {"*_write functions",
      [{"check_write", 
        ?_assertEqual(
