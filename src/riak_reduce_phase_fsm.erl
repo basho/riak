@@ -15,7 +15,7 @@
 -module(riak_reduce_phase_fsm).
 -behaviour(gen_fsm).
 
--export([start_link/4]).
+-export([start_link/5]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
@@ -23,7 +23,7 @@
 
 -record(state, {done,qterm,next_fsm,coord,acc,reduced}).
 
-start_link(_Ring,QTerm,NextFSM,Coordinator) ->
+start_link(_Ring,QTerm,NextFSM,_NextQTerm,Coordinator) ->
     gen_fsm:start_link(?MODULE, [QTerm,NextFSM,Coordinator], []).
 %% @private
 init([QTerm,NextFSM,Coordinator]) ->
