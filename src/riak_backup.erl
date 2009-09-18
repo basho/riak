@@ -122,7 +122,7 @@ do_restore([IP, PortStr, Cookie, Filename]) ->
                   end,
               RObj = riak_object:update_metadata(RObj0,
                        dict:store("no_update",no_update,
-                         riak_object:get_update_metadata(RObj0))),
+                         hd(riak_object:get_metadatas(RObj0)))),
               PutRes = Client:put(RObj,1,1,900000),
               {continue, {Bucket,Key,PutRes}}
       end),
