@@ -30,7 +30,6 @@ start(_Type, _StartArgs) ->
         _ -> read_config()
     end,
     register(riak_app, self()),
-    erlang:set_cookie(node(), riak:get_app_env(riak_cookie)),
     riak_sup:start_link().
 
 %% @spec stop(State :: term()) -> ok
@@ -83,14 +82,12 @@ check_erlenv(ConfigPath) ->
     % set some defaults for undefined fields
     [ClusterName,RingStateDir,RingCreationSize,
      WantsClaimFun,ChooseClaimFun,GossipInterval,
-     DoorbellPort,StorageBackend,RiakCookie,RiakAddPaths,
-     RiakNodeName,RiakHostName,RiakHeartCommand,
+     StorageBackend,RiakAddPaths, RiakHeartCommand,
      DefaultBucketProps,RiakStartApps] =
         [riak:get_app_env(X) || X <- 
            [cluster_name,ring_state_dir,ring_creation_size,
             wants_claim_fun,choose_claim_fun,gossip_interval,
-            doorbell_port,storage_backend,riak_cookie,add_paths,
-            riak_nodename,riak_hostname,riak_heart_command,
+            storage_backend,add_paths, riak_heart_command,
             default_bucket_props,start_apps]],
     if
         ClusterName =:= undefined ->
@@ -143,30 +140,11 @@ check_erlenv(ConfigPath) ->
         true -> ok
     end,
     if
-        DoorbellPort =:= undefined ->
-            io_lib:format(
-                  "doorbell_port unset in ~p, no UDP service.",[ConfigPath]);
-        is_integer(DoorbellPort) =:= false ->
-            riak:stop(io_lib:format(
-                "doorbell_port set to ~p in ~p, must be integer",
-                          [DoorbellPort,ConfigPath]));
-        true -> ok
-    end,
-    if
         StorageBackend =:= undefined ->
             nop; % but you had better know what you're doing!
         not is_atom(StorageBackend) ->
             riak:stop(io_lib:format(
                     "storage_backend in ~p non-atom, failing.",[ConfigPath]));
-        true -> ok
-    end,
-    if
-        RiakCookie =:= undefined ->
-            riak:stop(io_lib:format(
-                       "riak_cookie unset in ~p, failing.",[ConfigPath]));
-        not is_atom(RiakCookie) ->
-            riak:stop(io_lib:format(
-                       "riak_cookie in ~p non-atom, failing.",[ConfigPath]));
         true -> ok
     end,
     if
@@ -178,26 +156,6 @@ check_erlenv(ConfigPath) ->
         not is_list(RiakAddPaths) ->
             riak:stop(io_lib:format(
                        "add_paths in ~p non-list, failing.",[ConfigPath]));
-        true -> ok
-    end,
-    if
-        % this one has to stop hard, as we test it before starting the app
-        RiakNodeName =:= undefined ->
-            io:format("no_riak_nodename_"),
-            init:stop();
-        not is_atom(RiakNodeName) ->
-            io:format("no_riak_nodename_"),
-            init:stop();
-        true -> ok
-    end,
-    if
-        % this one has to stop hard, as we test it before starting the app
-        RiakHostName =:= undefined ->
-            io:format("no_riak_hostname_"),
-            init:stop();
-        not is_list(RiakHostName) ->
-            io:format("no_riak_hostname_"),
-            init:stop();
         true -> ok
     end,
     if

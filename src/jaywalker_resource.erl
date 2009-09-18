@@ -70,10 +70,10 @@ init(Props) ->
             true ->
                 jiak:local_client();
             _ ->
-                jiak:client_connect(
-                  proplists:get_value(riak_ip, Props),
-                  proplists:get_value(riak_port, Props),
-                  proplists:get_value(riak_cookie, Props))
+                Node = proplists:get_value(riak_node),
+                Cookie = proplists:get_value(riak_cookie),
+                erlang:set_cookie(node(), Cookie),
+                jiak:client_connect(Node)
         end,
     {ok, #ctx{cache_secs=proplists:get_value(cache_secs, Props, 600),
               jiak_client=JiakClient}}.

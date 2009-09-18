@@ -244,12 +244,12 @@ do_merkle(RemoteVN,RemoteMerkle,
 
 local_reconcile(K,RemObj,Mod,ModState,IsBackup) ->
     FinalObj = case IsBackup of
-     true -> RemObj;
-     false ->
-       case Mod:get(ModState,K) of
-           {ok,V} -> riak_object:reconcile([binary_to_term(V),RemObj],false);
-           _ -> RemObj
-       end
+        true -> RemObj;
+        false ->
+            case Mod:get(ModState,K) of
+                {ok,V} -> riak_object:reconcile([binary_to_term(V),RemObj],false);
+                _ -> RemObj
+            end
     end,
     case Mod:put(ModState, K, term_to_binary(FinalObj, [compressed])) of
         ok ->

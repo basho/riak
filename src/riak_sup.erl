@@ -19,6 +19,8 @@
 -export([start_link/0]).
 -export([init/1]).
 
+-define (IF (Bool, A, B), if Bool -> A; true -> B end).
+
 %% @spec start_link() -> ServerRet
 %% @doc API for starting the supervisor.
 start_link() ->
@@ -30,45 +32,35 @@ init([]) ->
     Eventer = {riak_eventer,
                {riak_eventer, start_link, []},
                permanent, 5000, worker, [riak_eventer]},
-    Doorbell = {riak_doorbell,
-                {riak_doorbell, start_link, []},
-                permanent, 5000, worker, [riak_doorbell]},
+    VMaster = {riak_vnode_master,
+               {riak_vnode_master, start_link, []},
+               permanent, 5000, worker, [riak_vnode_master]},
     RingMgr = {riak_ring_manager,
              {riak_ring_manager, start_link, []},
              permanent, 5000, worker, [riak_ring_manager]},
     Connect = {riak_connect,
              {riak_connect, start_link, []},
              permanent, 5000, worker, [riak_connect]},
-    VMaster = {riak_vnode_master,
-               {riak_vnode_master, start_link, []},
-               permanent, 5000, worker, [riak_vnode_master]},
     LocalLogger = {riak_local_logger,
                    {riak_local_logger, start_link, []},
                    permanent, 5000, worker, [riak_local_logger]},
     RiakWeb = {webmachine_mochiweb,
                  {webmachine_mochiweb, start, [riak_web:config()]},
                   permanent, 5000, worker, dynamic},
-    Processes0 = 
-    case riak:get_app_env(riak_web_ip) of
-        "undefined" ->
-            [RingMgr,Connect,LocalLogger];
-        undefined ->
-            [RingMgr,Connect,LocalLogger];
-        _ ->
-            [RingMgr,Connect,LocalLogger,
-             RiakWeb]
-    end,
-    Processes1 = 
-    case riak:get_app_env(doorbell_port) of
-        "undefined" -> Processes0;
-        undefined -> Processes0;
-        _ -> [Doorbell|Processes0]
-    end,
-    Processes2 = 
-    case riak:get_app_env(storage_backend) of
-        "undefined" -> Processes1;
-        undefined -> Processes1;
-        _ -> [VMaster|Processes1]
-    end,
-    Processes = [Eventer|Processes2],
+    
+    % Figure out which processes we should run...
+    IsWebConfigured = (riak:get_app_env(riak_web_ip) /= undefined) andalso (riak:get_app_env(riak_web_ip) /= "undefined"),
+    HasStorageBackend = (riak:get_app_env(storage_backend) /= undefined) andalso (riak:get_app_env(storage_backend) /= "undefined"),
+    
+    % Build the process list...
+    Processes = lists:flatten([
+        Eventer,
+        ?IF(HasStorageBackend, VMaster, []),
+        RingMgr, 
+        Connect, 
+        LocalLogger,
+        ?IF(IsWebConfigured, RiakWeb, [])
+    ]),
+    
+    % Run the proesses...
     {ok, {{one_for_one, 10, 10}, Processes}}.

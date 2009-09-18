@@ -1,15 +1,17 @@
 #!/usr/bin/env bash
-# ./start-backup-restore.sh <clustername> <cookie> <ip> <port> <dumpfilename>
+# ./start-backup-restore.sh <clustername> <node> <cookie> <filename>
 # This will:
-#  Join riak cluster <clustername> using erlcookie <cookie>
-#  via the node listening at <ip>:<port>
-#  and overwrite cluster data with that contained in <dumpfilename>
-if [ $# -lt 5 ]; then
+#  1. Join riak cluster <clustername> at <node> using <cookie>
+#  2. Overwrite cluster data with data contained in <filename>
+if [ $# -lt 4 ]; then
     echo Usage: 1>&2
-    echo "    `basename $0` <clustername> <cookie> <ip in ring> " 1>&2
-    echo "                  <doorbell port> <filename to restore from>" 1>&2
+    echo "    `basename $0` <clustername> <node> <cookie> <filename>" 1>&2
     exit 1
 fi
 . riak-env.sh
-erl -noshell -pa deps/*/ebin -pa ebin -name backup_restore -run riak_backup restore_config $1 $2 -run riak start -run riak_backup do_restore $3 $4 $2 $5 -run init stop
+CLUSTERNAME=$1
+NODE=$2
+COOKIE=$3
+FILENAME=$4
+erl -noshell -pa deps/*/ebin -pa ebin -name backup_restore -setcookie $COOKIE -run riak_backup restore_config $CLUSTERNAME -run riak start -run riak_backup do_restore $NODE $FILENAME -run init stop
 

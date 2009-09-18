@@ -98,13 +98,9 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 
 register_for_events(State) ->
-    io:format("1~n"),
     {ok, C} = riak:client_connect(State#state.hostname, State#state.port, State#state.cookie),
-    io:format("2~n"),
     Desc = io_lib:format("~s (~s)", [?SERVER, node()]),
-    io:format("3~n"),
-    C:add_event_handler(self(), Desc),
-    io:format("4~n").
+    C:add_event_handler(self(), Desc).
 
 
 %%% DATE FUNCTIONS %%%

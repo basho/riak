@@ -24,7 +24,7 @@
 -author('Bryan Fink <bryan@basho.com>').
 -export([start/0, start/1, stop/0, stop/1]).
 -export([get_app_env/1,get_app_env/2]).
--export([client_connect/3,client_connect/4,local_client/0]).
+-export([client_connect/1,local_client/0]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -77,29 +77,21 @@ get_app_env(Opt, Default) ->
 
 %% @spec local_client() -> {ok, Client :: riak_client()}
 %% @doc When you want a client for use on a running Riak node.
-local_client() -> {ok, riak_client:new(node(), riak_util:mkclientid(node()))}.
+local_client() -> client_connect(node()).
 
-%% @spec client_connect(IP :: list(), Port :: integer(), RiakCookie :: atom())
+
+%% @spec client_connect(Node :: node())
 %%        -> {ok, Client :: riak_client()} | {error, timeout}
 %% @doc The usual way to get a client.  Timeout often means either a bad
 %%      cookie or a poorly-connected distributed erlang network.
-client_connect(IP,Port,RiakCookie) -> client_connect(IP,Port,RiakCookie,1000).
+client_connect(Node) -> 
+    % Make sure we can reach this node...
+    try pong = net_adm:ping(Node)
+    catch _ : _ -> throw({could_not_reach_node, Node}) end,
+        
+    % Return the newly created node...
+    {ok, riak_client:new(Node, riak_util:mkclientid(Node))}.
 
-%% @spec client_connect(IP :: list(), Port :: integer(), RiakCookie :: atom(),
-%%                      TimeoutMillisecs :: integer())
-%%        -> {ok, Client :: riak_client()} | {error, timeout}
-%% @doc The usual way to get a client.  Timeout often means either a bad
-%%      cookie or a poorly-connected distributed erlang network.
-client_connect(IP,Port,RiakCookie,Timeout)
-  when is_list(IP),is_integer(Port),is_atom(RiakCookie),is_integer(Timeout) ->
-    Nonce = riak_doorbell:knock(IP,Port,RiakCookie),
-    receive
-        {riak_connect, Nonce, Node} ->
-            {ok, riak_client:new(Node, riak_util:mkclientid(Node))}
-    after
-        Timeout ->
-            {error, timeout}
-    end.
 
 %% @spec ensure_started(Application :: atom()) -> ok
 %% @doc Start the named application if not already started.
@@ -110,15 +102,3 @@ ensure_started(App) ->
 	{error, {already_started, App}} ->
 	    ok
     end.
-	
-local_client_test() ->
-    Node = node(),
-    {ok, {riak_client, Node, _ClientId}} = riak:local_client().
-
-remote_client_test() ->
-    application:set_env(riak, doorbell_port, 9002),   
-    application:set_env(riak, riak_cookie, remote_client_test),
-    riak_doorbell:start_link(),
-    {ok, {riak_client, _, _}} = riak:client_connect("127.0.0.1", 9002, 
-                                                    remote_client_test),
-    riak_doorbell:stop().

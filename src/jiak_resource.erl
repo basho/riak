@@ -176,10 +176,10 @@ init(Props) ->
             true ->
                 jiak:local_client();
             _ ->
-                jiak:client_connect(
-                  proplists:get_value(riak_ip, Props),
-                  proplists:get_value(riak_port, Props),
-                  proplists:get_value(riak_cookie, Props))
+                Node = proplists:get_value(riak_node),
+                Cookie = proplists:get_value(riak_cookie),
+                erlang:set_cookie(node(), Cookie),
+                jiak:client_connect(Node)
         end,
     {ok, #ctx{jiak_name=proplists:get_value(jiak_name, Props),
               key=proplists:get_value(key_type, Props),

@@ -15,41 +15,11 @@
 -module(riak_startup).
 -export([initiate_cluster/0,join_cluster/1,rejoin/0,no_config/0]).
 
-% functions called by the shell scripts used to start riak
-
-% How do we know when a node is successfully running in a cluster.
-%
-%
-% start(ConfigFile) ->
-%     % try_join()
-%     % Read the config file.
-%     % Read riak_clustername, riak_seednodes, riak_cookie, ring_location
-%     % Set riak_cookie on local node.
-%     % Try to get the ring from each seed node.
-%     % If it worked then we're done. Read cluster_name and gossip_interval from other node.
-%     
-%     % try_restart()
-%     % Try to read the local ring file.
-%      
-%     % try_fresh()
-%     % Read ring_creation_size and gossip_interval
-%     % Create a new ring
-% 
-% try_join(_, []) -> could_not_connect;
-% try_join(ClusterName, [SeedNode|SeedNodes]) ->
-%     
-%     riak_ring_gossiper:get_ring_from(hd(nodes()));
-    
-    
-    
-
-join_cluster([IP, PortStr]) ->
+join_cluster([Node]) when is_list(Node) -> join_cluster(list_to_atom(Node));
+join_cluster(Node) ->
     case check_deps() of
         ok ->
-            Port = list_to_integer(PortStr),
-            riak_doorbell:ring(IP, Port),
-            timer:sleep(1000),
-            riak_connect:send_ring(hd(nodes()), node());
+            riak_connect:send_ring(Node, node());
         X ->
             X
     end.

@@ -32,6 +32,7 @@
 -export ([send_ring/1, send_ring/2, remove_from_cluster/1]).
 
 -include_lib("eunit/include/eunit.hrl").
+-define (SERVER, ?MODULE).
 
 %% send_ring/1 -
 %% Send the current node's ring to some other node.
@@ -80,7 +81,7 @@ handle_cast({reconcile_ring, OtherRing}, RingChanged) ->
             BalancedRing = claim_until_balanced(ReconciledRing),
             riak_ring_manager:set_my_ring(BalancedRing),
             RandomNode = riak_ring:random_node(BalancedRing),
-            send_ring(self(), RandomNode),
+            send_ring(node(), RandomNode),
             riak_eventer:notify(riak_connect, changed_ring, gossip_changed),
             {noreply, true}
     end;

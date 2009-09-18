@@ -27,12 +27,12 @@
 %% @doc Configure/prep a node to perform backup for Cluster, using CookieStr.
 %%      The argument is a list of the form
 %%      [Cluster :atom(), CookieStr :: list()].
-dump_config([Cluster, CookieStr]) ->
+dump_config([Cluster]) ->
     RipConf = [{no_config, true}, {cluster_name, Cluster},
-       {riak_cookie, list_to_atom(CookieStr)}, {ring_state_dir, "<nostore>"},
+       {ring_state_dir, "<nostore>"},
        {ring_creation_size, 12}, {gossip_interval, 1000},
        {wants_claim_fun, {riak_claim, never_wants_claim}},
-       {doorbell_port, undefined}, {storage_backend, undefined}],
+       {storage_backend, undefined}],
     backup_config(RipConf).
 
 %% @type restore_config_params() = list()
@@ -40,13 +40,13 @@ dump_config([Cluster, CookieStr]) ->
 %% @doc Configure/prep a node to perform restore for Cluster, using CookieStr.
 %%      The argument is a list of the form
 %%      [Cluster :: atom(), CookieStr :: list()].
-restore_config([Cluster, CookieStr]) ->
+restore_config([Cluster]) ->
     TempDir = make_tmp_dir(),
     RipConf = [{no_config, true}, {cluster_name, Cluster},
-       {riak_cookie, list_to_atom(CookieStr)}, {ring_state_dir, "<nostore>"},
+       {ring_state_dir, "<nostore>"},
        {ring_creation_size, 12}, {gossip_interval, 60000},
        {wants_claim_fun, {riak_claim, never_wants_claim}},
-       {riak_web_ip, "undefined"}, {doorbell_port, undefined},{backup, true},
+       {riak_web_ip, "undefined"}, {backup, true},
        {riak_fs_backend_root, filename:join(TempDir, "storage")},
        {storage_backend, undefined}],
     backup_config(RipConf).
@@ -64,13 +64,15 @@ backup_config(RipConf) ->
 %% @doc Connect to the cluster via IP:PortStr, and make a dumpfile at Filename.
 %%      The argument is a list of the form
 %%      [IP :: list(), PortStr :: list(), Filename :: list()].
-do_dump([IP, PortStr, Filename]) ->
+do_dump([Node, Filename]) when is_list(Node) -> do_dump([list_to_atom(Node), Filename]);
+do_dump([Node, Filename]) ->
     ReqID = erlang:phash2({random:uniform(), self()}),
     io:format("starting dump ID ~p~n", [ReqID]),
-    riak_startup:join_cluster([IP, PortStr]),
+    riak_startup:join_cluster(Node),
+    timer:sleep(5 * 1000),
     All_I_VN = lists:flatten(
-          [gen_server:call({riak_vnode_master, Node},all_possible_vnodes) ||
-                  Node <- nodes()]),
+          [gen_server:call({riak_vnode_master, X},all_possible_vnodes) ||
+                  X <- nodes()]),
     IV_Lists = [{I, VN, gen_server2:call(VN,list)} || {I,VN} <- All_I_VN],
     {ok, dumptable} = dets:open_file(dumptable, [{file, Filename}]),
     dump_records(IV_Lists),
@@ -101,11 +103,12 @@ dump_records1(VN,[K|K_Tail]) ->
 %%      Note that this reconciles instead of blindly overwriting.
 %%      The argument is a list of the form
 %%      [IP :: list(), PortStr :: list(), Cookie :: list(), Filename :: list()].
-do_restore([IP, PortStr, Cookie, Filename]) ->
+do_restore([Node, Filename]) when is_list(Node) -> do_restore([list_to_atom(Node), Filename]);
+do_restore([Node, Filename]) ->
     ReqID = erlang:phash2({random:uniform(), self()}),
     io:format("starting restore ID ~p~n", [ReqID]),
     {ok, r_table} = dets:open_file(r_table, [{file, Filename}]),
-    {ok, Client} = riak:client_connect(IP,list_to_integer(PortStr),list_to_atom(Cookie)),
+    {ok, Client} = riak:client_connect(Node),
     Trav = dets:traverse(r_table,
       fun({{Bucket,Key},V}) ->
               RObj0 = binary_to_term(V),
