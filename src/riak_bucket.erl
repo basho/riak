@@ -33,7 +33,8 @@ set_bucket(Name, BucketProps) ->
     riak_ring_manager:set_my_ring(R1),
     riak_ring_manager:write_ringfile(),
     riak_eventer:notify(riak_bucket, set_bucket, {Name,BucketProps++PrunedOld}),
-    riak_ring_gossiper:gossip_to(riak_ring:random_node(R1)),
+    RandomNode = riak_ring:random_node(R1),
+    riak_connect:send_ring(RandomNode),
     ok.
     
 %% @spec get_bucket(riak_object:bucket()) ->

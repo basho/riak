@@ -260,7 +260,7 @@ reload_all(Module) -> rpc:call(Node,riak_util,reload_all,[Module]).
 %% @doc Cause all partitions owned by ExitingNode to be taken over
 %%      by other nodes.
 remove_from_cluster(ExitingNode) ->
-    rpc:call(Node,riak_ring_gossiper,remove_from_cluster,[ExitingNode]).
+    rpc:call(Node, riak_connect, remove_from_cluster,[ExitingNode]).
 
 %% @spec send_event(EventName::atom(), EventDetail::term()) -> ok
 %% @doc  Send a client-generated event to the Riak eventer.

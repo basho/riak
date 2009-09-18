@@ -34,6 +34,7 @@
 start([ConfigPath]) ->
     application:set_env(riak, configpath, ConfigPath),
     start().
+    
 %% @spec start() -> ok
 %% @doc Start the riak server.
 start() ->

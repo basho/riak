@@ -37,6 +37,7 @@ start(_Type, _StartArgs) ->
 %% @doc The application:stop callback for riak.
 stop(_State) -> ok.
 
+
 %% @spec read_config() -> ok
 %% @doc Read the riak erlenv configuration file and set environment variables.
 read_config() -> read_config(riak:get_app_env(configpath)).

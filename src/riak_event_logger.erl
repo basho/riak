@@ -12,39 +12,82 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
--module(riak_event_logger).
--behavior(gen_event).
+%% @doc 
+%% riak_event_logger is an example of how to connect to a 
+%% running Riak cluster to receive events.
 
--export([init/1, handle_event/2, handle_call/2, handle_info/2, terminate/2]).
--export([code_change/3]).
+-module(riak_event_logger).
+-behavior(gen_server).
+
+-define (RECONNECT_INTERVAL, 200).
+-define (SERVER, ?MODULE).
+-record (state, {pid, hostname, port, cookie, verbosity, fd}).
+-export ([start/4, start_link/4]).
+-export ([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %% @private
-init({Arg,_}) ->
-    case Arg of
-        "stdout" -> {ok, "stdout"};
+start(Hostname, Port, Cookie, Filename) ->
+    gen_server:start({local, ?SERVER}, ?MODULE, [Hostname, Port, Cookie, Filename], []).
+
+start_link(Hostname, Port, Cookie, Filename) -> 
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [Hostname, Port, Cookie, Filename], []).
+
+%% @private
+init([Hostname, Port, Cookie, Filename]) -> 
+    % If this gen_server dies and is supervised, then it will
+    % be restarted under a new pid. If this happens, then we will
+    % lose our connection to the Riak cluster. So, send a keepalive
+    % every few seconds to reconnect.
+    timer:apply_interval(?RECONNECT_INTERVAL, gen_server, call, [?SERVER, connect]),
+    
+    % Open the file, get the file descriptor....
+    {ok, FD} = case Filename of
+        "stdout" -> 
+            {ok, stdout};
         _ ->
             {ok, CWD} = file:get_cwd(),
-            LogFN = filename:join([CWD,Arg]),
+            LogFN = filename:join([CWD,Filename]),
             ok = filelib:ensure_dir(LogFN),
             io:format("Writing event log to ~p~n",[LogFN]),
             file:open(LogFN, [raw, append, delayed_write])
-    end.
+    end,
+    
+    State = #state {
+        hostname = Hostname,
+        port = Port,
+        cookie = Cookie,
+        fd = FD
+    },
+    {ok, State}.
+    
+%% @private
+%% Check if we need to reconnect to the Riak cluster.
+handle_call(connect, _From, State) ->
+    PidHasChanged = State#state.pid /= self(),
+    case PidHasChanged of
+        true ->  register_for_events(State);
+        false -> ignore
+    end,
+    {reply, ok, State#state { pid=self() }};
+    
+handle_call(_, _, State) -> {ok, State}.
+
+handle_cast(_, State) -> {noreply, State}.
 
 %% @private
-handle_event(Event, "stdout") ->
-    io:format("~s",[fmtnow()]),
-    io:format(": ~p~n",[Event]),
-    {ok, "stdout"};
-handle_event(Event, FD) ->
-    file:write(FD, [fmtnow()]),
-    file:write(FD, io_lib:format(": ~p~n",[Event])),
-    {ok, FD}.
-
-%% @private
-handle_call(_, State) -> {ok, no_call_support, State}.
-
-%% @private
-handle_info(_, State) -> {ok, State}.
+%% Got an incoming event. Write it to a file or to the console.
+handle_info({event, Event}, State) ->
+    case State#state.fd of
+        stdout ->
+            io:format("~s",[fmtnow()]),
+            io:format(": ~p~n",[Event]);
+        FD ->
+            file:write(FD, [fmtnow()]),
+            file:write(FD, io_lib:format(": ~p~n",[Event]))
+    end,
+    {noreply, State};
+    
+handle_info(_, State) -> {noreply, State}.
 
 %% @private
 terminate(swap, State)  -> {?MODULE, State};
@@ -52,6 +95,19 @@ terminate(_Reason,_State)  -> ok.
 
 %% @private
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
+
+
+register_for_events(State) ->
+    io:format("1~n"),
+    {ok, C} = riak:client_connect(State#state.hostname, State#state.port, State#state.cookie),
+    io:format("2~n"),
+    Desc = io_lib:format("~s (~s)", [?SERVER, node()]),
+    io:format("3~n"),
+    C:add_event_handler(self(), Desc),
+    io:format("4~n").
+
+
+%%% DATE FUNCTIONS %%%
 
 month(1) ->  "Jan";
 month(2) ->  "Feb";

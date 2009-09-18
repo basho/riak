@@ -36,9 +36,6 @@ init([]) ->
     RingMgr = {riak_ring_manager,
              {riak_ring_manager, start_link, []},
              permanent, 5000, worker, [riak_ring_manager]},
-    RingGossip = {riak_ring_gossiper,
-             {riak_ring_gossiper, start_link, []},
-             permanent, 5000, worker, [riak_ring_gossiper]},
     Connect = {riak_connect,
              {riak_connect, start_link, []},
              permanent, 5000, worker, [riak_connect]},
@@ -54,11 +51,11 @@ init([]) ->
     Processes0 = 
     case riak:get_app_env(riak_web_ip) of
         "undefined" ->
-            [RingMgr,RingGossip,Connect,LocalLogger];
+            [RingMgr,Connect,LocalLogger];
         undefined ->
-            [RingMgr,RingGossip,Connect,LocalLogger];
+            [RingMgr,Connect,LocalLogger];
         _ ->
-            [RingMgr,RingGossip,Connect,LocalLogger,
+            [RingMgr,Connect,LocalLogger,
              RiakWeb]
     end,
     Processes1 = 

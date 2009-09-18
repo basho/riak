@@ -110,7 +110,7 @@ handle_call({add_handler, Pid, Desc, MatchHead, MatchSpec},_From,State) ->
     
     % Gossip the new ring...
     RandomNode = riak_ring:index_owner(Ring1,riak_ring:random_other_index(Ring1)),
-    riak_ring_gossiper:gossip_to(RandomNode),
+    riak_connect:send_ring(RandomNode),
     {reply, ok, State};
     
 handle_call({remove_handler, HandlerID},_From,State) -> 
@@ -124,7 +124,7 @@ handle_call({remove_handler, HandlerID},_From,State) ->
     
     % Gossip the new ring...
     RandomNode = riak_ring:index_owner(Ring1,riak_ring:random_other_index(Ring1)),
-    riak_ring_gossiper:gossip_to(RandomNode),
+    riak_connect:send_ring(RandomNode),
     {reply, ok, State};
     
     
@@ -170,7 +170,7 @@ handle_info({'DOWN', _, process, Pid, _}, State) ->
     
             % Gossip the new ring...
             RandomNode = riak_ring:index_owner(Ring1,riak_ring:random_other_index(Ring1)),
-            riak_ring_gossiper:gossip_to(RandomNode);
+            riak_connect:send_ring(RandomNode);
         false -> ignore
     end,
     {noreply, State};
