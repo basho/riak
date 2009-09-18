@@ -86,8 +86,10 @@ local_client() -> client_connect(node()).
 %%      cookie or a poorly-connected distributed erlang network.
 client_connect(Node) -> 
     % Make sure we can reach this node...
-    try pong = net_adm:ping(Node)
-    catch _ : _ -> throw({could_not_reach_node, Node}) end,
+    case net_adm:ping(Node) of
+        pang -> throw({could_not_reach_node, Node}) end;
+        pong -> ok
+    end,
         
     % Return the newly created node...
     {ok, riak_client:new(Node, riak_util:mkclientid(Node))}.
