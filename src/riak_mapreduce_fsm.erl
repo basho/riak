@@ -95,7 +95,7 @@ check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest])
         true ->
             case QTermType of
                 link ->
-                    case is_atom(QT2) of
+                    case (is_binary(QT2) orelse QT2 == '_') of
                         false -> {bad_qterm, QTerm};
                         true -> check_query_syntax(Rest)
                     end;
