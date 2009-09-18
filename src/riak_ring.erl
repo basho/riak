@@ -26,7 +26,7 @@
 	 owner_node/1,all_members/1,num_partitions/1,all_owners/1,
          transfer_node/3,reconcile/2, my_indices/1,
 	 index_owner/2,diff_nodes/2,random_node/1, random_other_index/1,
-         get_meta/2, update_meta/3]).	 
+         get_meta/2, update_meta/3, equal_rings/2]).	 
 
 % @type riak_ring(). The opaque data type used for partition ownership.
 -record(chstate, {
