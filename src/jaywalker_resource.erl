@@ -70,8 +70,8 @@ init(Props) ->
             true ->
                 jiak:local_client();
             _ ->
-                Node = proplists:get_value(riak_node),
-                Cookie = proplists:get_value(riak_cookie),
+                Node = proplists:get_value(riak_node, Props),
+                Cookie = proplists:get_value(riak_cookie, Props),
                 erlang:set_cookie(node(), Cookie),
                 jiak:client_connect(Node)
         end,
