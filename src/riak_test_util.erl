@@ -12,6 +12,13 @@ standard_backend_test(BackendMod) ->
                  lists:sort(BackendMod:list(S))),
     ?assertEqual([<<"k2">>], BackendMod:list_bucket(S, <<"b2">>)),
     ?assertEqual([<<"k1">>], BackendMod:list_bucket(S, <<"b1">>)),
+    ?assertEqual([<<"k1">>], BackendMod:list_bucket(
+                               S, {filter, <<"b1">>, fun(_K) -> true end})),
+    ?assertEqual([], BackendMod:list_bucket(
+                       S, {filter, <<"b1">>, fun(_K) -> false end})),
+    BucketList = BackendMod:list_bucket(S, '_'),
+    ?assert(lists:member(<<"b1">>, BucketList)),
+    ?assert(lists:member(<<"b2">>, BucketList)),
     ?assertEqual(ok, BackendMod:delete(S,{<<"b2">>,<<"k2">>})),
     ?assertEqual({error, notfound}, BackendMod:get(S, {<<"b2">>, <<"k2">>})),
     ?assertEqual([{<<"b1">>, <<"k1">>}], BackendMod:list(S)),
