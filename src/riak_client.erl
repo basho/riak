@@ -57,13 +57,9 @@ mapred(Inputs,Query) -> mapred(Inputs,Query,?DEFAULT_TIMEOUT).
 mapred(Inputs,Query,Timeout)
   when is_list(Inputs), is_list(Query), is_integer(Timeout) ->
     Me = self(),
-    spawn(Node, riak_mapreduce_fsm, start, [Inputs,Query,Timeout,Me]),
-    receive
-        {error, Err} -> {error, Err};
-        {ok, Res} -> {ok, Res}
-    after Timeout ->
-            {error, timeout}
-    end.
+    ReqId = mk_reqid(),
+    spawn(Node, riak_mapreduce_fsm, start, [ReqId,Inputs,Query,Timeout,Me]),
+    wait_for_reqid(ReqId, Timeout).
 
 %% @spec get(riak_object:bucket(), riak_object:key(), R :: integer()) ->
 %%       {ok, riak_object:riak_object()} |
@@ -86,13 +82,9 @@ get(Bucket, Key, R) -> get(Bucket, Key, R, ?DEFAULT_TIMEOUT).
 get(Bucket, Key, R, Timeout) when is_binary(Bucket), is_binary(Key),
                                   is_integer(R), is_integer(Timeout) ->
     Me = self(),
-    spawn(Node, riak_get_fsm, start, [Bucket,Key,R,Timeout,Me]),
-    receive
-        {error, Err} -> {error, Err};
-        {ok, RObj} -> {ok, RObj}
-    after Timeout ->
-            {error, timeout}
-    end.
+    ReqId = mk_reqid(),
+    spawn(Node, riak_get_fsm, start, [ReqId,Bucket,Key,R,Timeout,Me]),
+    wait_for_reqid(ReqId, Timeout).
 
 %% @spec put(RObj :: riak_object:riak_object(), W :: integer()) ->
 %%        ok |
@@ -125,13 +117,9 @@ put(RObj, W, DW) -> put(RObj, W, DW, ?DEFAULT_TIMEOUT).
 put(RObj, W, DW, Timeout) ->
     R0 = riak_object:increment_vclock(RObj, ClientId),
     Me = self(),
-    spawn(Node, riak_put_fsm, start, [R0,W,DW,Timeout,Me]),
-    receive
-        ok -> ok;
-        {error, Err} -> {error, Err}
-    after Timeout ->
-            {error, timeout}
-    end.
+    ReqId = mk_reqid(),
+    spawn(Node, riak_put_fsm, start, [ReqId,R0,W,DW,Timeout,Me]),
+    wait_for_reqid(ReqId, Timeout).
 
 %% @spec delete(riak_object:bucket(), riak_object:key(), RW :: integer()) ->
 %%        ok |
@@ -155,13 +143,9 @@ delete(Bucket,Key,RW) -> delete(Bucket,Key,RW,?DEFAULT_TIMEOUT).
 %%      nodes have responded with a value or error, or TimeoutMillisecs passes.
 delete(Bucket,Key,RW,Timeout) ->
     Me = self(),
-    spawn(Node, riak_delete, delete, [Bucket,Key,RW,Timeout,Me]),
-    receive
-        ok -> ok;
-        {error, Err} -> {error, Err}    
-    after Timeout ->
-            {error, timeout}
-    end.
+    ReqId = mk_reqid(),
+    spawn(Node, riak_delete, delete, [ReqId,Bucket,Key,RW,Timeout,Me]),
+    wait_for_reqid(ReqId, Timeout).
 
 %% @spec list_keys(riak_object:bucket()) ->
 %%       {ok, [Key :: riak_object:key()]} |
@@ -183,13 +167,9 @@ list_keys(Bucket) ->
 %%      out of date if called immediately after a put or delete.
 list_keys(Bucket, Timeout) -> 
     Me = self(),
-    spawn(Node, riak_keys_fsm, start, [Bucket,Timeout,Me]),
-    receive
-        {ok, Reply} -> {ok, Reply};
-        {error, Err} -> {error, Err}
-    after Timeout ->
-            {error, timeout}
-    end.
+    ReqId = mk_reqid(),
+    spawn(Node, riak_keys_fsm, start, [ReqId,Bucket,Timeout,Me]),
+    wait_for_reqid(ReqId, Timeout).
 
 %% @spec filter_keys(riak_object:bucket(), Fun :: function()) ->
 %%       {ok, [Key :: riak_object:key()]} |
@@ -289,3 +269,16 @@ add_event_handler(Pid, Desc, MatchHead, MatchGuard) ->
 %% or deleting.
 remove_event_handler(Pid, MatchHead, MatchGuard) ->
     rpc:call(Node, riak_eventer, remove_handler, [Pid, MatchHead, MatchGuard]). 
+
+%% @private
+mk_reqid() -> erlang:phash2(erlang:now()). % only has to be unique per-pid
+
+%% @private
+wait_for_reqid(ReqId, Timeout) ->
+    receive
+        {ReqId, {error, Err}} -> {error, Err};
+        {ReqId, ok} -> ok;
+        {ReqId, {ok, Res}} -> {ok, Res}
+    after Timeout ->
+            {error, timeout}
+    end.
