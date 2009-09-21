@@ -42,7 +42,7 @@ init([Node, Filename]) ->
     
     % Open the file, get the file descriptor....
     {ok, FD} = case Filename of
-        "stdout" -> 
+        _ when Filename == "stdout" orelse Filename == "" -> 
             {ok, stdout};
         _ ->
             {ok, CWD} = file:get_cwd(),

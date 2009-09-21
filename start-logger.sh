@@ -4,9 +4,10 @@
 #  Join riak cluster <clustername> using erlcookie <cookie>
 #  via the node listening at <ip>:<port>
 #  and register a riak event handler
-if [ $# -lt 3 ]; then
+if [ $# -lt 2 ]; then
     echo Usage: 1>&2
-    echo "    `basename $0` <node> <cookie> <filename>"
+    echo "    Log to console: `basename $0` <node> <cookie>"  1>&2
+    echo "    Log to file:    `basename $0` <node> <cookie> <filename>"  1>&2
     exit 1
 fi
 . riak-env.sh
