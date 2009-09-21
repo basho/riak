@@ -649,7 +649,7 @@ generate_etag(ReqData, Context=#ctx{key=container,etag=undefined}) ->
     make_bucket_etag(ReqData, Context);
 generate_etag(ReqData, Context=#ctx{etag=undefined}) ->
     make_object_etag(ReqData, Context);
-generate_etag(_, #ctx{etag=ETag}) -> ETag.
+generate_etag(RD, Ctx=#ctx{etag=ETag}) -> {ETag, RD, Ctx}.
 
 %% @spec make_bucket_etag(webmachine:wrq(), context()) ->
 %%          {string(), webmachine:wrq(), context()}
