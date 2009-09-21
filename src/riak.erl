@@ -87,13 +87,9 @@ local_client() -> client_connect(node()).
 client_connect(Node) -> 
     % Make sure we can reach this node...
     case net_adm:ping(Node) of
-        pang -> throw({could_not_reach_node, Node});
-        pong -> ok
-    end,
-        
-    % Return the newly created node...
-    {ok, riak_client:new(Node, riak_util:mkclientid(Node))}.
-
+        pang -> {error, {could_not_reach_node, Node}};
+        pong -> {ok, riak_client:new(Node, riak_util:mkclientid(Node))}
+    end.
 
 
 %% @spec ensure_started(Application :: atom()) -> ok

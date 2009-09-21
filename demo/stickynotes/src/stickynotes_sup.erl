@@ -71,20 +71,21 @@ init([]) ->
 %% @doc notes and groups know how to deal with Riak siblings,
 %%      so we'll turn on allow_mult for them
 setup_buckets(RiakConfig) ->
-    code:add_path("../../ebin"), %% riak ebin for jiak module
-    case jiak:client_connect(
-           proplists:get_value(riak_hostname, RiakConfig),
-           proplists:get_value(doorbell_port, RiakConfig),
-           proplists:get_value(riak_cookie, RiakConfig)) of
+    code:add_path("../../ebin"), %% riak ebin for jiak module    
+    Node = to_node(proplists:get_value(riak_nodename, RiakConfig), proplists:get_value(riak_hostname, RiakConfig)),
+    Cookie = proplists:get_value(riak_cookie, RiakConfig),
+    erlang:set_cookie(node(), Cookie),
+    case jiak:client_connect(Node) of
         {ok, C} ->
             C:set_bucket(<<"notes">>, [{bucket_mod, notes},{allow_mult, true}]),
             C:set_bucket(<<"groups">>, [{bucket_mod, groups},{allow_mult, true}]);
         Error ->
             error_logger:error_msg(
-              "Unable to connect to riak cluster at ~p:~p"
+              "Unable to connect to riak cluster at ~s"
               " with cookie ~p~nError: ~p",
-              [proplists:get_value(riak_hostname, RiakConfig),
-               proplists:get_value(doorbell_port, RiakConfig),
-               proplists:get_value(riak_cookie, RiakConfig),
-               Error])
+              [Node, Cookie, Error])
     end.
+    
+to_node(Nodename, Hostname) ->
+    list_to_atom(atom_to_list(Nodename) ++ "@" ++ Hostname).
+    
