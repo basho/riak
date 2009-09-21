@@ -21,19 +21,19 @@
 
 -define (RECONNECT_INTERVAL, 200).
 -define (SERVER, ?MODULE).
--record (state, {pid, hostname, port, cookie, verbosity, fd}).
--export ([start/4, start_link/4]).
+-record (state, {node, pid, fd}).
+-export ([start/2, start_link/2]).
 -export ([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %% @private
-start(Hostname, Port, Cookie, Filename) ->
-    gen_server:start({local, ?SERVER}, ?MODULE, [Hostname, Port, Cookie, Filename], []).
+start(Node, Filename) ->
+    gen_server:start({local, ?SERVER}, ?MODULE, [Node, Filename], []).
 
-start_link(Hostname, Port, Cookie, Filename) -> 
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [Hostname, Port, Cookie, Filename], []).
+start_link(Node, Filename) -> 
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [Node, Filename], []).
 
 %% @private
-init([Hostname, Port, Cookie, Filename]) -> 
+init([Node, Filename]) -> 
     % If this gen_server dies and is supervised, then it will
     % be restarted under a new pid. If this happens, then we will
     % lose our connection to the Riak cluster. So, send a keepalive
@@ -53,9 +53,7 @@ init([Hostname, Port, Cookie, Filename]) ->
     end,
     
     State = #state {
-        hostname = Hostname,
-        port = Port,
-        cookie = Cookie,
+        node = Node,
         fd = FD
     },
     {ok, State}.
@@ -96,11 +94,13 @@ terminate(_Reason,_State)  -> ok.
 %% @private
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
-
 register_for_events(State) ->
-    {ok, C} = riak:client_connect(State#state.hostname, State#state.port, State#state.cookie),
+    % Get the client...
+    {ok, C} = riak:client_connect(State#state.node),
+
+    % Attach the eventer...
     Desc = io_lib:format("~s (~s)", [?SERVER, node()]),
-    C:add_event_handler(self(), Desc).
+    C:add_event_handler(self(), Desc, {'_', '_', '_', '_'}, []).
 
 
 %%% DATE FUNCTIONS %%%

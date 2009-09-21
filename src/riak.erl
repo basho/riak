@@ -95,6 +95,7 @@ client_connect(Node) ->
     {ok, riak_client:new(Node, riak_util:mkclientid(Node))}.
 
 
+
 %% @spec ensure_started(Application :: atom()) -> ok
 %% @doc Start the named application if not already started.
 ensure_started(App) ->

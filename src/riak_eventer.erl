@@ -183,7 +183,7 @@ terminate(_Reason, _State) -> ok.
 %% @private
 code_change(_OldVsn, State, _Extra) ->  {ok, State}.
 
-%% make_handler/4 -
+%% make_handler/5 -
 %% Create an handler record from the supplied params.
 make_handler(Pid, Desc, MatchHead, MatchGuard) ->
     ID = get_handler_id(Pid, MatchHead, MatchGuard),
@@ -281,10 +281,10 @@ get_matching_handlers_test() ->
     Handlers = [
         make_handler(self(), "All 1", '_', []),
         make_handler(self(), "All 2", {'_', '_', '_', '_'}, []),
-        make_handler(self(), "Only riak_vnode 1", {riak_vnode, '_', '_', '_'}, []),
-        make_handler(self(), "Only riak_vnode 2", {'$1', '_', '_', '_'}, [{'==', '$1', riak_vnode}]),
-        make_handler(self(), "Only riak_vnode delete", {riak_vnode, delete, '_', '_'}, []),
-        make_handler(self(), "Only riak_vnode put, get, or delete", {'$1', '$2', '_', '_'}, [
+        make_handler(self(),"Only riak_vnode 1", {riak_vnode, '_', '_', '_'}, []),
+        make_handler(self(),"Only riak_vnode 2", {'$1', '_', '_', '_'}, [{'==', '$1', riak_vnode}]),
+        make_handler(self(),"Only riak_vnode delete", {riak_vnode, delete, '_', '_'}, []),
+        make_handler(self(),"Only riak_vnode put, get, or delete", {'$1', '$2', '_', '_'}, [
             {'andalso', {'==', '$1', riak_vnode}, {'orelse', {'==', '$2', get}, {'==', '$2', put}, {'==', '$2', delete}}}
         ])
     ],
