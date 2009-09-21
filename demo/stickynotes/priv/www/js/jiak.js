@@ -91,7 +91,7 @@ JiakClient.prototype.remove = function(Bucket, Key, Callback) {
     });
 }
 
-JiakClient.prototype.walk = function(Start, Spec, Callback) {
+JiakClient.prototype.walk = function(Start, Spec, Callback, Nocache) {
     var req = {
         dataType: "json",
         success: Callback
@@ -116,6 +116,8 @@ JiakClient.prototype.walk = function(Start, Spec, Callback) {
             encodeURIComponent(Spec[i].tag||'_')+','+
             ((Spec[i].acc || i == Spec.length-1) ? '1' : '_')+'/';
     }
+
+    if (Nocache) req.url += '?nocache='+(+new Date());
 
     return $.ajax(req);
 }

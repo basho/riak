@@ -47,7 +47,8 @@ function loadGroup(groupid) {
                 [{bucket:'notes'}],
                 function(res) {
                     renderNotes(res.results[0]);
-                });
+                },
+                true);
     $('div.group').removeClass('active').removeClass('active');
     $('div#group_'+groupid).addClass('active');
 }
