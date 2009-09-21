@@ -68,13 +68,17 @@
 %% @spec local_client() -> {ok, jiak_client()}|error_term()
 %% @doc Open a Riak client for modifying Jiak objects.
 %% @see riak:local_client/0
-local_client() -> riak:local_client().
+local_client() -> client_connect(node()).
 
 %% @spec client_connect(Node :: node())
 %%        -> {ok, Client :: jiak_client()} | exception
 %% @doc The usual way to get a client.  Timeout often means either a bad
 %%      cookie or a poorly-connected distributed erlang network.
-client_connect(Node) -> riak:client_connect(Node).
+client_connect(Node) -> 
+    case riak:client_connect(Node) of
+        {ok, C} -> {ok, jiak_client:new(C)};
+        Error -> Error
+    end.
 
 %% @spec default_jiak_bucket_props() -> [bucket_prop()]
 %% @doc Returns the default additional bucket parameters for Jiak
