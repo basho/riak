@@ -16,16 +16,15 @@
 
 -module(riak_delete).
 
--export([delete/5]).
+-export([delete/6]).
 
 %% @spec delete(riak_object:bucket(), riak_object:key(), RW :: integer(),
 %%              TimeoutMillisecs :: integer(), Client :: pid()) -> term()
 %% @doc Delete the object at Bucket/Key.  Direct return value is uninteresting,
 %%      see riak_client:delete/3 for expected gen_server replies to Client.
-delete(Bucket,Key,RW,Timeout,Client) ->           
+delete(ReqId,Bucket,Key,RW,Timeout,Client) ->           
     RealStartTime = riak_util:moment(),
-    ReqID = erlang:phash2({random:uniform(),self(),Bucket,Key,RealStartTime}),
-    riak_eventer:notify(riak_delete, delete_start, {ReqID, Bucket, Key}),
+    riak_eventer:notify(riak_delete, delete_start, {ReqId, Bucket, Key}),
     {ok,C} = riak:local_client(),
     case C:get(Bucket,Key,RW,Timeout) of
         {ok, OrigObj} ->
@@ -37,18 +36,18 @@ delete(Bucket,Key,RW,Timeout,Client) ->
             case Reply of
                 ok -> 
                     spawn(
-                      fun()-> reap(Bucket,Key,RemainingTime,Timeout,ReqID) end);
+                      fun()-> reap(Bucket,Key,RemainingTime,Timeout,ReqId) end);
                 _ -> nop
             end,
-            riak_eventer:notify(riak_delete, delete_reply, {ReqID, Reply}),
-            Client ! Reply;
+            riak_eventer:notify(riak_delete, delete_reply, {ReqId, Reply}),
+            Client ! {ReqId, Reply};
         {error, notfound} ->
             riak_eventer:notify(riak_delete, delete_reply,
-                                {ReqID, {error, notfound}}),
-            Client ! {error, notfound};
+                                {ReqId, {error, notfound}}),
+            Client ! {ReqId, {error, notfound}};
         X ->
-            riak_eventer:notify(riak_delete, delete_reply, {ReqID, X}),
-            Client ! X
+            riak_eventer:notify(riak_delete, delete_reply, {ReqId, X}),
+            Client ! {ReqId, X}
     end.
 
 reap(Bucket, Key, WaitTime, Timeout, ReqId) ->
