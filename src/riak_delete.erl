@@ -36,7 +36,7 @@ delete(ReqId,Bucket,Key,RW,Timeout,Client) ->
             case Reply of
                 ok -> 
                     spawn(
-                      fun()-> reap(Bucket,Key,Timeout,ReqId) end);
+                      fun()-> reap(Bucket,Key,RemainingTime,ReqId) end);
                 _ -> nop
             end,
             riak_eventer:notify(riak_delete, delete_reply, {ReqId, Reply}),
