@@ -1,0 +1,51 @@
+riak-0.5
+
+By popular demand, this release changes the identifier type for
+buckets (Riak's namespaces) from atoms to binaries.  Old code using
+the native interface must change accordingly; code using the jiak http
+interface will continue to work unchanged.  To convert an old
+cluster's storage, simply do a backup and restore -- this will convert
+all of the data on the way back in.
+
+riak_client:
+  - preferred use is now riak:client_connect(Nodename) instead of IP/Port
+  - bugfix where timeouts could cause incorrect responses
+
+eventers:
+  - no longer gen_event, now using simple erlang messaging
+  - fully capable matchspecs now available for event matching
+  - use monitor to watch for death of handlers
+  - the example riak_event_logger is now a little friendlier
+
+riak_backup:
+  - more robust due to explicit ring fetch and node connection
+
+testing:
+  - more coverage, especially of backend interface, riak_object
+
+mapreduce:
+  - less messaging via batched groups to each vnode
+  - intermediate per-vnode reduce phase
+
+build process:
+  - much more useful error message when building with erlang < R13
+
+ring management:
+  - simplify metadata structure
+  - fix filtered_preflist bug in case of small number of nodes
+  - internal naming cleanup
+  - prune old state files more aggressively
+
+configuration:
+  - new 'start_apps' param for starting dependency applications
+    (useful for some custom storage backends)
+
+native client interface:
+  - added list_buckets and filter_keys
+
+client libraries:
+  - url-style quoting of buckets and keys in http client content
+  - initial version of ruby client
+  - java client uses List instead of ArrayList
+
+
