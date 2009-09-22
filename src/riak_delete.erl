@@ -36,7 +36,7 @@ delete(ReqId,Bucket,Key,RW,Timeout,Client) ->
             case Reply of
                 ok -> 
                     spawn(
-                      fun()-> reap(Bucket,Key,RemainingTime,Timeout,ReqId) end);
+                      fun()-> reap(Bucket,Key,Timeout,ReqId) end);
                 _ -> nop
             end,
             riak_eventer:notify(riak_delete, delete_reply, {ReqId, Reply}),
@@ -50,10 +50,12 @@ delete(ReqId,Bucket,Key,RW,Timeout,Client) ->
             Client ! {ReqId, X}
     end.
 
-reap(Bucket, Key, WaitTime, Timeout, ReqId) ->
-    timer:sleep(WaitTime),
+reap(Bucket, Key, Timeout, ReqId) ->
     {ok,C} = riak:local_client(),
-    case C:get(Bucket,Key,1,Timeout) of
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    BucketProps = riak_bucket:get_bucket(Bucket, Ring),
+    N = proplists:get_value(n_val,BucketProps),
+    case C:get(Bucket,Key,N,Timeout) of
         {error, notfound} ->
             riak_eventer:notify(riak_delete, finalize_reap, 
                                 {ReqId, Bucket, Key, ok});
