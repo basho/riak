@@ -151,7 +151,7 @@ simple_binary_put(BKey, Val, Mod, ModState) ->
 
 do_put(FSM_pid, BKey, RObj, ReqID,
        _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
-    case syntactic_put_merge(Mod, ModState, BKey, RObj) of
+    case syntactic_put_merge(Mod, ModState, BKey, RObj, ReqID) of
         oldobj -> 
             riak_eventer:notify(riak_vnode,put_reply,ReqID),
             gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
@@ -268,13 +268,13 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %% @private
-syntactic_put_merge(Mod, ModState, BKey, Obj1) ->
+syntactic_put_merge(Mod, ModState, BKey, Obj1, ReqId) ->
     case Mod:get(ModState, BKey) of
         {error, notfound} -> {newobj, Obj1};
         {ok, Val0} ->
             Obj0 = binary_to_term(Val0),
             ResObj = riak_object:syntactic_merge(
-                       Obj0,Obj1,riak_util:mkclientid(node())),
+                       Obj0,Obj1,term_to_binary(ReqId)),
             case riak_object:vclock(ResObj) =:= riak_object:vclock(Obj0) of
                 true -> oldobj;
                 false -> {newobj, ResObj}
