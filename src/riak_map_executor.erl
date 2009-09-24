@@ -38,7 +38,7 @@ start_link(Ring,Input,QTerm,PhasePid) ->
 %% @private
 init([Ring,{{Bucket,Key},KeyData},QTerm0,PhasePid]) ->
     riak_eventer:notify(riak_map_executor, mapexec_start, start),
-    DocIdx = chash:key_of({Bucket,Key}),
+    DocIdx = riak_util:chash_key({Bucket,Key}),
     BucketProps = riak_bucket:get_bucket(Bucket, Ring),
     LinkFun = case QTerm0 of
         {link,_,_,_} -> proplists:get_value(linkfun, BucketProps);

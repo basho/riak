@@ -53,7 +53,7 @@ init([ReqId,Bucket,Key,R,Timeout,Client]) ->
 initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
                                       bkey={Bucket,Key}, ring=Ring}) ->
     RealStartTime = riak_util:moment(),
-    DocIdx = chash:key_of({Bucket, Key}),
+    DocIdx = riak_util:chash_key({Bucket, Key}),
     riak_eventer:notify(riak_get_fsm, get_fsm_start,
                         {ReqId, RealStartTime, Bucket, Key}),
     Msg = {self(), {Bucket,Key}, ReqId},

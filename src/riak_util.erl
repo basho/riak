@@ -19,6 +19,7 @@
 -export([moment/0,make_tmp_dir/0,compare_dates/2,reload_all/1,
          is_x_deleted/1,obj_not_deleted/1,integer_to_list/2,
          unique_id_62/0]).
+-export([chash_key/1,chash_std_keyfun/1,chash_bucketonly_keyfun/1]).
 -export([try_cast/3, fallback/4, mkclientid/1]).
 
 %% @spec moment() -> integer()
@@ -177,6 +178,21 @@ mkclientid(RemoteNode) ->
     list_to_binary(lists:flatten(io_lib:format(
            "~4.4.0w~2.2.0w~2.2.0w~2.2.0w~2.2.0w~2.2.0w-~s-~s-~p",
                     [Y,Mo,D,H,Mi,S,node(),RemoteNode,NowPart]))).
+
+%% @spec chash_key(BKey :: riak_object:bkey()) -> chash:index().
+%% @doc Create a binary used for determining replica placement.
+chash_key({Bucket,Key}) ->
+    BucketProps = riak_bucket:get_bucket(Bucket),
+    {chash_keyfun, {M, F}} = proplists:lookup(chash_keyfun, BucketProps),
+    M:F({Bucket,Key}).
+
+%% @spec chash_std_keyfun(BKey :: riak_object:bkey()) -> chash:index().
+%% @doc Default object/ring hashing fun, direct passthrough of bkey.
+chash_std_keyfun({Bucket, Key}) -> chash:key_of({Bucket, Key}).
+    
+%% @spec chash_bucketonly_keyfun(BKey :: riak_object:bkey()) -> chash:index().
+%% @doc Object/ring hashing fun that ignores Key, only uses Bucket.
+chash_bucketonly_keyfun({Bucket, _Key}) -> chash:key_of(Bucket).
 
 %% @spec moment_test() -> boolean()
 moment_test() ->
