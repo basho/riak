@@ -25,10 +25,6 @@
 %% @doc The application:start callback for riak.
 %%      Arguments are ignored as all configuration is done via the erlenv file.
 start(_Type, _StartArgs) ->
-    case riak:get_app_env(no_config) of
-        true -> nop; % promising to set all env variables some other way
-        _ -> read_config()
-    end,
     register(riak_app, self()),
     riak_sup:start_link().
 
@@ -83,12 +79,12 @@ check_erlenv(ConfigPath) ->
     [ClusterName,RingStateDir,RingCreationSize,
      WantsClaimFun,ChooseClaimFun,GossipInterval,
      StorageBackend,RiakAddPaths, RiakHeartCommand,
-     DefaultBucketProps,RiakStartApps] =
+     DefaultBucketProps,RiakStartApps,SaslLogfile] =
         [riak:get_app_env(X) || X <- 
            [cluster_name,ring_state_dir,ring_creation_size,
             wants_claim_fun,choose_claim_fun,gossip_interval,
             storage_backend,add_paths, riak_heart_command,
-            default_bucket_props,start_apps]],
+            default_bucket_props,start_apps,sasl_logfile]],
     if
         ClusterName =:= undefined ->
             riak:stop(io_lib:format(
@@ -185,6 +181,17 @@ check_erlenv(ConfigPath) ->
         not is_list(RiakStartApps) ->
             riak:stop(io_lib:format(
                         "start_apps in ~p non-list, failing.",[ConfigPath]));
+        true -> ok
+    end,
+    if 
+        SaslLogfile =:= undefined ->
+            error_logger:info_msg(
+              "sasl_logfile unset in ~p, setting to log/sasl.log~n",
+              [ConfigPath]),
+            application:set_env(riak, sasl_logfile, "log/sasl.log");
+        not is_list(SaslLogfile) ->
+            riak:stop(io_lib:format(
+                        "sasl_logfile in ~p non-list, failing.",[ConfigPath]));
         true -> ok
     end,
     ok.
