@@ -93,8 +93,7 @@ waiting_vnode_r({r, {ok, RObj}, Idx, ReqId},
                                         {ReqId, ok})
             end,
             NewStateData = StateData#state{replied_r=Replied,final_obj=Final},
-            {next_state,waiting_read_repair,
-             NewStateData,End-riak_util:moment()};
+            finalize(NewStateData, End);
         false ->
             NewStateData = StateData#state{replied_r=Replied},
             {next_state,waiting_vnode_r,NewStateData,End-riak_util:moment()}
@@ -147,27 +146,31 @@ waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
 waiting_read_repair({r, {ok, RObj}, Idx, ReqId},
                   StateData=#state{req_id=ReqId,replied_r=Replied0,
                                    endtime=End}) ->
-    Replied = [{RObj,Idx}|Replied0],
-    NewStateData = StateData#state{replied_r=Replied},
-    {next_state,waiting_read_repair,NewStateData,End-riak_util:moment()};
+    finalize(StateData#state{replied_r=[{RObj,Idx}|Replied0]}, End);
 waiting_read_repair({r, {error, notfound}, Idx, ReqId},
                   StateData=#state{req_id=ReqId,replied_notfound=Replied0,
                                    endtime=End}) ->
-    Replied = [Idx|Replied0],
-    NewStateData = StateData#state{replied_notfound=Replied},
-    {next_state,waiting_read_repair,NewStateData,End-riak_util:moment()};
+    finalize(StateData#state{replied_notfound=[Idx|Replied0]}, End);
 waiting_read_repair({r, {error, Err}, Idx, ReqId},
                   StateData=#state{req_id=ReqId,replied_fail=Replied0,
                                    endtime=End}) ->
-    Replied = [{Err,Idx}|Replied0],
-    NewStateData = StateData#state{replied_fail=Replied},
-    {next_state,waiting_read_repair,NewStateData,End-riak_util:moment()};
-waiting_read_repair(timeout, StateData=#state{final_obj=Final,
-                                              replied_r=RepliedR,
-                                              bkey=BKey,
-                                              req_id=ReqId,
-                                              replied_notfound=NotFound,
-                                              ring=Ring}) ->
+    finalize(StateData#state{replied_fail=[{Err,Idx}|Replied0]}, End);
+waiting_read_repair(timeout, StateData) ->
+    finalize(StateData).
+
+finalize(StateData=#state{replied_r=R,replied_fail=F,replied_notfound=NF, n=N},
+         End) ->
+    case (length(R) + length(F) + length(NF)) >= N of
+        true -> finalize(StateData);
+        false -> {next_state,waiting_read_repair,
+                  StateData,End-riak_util:moment()}
+    end.
+finalize(StateData=#state{final_obj=Final,
+                          replied_r=RepliedR,
+                          bkey=BKey,
+                          req_id=ReqId,
+                          replied_notfound=NotFound,
+                          ring=Ring}) ->
     case Final of
         {error, notfound} ->
             maybe_finalize_delete(StateData);
