@@ -228,8 +228,7 @@ prune_vclock1(Now,V,BProps,Changed,HeadTime) ->
     end.
 
 make_vtag(RObj) ->
-    <<HashAsNum:128/integer>> = crypto:md5(iolist_to_binary(io_lib:format("~p",
-                                                 [riak_object:vclock(RObj)]))),
+    <<HashAsNum:128/integer>> = crypto:md5(term_to_binary(riak_object:vclock(RObj))),
     riak_util:integer_to_list(HashAsNum,62).
 
 % following two are just utility functions for test assist
