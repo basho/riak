@@ -99,7 +99,7 @@ register_for_events(State) ->
     {ok, C} = riak:client_connect(State#state.node),
 
     % Attach the eventer...
-    Desc = io_lib:format("~s (~s)", [?SERVER, node()]),
+    Desc = io_lib:format("~s", [?SERVER]),
     C:add_event_handler(self(), Desc, {'_', '_', '_', '_'}, []).
 
 
