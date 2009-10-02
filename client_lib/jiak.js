@@ -26,6 +26,15 @@
 //                 alert("note's author is: "+
 //                       authors[0].object.name);
 //               });
+//
+// Default R, W, DW, and RW values are all 2.  To use other
+// values, pass an options object of the form:
+//    {r: 1, // value you want for R
+//     w: 3, // value you want for W
+//     dw:1, // value you want for DW
+//     rw:1} // value you want for RW
+// or, pass the values as parameters to the store, fetch
+// and delete functions.
 
 // This file is provided to you under the Apache License,
 // Version 2.0 (the "License"); you may not use this file
@@ -50,7 +59,7 @@ function JiakClient(BaseUrl, Opts) {
     this.opts = Opts||{};
 }
 
-JiakClient.prototype.store = function(Object, Callback, NoReturnBody) {
+JiakClient.prototype.store = function(Object, Callback, NoReturnBody, W, DW, R) {
     var req = {
         contentType: "application/json",
         dataType: "json"
@@ -64,8 +73,24 @@ JiakClient.prototype.store = function(Object, Callback, NoReturnBody) {
     req.url = this.path(Object.bucket);
     if (Object.key) req.url += Object.key;
     
-    if (!(this.opts.noReturnBody || NoReturnBody))
+    var q = false;
+    if (!(this.opts.noReturnBody || NoReturnBody)) {
         req.url += '?returnbody=true';
+        q = true;
+    }
+
+    if (W || this.opts.w) {
+        req.url += (q?'&':'?')+'w='+(W||this.opts.w);
+        q = true;
+    }
+
+    if (DW || this.opts.dw) {
+        req.url += (q?'&':'?')+'dw='+(DW||this.opts.dw);
+        q = true;
+    }
+
+    if (R || this.opts.r)
+        req.url += (q?'&':'?')+'r='+(R||this.opts.r);
 
     if (typeof Callback == 'function')
         req.success = Callback;
@@ -75,18 +100,20 @@ JiakClient.prototype.store = function(Object, Callback, NoReturnBody) {
     return $.ajax(req);
 }
 
-JiakClient.prototype.fetch = function(Bucket, Key, Callback) {
+JiakClient.prototype.fetch = function(Bucket, Key, Callback, R) {
     return $.ajax({
-        url:      this.path(Bucket, Key),
+        url:      this.path(Bucket, Key)+
+                    ((R||this.opts.r)?('?r='+(R||this.opts.r)):''),
         dataType: "json",
         success:  Callback
     });
 }
 
-JiakClient.prototype.remove = function(Bucket, Key, Callback) {
+JiakClient.prototype.remove = function(Bucket, Key, Callback, RW) {
     return $.ajax({
         type:    'DELETE',
-        url:     this.path(Bucket, Key),
+        url:     this.path(Bucket, Key)+
+                   ((RW||this.opts.rw)?('?rw='+(RW||this.opts.rw)):''),
         success: Callback
     });
 }
