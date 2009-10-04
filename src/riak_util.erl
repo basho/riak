@@ -175,9 +175,8 @@ fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
 mkclientid(RemoteNode) ->
     {{Y,Mo,D},{H,Mi,S}} = erlang:universaltime(),
     {_,_,NowPart} = now(),
-    list_to_binary(lists:flatten(io_lib:format(
-           "~4.4.0w~2.2.0w~2.2.0w~2.2.0w~2.2.0w~2.2.0w-~s-~s-~p",
-                    [Y,Mo,D,H,Mi,S,node(),RemoteNode,NowPart]))).
+    Id = erlang:phash2([Y,Mo,D,H,Mi,S,node(),RemoteNode,NowPart]),
+    <<Id:32>>.
 
 %% @spec chash_key(BKey :: riak_object:bkey()) -> chash:index().
 %% @doc Create a binary used for determining replica placement.
