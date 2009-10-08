@@ -142,7 +142,6 @@ reload_all(Module) ->
 try_cast(Cmd, Msg, Targets) -> try_cast(Cmd, Msg, Targets, [], []).
 try_cast(_Cmd, _Msg, [], Sent, Pangs) -> {Sent, Pangs};
 try_cast(Cmd, Msg, [{Index,Node}|Targets], Sent, Pangs) ->
-    io:format("Try Cast!~n"),
     case lists:member(Node, [node()|nodes()]) orelse net_adm:ping(Node) == pong of
         false -> try_cast(Cmd, Msg, Targets, Sent, [{Index,Node}|Pangs]);
         true ->
@@ -163,7 +162,6 @@ fallback(Cmd, Msg, Pangs, Fallbacks) -> fallback(Cmd, Msg, Pangs, Fallbacks, [])
 fallback(_Cmd, _Msg, [], _Fallbacks, Sent) -> Sent;
 fallback(_Cmd, _Msg, _Pangs, [], Sent) -> Sent;
 fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
-    io:format("Fallback!~n"),
     case lists:member(Node, [node()|nodes()]) orelse net_adm:ping(Node) == pong of
         false -> fallback(Cmd, Msg, [{Index,Node}|Pangs], Fallbacks, Sent);
         true ->
