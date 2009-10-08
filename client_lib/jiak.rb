@@ -22,10 +22,11 @@ require 'rubygems'
 require 'json'
 
 class JiakClient
-  def initialize(ip, port, jiakPrefix='/jiak/')
+  def initialize(ip, port, jiakPrefix='/jiak/', options={})
     @ip = ip
     @port = port
     @prefix = jiakPrefix
+    @opts = options
   end
 
   # Set the schema for 'bucket'.  The schema parameter
@@ -54,19 +55,26 @@ class JiakClient
   end
   
   # Get the object stored in 'bucket' at 'key'
-  def fetch(bucket, key)
-    do_req(Net::HTTP::Get.new(path(bucket, key)), '200')
+  def fetch(bucket, key, r=nil)
+    do_req(Net::HTTP::Get.new(path(bucket, key,
+                                   {'r'=>(r||@opts['r'])})),
+           '200')
   end
 
   # Store 'object' in Riak.  If the object has not defined
   # its 'key' field, a key will be chosen for it by the server.
-  def store(object)
+  def store(object, w=nil, dw=nil, r=nil)
+    q = {
+      'returnbody'=>'true',
+      'w'=>(w||@opts['w']),
+      'dw'=>(dw||@opts['dw']),
+      'r'=>(r||@opts['r'])
+    }
     if (object['key'])
-      req = Net::HTTP::Put.new(path(object['bucket'], object['key'])+
-                               '?returnbody=true')
+      req = Net::HTTP::Put.new(path(object['bucket'], object['key'], q))
       code = '200'
     else
-      req = Net::HTTP::Post.new(path(object['bucket'])+'?returnbody=true')
+      req = Net::HTTP::Post.new(path(object['bucket'], nil, q))
       code = '201'
     end
 
@@ -74,8 +82,10 @@ class JiakClient
   end
 
   # Delete the data stored in 'bucket' at 'key'
-  def delete(bucket, key)
-    do_req(Net::HTTP::Delete.new(path(bucket, key)), '204')
+  def delete(bucket, key, rw=nil)
+    do_req(Net::HTTP::Delete.new(path(bucket, key,
+                                      {'rw'=>(rw||@opts['rw'])})),
+           '204')
   end
 
   # Follow links from the object stored in 'bucket' at 'key'
@@ -98,11 +108,18 @@ class JiakClient
     acc
   end
 
-  def path(bucket, key='')
+  def path(bucket, key=nil, reqOpts={})
     p = @prefix + URI.encode(bucket) + '/'
-    if (key != '')
+    if (key)
       p += URI.encode(key) + '/'
     end
+
+    q = [];
+    reqOpts.each do |n,v|
+      if (v): q.push "#{n}=#{v}" end
+    end
+    if (q.length > 0): p += '?'+(q.join('&')) end
+
     p
   end
 
