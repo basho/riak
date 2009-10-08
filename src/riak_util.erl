@@ -142,9 +142,10 @@ reload_all(Module) ->
 try_cast(Cmd, Msg, Targets) -> try_cast(Cmd, Msg, Targets, [], []).
 try_cast(_Cmd, _Msg, [], Sent, Pangs) -> {Sent, Pangs};
 try_cast(Cmd, Msg, [{Index,Node}|Targets], Sent, Pangs) ->
-    case net_adm:ping(Node) of
-        pang -> try_cast(Cmd, Msg, Targets, Sent, [{Index,Node}|Pangs]);
-        pong ->
+    io:format("Try Cast!~n"),
+    case lists:member(Node, [node()|nodes()]) orelse net_adm:ping(Node) == pong of
+        false -> try_cast(Cmd, Msg, Targets, Sent, [{Index,Node}|Pangs]);
+        true ->
             gen_server:cast({riak_vnode_master, Node},
                             {Cmd, {Index,Node}, Msg}),
             try_cast(Cmd, Msg, Targets, [{Index,Node,Node}|Sent], Pangs)
@@ -162,9 +163,10 @@ fallback(Cmd, Msg, Pangs, Fallbacks) -> fallback(Cmd, Msg, Pangs, Fallbacks, [])
 fallback(_Cmd, _Msg, [], _Fallbacks, Sent) -> Sent;
 fallback(_Cmd, _Msg, _Pangs, [], Sent) -> Sent;
 fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
-    case net_adm:ping(FN) of
-        pang -> fallback(Cmd, Msg, [{Index,Node}|Pangs], Fallbacks, Sent);
-        pong ->
+    io:format("Fallback!~n"),
+    case lists:member(Node, [node()|nodes()]) orelse net_adm:ping(Node) == pong of
+        false -> fallback(Cmd, Msg, [{Index,Node}|Pangs], Fallbacks, Sent);
+        true ->
             gen_server:cast({riak_vnode_master, FN},
                             {Cmd, {Index,Node}, Msg}),
             fallback(Cmd, Msg, Pangs, Fallbacks, [{Index,Node,FN}|Sent])
