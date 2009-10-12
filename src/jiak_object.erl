@@ -19,7 +19,7 @@
 %%      by mochijson2.  Thus, a simple object looks something like:
 %%```
 %%      {struct,
-%%       [{<<"bucket">>, foo},
+%%       [{<<"bucket">>, <<"foo">>},
 %%        {<<"key">>, <<"123">>},
 %%        {<<"object">>,
 %%         {struct,
@@ -27,8 +27,8 @@
 %%           {<<"bazField">>, 42},
 %%          ]}},
 %%        {<<"links">>,
-%%         [[quuxLink, <<"quuxKey">>, <<"quuxTag">>],
-%%          [abcLink, <<"abcKey">>, <<"abcTag">>]
+%%         [[<<"quuxLink">>, <<"quuxKey">>, <<"quuxTag">>],
+%%          [<<"abcLink">>, <<"abcKey">>, <<"abcTag">>]
 %%         ]},
 %%        {<<"vclock">>, <<"opaque-riak-vclock">>},
 %%        {<<"lastmod">>, <<"Mon, 03 Aug 2009 18:49:42 GMT">>}
@@ -48,8 +48,8 @@
 %%       <<"barValue">> = jiak_object:getp(O, <<"barField">>).
 %%       3 = jiak_object:getp(
 %%             jiak_object:setp(O, <<"bazField">>, 3)).
-%%       [[linkBucket, <<"linkKey">>, <<"linkTag">>]] =
-%%         jiak_object:links(O, linkBucket).
+%%       [[<<"linkBucket">>, <<"linkKey">>, <<"linkTag">>]] =
+%%         jiak_object:links(O, <<"linkBucket">>).
 %%'''
 %%       are all true.
 -module(jiak_object).
@@ -249,14 +249,15 @@ remove_link(JiakObject, Bucket, Key, Tag) ->
 %%            -> [{{atom(), binary()}, binary()}]
 %% @type link_tag() = term()|'_'
 %% @type link_bucket() = riak_object:bucket()|'_'
-%% @doc This function implements the map phase to which link map/reduce
-%%      specs are mapped.  The atom '_' means "match all", so for example,
-%%      {foo, '_'} would match all links to bucket 'foo' with any tag, while
-%%      {foo, bar} would match only links to bucket 'foo' with tag 'bar'.
-%%      The tags of the links will be included as the "KeyData" for the
-%%      bucket-key pair returned.
-%%      Keys that were inputs to this phase that reference non-existent
-%%      objects are ignored (i.e. {error,notfound} => []).
+%% @doc This function implements the map phase to which link
+%%      map/reduce specs are mapped.  The atom '_' means "match all",
+%%      so for example, {<<"foo">>, '_'} would match all links to
+%%      bucket 'foo' with any tag, while {<<"foo">>, <<"bar">>} would
+%%      match only links to bucket 'foo' with tag 'bar'.  The tags of
+%%      the links will be included as the "KeyData" for the bucket-key
+%%      pair returned.  Keys that were inputs to this phase that
+%%      reference non-existent objects are ignored
+%%      (i.e. {error,notfound} => []).
 mapreduce_linkfun({error, notfound}, _, _) -> [];
 mapreduce_linkfun(RiakObject, _, {Bucket, Tag}) ->
     %% TODO: could just pull links out of riak object directly, if that
