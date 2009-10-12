@@ -24,3 +24,4 @@ priv/weblogs/.*
 ^client_lib/java/javadoc/*
 test\.log
 ^test/.*
+^data/.*

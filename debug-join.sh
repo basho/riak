@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# debug-join <configfile> <ip> <port>
+# debug-join <configfile> <node>
 # join an existing riak ring via a node known to be listening on ip:port
 # run in interactive debug shell mode
 . riak-env.sh

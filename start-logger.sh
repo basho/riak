@@ -1,9 +1,9 @@
 #!/usr/bin/env bash
-# ./start-eventer.sh <clustername> <cookie> <ip> <port> <nodename> <eventmodname> <eventmodarg> <matchspec>
-# This will:
-#  Join riak cluster <clustername> using erlcookie <cookie>
-#  via the node listening at <ip>:<port>
-#  and register a riak event handler
+# ./start-eventer.sh <node> <cookie>
+# ./start-eventer.sh <node> <cookie> <filename>
+
+# This will join the cluster via the node <node> using the cookie <cookie>
+# and optionally log results to filename <filename>.
 if [ $# -lt 2 ]; then
     echo Usage: 1>&2
     echo "    Log to console: `basename $0` <node> <cookie>"  1>&2
