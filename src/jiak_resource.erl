@@ -262,20 +262,44 @@ malformed_request(ReqData, Context=#ctx{key=schema}) ->
         {ok, _SchemaObj={struct, SchemaPL0}} ->
             ReqProps = [list_to_binary(atom_to_list(P)) || 
                            P <- jiak_util:jiak_required_props()],
-            {struct, SchemaPL} = proplists:get_value(<<"schema">>,SchemaPL0),
-            case lists:filter(
-                   fun(I) -> 
-                           proplists:get_value(I, SchemaPL) =:= undefined
-                   end, 
-                   ReqProps) of
-                [] ->
-                    {false, ReqData, Context#ctx{incoming=SchemaPL}};
-                L ->
-                    {true, 
-                     wrq:append_to_response_body(
-                     io_lib:format("missing required schema fields: ~p~n",[L]),
-                       ReqData),
-                     Context}
+            case proplists:get_value(<<"schema">>,SchemaPL0) of
+                {struct, SchemaPL} ->
+                    case lists:filter(
+                           fun(I) -> 
+                                   proplists:get_value(I, SchemaPL) =:= undefined
+                           end, 
+                           ReqProps) of
+                        [] ->
+                            {false, ReqData, Context#ctx{incoming=SchemaPL}};
+                        L ->
+                            {true, 
+                             wrq:append_to_response_body(
+                               io_lib:format("missing required schema fields: ~p~n",[L]),
+                               ReqData),
+                             Context}
+                    end;
+                undefined ->
+                    case proplists:get_value(<<"bucket_mod">>, SchemaPL0) of
+                        BMStr when is_binary(BMStr) ->
+                            case catch list_to_existing_atom(binary_to_list(BMStr)) of
+                                BM when is_atom(BM) ->
+                                    {false, ReqData,
+                                     Context#ctx{incoming=[{<<"bucket_mod">>, BM}]}};
+                                _ ->
+                                    {true,
+                                     wrq:append_to_response_body(
+                                       io_lib:format("no module '~s' found", [BMStr]),
+                                       ReqData),
+                                     Context}
+                            end;
+                        undefined ->
+                            {true, 
+                             wrq:append_to_response_body(
+                               io_lib:format("missing required schema fields: ~p~n",
+                                             [ReqProps]),
+                               ReqData),
+                             Context}
+                    end
             end;
         Err ->
             {true,

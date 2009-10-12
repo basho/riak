@@ -2,6 +2,11 @@
 # debug-join <configfile> <node>
 # join an existing riak ring via a node known to be listening on ip:port
 # run in interactive debug shell mode
+if [ $# -lt 2 ]; then
+    echo Usage: 1>&2
+    echo "    `basename $0` <configfile> Node" 1>&2
+    exit 1
+fi
 . riak-env.sh
 NODENAME=$(erl -noshell -pa ebin -eval "error_logger:tty(false), riak_app:read_config(\"$1\"), io:format(\"~s~n\",[riak:get_app_env(riak_nodename)])" -run init stop)
 HOSTNAME=$(erl -noshell -pa ebin -eval "error_logger:tty(false), riak_app:read_config(\"$1\"), io:format(\"~s~n\",[riak:get_app_env(riak_hostname)])" -run init stop)

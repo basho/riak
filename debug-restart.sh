@@ -1,6 +1,11 @@
 #!/usr/bin/env bash
 # debug-restart <configfile>
 # assuming we've run a node from here before, start back up in debug mode
+if [ $# -lt 1 ]; then
+    echo Usage: 1>&2
+    echo "    `basename $0` <configfile>" 1>&2
+    exit 1
+fi
 . riak-env.sh
 NODENAME=$(erl -noshell -pa ebin -eval "error_logger:tty(false), riak_app:read_config(\"$1\"), io:format(\"~s~n\",[riak:get_app_env(riak_nodename)])" -run init stop)
 HOSTNAME=$(erl -noshell -pa ebin -eval "error_logger:tty(false), riak_app:read_config(\"$1\"), io:format(\"~s~n\",[riak:get_app_env(riak_hostname)])" -run init stop)
