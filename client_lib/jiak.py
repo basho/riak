@@ -87,30 +87,34 @@ class JiakClient:
     def list_bucket(self, Bucket):
         return self._expect(200,
                  self._do_req("GET", self.JKP + urllib.quote_plus(Bucket)))
-    def store(self, JObj):
+    def store(self, JObj, W=2,DW=2):
         NewData = self._expect(200,
                      self._do_req("PUT",
                                   self.JKP
                                   + urllib.quote_plus(JObj.bucket) + "/"
                                   + urllib.quote_plus(JObj.key)
-                                  + "?returnbody=true",
+                                  + "?returnbody=true"
+                                  + "&w=" + str(W)
+                                  + "&dw=" + str(DW),
                                   JObj.to_json(),
                                   {"Content-Type": "application/json"}))
         JObj.update(NewData)
-    def fetch(self, bucket, key):
+    def fetch(self, bucket, key, R=2):
         Resp = self._do_req("GET",
                             self.JKP + urllib.quote_plus(bucket)
-                            + "/" + urllib.quote_plus(key))
+                            + "/" + urllib.quote_plus(key)
+                            + "?r=" + str(R))
         if Resp.status == 404:
             return None
         Data = self._expect(200,Resp)
         Obj = JiakObject(bucket, key)
         Obj.update(Data)
         return Obj
-    def delete(self, bucket, key):
+    def delete(self, bucket, key, DW=2):
         Resp = self._do_req("DELETE",
                             self.JKP + urllib.quote_plus(bucket)
-                            + "/" + urllib.quote_plus(key))
+                            + "/" + urllib.quote_plus(key)
+                            + "?dw=" + str(DW))
         if Resp.status == 404:
             return None
         elif Resp.status == 204:
