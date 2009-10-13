@@ -251,10 +251,11 @@ remove_link(JiakObject, Bucket, Key, Tag) ->
 %% @type link_bucket() = riak_object:bucket()|'_'
 %% @doc This function implements the map phase to which link
 %%      map/reduce specs are mapped.  The atom '_' means "match all",
-%%      so for example, {<<"foo">>, '_'} would match all links to
-%%      bucket 'foo' with any tag, while {<<"foo">>, <<"bar">>} would
-%%      match only links to bucket 'foo' with tag 'bar'.  The tags of
-%%      the links will be included as the "KeyData" for the bucket-key
+%%      so for example, {&lt;&lt;"foo"&gt;&gt;, '_'} would match all
+%%      links to bucket 'foo' with any tag, while
+%%      {&lt;&lt;"foo"&gt;&gt;, &lt;&lt;"bar"&gt;&gt;} would match
+%%      only links to bucket 'foo' with tag 'bar'.  The tags of the
+%%      links will be included as the "KeyData" for the bucket-key
 %%      pair returned.  Keys that were inputs to this phase that
 %%      reference non-existent objects are ignored
 %%      (i.e. {error,notfound} => []).
