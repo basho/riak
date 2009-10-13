@@ -23,7 +23,7 @@
 -record(state, {client :: {pid(), reference()},
                 n :: pos_integer(), 
                 r :: pos_integer(), 
-                allowmult :: bool(), 
+                allowmult :: boolean(), 
                 preflist :: [{pos_integer(), atom()}], 
                 waiting_for :: [{pos_integer(), atom(), atom()}],
                 req_id :: pos_integer(), 
