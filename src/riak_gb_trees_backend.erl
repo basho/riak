@@ -98,7 +98,7 @@ tree_loop(Tree) ->
            
         {delete, BKey, Pid, Ref} -> 
             Tree1 = case gb_trees:is_defined(BKey, Tree) of
-                true -> gb_trees:deltee(BKey, Tree);
+                true -> gb_trees:delete(BKey, Tree);
                 false -> Tree
             end,
             Pid ! {delete_response, ok, Ref},
