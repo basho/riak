@@ -115,6 +115,7 @@ prune_ringfiles() ->
             Cluster = riak:get_app_env(cluster_name),
             case file:list_dir(Dir) of
                 {error,enoent} -> ok;
+                {ok, []} -> ok;
                 {ok, Filenames} ->
                     Timestamps = [TS || {"riak_ring", C1, TS} <- 
                      [list_to_tuple(string:tokens(FN, ".")) || FN <- Filenames],
