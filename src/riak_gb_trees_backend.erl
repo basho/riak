@@ -73,8 +73,10 @@ list(#state { pid=Pid }) ->
     Pid ! {list, self(), Ref},
     receive {list_response, Result, Ref} -> Result end.
 
-list_bucket(_, _) ->
-    throw(unsupported).
+list_bucket(#state { pid=Pid }, Bucket) ->
+    Ref = make_ref(),
+    Pid ! {list_bucket, Bucket, self(), Ref},
+    receive {list_bucket_response, Result, Ref} -> Result end.
     
 tree_loop(Tree) ->
     receive
@@ -105,10 +107,27 @@ tree_loop(Tree) ->
         {list, Pid, Ref} ->
             Pid ! {list_response, gb_trees:keys(Tree), Ref},
             tree_loop(Tree);
-            
+
+        {list_bucket, Bucket, Pid, Ref} ->
+            Pid ! {list_bucket_response,
+                   srv_list_bucket(Tree, Bucket), Ref},
+            tree_loop(Tree);
+
         {stop, Pid, Ref} ->
             Pid ! {stop_response, ok, Ref}
     end.
+
+srv_list_bucket(Tree, {filter, Bucket, Fun}) ->
+     lists:append(
+       lists:filter(
+         Fun,
+         [ [Key] || {B, Key} <- gb_trees:keys(Tree), B == Bucket ]));
+srv_list_bucket(Tree, '_') ->
+     sets:to_list(
+       sets:from_list(
+         [ Bucket || {Bucket, _} <- gb_trees:keys(Tree) ]));
+srv_list_bucket(Tree, Bucket) ->
+    [ Key || {B, Key} <- gb_trees:keys(Tree), B == Bucket ].
 
 % riak_gb_trees_backend does not currently serialize. But if it did,
 % it could use the functions below.
