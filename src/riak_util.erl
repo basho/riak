@@ -178,18 +178,18 @@ mkclientid(RemoteNode) ->
     Id = erlang:phash2([Y,Mo,D,H,Mi,S,node(),RemoteNode,NowPart]),
     <<Id:32>>.
 
-%% @spec chash_key(BKey :: riak_object:bkey()) -> chash:index().
+%% @spec chash_key(BKey :: riak_object:bkey()) -> chash:index()
 %% @doc Create a binary used for determining replica placement.
 chash_key({Bucket,Key}) ->
     BucketProps = riak_bucket:get_bucket(Bucket),
     {chash_keyfun, {M, F}} = proplists:lookup(chash_keyfun, BucketProps),
     M:F({Bucket,Key}).
 
-%% @spec chash_std_keyfun(BKey :: riak_object:bkey()) -> chash:index().
+%% @spec chash_std_keyfun(BKey :: riak_object:bkey()) -> chash:index()
 %% @doc Default object/ring hashing fun, direct passthrough of bkey.
 chash_std_keyfun({Bucket, Key}) -> chash:key_of({Bucket, Key}).
     
-%% @spec chash_bucketonly_keyfun(BKey :: riak_object:bkey()) -> chash:index().
+%% @spec chash_bucketonly_keyfun(BKey :: riak_object:bkey()) -> chash:index()
 %% @doc Object/ring hashing fun that ignores Key, only uses Bucket.
 chash_bucketonly_keyfun({Bucket, _Key}) -> chash:key_of(Bucket).
 
