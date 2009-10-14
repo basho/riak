@@ -87,26 +87,31 @@ class JiakClient {
             $this->_do_req("GET", $this->JKP . urlencode($bucket)));
     }
     
-    function store_all($ar) {
+    function store_all($ar, $w=2, $dw=2) {
         foreach($ar as $o) {
-            $this->store($o);
+            $this->store($o, $w, $dw);
         }
     }
     
-    function store($obj) {
+    function store($obj, $w=2, $dw=2) {
+    	$obj_json = $obj->to_json();
         $new_data = $this->_expect(200,
             $this->_do_req("PUT",
                 $this->JKP . urlencode($obj->bucket) . "/" .
-                urlencode($obj->key) . "?returnbody=true",
-                $obj->to_json(),
+                urlencode($obj->key) . "?returnbody=true" .
+                	"&w=" . $w .
+                	"&dw=" . $dw,
+                $obj_json,
                 array("Content-type: application/json;charset=UTF-8")));
         $obj->update($new_data);
         return $obj;
     }
     
-    function fetch($bucket, $key) {
+    function fetch($bucket, $key, $r=2) {
         $resp = $this->_do_req("GET",
-                    $this->JKP . urlencode($bucket) . "/" . urlencode($key));
+                    $this->JKP . urlencode($bucket) . "/" . 
+                    urlencode($key) .
+                    "?r=" . $r);
         if ($resp['http_code'] == 404) {
             return null;
         }
@@ -114,9 +119,10 @@ class JiakClient {
         return $this->_make_object($data);
     }
     
-    function delete($bucket, $key) {
+    function delete($bucket, $key, $dw=2) {
         $resp = $this->_do_req("DELETE", $this->JKP .
-                    urlencode($bucket) . "/" . urlencode($key));
+                    urlencode($bucket) . "/" . urlencode($key) .
+                    "&dw=" . $dw);
         $http_code = $resp['http_code'];
         if ($http_code == 404) return false;
         else if ($http_code == 204) return true;
@@ -196,15 +202,14 @@ class JiakObject {
     }
 }
 
-/*****
-
+/*
     // jiak.php example
     //
     // this example only works if you
     // have a running riak cluster with:
     //
     //  {riak_web_ip, "127.0.0.1"}.
-    //  {riak_web_port, 8999}.
+    //  {riak_web_port, 8098}.
     //
     // (add to config/your-config.erlenv
     //
@@ -215,28 +220,30 @@ class JiakObject {
         //
     
         $riak_ip = "127.0.0.1";
-        $riak_port = 8999;
+        $riak_port = 8098;
         
         $demo_bucket = "jiak_example";
         $demo_key = "phptest";
-    
+
         $JC = new JiakClient($riak_ip, $riak_port);
         
         //
-        // simple fetch, store
+        // simple set_bucket, fetch, store
         //
         
+        $JC->set_bucket_schema("jiak_example", array("foo", "bar", "baz"));
         $obj = $JC->fetch($demo_bucket, $demo_key);
+        print_r($obj);
         
         if ($obj === null) {
             print ("No object in " . $demo_bucket . " for key '" . $demo_key . 
                 "', so I'll create it.\n");
             $jiak_obj = new JiakObject($demo_bucket, $demo_key);
             $jiak_obj->set("foo", "value of foo!");
-            
+
             // ** note: you will want to use the object returned from a
             //    call to store; this object will include vclock, lastmod, etc.
-            $jiak_obj = $JC->store($jiak_obj);
+            $obj = $JC->store($jiak_obj);
         }
         
         print ("Object stored in bucket '" . $demo_bucket . " with key " .
@@ -267,6 +274,7 @@ class JiakObject {
         $leaf3 = new JiakObject($demo_bucket, $kleaf3);
         $leaf3->set("foo", "good news & a snack!");
         
+        print_r($obj);
         $obj->add_link("jiak_example", $kleaf1, "tag_one");
         $obj->add_link("jiak_example", $kleaf2, "tag_one");
         $obj->add_link("jiak_example", $kleaf3, "tag_other");
@@ -328,7 +336,7 @@ class JiakObject {
         print ("\n\nException: \n\n");
         print_r($ex);
     }
+*/
 
-*****/
 
 ?>
