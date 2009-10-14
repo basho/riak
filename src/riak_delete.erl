@@ -18,8 +18,9 @@
 
 -export([delete/6]).
 
-%% @spec delete(request_id(), riak_object:bucket(), riak_object:key(), RW :: integer(),
-%%              TimeoutMillisecs :: integer(), Client :: pid()) -> term()
+%% @spec delete(ReqId :: binary(), riak_object:bucket(), riak_object:key(),
+%%             RW :: integer(), TimeoutMillisecs :: integer(), Client :: pid())
+%%           -> term()
 %% @doc Delete the object at Bucket/Key.  Direct return value is uninteresting,
 %%      see riak_client:delete/3 for expected gen_server replies to Client.
 delete(ReqId,Bucket,Key,RW,Timeout,Client) ->           
