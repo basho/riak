@@ -88,10 +88,10 @@ If riak_demo prints no "Error: ..." messages, and instead prints
 Assuming no errors were generated during the server start step, a
 simple client interaction will look like:
 
-$ erl -name riaktest@127.0.0.1 -pa $RIAK/ebin
+$ erl -name riaktest@127.0.0.1 -pa $RIAK/ebin -setcookie riak_demo_cookie
 
 (riaktest@127.0.0.1)1> %% connect to Riak
-(riaktest@127.0.0.1)1> {ok, C} = riak:client_connect("127.0.0.1", 9000, riak_demo_cookie).
+(riaktest@127.0.0.1)1> {ok, C} = riak:client_connect('riakdemo@127.0.0.1').
 {ok,{riak_client,'riakdemo@127.0.0.1',
                  "20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664"}}
 
