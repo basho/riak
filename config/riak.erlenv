@@ -2,7 +2,7 @@
 %%  nodes that will be participating in the same cluster.
 {cluster_name, "default"}.
 %% ring_state_dir is where ring membership information will be stored.
-{ring_state_dir, "priv/ringstate"}.
+{ring_state_dir, "/tmp/5to6/ringstate"}.
 %% ring_creation_size determines the number of partitions used for hashing
 %%  document keys.  This cannot be changed after cluster initialization.
 %%  Ensure that it is at least 10x the number of hosts you might ever
@@ -24,14 +24,14 @@
 %% Different storage backends can use other configuration variables.  For
 %%  instance, riak_dets_backend_root determines the directory under which
 %%  dets files will be placed.
-{riak_dets_backend_root, "/path/to/riak/store"}.
+{riak_dets_backend_root, "/tmp/5to6/store"}.
 %% riak_cookie is the Erlang cookie that the cluster shares.  This must be
 %%  the same across all nodes.
 {riak_cookie, default_riak_cookie}.
 %% riak_heart_command will be used by heart to restart the system in case of
 %%  a lockup or certain types of crashes.  Make sure to fix the paths in
 %%  the command if you wish for automatic restarts to work.
-{riak_heart_command, "(cd /path/to/riak; ./start-restart.sh /path/to/riak/config/riak.erlenv)"}.
+{riak_heart_command, "(cd /Users/bryan/riak; ./start-restart.sh /Users/bryan/riak/config/riak.erlenv)"}.
 %% riak_nodename is the first part of the name that this node will use to
 %%  identify itself.  This must be different for all ndoes with the same
 %%  value of riak_hostname.
