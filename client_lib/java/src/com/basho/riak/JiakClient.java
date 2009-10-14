@@ -155,12 +155,25 @@ public class JiakClient {
 		return expect(200, requestConn);
 	}
 
+        public void store(final JiakObject object)  throws IOException,
+			JSONException, JiakException {
+            store(object, null, null);
+        }
+
+        public void store(final JiakObject object, Integer w)  throws IOException,
+			JSONException, JiakException {
+            store(object, w, null);
+        }
+
 	/**
 	 * Store a {@link JiakObject}.
 	 * 
 	 * @param object
 	 *            The {@link JiakObject} to store.
-	 * 
+	 * @param w
+         *            The w-value for the request (or null for default).
+         * @param dw 
+         *            The dw-vaue for the request (or null for default).
 	 * @throws JSONException
 	 *             If an error occurs assembling the JSON request body.
 	 * @throws IOException
@@ -169,19 +182,26 @@ public class JiakClient {
 	 *             If the Riak server returns an error or or an unexpected
 	 *             response code.
 	 */
-	public void store(final JiakObject object) throws IOException,
+         public void store(final JiakObject object, Integer w, Integer dw) throws IOException,
 			JSONException, JiakException {
 		final HashMap<String, String> reqHeaders = new HashMap<String, String>();
 		reqHeaders.put("Content-Type", "application/json");
 		reqHeaders.put("Accept", "application/json");
-		final String reqURI = makeURI(object.getBucket(),
-                                              object.getKey(),
-                                              "?returnbody=true");
+		String reqURI = makeURI(object.getBucket(),
+                                        object.getKey(),
+                                        "?returnbody=true");
+                if (w != null) reqURI += "&w=" + w;
+                if (dw != null) reqURI += "&dw=" + dw;
 		final HttpURLConnection requestConn = doRequest("PUT", reqURI, object
 				.toJSONObject(), reqHeaders);
 		final JSONObject updated = expect(200, requestConn);
 		object.update(updated);
 	}
+    
+        public JiakObject fetch(final String bucket, final String key)
+                        throws IOException, JSONException, JiakException { 
+            return fetch(bucket, key, null);
+        }
 
 	/**
 	 * Fetch the {@link JiakObject} stored at <code>bucket</code> and
@@ -191,6 +211,8 @@ public class JiakClient {
 	 *            The bucket containing the {@link JiakObject} to fetch.
 	 * @param key
 	 *            The key of the {@link JiakObject} to fetch.
+         * @param r 
+         *            The r-value for the request (null for default);
 	 * 
 	 * @return A {@link JiakObject}.
 	 * 
@@ -202,12 +224,15 @@ public class JiakClient {
 	 *             If the Riak server returns an error or or an unexpected
 	 *             response code.
 	 */
-	public JiakObject fetch(final String bucket, final String key)
+        
+        public JiakObject fetch(final String bucket, final String key, Integer r)
 			throws IOException, JSONException, JiakException {
 		final HashMap<String, String> reqHeaders = new HashMap<String, String>();
 		reqHeaders.put("Content-Type", "application/json");
 		reqHeaders.put("Accept", "application/json");
-		final String reqURI = makeURI(bucket, key);
+                String reqURI;
+                if (r == null) reqURI = makeURI(bucket, key, "?r=2");
+                else reqURI = makeURI(bucket, key, "?r="+r);
 		final HttpURLConnection requestConn = doRequest("GET", reqURI, null,
 				reqHeaders);
 		if (requestConn.getResponseCode() == 404)
@@ -218,6 +243,11 @@ public class JiakClient {
 		return object;
 	}
 
+         public void delete(final String bucket, final String key)
+                         throws IOException, JiakException {
+             delete(bucket, key, null);
+         }
+
 	/**
 	 * Delete a {@link JiakObject}.
 	 * 
@@ -225,6 +255,8 @@ public class JiakClient {
 	 *            The bucket containing the object to delete.
 	 * @param key
 	 *            The key of the object to delete.
+         * @param dw
+         *            The dw-value for the request (or null for default).
 	 * 
 	 * @throws JSONException
 	 *             If an error occurs assembling the JSON request body.
@@ -234,9 +266,10 @@ public class JiakClient {
 	 *             If the Riak server returns an error or or an unexpected
 	 *             response code.,
 	 */
-	public void delete(final String bucket, final String key)
+        public void delete(final String bucket, final String key, Integer dw)
 			throws IOException, JiakException {
-		final String reqURI = makeURI(bucket, key);
+		String reqURI = makeURI(bucket, key);
+                if (dw != null) reqURI += "?dw=" + dw;
 		final HashMap<String, String> reqHeaders = new HashMap<String, String>();
 		reqHeaders.put("Accept", "*/*");
 		final HttpURLConnection requestConn = doRequest("DELETE", reqURI, null,
