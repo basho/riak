@@ -118,6 +118,27 @@ class JiakClient {
         $data = $this->_expect(200, $resp);
         return $this->_make_object($data);
     }
+
+    function list_bucket($bucket) {
+        $o = $this->get_bucket_metadata($bucket, true);
+        return $o['keys'];
+    }
+
+    function get_bucket_schema($bucket) {
+        $o = $this->get_bucket_metadata($bucket, false);
+        return $o['schema'];
+    }
+
+    function get_bucket_metadata($bucket, $with_keys) {
+        $resp = $this->_do_req("GET",
+                    $this->JKP . urlencode($bucket) . "/" .
+                    ($with_keys===true?"":"?keys=false"));
+        if ($resp['http_code'] == 404) {
+            return null;
+        }
+        $data = $this->_expect(200, $resp);
+        return $data;
+    }
     
     function delete($bucket, $key, $dw=2) {
         $resp = $this->_do_req("DELETE", $this->JKP .
@@ -202,7 +223,9 @@ class JiakObject {
     }
 }
 
+
 /*
+
     // jiak.php example
     //
     // this example only works if you
@@ -329,7 +352,13 @@ class JiakObject {
         
         print ("\nDeleting jiak_test object ('test_object')...\n");
         $JC->delete("jiak_test", "test_object");
-        
+ 
+        print ("\nListing keys for bucket '" . $demo_bucket . "'...\n");
+        print_r($JC->list_bucket($demo_bucket));
+
+        print ("\nGetting jiak bucket schema for bucket '" . $demo_bucket . "'...\n");
+        print_r($JC->get_bucket_schema($demo_bucket));
+       
         print ("\nDone!\n\n");
         
     } catch (Exception $ex) {
@@ -337,6 +366,5 @@ class JiakObject {
         print_r($ex);
     }
 */
-
 
 ?>
