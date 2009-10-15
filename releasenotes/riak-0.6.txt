@@ -1,0 +1,36 @@
+From Riak 0.5 to Riak 0.6 there were minor performance enhancements, a
+new in-memory storage backend, a streaming interface to map/reduce,
+and a few bug fixes.  In a little more detail:
+
+ - The R, W, and DW parameters for client requests are now exposed in
+   all of the various jiak client libraries.
+
+ - There is a new in-memory-only backend based on gb_trees which is
+   faster than the ets_backend for many common uses.
+
+ - Some bugs were fixed, such as proper handling of an empty ringstate
+   directory when pruning.
+
+ - The "bucket_mod" schema parameter can now be set over the HTTP interface.
+
+ - Numerous space and time improvements around basic FSM operations, such as
+    - Using nodes() instead of net_adm:ping() to find reachable nodes.
+    - Doing less work making vtags
+    - Using shorter, fixed-size client ids in vclocks
+
+ - The map/reduce system now allows streaming to and from clients,
+   allowing for indefinitely-sized input and output sets.  This is
+   only partially documented now, but those wishing to use it
+   immediately should see that riak_client:mapred is now implemented
+   in terms of riak_client:mapred_stream.
+
+ - The riak_get_fsm now exits much more quickly in the common case,
+   which causes cleanup activity such as read-repair and
+   delete-finalization to happen faster.  There is no longer a "delete
+   window" of any noticable time between the success of a delete
+   operation and when the document is actually removed from storage.
+
+ - There is a new bucket parameter, "chash_keyfun", allowing
+   per-bucket configuration of the consistent hashing function.
+   (that function must still have the type f({Bucket,Key}) -> 160bit-binary)
+
