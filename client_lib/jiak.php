@@ -82,11 +82,6 @@ class JiakClient {
                 array("Content-type: application/json")));
     }
     
-    function bucket_info($bucket) {
-        return $this->_expect(200,
-            $this->_do_req("GET", $this->JKP . urlencode($bucket)));
-    }
-    
     function store_all($ar, $w=2, $dw=2) {
         foreach($ar as $o) {
             $this->store($o, $w, $dw);
@@ -120,16 +115,16 @@ class JiakClient {
     }
 
     function list_bucket($bucket) {
-        $o = $this->get_bucket_metadata($bucket, true);
+        $o = $this->bucket_info($bucket, true);
         return $o['keys'];
     }
 
     function get_bucket_schema($bucket) {
-        $o = $this->get_bucket_metadata($bucket, false);
+        $o = $this->bucket_info($bucket, false);
         return $o['schema'];
     }
 
-    function get_bucket_metadata($bucket, $with_keys) {
+    function bucket_info($bucket, $with_keys=true) {
         $resp = $this->_do_req("GET",
                     $this->JKP . urlencode($bucket) . "/" .
                     ($with_keys===true?"":"?keys=false"));
@@ -225,7 +220,6 @@ class JiakObject {
 
 
 /*
-
     // jiak.php example
     //
     // this example only works if you
