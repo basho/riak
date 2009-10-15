@@ -20,7 +20,7 @@ docs:
 
 reldocs: docs
 	@cd client_lib/java && make javadoc && \
-		cp -r javadoc ../../www/java_client_api
+		cp -r javadoc/* ../../www/java_client_api
 
 
 clean:
