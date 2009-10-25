@@ -163,6 +163,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 -include_lib("webmachine/include/webmachine.hrl").
+-include("jiak.hrl").
 
 %% @type key() = container|schema|riak_object:key()
 
@@ -201,19 +202,13 @@ service_available(ReqData, Context=#ctx{key=container}) ->
                 Mod = jiak_default:new([]),
                 {true, Context#ctx{module=Mod, key=schema}};
             _ ->
-                case jiak_util:get_jiak_module(ReqData) of
-                    undefined -> {false, Context#ctx{module=no_module_found}};
-                    Module -> {true, Context#ctx{module=Module}}
-                end
+                Mod = jiak_util:get_jiak_module(ReqData),
+                {true, Context#ctx{module=Mod}}
         end,
     {ServiceAvailable, ReqData, NewCtx};
 service_available(ReqData, Context) ->
-    {ServiceAvailable, NewCtx} = 
-        case jiak_util:get_jiak_module(ReqData) of
-            undefined -> {false, Context#ctx{module=no_module_found}};
-            Module -> {true, Context#ctx{module=Module}}
-        end,
-    {ServiceAvailable, ReqData, NewCtx}.
+    Mod = jiak_util:get_jiak_module(ReqData),
+    {true, ReqData, Context#ctx{module=Mod}}.
 
 %% @spec allowed_methods(webmachine:wrq(), context()) ->
 %%          {[http_method()], webmachine:wrq(), context()}
@@ -260,21 +255,20 @@ allowed_methods(RD, Ctx0=#ctx{module=Mod}) ->
 malformed_request(ReqData, Context=#ctx{key=schema}) ->
     case decode_object(wrq:req_body(ReqData)) of
         {ok, _SchemaObj={struct, SchemaPL0}} ->
-            ReqProps = [list_to_binary(atom_to_list(P)) || 
-                           P <- jiak_util:jiak_required_props()],
             case proplists:get_value(<<"schema">>,SchemaPL0) of
                 {struct, SchemaPL} ->
-                    case lists:filter(
-                           fun(I) -> 
-                                   proplists:get_value(I, SchemaPL) =:= undefined
-                           end, 
-                           ReqProps) of
-                        [] ->
-                            {false, ReqData, Context#ctx{incoming=SchemaPL}};
-                        L ->
-                            {true, 
+                    try
+                        AllProps = [{list_to_existing_atom(
+                                       binary_to_list(Prop)), Value}
+                                    || {Prop, Value} <- SchemaPL],
+                        SchemaProps = jiak_util:extract_bucket_props(AllProps),
+                        {false, ReqData, Context#ctx{incoming=SchemaProps}}
+                    catch
+                        error:badarg ->
+                            {true,
                              wrq:append_to_response_body(
-                               io_lib:format("missing required schema fields: ~p~n",[L]),
+                               io_lib:format("some of ~p are not acceptable schema parameters",
+                                             [ K || {K,_} <- SchemaPL ]),
                                ReqData),
                              Context}
                     end;
@@ -293,10 +287,10 @@ malformed_request(ReqData, Context=#ctx{key=schema}) ->
                                      Context}
                             end;
                         undefined ->
-                            {true, 
-                             wrq:append_to_response_body(
-                               io_lib:format("missing required schema fields: ~p~n",
-                                             [ReqProps]),
+                            {true,
+                             wrq:append_to_respons_body(
+                               "JSON object must contain either"
+                               " a 'schema' field or a 'bucket_mod' field",
                                ReqData),
                              Context}
                     end
@@ -361,6 +355,7 @@ check_required(Obj, Fields) ->
 %%      Fields parameter.  Returns 'true' if Obj contains only
 %%      fields named by Fields, 'false' if Obj contains any fields
 %%      not named in Fields.
+check_allowed(_Obj, ?JIAK_SCHEMA_WILDCARD) -> true;
 check_allowed(Obj, Fields) ->
     Allowed = sets:from_list(Fields),
     Has = sets:from_list(jiak_object:props(Obj)),
@@ -371,20 +366,18 @@ check_allowed(Obj, Fields) ->
 %%      bucket have been modified.  Returns 'true' if only fields in
 %%      the bucket's write mask were modified, 'false' otherwise.
 check_write_mask(Mod, {PropDiffs,_}) ->
-    WriteMask = Mod:write_mask(),
-    %% XXX should probably use a special atom like 'JAPI_UNDEFINED' for
-    %% non-existant keys produced by the diff.
-    [{Key, OldVal} || {Key, OldVal, _NewVal} <- PropDiffs,
-		      lists:member(Key, WriteMask) =:= false] =:= [].
+    case Mod:write_mask() of
+        ?JIAK_SCHEMA_WILDCARD -> true;
+        WriteMask ->
+            [{Key, OldVal} || {Key, OldVal, _NewVal} <- PropDiffs,
+                              lists:member(Key, WriteMask) =:= false]
+                =:= []
+    end.
 
 %% @spec is_authorized(webmachine:wrq(), context()) ->
 %%          {true|string(), webmachine:wrq(), context()}
 %% @doc Determine whether the request is authorized.  This function
 %%      calls through to the bucket's auth_ok/3 function.
-is_authorized(ReqData, Context=#ctx{bucket={error, no_such_bucket}}) ->
-    {{halt, 404},
-     wrq:append_to_response_body("Unknown bucket.", ReqData),
-     Context};
 is_authorized(ReqData, Context=#ctx{key=Key,jiak_context=JC,module=Mod}) ->
     {Result, RD1, JC1} = Mod:auth_ok(Key, ReqData, JC),
     {Result, RD1, Context#ctx{jiak_context=JC1}}.
@@ -563,9 +556,8 @@ make_uri(JiakName,Bucket,Path) ->
 handle_incoming(ReqData, Context=#ctx{key=schema, 
                                       bucket=Bucket,
                                       incoming=SchemaPL}) ->
-    SchemaProps = [{list_to_atom(binary_to_list(K)), V} || {K,V} <- SchemaPL],
-    ok = riak_bucket:set_bucket(Bucket, SchemaProps),
-    {<<>>, ReqData, Context};
+    ok = riak_bucket:set_bucket(Bucket, SchemaPL),
+    {true, ReqData, Context};
 handle_incoming(ReqData, Context=#ctx{bucket=Bucket,key=Key,
                                       jiak_context=JCTX,jiak_name=JiakName,
                                       jiak_client=JiakClient,
@@ -786,6 +778,8 @@ apply_read_mask(Module, JiakObject={struct,_}) ->
     jiak_object:set_object(JiakObject, {struct, NewData}).
 
 %% @private
+apply_read_mask1(Props, ?JIAK_SCHEMA_WILDCARD, []) ->
+    Props;
 apply_read_mask1([], _ReadMask, Acc) ->
     lists:reverse(Acc);
 apply_read_mask1([{K,_V}=H|T], ReadMask, Acc) ->
@@ -804,15 +798,25 @@ apply_read_mask1([{K,_V}=H|T], ReadMask, Acc) ->
 %%      read mask, it can't preserve their values, so we have to do it
 %%      for them.
 copy_unreadable_props(Mod, OldObj, NewObj) ->
-    Allowed = Mod:allowed_fields(),
-    ReadMask = Mod:read_mask(),
-    Unreadable = sets:to_list(sets:subtract(
-				sets:from_list(Allowed),
-				sets:from_list(ReadMask))),
-    {struct, OldData} = jiak_object:object(OldObj),
-    {struct, NewData} = jiak_object:object(NewObj),
-    UnreadableData = copy_unreadable1(Unreadable, OldData, NewData),
-    jiak_object:set_object(NewObj, {struct, UnreadableData}).
+    case Mod:read_mask() of
+        ?JIAK_SCHEMA_WILDCARD ->
+            NewObj; %% nothing is unreadable
+        ReadMask ->
+            Allowed = case Mod:allowed_fields() of
+                          ?JIAK_SCHEMA_WILDCARD ->
+                              %% anything might be unreadable
+                              jiak_object:props(OldObj);
+                          AllowedFields ->
+                              AllowedFields
+                      end,
+            Unreadable = sets:to_list(sets:subtract(
+                                        sets:from_list(Allowed),
+                                        sets:from_list(ReadMask))),
+            {struct, OldData} = jiak_object:object(OldObj),
+            {struct, NewData} = jiak_object:object(NewObj),
+            UnreadableData = copy_unreadable1(Unreadable, OldData, NewData),
+            jiak_object:set_object(NewObj, {struct, UnreadableData})
+    end.
 
 %% @private    
 copy_unreadable1([], _OldObj, NewObj) ->

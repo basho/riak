@@ -14,15 +14,21 @@
 
 %% @doc Utilities for jiak_resource and jiak_object.
 -module(jiak_util).
--export([jiak_required_props/0,
+-export([jiak_default_props/0,
          jiak_module_for_bucket/1, 
+         extract_bucket_props/1,
          get_jiak_module/1, 
          bucket_from_reqdata/1]).
 
 -include_lib("eunit/include/eunit.hrl").
+-include("jiak.hrl").
 
 %% @private
-jiak_required_props() -> [allowed_fields,required_fields,read_mask,write_mask].
+jiak_default_props() ->
+    [{allowed_fields, ?JIAK_SCHEMA_WILDCARD},
+     {required_fields, []},
+     {read_mask, ?JIAK_SCHEMA_WILDCARD},
+     {write_mask, ?JIAK_SCHEMA_WILDCARD}].
 
 %% @private
 jiak_module_for_bucket(BucketName) when is_binary(BucketName) ->
@@ -31,20 +37,13 @@ jiak_module_for_bucket(BucketName) when is_binary(BucketName) ->
         {bucket_mod, Module} when Module /= undefined ->
             Module;
         _ ->
-            case bucket_props_defined(BucketProps) of
-                true ->
-                    jiak_default:new(BucketProps);
-                false ->
-                    undefined
-            end
+            jiak_default:new(
+              extract_bucket_props(BucketProps))
     end.
 
-bucket_props_defined(BucketProps) ->
-    [] == lists:filter(
-            fun(I) -> 
-                    proplists:get_value(I, BucketProps) =:= undefined
-            end, 
-            jiak_required_props()).
+extract_bucket_props(BucketProps) ->
+    [ {Prop, proplists:get_value(Prop, BucketProps, Default)}
+      || {Prop, Default} <- jiak_default_props() ].
 
 %% @private
 get_jiak_module(ReqData) ->
