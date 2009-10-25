@@ -87,6 +87,7 @@ If riak_demo prints no "Error: ..." messages, and instead prints
 -
 Assuming no errors were generated during the server start step, a
 simple client interaction will look like:
+(remember, $RIAK should be set to the local path to your Riak installation)
 
 $ erl -name riaktest@127.0.0.1 -pa $RIAK/ebin -setcookie riak_demo_cookie
 
