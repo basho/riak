@@ -18,14 +18,15 @@
 -export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
 -include_lib("eunit/include/eunit.hrl").
 % @type state() = term().
--record(state, {dir}).
+-record(state, {dir, fakeSuffix}).
 
 %% @spec start(Partition :: integer()) ->
 %%          {ok, state()} | {{error, Reason :: term()}, state()}
-%% @doc Start this backend.  'riak_fs_backend_root' must be
-%%      set in Riak's application environment.  It must be set to
-%%      a string representing the base directory where this backend
-%%      should store its files.
+%% @doc Start this backend.  'riak_fs_backend_root' must be set in
+%%      Riak's application environment.  It must be set to a string
+%%      representing the base directory where this backend should
+%%      store its files. 'riak_fs_backend_fake_suffix' maybe set in
+%%      Riak's application environment for enamble atomic write to fs.
 start(Partition) ->
     PartitionName = integer_to_list(Partition),
     ConfigRoot = riak:get_app_env(riak_fs_backend_root),
@@ -34,8 +35,10 @@ start(Partition) ->
             riak:stop("riak_fs_backend_root unset, failing.");
         true -> ok
     end,
+    FakeSuffix = riak:get_app_env(riak_fs_backend_fake_suffix),
     Dir = filename:join([ConfigRoot,PartitionName]),
-    {filelib:ensure_dir(Dir), #state{dir=Dir}}.
+    {filelib:ensure_dir(Dir), #state{dir=Dir,
+                                     fakeSuffix=FakeSuffix}}.
 
 %% @spec stop(state()) -> ok | {error, Reason :: term()}
 stop(_State) -> ok.
@@ -50,13 +53,30 @@ get(State, BKey) ->
         true -> file:read_file(File)
     end.
 
+%% @spec atomic_write(File :: string(), Val :: binary()) ->
+%%       ok | {error, Reason :: term()}
+%% @doc store a atomic value to disk. Write to temp file and rename to
+%%       normal path.
+atomic_write(State, File, Val) ->
+    case State#state.fakeSuffix of
+        undefined ->
+            file:write_file(File, Val);
+        Suffix ->
+            FakeFile = File ++ Suffix,
+            case file:write_file(FakeFile, Val) of
+                ok ->
+                    file:rename(FakeFile, File);
+                X -> X
+            end
+    end.
+
 %% @spec put(state(), BKey :: riak_object:bkey(), Val :: binary()) ->
 %%         ok | {error, Reason :: term()}
 %% @doc Store Val under Bkey
 put(State,BKey,Val) ->       
     File = location(State,BKey),
     case filelib:ensure_dir(File) of
-        ok -> file:write_file(File,Val);
+        ok -> atomic_write(State, File, Val);
         X -> X
     end.
 
