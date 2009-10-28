@@ -278,7 +278,7 @@ malformed_request(ReqData, Context=#ctx{key=schema}) ->
                             case catch list_to_existing_atom(binary_to_list(BMStr)) of
                                 BM when is_atom(BM) ->
                                     {false, ReqData,
-                                     Context#ctx{incoming=[{<<"bucket_mod">>, BM}]}};
+                                     Context#ctx{incoming=[{bucket_mod, BM}]}};
                                 _ ->
                                     {true,
                                      wrq:append_to_response_body(
