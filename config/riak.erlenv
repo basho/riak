@@ -45,7 +45,11 @@
 {riak_web_ip, "127.0.0.1"}.
 %% riak_web_port is the TCP port that Riak's HTTP interface will bind to.
 {riak_web_port, 8098}.
-%% jiak_name is the first part of all URLs used by Riak's HTTP interface.
-%%  See the HTTP interface documents for more details.  If you change this,
+%% jiak_name is the first part of all URLs used by Riak's JSON HTTP interface.
+%%  See the JSON HTTP interface documents for more details.  If you change this,
 %%  the defaults used by some Riak HTTP clients may not work.
 {jiak_name, "jiak"}.
+%% raw_name is the first part of all URLS used by Riak's raw HTTP interface.
+%%  See riak_web.erl and raw_http_resource.erl for details.
+{raw_name, "raw"}.
+

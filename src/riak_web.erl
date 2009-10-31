@@ -25,6 +25,9 @@
 %%</dd><dt> jiak_name
 %%</dt><dd>   the base path under which Jiak should be exposed;
 %%            defaulted to "jiak"
+%%</dd><dt> raw_name
+%%</dt><dd>   the base path under which the raw_http_resource
+%%            should be exposed; defaulted to "raw"
 %%</dd></dl>
 -module(riak_web).
 
@@ -44,6 +47,7 @@ config() ->
 
 dispatch_table() ->
     JiakProps = jiak_props(),
+    RawProps = raw_props(),
     [{[proplists:get_value(jiak_name, JiakProps),bucket],
       jiak_resource,
       [{key_type, container}|JiakProps]},
@@ -51,10 +55,20 @@ dispatch_table() ->
       jiak_resource,
       [{key_type, item}|JiakProps]},
      {[proplists:get_value(jiak_name, JiakProps),bucket,key,'*'],
-      jaywalker_resource,JiakProps}].
+      jaywalker_resource,JiakProps},
+
+     {[proplists:get_value(prefix, RawProps),bucket],
+      raw_http_resource,RawProps},
+     {[proplists:get_value(prefix, RawProps),bucket,key],
+      raw_http_resource, RawProps},
+     {[proplists:get_value(prefix, RawProps),bucket,key,'*'],
+      raw_link_walker_resource, RawProps}].
 
 jiak_props() ->
     [{jiak_name, riak:get_app_env(jiak_name, "jiak")},
      {riak_local, true},
      {jiak_buckets, [jiak_example]}].
 
+raw_props() ->
+    [{prefix, riak:get_app_env(raw_name, "raw")},
+     {riak, local}].
