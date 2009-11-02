@@ -752,7 +752,15 @@ multipart_encode_body(Prefix, Bucket, {MD, V}) ->
      end,
      LHead,": ",Links,"\n",
      "Etag: ",dict:fetch(?MD_VTAG, MD),"\n",
-     "Last-Modified: ",dict:fetch(?MD_LASTMOD, MD),"\n",
+     "Last-Modified: ",
+     case dict:fetch(?MD_LASTMOD, MD) of
+         Datetime={_,_} ->
+             httpd_util:rfc1123_date(
+               calendar:universal_time_to_local_time(Datetime));
+         Rfc1123 when is_list(Rfc1123) ->
+             Rfc1123
+     end,
+     "\n",
      "\n",V].
     
 
@@ -850,8 +858,13 @@ last_modified(RD, Ctx=#ctx{key=undefined}) ->
 last_modified(RD, Ctx) ->
     case select_doc(Ctx) of
         {MD, _} ->
-            {httpd_util:convert_request_date(
-               dict:fetch(?MD_LASTMOD, MD)), RD, Ctx};
+            {case dict:fetch(?MD_LASTMOD, MD) of
+                 Datetime={_,_} ->
+                     Datetime;
+                 Rfc1123 when is_list(Rfc1123) ->
+                     httpd_util:convert_request_date(Rfc1123)
+             end,
+             RD, Ctx};
         multiple_choices ->
             {undefined, RD, Ctx}
     end.
