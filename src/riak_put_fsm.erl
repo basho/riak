@@ -189,7 +189,7 @@ update_metadata(RObj) ->
         false -> dict:store(<<"X-Riak-VTag">>,
                        make_vtag(RObj),
                        dict:store(<<"X-Riak-Last-Modified">>,
-                                  httpd_util:rfc1123_date(),
+                                  calendar:universal_time(),
                                   MD0))
     end,
     riak_object:apply_updates(riak_object:update_metadata(RObj, NewMD)).

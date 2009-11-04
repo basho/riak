@@ -118,7 +118,14 @@ from_riak_object(RiakObject) ->
                        Links),
     {struct, [{<<"vclock">>,vclock_to_headers(riak_object:vclock(RiakObject))},
               {<<"lastmod">>,
-               list_to_binary(dict:fetch(<<"X-Riak-Last-Modified">>, MD))},
+               list_to_binary(
+                 case dict:fetch(<<"X-Riak-Last-Modified">>, MD) of
+                     Datetime={_,_} ->
+                         httpd_util:rfc1123_date(
+                           calendar:universal_time_to_local_time(Datetime));
+                     Rfc1123 when is_list(Rfc1123) ->
+                         Rfc1123
+                 end)},
               {<<"vtag">>,
                list_to_binary(dict:fetch(<<"X-Riak-VTag">>, MD))}
               |J0]}.

@@ -28,17 +28,17 @@
 %%      the gregorian calendar.
 moment() -> calendar:datetime_to_gregorian_seconds(calendar:universal_time()).
 
-%% @spec compare_dates(string(), string()) -> boolean()
-%% @doc Compare two RFC1123 date strings.  Return true if date A
-%%      is later than date B.
-compare_dates(A, B) ->
-    % true if A is later than B, where
-    % A and B are rfc1123 dates.
-    A1 = calendar:datetime_to_gregorian_seconds(
-	   httpd_util:convert_request_date(A)),
-    B1 = calendar:datetime_to_gregorian_seconds(
-	   httpd_util:convert_request_date(B)),
-    A1 > B1.
+%% @spec compare_dates(string()|datetime(), string()|datetime()) -> boolean()
+%% @doc Compare two RFC1123 date strings or two datetime tuples (or
+%%      one of each).  Return true if date A is later than date B.
+compare_dates(A={_,_}, B={_,_}) ->
+    %% assume 2-tuples are datetimes
+    A > B;
+compare_dates(A, B) when is_list(A) ->
+    %% assume lists are rfc1123 date strings
+    compare_dates(httpd_util:convert_request_date(A), B);
+compare_dates(A, B) when is_list(B) ->
+    compare_dates(A, httpd_util:convert_request_date(B)).
 
 %% @spec make_tmp_dir() -> string()
 %% @doc Create a unique directory in /tmp.  Returns the path
