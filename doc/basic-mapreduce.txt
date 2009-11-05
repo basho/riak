@@ -154,9 +154,7 @@ This means a few things to you:
 
 - If you need to do a Riak 'get' inside of a map or reduce function,
   you can use riak:local_client/0 to get a Riak client instead of
-  riak:client_connect/3.  The code is already running on a connected
-  node -- there's no need to go through the doorbell/connect
-  proceedure.
+  riak:client_connect/1.
 
 - Your map and reduce functions are running on a Riak node, which
   means that that Riak node is spending CPU time doing something other

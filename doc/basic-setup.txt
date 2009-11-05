@@ -37,10 +37,6 @@ cluster_name: string
   The name of the cluster.  Can be anything.  Used mainly in saving
   ring configuration.  All nodes should have the same cluster name.
 
-doorbell_port: integer
-  Network port on which this node will listen for connections from
-  clients and other nodes.
-
 gossip_interval: integer
   The period, in milliseconds, at which ring state gossiping will
   happen.  A good default is 60000 (sixty seconds).  Best not to
@@ -122,7 +118,6 @@ example, a simple configuration file may look like this:
 {ring_state_dir, "priv/ringstate"}.
 {ring_creation_size, 16}.
 {gossip_interval, 60000}.
-{doorbell_port, 9000}.
 {storage_backend, riak_fs_backend}.
 {riak_fs_backend_root, "/var/riak/store"}.
 {riak_cookie, default_riak_cookie}.
@@ -151,9 +146,9 @@ is possible.  To do so:
 
 1. cd /usr/local/riak
 2. cp config/riak.erlenv config/riak2.erlenv
-3. Edit riak2.erlenv, and change doorbell_port, riak_fs_backend_root,
+3. Edit riak2.erlenv, and change riak_fs_backend_root
    and riak_nodename to something unique.
-3. ./start-join config/riak2.erlenv 127.0.0.1 9000
+3. ./start-join config/riak2.erlenv riak@127.0.0.1
 
 That node will also start and background itself.  You cluster will
 still be ready to accept requests, with no further changes.
@@ -172,7 +167,6 @@ configuration file.  Something like this will work:
 {ring_state_dir, "priv/ringstate"}.
 {ring_creation_size, 1024}.
 {gossip_interval, 60000}.
-{doorbell_port, 9000}.
 {storage_backend, riak_fs_backend}.
 {riak_fs_backend_root, "/var/riak/store"}.
 {riak_cookie, default_riak_cookie}.
@@ -210,15 +204,14 @@ Starting more nodes in production is just as easy:
 1. Install Riak on another host.
 2. Copy riak.erlenv from your original host to the new host.
 3. Edit riak.erlenv and change riak_hostname to match the new host.
-4. ./start-join config/riak.erlenv prod0.domain.net 9000
+4. ./start-join config/riak.erlenv riak@prod0.domain.net
 
 That node will also start and background itself.  You cluster will
 still be ready to accept requests, with no further changes.
 
-Notice that there is no need to change doorbell_port,
-riak_fs_backend_port, or riak_nodename on the new host, because they
-won't conflict with those settings on the original host, unlike the
-development configuration.
+Notice that there is no need to change riak_fs_backend_root, or
+riak_nodename on the new host, because they won't conflict with 
+those settings on the original host, unlike the development configuration.
 
 
 Logging
@@ -226,18 +219,20 @@ Logging
 
 Riak doesn't do any persistent logging in the default configuration.
 Instead, logging can be "enabled" and "disabled" by connecting and
-disconnecting an "eventer".  Eventers will be described more fully in
-another document, but this simple steps for starting the default
-logging eventer are:
+disconnecting an "eventer".  Eventers are described more fully in
+the riak_eventer module documentation, but this simple steps for starting 
+the default logging eventer are:
 
 1. cd /usr/local/riak
-2. ./start-eventer.sh default default_riak_cookie 127.0.0.1 9000 \
-   evt riak_event_logger /tmp/riakevt.log
+2. ./start-logger.sh node@hostname cookie filename
+   Filename can be left blank to log to stdout.
 
-That command will start and Erlang node, named 'evt' that will stay
-running.  It will connect to the cluster "default" at 127.0.0.1:9000,
-with Erlang cookie 'default_riak_cookie'.  It will then begin spewing
-data into /tmp/riakevt.log.  Use 'tail -F /tmp/riakevt.log' to watch
-it fly by.  Note that it is not recommended that you connect this
+This command will start an Erlang node, named riak_logger@localhost,
+that will stay running. It will connect to the cluster through the
+specified node, and attach an eventer to the cluster. The eventer will
+capture all events about the system and either dump them to the provided file,
+or print them to the screen.
+
+Note that it is not recommended that you connect this
 particular logger to an active production cluster, as it generates a
 *lot* of data, and has no provision for things like log file rollover.
