@@ -27,6 +27,7 @@
 -define(HEAD_VCLOCK,   "X-Riak-Vclock").
 -define(HEAD_LINK,     "Link").
 -define(HEAD_ENCODING, "Content-Encoding").
+-define(HEAD_CLIENT,   "X-Riak-ClientId").
 
 %% Names of JSON fields in bucket properties
 -define(JSON_PROPS,   <<"props">>).

@@ -191,7 +191,7 @@ init(Props) ->
 %%      bindings from the dispatch, as well as any vtag
 %%      query parameter.
 service_available(RD, Ctx=#ctx{riak=RiakProps}) ->
-    case get_riak_client(RiakProps) of
+    case get_riak_client(RiakProps, get_client_id(RD)) of
         {ok, C} ->
             {true,
              RD,
@@ -212,14 +212,32 @@ service_available(RD, Ctx=#ctx{riak=RiakProps}) ->
              Ctx}
     end.
 
-%% @spec get_riak_client(local|{node(),Cookie::atom()}) ->
+%% @spec get_riak_client(local|{node(),Cookie::atom()}, term()) ->
 %%          {ok, riak_client()} | error()
 %% @doc Get a riak_client.
-get_riak_client(local) ->
-    riak:local_client();
-get_riak_client({Node, Cookie}) ->
+get_riak_client(local, ClientId) ->
+    riak:local_client(ClientId);
+get_riak_client({Node, Cookie}, ClientId) ->
     erlang:set_cookie(node(), Cookie),
-    riak:client_connect(Node).
+    riak:client_connect(Node, ClientId).
+
+%% @spec get_client_id(reqdata()) -> term()
+%% @doc Extract the request's preferred client id from the
+%%      X-Riak-ClientId header.  Return value will be:
+%%        'undefined' if no header was found
+%%        32-bit binary() if the header could be base64-decoded
+%%           into a 32-bit binary
+%%        string() if the header could not be base64-decoded
+%%           into a 32-bit binary
+get_client_id(RD) ->
+    case wrq:get_req_header(?HEAD_CLIENT, RD) of
+        undefined -> undefined;
+        RawId ->
+            case catch base64:decode(RawId) of
+                ClientId= <<_:32>> -> ClientId;
+                _ -> RawId
+            end
+    end.
 
 %% @spec allowed_methods(reqdata(), context()) ->
 %%          {[method()], reqdata(), context()}
