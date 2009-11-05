@@ -162,7 +162,7 @@ fallback(Cmd, Msg, Pangs, Fallbacks) -> fallback(Cmd, Msg, Pangs, Fallbacks, [])
 fallback(_Cmd, _Msg, [], _Fallbacks, Sent) -> Sent;
 fallback(_Cmd, _Msg, _Pangs, [], Sent) -> Sent;
 fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
-    case lists:member(Node, [node()|nodes()]) orelse net_adm:ping(Node) == pong of
+    case lists:member(FN, [node()|nodes()]) orelse net_adm:ping(FN) == pong of
         false -> fallback(Cmd, Msg, [{Index,Node}|Pangs], Fallbacks, Sent);
         true ->
             gen_server:cast({riak_vnode_master, FN},

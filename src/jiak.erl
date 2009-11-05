@@ -59,23 +59,34 @@
 %%      links for following.
 -module(jiak).
 
--export([local_client/0, client_connect/1]).
+-export([local_client/0, local_client/1,
+         client_connect/1, client_connect/2]).
 -export([default_jiak_bucket_props/0]).
 -export([standard_sibling_merge/1]).
 
 -include_lib("eunit/include/eunit.hrl").
 
 %% @spec local_client() -> {ok, jiak_client()}|error_term()
+%% @equiv local_client(undefined)
+local_client() -> local_client(undefined).
+
+%% @spec local_client(binary()|undefined) ->
+%%         {ok, jiak_client()}|error_term()
 %% @doc Open a Riak client for modifying Jiak objects.
-%% @see riak:local_client/0
-local_client() -> client_connect(node()).
+%% @see riak:local_client/1
+local_client(ClientId) -> client_connect(node(), ClientId).
 
 %% @spec client_connect(Node :: node())
 %%        -> {ok, Client :: jiak_client()} | exception
+%% @equiv client_connect(Node, undefined)
+client_connect(Node) -> client_connect(Node, undefined).
+
+%% @spec client_connect(Node :: node(), ClientId :: binary()|undefined)
+%%        -> {ok, Client :: jiak_client()} | exception
 %% @doc The usual way to get a client.  Timeout often means either a bad
 %%      cookie or a poorly-connected distributed erlang network.
-client_connect(Node) -> 
-    case riak:client_connect(Node) of
+client_connect(Node, ClientId) ->
+    case riak:client_connect(Node, ClientId) of
         {ok, C} -> {ok, jiak_client:new(C)};
         Error -> Error
     end.
