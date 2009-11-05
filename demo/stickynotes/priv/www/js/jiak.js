@@ -57,12 +57,39 @@ function JiakClient(BaseUrl, Opts) {
         this.baseurl += '/';
 
     this.opts = Opts||{};
+
+    // utility to convert an integer to base64-encoded 32-bits
+    base64 = function(N) {
+        var base64digits = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/=";
+        return base64digits[(N >>> 26)]
+            +base64digits[((N >>> 20)&63)]
+            +base64digits[((N >>> 14)&63)]
+            +base64digits[((N >>> 8)&63)]
+            +base64digits[((N >>> 2)&63)]
+            +base64digits[((N << 4)&63)]
+            +'==';
+    }
+
+    if (('clientId' in this.opts) && !!this.opts.clientId) {
+        if (typeof this.opts.clientId == "number"
+            && this.opts.clientId > 0 && this.opts.clientId < 4294967296) {
+            this.opts.clientId = base64(this.opts.clientId);
+        }
+        //otherwise, just use whatever clientId was given
+    } else {
+        //choose a client id if the caller didn't provide one
+        this.opts.clientId = base64(Math.floor(Math.random()*4294967296));
+    }
 }
 
 JiakClient.prototype.store = function(Object, Callback, NoReturnBody, W, DW, R) {
+    var cid = this.opts.clientId;
     var req = {
         contentType: "application/json",
-        dataType: "json"
+        dataType: "json",
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-Riak-ClientId", cid);
+        }
     };
 
     if (this.opts.alwaysPost || !Object.key)
@@ -110,11 +137,15 @@ JiakClient.prototype.fetch = function(Bucket, Key, Callback, R) {
 }
 
 JiakClient.prototype.remove = function(Bucket, Key, Callback, RW) {
+    var cid = this.opts.clientId;
     return $.ajax({
         type:    'DELETE',
         url:     this.path(Bucket, Key)+
                    ((RW||this.opts.rw)?('?rw='+(RW||this.opts.rw)):''),
-        success: Callback
+        success: Callback,
+        beforeSend: function(xhr) {
+            xhr.setRequestHeader("X-Riak-ClientId", cid);
+        }
     });
 }
 
