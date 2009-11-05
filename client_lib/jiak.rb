@@ -27,6 +27,16 @@ class JiakClient
     @port = port
     @prefix = jiakPrefix
     @opts = options
+
+    if (@opts['clientId'])
+      if (@opts['clientId'].kind_of? Integer &&
+          @opts['clientId'] > 0 &&
+          @opts['clientId'] < 4294967296)
+        @opts['clientId'] = base64(@opts['clientId'])
+      end
+    else
+      @opts['clientId'] = base64(rand(4294967296))
+    end
   end
 
   # Set the schema for 'bucket'.  The schema parameter
@@ -71,10 +81,12 @@ class JiakClient
       'r'=>(r||@opts['r'])
     }
     if (object['key'])
-      req = Net::HTTP::Put.new(path(object['bucket'], object['key'], q))
+      req = Net::HTTP::Put.new(path(object['bucket'], object['key'], q),
+                               initheader={"X-Riak-ClientId" => @opts['clientId']})
       code = '200'
     else
-      req = Net::HTTP::Post.new(path(object['bucket'], nil, q))
+      req = Net::HTTP::Post.new(path(object['bucket'], nil, q),
+                                initheader={"X-Riak-ClientId" => @opts['clientId']})
       code = '201'
     end
 
@@ -84,7 +96,8 @@ class JiakClient
   # Delete the data stored in 'bucket' at 'key'
   def delete(bucket, key, rw=nil)
     do_req(Net::HTTP::Delete.new(path(bucket, key,
-                                      {'rw'=>(rw||@opts['rw'])})),
+                                      {'rw'=>(rw||@opts['rw'])}),
+                                 initheader={"X-Riak-ClientId" => @opts['clientId']}),
            '204')
   end
 
@@ -139,10 +152,22 @@ class JiakClient
       raise JiakException.new(res.code+' '+res.message+' '+res.body)
     end
   end
+
+  def base64(n)
+    base64digits = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/="
+    "%c%c%c%c%c%c==" %
+      [base64digits[(n >> 26)],
+       base64digits[((n >> 20)&63)],
+       base64digits[((n >> 14)&63)],
+       base64digits[((n >> 8)&63)],
+       base64digits[((n >> 2)&63)],
+       base64digits[((n << 4)&63)]]
+  end
   private:convert_walk_spec
   private:path
   private:set_data
   private:do_req
+  private:base64
 end
 
 class JiakException<Exception
