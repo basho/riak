@@ -52,15 +52,15 @@ init([ReqId,RObj0,W,DW,Timeout,Client]) ->
 %% @private
 initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
                                       timeout=Timeout, ring=Ring}) ->
+    RObj = update_metadata(RObj0),
     RealStartTime = riak_util:moment(),
-    Bucket = riak_object:bucket(RObj0),
+    Bucket = riak_object:bucket(RObj),
     BucketProps = riak_bucket:get_bucket(Bucket, Ring),
-    RObj = prune_vclock(update_metadata(RObj0),BucketProps),
     Key = riak_object:key(RObj),
     riak_eventer:notify(riak_put_fsm, put_fsm_start,
                         {ReqId, RealStartTime, Bucket, Key}),
     DocIdx = riak_util:chash_key({Bucket, Key}),
-    Msg = {self(), {Bucket,Key}, RObj, ReqId},
+    Msg = {self(), {Bucket,Key}, RObj, ReqId, RealStartTime},
     N = proplists:get_value(n_val,BucketProps),
     Preflist = riak_ring:filtered_preflist(DocIdx, Ring, N),
     {Targets, Fallbacks} = lists:split(N, Preflist),
@@ -194,92 +194,9 @@ update_metadata(RObj) ->
     end,
     riak_object:apply_updates(riak_object:update_metadata(RObj, NewMD)).
 
-prune_vclock(RObj,BucketProps) ->
-    % This function is a little bit evil, as it relies on the
-    % internal structure of vclocks.
-    % That structure being [{Id, {Vsn, Timestamp}}]
-    V = riak_object:vclock(RObj),
-    SortV = lists:sort(fun({_,{_,A}},{_,{_,B}}) -> A < B end, V),
-    Now = calendar:datetime_to_gregorian_seconds(erlang:universaltime()),
-    case prune_vclock1(Now,SortV,BucketProps,no_change) of
-        {no_change, _} -> RObj;
-        {pruned, NewV} -> riak_object:set_vclock(RObj,NewV)
-    end.
-
-prune_vclock1(Now,V,BProps,Changed) ->
-    case length(V) =< proplists:get_value(small_vclock,BProps) of
-        true -> {Changed, V};
-        false ->
-            {_,{_,HeadTime}} = hd(V),
-            case (Now - HeadTime) < proplists:get_value(young_vclock,BProps) of
-                true -> {Changed, V};
-                false -> prune_vclock1(Now,V,BProps,Changed,HeadTime)
-            end
-    end.
-prune_vclock1(Now,V,BProps,Changed,HeadTime) ->
-    % has a precondition that V is longer than small and older than young
-    case length(V) > proplists:get_value(big_vclock,BProps) of
-        true -> prune_vclock1(Now,tl(V),BProps,pruned);
-        false ->
-            case (Now - HeadTime) > proplists:get_value(old_vclock,BProps) of
-                true -> prune_vclock1(Now,tl(V),BProps,pruned);
-                false -> {Changed, V}
-            end
-    end.
-
 make_vtag(RObj) ->
     <<HashAsNum:128/integer>> = crypto:md5(term_to_binary(riak_object:vclock(RObj))),
     riak_util:integer_to_list(HashAsNum,62).
-
-% following two are just utility functions for test assist
-vc_obj(VC) -> riak_object:set_vclock(riak_object:new(<<"b">>,<<"k">>,<<"v">>), VC).
-obj_vc(OB) -> riak_object:vclock(OB).
-
-prune_small_vclock_test() ->
-    % vclock with less entries than small_vclock will be untouched
-    OldTime = calendar:datetime_to_gregorian_seconds(erlang:universaltime())
-               - 32000000,
-    SmallVC = [{<<"1">>, {1, OldTime}},
-               {<<"2">>, {2, OldTime}},
-               {<<"3">>, {3, OldTime}}],
-    Props = [{small_vclock,4}],
-    ?assertEqual(SmallVC, obj_vc(prune_vclock(vc_obj(SmallVC), Props))).
-
-prune_young_vclock_test() ->
-    % vclock with all entries younger than young_vclock will be untouched
-    NewTime = calendar:datetime_to_gregorian_seconds(erlang:universaltime())
-               - 1,
-    VC = [{<<"1">>, {1, NewTime}},
-          {<<"2">>, {2, NewTime}},
-          {<<"3">>, {3, NewTime}}],
-    Props = [{small_vclock,1},{young_vclock,1000}],
-    ?assertEqual(VC, obj_vc(prune_vclock(vc_obj(VC), Props))).
-
-prune_big_vclock_test() ->
-    % vclock not preserved by small or young will be pruned down to
-    % no larger than big_vclock entries
-    NewTime = calendar:datetime_to_gregorian_seconds(erlang:universaltime())
-               - 1000,
-    VC = [{<<"1">>, {1, NewTime}},
-          {<<"2">>, {2, NewTime}},
-          {<<"3">>, {3, NewTime}}],
-    Props = [{small_vclock,1},{young_vclock,1},
-             {big_vclock,2},{old_vclock,100000}],
-    ?assert(length(obj_vc(prune_vclock(vc_obj(VC), Props))) =:= 2).
-
-prune_old_vclock_test() ->
-    % vclock not preserved by small or young will be pruned down to
-    % no larger than big_vclock and no entries more than old_vclock ago
-    NewTime = calendar:datetime_to_gregorian_seconds(erlang:universaltime())
-               - 1000,
-    OldTime = calendar:datetime_to_gregorian_seconds(erlang:universaltime())
-               - 100000,    
-    VC = [{<<"1">>, {1, NewTime}},
-          {<<"2">>, {2, OldTime}},
-          {<<"3">>, {3, OldTime}}],
-    Props = [{small_vclock,1},{young_vclock,1},
-             {big_vclock,2},{old_vclock,10000}],
-    ?assert(length(obj_vc(prune_vclock(vc_obj(VC), Props))) =:= 1).
 
 make_vtag_test() ->
     Obj = riak_object:new(<<"b">>,<<"k">>,<<"v1">>),

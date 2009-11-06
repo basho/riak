@@ -170,12 +170,14 @@ finalize(StateData=#state{final_obj=Final,
                           bkey=BKey,
                           req_id=ReqId,
                           replied_notfound=NotFound,
-                          ring=Ring}) ->
+                          ring=Ring,
+                          starttime=StartTime}) ->
     case Final of
         {error, notfound} ->
             maybe_finalize_delete(StateData);
         {ok,_} ->
-            maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,ReqId);
+            maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,
+                                 ReqId,StartTime);
         _ -> nop
     end,
     {stop,normal,StateData}.
@@ -208,11 +210,11 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
     end
     end).
 
-maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,ReqId) ->
+maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
     Targets0 = ancestor_indices(Final, RepliedR) ++ NotFound,
     Targets = [{Idx,riak_ring:index_owner(Ring,Idx)} || Idx <- Targets0],
     {ok, FinalRObj} = Final,
-    Msg = {self(), BKey, FinalRObj, ReqId},
+    Msg = {self(), BKey, FinalRObj, ReqId, StartTime},
     case Targets of
         [] -> nop;
         _ ->

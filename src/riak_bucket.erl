@@ -69,7 +69,7 @@ defaults() ->
      {linkfun,{modfun, jiak_object, mapreduce_linkfun}},
      {chash_keyfun, {riak_util, chash_std_keyfun}},
      {old_vclock, 86400},
-     {young_vclock, 21600},
+     {young_vclock, 20},
      {big_vclock, 50},
      {small_vclock, 10}].
 

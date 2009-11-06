@@ -10,7 +10,7 @@ Overview
 
 To talk to riak, all you need is an Erlang node with riak/ebin in its 
 code path.  Once this shell is up,
-use riak:client_connect/3 to get connected.  The client returned from
+use riak:client_connect/1 to get connected.  The client returned from
 client_connect is defined by the riak_client module, and supports the
 simple functions get, put, delete, and others.
 
@@ -21,7 +21,7 @@ Starting Your Client Erlang Node
 Riak client nodes must use "long names" and have riak/ebin in their
 code path.  The easiest way to start a node of this nature is:
 
-$ erl -name myclient@127.0.0.1 -pa $PATH_TO_RIAK/ebin 
+$ erl -name myclient@127.0.0.1 -setcookie cookie -pa $PATH_TO_RIAK/ebin 
 
 You'll know you've done this correctly if you can execute the
 following commands and get a path to a beam file, instead of the atom
@@ -33,13 +33,12 @@ following commands and get a path to a beam file, instead of the atom
 Connecting
 ---
 
-Once you have your node running, pass your Riak server's IP, port, and
-cookie to riak:client_connect/3 to connect and get a client.  This can
+Once you have your node running, pass your Riak server nodename
+to riak:client_connect/1 to connect and get a client.  This can
 be as simple as:
 
-3> {ok, Client} = riak:client_connect("127.0.0.1", 9000, mycookie).
-{ok,{riak_client,'riak@127.0.0.1',
-                 "20090722141126-myclient@127.0.0.1-riak@127.0.0.1-928359"}}
+3> {ok, Client} = riak:client_connect('riak@127.0.0.1').
+{ok,{riak_client,'riak@127.0.0.1', <<1,112,224,226>>}}
 
 
 Storing New Data
@@ -166,7 +165,7 @@ wanted to overwrite the list with ["bread","cheese"].  What would
 happen if you just fired up a new client, and overwrote the existing
 list with a new one?
 
-1> {ok, C} = riak:client_connect("127.0.0.1", 9000, mycookie).
+1> {ok, C} = riak:client_connect('riak@127.0.0.1').
 ...
 2> ok = C:put(riak_object:new(<<"groceries">>, <<"mine">>, ["bread","cheese"]), 1).
 ...
@@ -292,7 +291,7 @@ riak_client module:
  {allow_mult,true},
  {linkfun,{no_mod,no_fun}},
  {old_vclock,86400},
- {young_vclock,21600},
+ {young_vclock,20},
  {big_vclock,50},
  {small_vclock,10}]
 
@@ -348,11 +347,10 @@ The node that your client was connected to is down.  Try connecting a
 new client.
 
 
-riak:client_connect/3 returns {error,timeout}
+riak:client_connect/1 returns {error,timeout}
 -
 
-This riak cluster is probably down.  It may also just be overloaded,
-but it's more likely down.
+The Riak node you are connecting to is down.
 
 
 {error,notfound}

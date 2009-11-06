@@ -172,19 +172,18 @@
 %%      attempt to open a client to Riak, and will fail if it is
 %%      unable to do so.
 init(Props) ->
-    {ok, JiakClient} = 
+    ClientType = 
         case proplists:get_value(riak_local, Props) of
-            true ->
-                jiak:local_client();
+            true -> local;
             _ ->
                 Node = proplists:get_value(riak_node, Props),
                 Cookie = proplists:get_value(riak_cookie, Props),
                 erlang:set_cookie(node(), Cookie),
-                jiak:client_connect(Node)
+                {remote, Node}
         end,
     {ok, #ctx{jiak_name=proplists:get_value(jiak_name, Props),
               key=proplists:get_value(key_type, Props),
-              jiak_client=JiakClient}}.
+              jiak_client=ClientType}}.
 
 %% @spec service_available(webmachine:wrq(), context()) -> 
 %%           {boolean, webmachine:wrq(), context()}
@@ -193,7 +192,20 @@ init(Props) ->
 %%      same name as the bucket.  If no module is found, the bucket 
 %%      configuration metadata in the ring is used, and must contain
 %%      a valid Jiak schema.  
-service_available(ReqData, Context=#ctx{key=container}) ->
+service_available(ReqData, Context=#ctx{jiak_client=ClientType}) ->
+    {ok, Client} = case ClientType of
+                       local ->
+                           jiak:local_client(get_client_id(ReqData));
+                       {remote, Node} ->
+                           jiak:client_connect(Node, get_client_id(ReqData))
+                   end,
+    service_available2(ReqData, Context#ctx{jiak_client=Client}).
+
+%% @spec service_available2(webmachine:wrq(), context()) -> 
+%%           {boolean, webmachine:wrq(), context()}
+%% @doc Continue service_available processing after the riak_client
+%%      is created.
+service_available2(ReqData, Context=#ctx{key=container}) ->
     {ServiceAvailable, NewCtx} = 
         case wrq:method(ReqData) of
             'PUT' -> 
@@ -206,9 +218,27 @@ service_available(ReqData, Context=#ctx{key=container}) ->
                 {true, Context#ctx{module=Mod}}
         end,
     {ServiceAvailable, ReqData, NewCtx};
-service_available(ReqData, Context) ->
+service_available2(ReqData, Context) ->
     Mod = jiak_util:get_jiak_module(ReqData),
     {true, ReqData, Context#ctx{module=Mod}}.
+
+%% @spec get_client_id(reqdata()) -> term()
+%% @doc Extract the request's preferred client id from the
+%%      X-Riak-ClientId header.  Return value will be:
+%%        'undefined' if no header was found
+%%        32-bit binary() if the header could be base64-decoded
+%%           into a 32-bit binary
+%%        string() if the header could not be base64-decoded
+%%           into a 32-bit binary
+get_client_id(RD) ->
+    case wrq:get_req_header("X-Riak-ClientId", RD) of
+        undefined -> undefined;
+        RawId ->
+            case catch base64:decode(RawId) of
+                ClientId= <<_:32>> -> ClientId;
+                _ -> RawId
+            end
+    end.
 
 %% @spec allowed_methods(webmachine:wrq(), context()) ->
 %%          {[http_method()], webmachine:wrq(), context()}
