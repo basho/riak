@@ -29,7 +29,7 @@
 -author('Andy Gross <andy@basho.com>').
 
 -export([fresh/0,descends/2,merge/1,get_counter/2,get_timestamp/2,
-	increment/2,all_nodes/1,equal/2]).
+	increment/2,all_nodes/1,equal/2,prune/3]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -167,3 +167,76 @@ equal(VA,VB) ->
                 false -> true
             end
     end.
+
+% @doc Possibly shrink the size of a vclock, depending on current age and size.
+% @spec prune(V::vclock(), Now::integer(), BucketProps::term()) -> vclock()
+prune(V,Now,BucketProps) ->
+    SortV = lists:sort(fun({_,{_,A}},{_,{_,B}}) -> A < B end, V),
+    prune_vclock1(SortV,Now,BucketProps).
+% @private
+prune_vclock1(V,Now,BProps) ->
+    case length(V) =< proplists:get_value(small_vclock,BProps) of
+        true -> V;
+        false ->
+            {_,{_,HeadTime}} = hd(V),
+            case (Now - HeadTime) < proplists:get_value(young_vclock,BProps) of
+                true -> V;
+                false -> prune_vclock1(V,Now,BProps,HeadTime)
+            end
+    end.
+% @private
+prune_vclock1(V,Now,BProps,HeadTime) ->
+    % has a precondition that V is longer than small and older than young
+    case length(V) > proplists:get_value(big_vclock,BProps) of
+        true -> prune_vclock1(tl(V),Now,BProps);
+        false ->
+            case (Now - HeadTime) > proplists:get_value(old_vclock,BProps) of
+                true -> prune_vclock1(tl(V),Now,BProps);
+                false -> V
+            end
+    end.
+
+prune_small_test() ->
+    % vclock with less entries than small_vclock will be untouched
+    Now = riak_util:moment(),
+    OldTime = Now - 32000000,
+    SmallVC = [{<<"1">>, {1, OldTime}},
+               {<<"2">>, {2, OldTime}},
+               {<<"3">>, {3, OldTime}}],
+    Props = [{small_vclock,4}],
+    ?assertEqual(lists:sort(SmallVC), lists:sort(prune(SmallVC, Now, Props))).
+
+prune_young_test() ->
+    % vclock with all entries younger than young_vclock will be untouched
+    Now = riak_util:moment(),
+    NewTime = Now - 1,
+    VC = [{<<"1">>, {1, NewTime}},
+          {<<"2">>, {2, NewTime}},
+          {<<"3">>, {3, NewTime}}],
+    Props = [{small_vclock,1},{young_vclock,1000}],
+    ?assertEqual(lists:sort(VC), lists:sort(prune(VC, Now, Props))).
+
+prune_big_test() ->
+    % vclock not preserved by small or young will be pruned down to
+    % no larger than big_vclock entries
+    Now = riak_util:moment(),
+    NewTime = Now - 1000,
+    VC = [{<<"1">>, {1, NewTime}},
+          {<<"2">>, {2, NewTime}},
+          {<<"3">>, {3, NewTime}}],
+    Props = [{small_vclock,1},{young_vclock,1},
+             {big_vclock,2},{old_vclock,100000}],
+    ?assert(length(prune(VC, Now, Props)) =:= 2).
+
+prune_old_test() ->
+    % vclock not preserved by small or young will be pruned down to
+    % no larger than big_vclock and no entries more than old_vclock ago
+    Now = riak_util:moment(),
+    NewTime = Now - 1000,
+    OldTime = Now - 100000,    
+    VC = [{<<"1">>, {1, NewTime}},
+          {<<"2">>, {2, OldTime}},
+          {<<"3">>, {3, OldTime}}],
+    Props = [{small_vclock,1},{young_vclock,1},
+             {big_vclock,2},{old_vclock,10000}],
+    ?assert(length(prune(VC, Now, Props)) =:= 1).

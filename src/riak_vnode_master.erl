@@ -37,9 +37,9 @@ handle_cast({vnode_map, {Partition,_Node},
     % (obligation done, now the problem of the vnodes)
     {noreply, State};
 handle_cast({vnode_put, {Partition,_Node},
-             {FSM_pid,BKey,RObj,ReqID}}, State) ->
+             {FSM_pid,BKey,RObj,ReqID,FSMTime}}, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {put, FSM_pid, BKey, RObj, ReqID}),
+    gen_server2:cast(Pid, {put, FSM_pid, BKey, RObj, ReqID, FSMTime}),
     % (obligation done, now the problem of the vnodes)
     {noreply, State};
 handle_cast({vnode_get, {Partition,_Node},

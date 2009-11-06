@@ -75,11 +75,11 @@ handle_cast({map, ClientPid, QTerm, BKey, KeyData},
     VNode = self(),
     do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,VNode),
     {noreply, State};
-handle_cast({put, FSM_pid, BKey, RObj, ReqID},
+handle_cast({put, FSM_pid, BKey, RObj, ReqID, FSMTime},
             State=#state{mapcache=Cache,idx=Idx}) ->
     riak_eventer:notify(riak_vnode, put, {ReqID, Idx}),
     gen_fsm:send_event(FSM_pid, {w, Idx, ReqID}),
-    do_put(FSM_pid, BKey, RObj, ReqID, State),
+    do_put(FSM_pid, BKey, RObj, ReqID, FSMTime, State),
     {noreply, State#state{mapcache=dict:erase(BKey,Cache)}};
 handle_cast({get, FSM_pid, BKey, ReqID}, State=#state{idx=Idx}) ->
     riak_eventer:notify(riak_vnode, get, {ReqID, Idx}),
@@ -149,13 +149,19 @@ do_delete(Client, BKey, ReqID,
 simple_binary_put(BKey, Val, Mod, ModState) ->
     Mod:put(ModState, BKey, Val).
 
-do_put(FSM_pid, BKey, RObj, ReqID,
+do_put(FSM_pid, BKey, RObj, ReqID, PruneTime, 
        _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
+    {ok,Ring} = riak_ring_manager:get_my_ring(),    
+    {Bucket,_Key} = BKey,
+    BProps = riak_bucket:get_bucket(Bucket, Ring),
     case syntactic_put_merge(Mod, ModState, BKey, RObj, ReqID) of
         oldobj -> 
             riak_eventer:notify(riak_vnode,put_reply,ReqID),
             gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
-        {newobj, ObjToStore} ->
+        {newobj, NewObj} ->
+            VC = riak_object:vclock(NewObj),
+            ObjToStore = riak_object:set_vclock(NewObj,
+                                           vclock:prune(VC,PruneTime,BProps)),
             Val = term_to_binary(ObjToStore, [compressed]),
             case simple_binary_put(BKey, Val, Mod, ModState) of
                 ok ->
@@ -280,3 +286,4 @@ syntactic_put_merge(Mod, ModState, BKey, Obj1, ReqId) ->
                 false -> {newobj, ResObj}
             end    
     end.
+
