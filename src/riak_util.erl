@@ -20,7 +20,7 @@
          is_x_deleted/1,obj_not_deleted/1,integer_to_list/2,
          unique_id_62/0]).
 -export([chash_key/1,chash_std_keyfun/1,chash_bucketonly_keyfun/1]).
--export([try_cast/3, fallback/4, mkclientid/1]).
+-export([try_cast/4, fallback/4, mkclientid/1]).
 
 %% @spec moment() -> integer()
 %% @doc Get the current "moment".  Current implementation is the
@@ -139,15 +139,18 @@ reload_all(Module) ->
 %%      successful casts is the first element of the return tuple, and
 %%      the list of pang-responding nodes is the second element.
 %%      Used in riak_put_fsm and riak_get_fsm.
-try_cast(Cmd, Msg, Targets) -> try_cast(Cmd, Msg, Targets, [], []).
-try_cast(_Cmd, _Msg, [], Sent, Pangs) -> {Sent, Pangs};
-try_cast(Cmd, Msg, [{Index,Node}|Targets], Sent, Pangs) ->
-    case lists:member(Node, [node()|nodes()]) orelse net_adm:ping(Node) == pong of
-        false -> try_cast(Cmd, Msg, Targets, Sent, [{Index,Node}|Pangs]);
+try_cast(Cmd, Msg, UpNodes, Targets) ->
+    try_cast(Cmd, Msg, UpNodes, Targets, [], []).
+try_cast(_Cmd, _Msg, _UpNodes, [], Sent, Pangs) -> {Sent, Pangs};
+try_cast(Cmd, Msg, UpNodes, [{Index,Node}|Targets], Sent, Pangs) ->
+    case lists:member(Node, [node()|UpNodes])
+          orelse net_adm:ping(Node) == pong of
+        false ->
+            try_cast(Cmd, Msg, UpNodes, Targets, Sent, [{Index,Node}|Pangs]);
         true ->
             gen_server:cast({riak_vnode_master, Node},
                             {Cmd, {Index,Node}, Msg}),
-            try_cast(Cmd, Msg, Targets, [{Index,Node,Node}|Sent], Pangs)
+            try_cast(Cmd, Msg, UpNodes, Targets, [{Index,Node,Node}|Sent],Pangs)
     end.
 
 %% @spec fallback(term(), term(), [{Index :: term(), Node :: node()}],
@@ -158,7 +161,8 @@ try_cast(Cmd, Msg, [{Index,Node}|Targets], Sent, Pangs) ->
 %%      from the second element of the response tuple of a call to
 %%      try_cast/3.
 %%      Used in riak_put_fsm and riak_get_fsm
-fallback(Cmd, Msg, Pangs, Fallbacks) -> fallback(Cmd, Msg, Pangs, Fallbacks, []).
+fallback(Cmd, Msg, Pangs, Fallbacks) ->
+    fallback(Cmd, Msg, Pangs, Fallbacks, []).
 fallback(_Cmd, _Msg, [], _Fallbacks, Sent) -> Sent;
 fallback(_Cmd, _Msg, _Pangs, [], Sent) -> Sent;
 fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->

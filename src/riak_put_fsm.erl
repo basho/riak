@@ -64,7 +64,7 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
     N = proplists:get_value(n_val,BucketProps),
     Preflist = riak_ring:filtered_preflist(DocIdx, Ring, N),
     {Targets, Fallbacks} = lists:split(N, Preflist),
-    {Sent1, Pangs1} = riak_util:try_cast(vnode_put, Msg, Targets),
+    {Sent1, Pangs1} = riak_util:try_cast(vnode_put, Msg, nodes(), Targets),
     Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
         true -> Sent1;
         false -> Sent1 ++ riak_util:fallback(vnode_put,Msg,Pangs1,Fallbacks)
