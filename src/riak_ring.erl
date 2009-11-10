@@ -98,7 +98,7 @@ all_members(State) ->
 % @doc Return a randomly-chosen node from amongst the owners.
 % @spec random_node(State :: chstate()) -> Node :: term()
 random_node(State) ->
-    L = lists:usort(all_members(State)),
+    L = all_members(State),
     lists:nth(crypto:rand_uniform(1, length(L)+1), L).
 
 % @doc Provide all ownership information in the form of {Index,Node} pairs.
