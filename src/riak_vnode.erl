@@ -162,7 +162,7 @@ do_put(FSM_pid, BKey, RObj, ReqID, PruneTime,
             VC = riak_object:vclock(NewObj),
             ObjToStore = riak_object:set_vclock(NewObj,
                                            vclock:prune(VC,PruneTime,BProps)),
-            Val = term_to_binary(ObjToStore, [compressed]),
+            Val = term_to_binary(ObjToStore),
             case simple_binary_put(BKey, Val, Mod, ModState) of
                 ok ->
                     riak_eventer:notify(riak_vnode,put_reply,ReqID),
