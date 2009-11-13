@@ -772,9 +772,9 @@ multipart_encode_body(Prefix, Bucket, {MD, V}) ->
      "Etag: ",dict:fetch(?MD_VTAG, MD),"\n",
      "Last-Modified: ",
      case dict:fetch(?MD_LASTMOD, MD) of
-         Datetime={_,_} ->
+         Now={_,_,_} ->
              httpd_util:rfc1123_date(
-               calendar:universal_time_to_local_time(Datetime));
+               calendar:now_to_local_time(Now));
          Rfc1123 when is_list(Rfc1123) ->
              Rfc1123
      end,
@@ -877,8 +877,8 @@ last_modified(RD, Ctx) ->
     case select_doc(Ctx) of
         {MD, _} ->
             {case dict:fetch(?MD_LASTMOD, MD) of
-                 Datetime={_,_} ->
-                     Datetime;
+                 Now={_,_,_} ->
+                     calendar:now_to_universal_time(Now);
                  Rfc1123 when is_list(Rfc1123) ->
                      httpd_util:convert_request_date(Rfc1123)
              end,

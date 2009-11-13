@@ -28,17 +28,29 @@
 %%      the gregorian calendar.
 moment() -> calendar:datetime_to_gregorian_seconds(calendar:universal_time()).
 
-%% @spec compare_dates(string()|datetime(), string()|datetime()) -> boolean()
-%% @doc Compare two RFC1123 date strings or two datetime tuples (or
-%%      one of each).  Return true if date A is later than date B.
-compare_dates(A={_,_}, B={_,_}) ->
-    %% assume 2-tuples are datetimes
+%% @spec compare_dates(string(), string()) -> boolean()
+%% @doc Compare two RFC1123 date strings or two now() tuples (or one
+%%      of each).  Return true if date A is later than date B.
+compare_dates(A={_,_,_}, B={_,_,_}) ->
+    %% assume 3-tuples are now() times
     A > B;
 compare_dates(A, B) when is_list(A) ->
     %% assume lists are rfc1123 date strings
-    compare_dates(httpd_util:convert_request_date(A), B);
+    compare_dates(rfc1123_to_now(A), B);
 compare_dates(A, B) when is_list(B) ->
-    compare_dates(A, httpd_util:convert_request_date(B)).
+    compare_dates(A, rfc1123_to_now(B)).
+
+%% 719528 days from Jan 1, 0 to Jan 1, 1970
+%%  *86400 seconds/day
+-define(SEC_TO_EPOCH, 62167219200).
+
+rfc1123_to_now(String) when is_list(String) ->
+    GSec = calendar:datetime_to_gregorian_seconds(
+             httpd_util:convert_request_date(String)),
+    ESec = GSec-?SEC_TO_EPOCH,
+    Sec = ESec rem 1000000,
+    MSec = ESec div 1000000,
+    {MSec, Sec, 0}.
 
 %% @spec make_tmp_dir() -> string()
 %% @doc Create a unique directory in /tmp.  Returns the path

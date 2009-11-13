@@ -120,9 +120,9 @@ from_riak_object(RiakObject) ->
               {<<"lastmod">>,
                list_to_binary(
                  case dict:fetch(<<"X-Riak-Last-Modified">>, MD) of
-                     Datetime={_,_} ->
+                     Now={_,_,_} ->
                          httpd_util:rfc1123_date(
-                           calendar:universal_time_to_local_time(Datetime));
+                           calendar:now_to_local_time(Now));
                      Rfc1123 when is_list(Rfc1123) ->
                          Rfc1123
                  end)},
