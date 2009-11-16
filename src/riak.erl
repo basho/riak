@@ -44,13 +44,13 @@ start() ->
     %% solving this (the value can be specified per-process with spawn_opt,
     %% but this works and doesn't have a noticeable impact on performance.
     erlang:system_flag(fullsweep_after, 20),
+    ensure_started(sasl),
+    ensure_started(crypto),
     confirm_epoch(),
     case riak:get_app_env(no_config) of
         true -> nop; % promising to set all env variables some other way
         _ -> riak_app:read_config()
     end,
-    ensure_started(sasl),
-    ensure_started(crypto),
     ensure_started(webmachine),
     application:start(riak, permanent).
 
