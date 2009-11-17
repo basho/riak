@@ -49,6 +49,8 @@
 -module(riak_claim).
 -export([default_wants_claim/1, default_choose_claim/1,
          never_wants_claim/1, random_choose_claim/1]).
+-export([default_choose_claim/2,
+         claim_rebalance_n/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -67,6 +69,9 @@ default_wants_claim(Ring) ->
 %% @spec default_choose_claim(riak_ring()) -> riak_ring()
 %% @doc Choose a partition at random.
 default_choose_claim(Ring) ->
+    default_choose_claim(Ring, node()).
+
+default_choose_claim(Ring, Node) ->
     TargetN = riak:get_app_env(target_n_val, 3),
     case meets_target_n(Ring, TargetN) of
         {true, TailViolations} ->
@@ -74,10 +79,10 @@ default_choose_claim(Ring) ->
             %% we claim vnodes, as long as we don't violate the
             %% target N with any of our additions
             %% (== claim partitions at least N steps apart)
-            claim_with_n_met(Ring, TailViolations);
+            claim_with_n_met(Ring, TailViolations, Node);
         false ->
             %% we don't meet target N yet, rebalance
-            claim_rebalance_n(Ring)
+            claim_rebalance_n(Ring, Node)
     end.
 
 meets_target_n(Ring, TargetN) ->
@@ -111,9 +116,8 @@ meets_target_n([], TargetN, Index, First, Last) ->
                      Last),
     {true, [ Part || {_, _, Part} <- Violations ]}.
 
-claim_with_n_met(Ring, TailViolations) ->
+claim_with_n_met(Ring, TailViolations, Node) ->
     CurrentOwners = lists:keysort(1, riak_ring:all_owners(Ring)),
-    Node = node(),
     Nodes = lists:usort([Node|riak_ring:all_members(Ring)]),
     case lists:sort([ I || {I, N} <- CurrentOwners, N == Node ]) of
         [] ->
@@ -143,10 +147,10 @@ claim_with_n_met(Ring, TailViolations) ->
             %% node already has claims - respect them
             %% pick biggest hole & sit in the middle
             %% rebalance will cure any mistake on the next pass
-            claim_hole(Ring, Mine, CurrentOwners)
+            claim_hole(Ring, Mine, CurrentOwners, Node)
     end.
 
-claim_hole(Ring, Mine, Owners) ->
+claim_hole(Ring, Mine, Owners, Node) ->
     Choices = case find_biggest_hole(Mine) of
                   {I0, I1} when I0 < I1 ->
                       %% start-middle of the ring
@@ -171,7 +175,7 @@ claim_hole(Ring, Mine, Owners) ->
               end,
     Half = length(Choices) div 2,
     {I, _} = lists:nth(Half, Choices),
-    riak_ring:transfer_node(I, node(), Ring).
+    riak_ring:transfer_node(I, Node, Ring).
 
 find_biggest_hole(Mine) ->
     lists:foldl(fun({I0, I1}, none) ->
@@ -195,9 +199,9 @@ find_biggest_hole(Mine) ->
                 none,
                 lists:zip(Mine, tl(Mine)++[hd(Mine)])).
 
-claim_rebalance_n(Ring) ->
+claim_rebalance_n(Ring, Node) ->
     %% diagonal stripes guarantee most disperse data
-    Nodes = lists:usort([node()|riak_ring:all_members(Ring)]),
+    Nodes = lists:usort([Node|riak_ring:all_members(Ring)]),
     Partitions = lists:sort([ I || {I, _} <- riak_ring:all_owners(Ring) ]),
     Zipped = lists:zip(Partitions,
                        lists:sublist(
