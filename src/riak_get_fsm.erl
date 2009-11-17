@@ -60,7 +60,7 @@ initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
     BucketProps = riak_bucket:get_bucket(Bucket, Ring),
     N = proplists:get_value(n_val,BucketProps),
     AllowMult = proplists:get_value(allow_mult,BucketProps),
-    Preflist = riak_ring:filtered_preflist(DocIdx, Ring, N),
+    Preflist = riak_ring:preflist(DocIdx, Ring),
     {Targets, Fallbacks} = lists:split(N, Preflist),
     {Sent1, Pangs1} = riak_util:try_cast(vnode_get, Msg, nodes(), Targets),
     Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]

@@ -269,14 +269,6 @@ index_test() ->
     ?assertEqual(x,index_owner(Ring1,0)),
     ?assertEqual(lists:sort([x,node()]),lists:sort(diff_nodes(Ring0,Ring1))).
 
-preflist_test() ->
-    IB = 274031556999544297163190906134303066185487351808,
-    IC = 1004782375664995756265033322492444576013453623296,
-    R = transfer_node(IB,b,transfer_node(IC,c,fresh(16,a))),
-    {FirstFour,_} = lists:split(4,[N || {_I,N} <- 
-                                     preflist(chash:key_of(0),R)]),
-    ?assertEqual([a,a,b,c],lists:sort(FirstFour)).
-
 reconcile_test() ->
     Ring0 = fresh(2,node()),
     Ring1 = transfer_node(0,x,Ring0),
@@ -302,11 +294,4 @@ metadata_inequality_test() ->
                  get_meta(key,#chstate{meta=
                             merge_meta(Ring2#chstate.meta,
                                        Ring1#chstate.meta)})).
-
-full_preflist_test() ->
-    Ring0 = fresh(4,a),
-    I = 365375409332725729550921208179070754913983135744,
-    Ring = transfer_node(I,b,Ring0),
-    ?assertEqual(preflist(chash:key_of(zzzzzzzzz),Ring),
-                 preflist(chash:key_of(zzzzzzzzz),Ring)).
 
