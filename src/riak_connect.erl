@@ -134,7 +134,7 @@ claim_until_balanced(Ring) ->
         {yes, _NumToClaim} ->
             {CMod, CFun} = riak:get_app_env(choose_claim_fun),
             NewRing = CMod:CFun(Ring),
-            claim_until_balanced(Ring)
+            claim_until_balanced(NewRing)
     end.
 
 ensure_vnodes_started(Ring) ->
