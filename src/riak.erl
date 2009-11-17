@@ -26,6 +26,7 @@
 -export([get_app_env/1,get_app_env/2]).
 -export([client_connect/1,client_connect/2,
          local_client/0,local_client/1]).
+-export([code_hash/0]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -155,3 +156,14 @@ confirm_epoch() ->
                       "but your system says the epoch is ~p~n", [Epoch]),
             throw(epoch_fail)
     end.
+
+code_hash() ->
+    {ok, AllMods0} = application:get_key(riak, modules),
+    AllMods = lists:sort(AllMods0),
+    <<MD5Sum:128>> = erlang:md5_final(
+                       lists:foldl(
+                         fun(D, C) -> erlang:md5_update(C, D) end, 
+                         erlang:md5_init(),
+                         [C || {_, C, _} <- [code:get_object_code(M) || M <- AllMods]]
+                        )),
+    riak_util:integer_to_list(MD5Sum, 62).
