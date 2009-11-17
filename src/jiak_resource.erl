@@ -854,8 +854,17 @@ copy_unreadable1([], _OldObj, NewObj) ->
 copy_unreadable1([H|T], OldObj, NewObj) ->
     copy_unreadable1(T, OldObj,
                      case proplists:lookup(H, OldObj) of
-                         {H, Val} -> [{H, Val}|NewObj];
-                         none     -> NewObj
+                         {H, Val} ->
+                             case proplists:lookup(H, NewObj) of
+                                 {H, _} ->
+                                     %% client included a value
+                                     %% catch any potential mismatch in
+                                     %% check_write_mask
+                                     NewObj;
+                                 none ->
+                                     [{H, Val}|NewObj]
+                             end;
+                         none -> NewObj
                      end).
 
 %% @spec pretty_print(webmachine:wrq(), context()) ->
