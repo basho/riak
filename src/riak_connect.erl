@@ -131,16 +131,11 @@ claim_until_balanced(Ring) ->
     case NeedsIndexes of
         no -> 
             Ring;
-        {yes, NumToClaim} ->
-            riak_eventer:notify(riak_ring, want_claim, NumToClaim),
-            claim_indexes(Ring, NumToClaim)
+        {yes, _NumToClaim} ->
+            {CMod, CFun} = riak:get_app_env(choose_claim_fun),
+            NewRing = CMod:CFun(Ring),
+            claim_until_balanced(Ring)
     end.
-
-claim_indexes(Ring, 0) -> Ring;
-claim_indexes(Ring, NumToClaim) ->
-    {CMod, CFun} = riak:get_app_env(choose_claim_fun),
-    NewRing = CMod:CFun(Ring),
-    claim_indexes(NewRing, NumToClaim - 1).
 
 ensure_vnodes_started(Ring) ->
     VNodes2Start = case length(riak_ring:all_members(Ring)) of
@@ -173,7 +168,7 @@ remove_from_cluster(ExitingNode) ->
     end,
     ExitRing = lists:foldl(F, Ring, Indices),
     riak_ring_manager:set_my_ring(ExitRing),
-    
+
     % Send the ring to all other rings...
     [send_ring(X) || X <- riak_ring:all_members(Ring)],
     
