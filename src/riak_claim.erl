@@ -99,9 +99,9 @@ claim_with_n_met(Ring, TailViolations) ->
                         lists:nthtail(Spacing-1, CurrentOwners);
                     [TV|_] ->
                         %% attempt to cure a wrap-around problem
-                        tl(lists:dropwhile(
+                        lists:dropwhile(
                              fun({I, _}) -> I /= TV end,
-                             lists:reverse(CurrentOwners)))
+                             lists:reverse(CurrentOwners))
                 end,
             {_, NewRing} = lists:foldl(
                              fun({I, _}, {0, Acc}) ->
@@ -158,7 +158,7 @@ find_biggest_hole(Mine) ->
                         end;
                    ({I0, I1}, {C0, C1}) ->
                         %% wrap-around end-start of the ring
-                        Span = I0+trunc(math:pow(2, 160))-1,
+                        Span = I0+trunc(math:pow(2, 160))-1-I1,
                         if Span > C1-C0 ->
                                 {I0, I1};
                            true ->
