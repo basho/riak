@@ -55,7 +55,7 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,PhasePid]) ->
                         {link, LB, LT, LAcc} -> {map, LinkFun, {LB, LT}, LAcc}
                     end,
             N = proplists:get_value(n_val,BucketProps),
-            Preflist = riak_ring:filtered_preflist(DocIdx, Ring, N),
+            Preflist = riak_ring:preflist(DocIdx, Ring),
             {Targets, _} = lists:split(N, Preflist),
             VNodes = try_vnode(QTerm, {Bucket,Key}, KeyData, Targets),
             {ok,wait,

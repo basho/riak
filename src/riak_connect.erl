@@ -131,16 +131,11 @@ claim_until_balanced(Ring) ->
     case NeedsIndexes of
         no -> 
             Ring;
-        {yes, NumToClaim} ->
-            riak_eventer:notify(riak_ring, want_claim, NumToClaim),
-            claim_indexes(Ring, NumToClaim)
+        {yes, _NumToClaim} ->
+            {CMod, CFun} = riak:get_app_env(choose_claim_fun),
+            NewRing = CMod:CFun(Ring),
+            claim_until_balanced(NewRing)
     end.
-
-claim_indexes(Ring, 0) -> Ring;
-claim_indexes(Ring, NumToClaim) ->
-    {CMod, CFun} = riak:get_app_env(choose_claim_fun),
-    NewRing = CMod:CFun(Ring),
-    claim_indexes(NewRing, NumToClaim - 1).
 
 ensure_vnodes_started(Ring) ->
     VNodes2Start = case length(riak_ring:all_members(Ring)) of
@@ -163,20 +158,72 @@ remove_from_cluster(ExitingNode) ->
     Indices = [I || {I,Owner} <- AllOwners, Owner =:= ExitingNode],
     riak_eventer:notify(riak_connect, remove_from_cluster,
                         {ExitingNode, length(Indices)}),
-                        
-    
+
     % Transfer indexes to other nodes...
-    Others = lists:delete(ExitingNode, riak_ring:all_members(Ring)),
-    F = fun(Index, Acc) ->
-        RandomNode = lists:nth(crypto:rand_uniform(1,length(Others)+1),Others),
-        riak_ring:transfer_node(Index, RandomNode ,Acc)    
-    end,
-    ExitRing = lists:foldl(F, Ring, Indices),
+    ExitRing = 
+        case attempt_simple_transfer(Ring, AllOwners, ExitingNode) of
+            {ok, NR} -> NR;
+            target_n_fail ->
+                %% re-diagonalize
+                %% first hand off all claims to *any* one else,
+                %% just so rebalance doesn't include exiting node
+                Other = hd(lists:delete(ExitingNode, riak_ring:all_members(Ring))),
+                TempRing = lists:foldl(fun({I,N}, R) when N == ExitingNode ->
+                                               riak_ring:transfer_node(
+                                                 I, Other, R);
+                                          (_, R) -> R
+                                       end,
+                                       Ring,
+                                       AllOwners),
+                riak_claim:claim_rebalance_n(TempRing, Other)
+        end,
     riak_ring_manager:set_my_ring(ExitRing),
-    
+
     % Send the ring to all other rings...
     [send_ring(X) || X <- riak_ring:all_members(Ring)],
     
-    %% Is this line right?
+    %% This line is right!
     [gen_server:cast({riak_vnode_master, ExitingNode}, {start_vnode, P}) ||
         P <- AllIndices].    
+
+attempt_simple_transfer(Ring, Owners, ExitingNode) ->
+    attempt_simple_transfer(Ring, Owners,
+                            riak:get_app_env(target_n_val, 3),
+                            ExitingNode, 0, []).
+attempt_simple_transfer(Ring, [{P, Exit}|Rest], TargetN, Exit, Idx, Last) ->
+    %% handoff
+    case [ N || {N, I} <- Last, Idx-I >= TargetN ] of
+        [] ->
+            target_n_fail;
+        Candidates ->
+            %% these nodes don't violate target_n in the reverse direction
+            StepsToNext = fun(Node) ->
+                                  length(lists:takewhile(
+                                           fun({_, Owner}) -> Node /= Owner end,
+                                           Rest))
+                          end,
+            case lists:filter(fun(N) -> 
+                                 Next = StepsToNext(N),
+                                 (Next >= TargetN) orelse (Next == length(Rest))
+                              end,
+                              Candidates) of
+                [] ->
+                    target_n_fail;
+                Qualifiers ->
+                    %% these nodes don't violate target_n forward
+                    Chosen = lists:nth(crypto:rand_uniform(
+                                         1, length(Qualifiers)+1),
+                                       Qualifiers),
+                    %% choose one, and do the rest of the ring
+                    attempt_simple_transfer(
+                      riak_ring:transfer_node(P, Chosen, Ring),
+                      Rest, TargetN, Exit, Idx+1,
+                      lists:keyreplace(Chosen, 1, Last, {Chosen, Idx}))
+            end
+    end;
+attempt_simple_transfer(Ring, [{_, N}|Rest], TargetN, Exit, Idx, Last) ->
+    %% just keep track of seeing this node
+    attempt_simple_transfer(Ring, Rest, TargetN, Exit, Idx+1,
+                            lists:keyreplace(N, 1, Last, {N, Idx}));
+attempt_simple_transfer(Ring, [], _, _, _, _) ->
+    {ok, Ring}.
