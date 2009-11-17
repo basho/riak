@@ -203,15 +203,16 @@ attempt_simple_transfer(Ring, [{P, Exit}|Rest], TargetN, Exit, Idx, Last) ->
                                            Rest))
                           end,
             case lists:filter(fun(N) -> 
-                                      Next = StepsToNext(N),
-                                      (Next >= TargetN) orelse (Next == length(Rest))
+                                 Next = StepsToNext(N),
+                                 (Next >= TargetN) orelse (Next == length(Rest))
                               end,
                               Candidates) of
                 [] ->
                     target_n_fail;
                 Qualifiers ->
-                    %% these nodes don't violate target_n in the forward direction
-                    Chosen = lists:nth(crypto:rand_uniform(1, length(Qualifiers)+1),
+                    %% these nodes don't violate target_n forward
+                    Chosen = lists:nth(crypto:rand_uniform(
+                                         1, length(Qualifiers)+1),
                                        Qualifiers),
                     %% choose one, and do the rest of the ring
                     attempt_simple_transfer(
