@@ -43,6 +43,12 @@ init([VNodeIndex]) ->
                 sidekick=Sidekick,mapcache=Cache,mod=Mod,modstate=ModState}}.
 
 %% @private
+handle_cast({get_merkle,From},State) ->
+    gen_server2:reply(From, get_merkle(State)),
+    {noreply, State};
+handle_cast({get_vclocks, From, KeyList},State) ->
+    gen_server2:reply(From, get_vclocks(KeyList,State)),
+    {noreply, State};
 handle_cast({mapcache,BKey,{M,F,Arg,KeyData},MF_Res},
             State=#state{mapcache=Cache}) ->
     KeyCache0 = case dict:find(BKey, Cache) of
@@ -262,6 +268,27 @@ local_reconcile(K,RemObj,Mod,ModState,IsBackup) ->
             riak_eventer:notify(riak_vnode, stored_handoff, K);
         {error, Reason} ->
             riak_eventer:notify(riak_vnode, stored_handoff_fail, {K,Reason})
+    end.
+
+%% @private
+get_merkle(_State=#state{mod=Mod,modstate=ModState}) ->
+    KeyList = Mod:list(ModState),
+    Merk0 = merkerl:build_tree([]),
+    get_merk(Mod,ModState,KeyList,Merk0).
+%% @private
+get_merk(_Mod,_ModState,[],Merk) -> Merk;
+get_merk(Mod,ModState,[BKey|KeyList],Merk) ->
+    V = Mod:get(ModState,BKey), % normally, V = {ok,BinObj}
+    get_merk(Mod,ModState,KeyList,merkerl:insert({BKey,erlang:phash2(V)},Merk)).
+
+%% @private
+get_vclocks(KeyList,_State=#state{mod=Mod,modstate=ModState}) ->
+    [{BKey, get_vclock(BKey,Mod,ModState)} || BKey <- KeyList].
+%% @private
+get_vclock(BKey,Mod,ModState) ->
+    case Mod:get(ModState, BKey) of
+        {error, notfound} -> vclock:fresh();
+        {ok, Val} -> riak_object:vclock(binary_to_term(Val))
     end.
 
 %% @private

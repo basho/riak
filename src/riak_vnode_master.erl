@@ -61,8 +61,14 @@ handle_cast({vnode_list_bucket, {Partition,_Node},
 
 
 %% @private
-handle_call(all_possible_vnodes, _From, State) ->
-    {reply, make_all_active(State), State};
+handle_call({get_merkle,Partition},From,State) ->
+    Pid = get_vnode(Partition, State),
+    spawn(fun() -> gen_server2:cast(Pid,{get_merkle,From}) end),
+    {noreply, State};
+handle_call({get_vclocks,Partition,KeyList},From,State) ->
+    Pid = get_vnode(Partition, State),
+    spawn(fun() -> gen_server2:cast(Pid,{get_vclocks,From,KeyList}) end),
+    {noreply, State};
 handle_call(all_vnodes, _From, State) ->
     {reply, all_vnodes(State), State};
 handle_call({vnode_del, {Partition,_Node},
@@ -112,6 +118,3 @@ get_vnode(Idx, State) ->
 all_vnodes(_State=#state{idxtab=T}) ->
     lists:flatten(ets:match(T, {idxrec, '_', '$1', '_'})).
 
-make_all_active(State) ->
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
-    [{I,get_vnode(I,State)} || I <- riak_ring:my_indices(Ring)].
