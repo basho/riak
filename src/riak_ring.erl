@@ -22,7 +22,7 @@
 -module(riak_ring).
 -include_lib("eunit/include/eunit.hrl").
 
--export([fresh/0,fresh/1,fresh/2,preflist/2,filtered_preflist/3,
+-export([fresh/0,fresh/1,fresh/2,preflist/2,
 	 owner_node/1,all_members/1,num_partitions/1,all_owners/1,
          transfer_node/3,reconcile/2, my_indices/1,
 	 index_owner/2,diff_nodes/2,random_node/1, random_other_index/1,
@@ -122,25 +122,8 @@ num_partitions(State) ->
 %      {partition,node} pairs that could be responsible for that object.
 % @spec preflist(Key :: binary(), State :: chstate()) ->
 %                                 [{Index :: integer(), Node :: term()}]
-preflist(Key, State) ->
-    chash:successors(Key, State#chstate.chring).
+preflist(Key, State) -> chash:successors(Key, State#chstate.chring).
 
-filtered_preflist(Key, State, N) ->
-    Preflist = preflist(Key, State),
-    Try1 = filtered_preflist1(Preflist, [], [], []),
-    case length(Try1) >= N of
-        true -> Try1;
-        false -> Preflist
-    end.
-filtered_preflist1([], _Seen, Passed, Acc) ->
-    Acc ++ Passed;
-filtered_preflist1([{I,Node}|Preflist], Seen, Passed, Acc) ->
-    case lists:member(Node, Seen) of
-        true -> filtered_preflist1(Preflist,Seen,[{I,Node}|Passed],Acc);
-        false -> filtered_preflist1(Preflist,[Node|Seen],Passed,[{I,Node}|Acc])
-    end.
-
-% @doc Transfer ownership of partition at Idx to Node.
 % @spec transfer_node(Idx :: integer(), Node :: term(), MyState :: chstate()) ->
 %           chstate()
 transfer_node(Idx, Node, MyState) ->
@@ -286,14 +269,6 @@ index_test() ->
     ?assertEqual(x,index_owner(Ring1,0)),
     ?assertEqual(lists:sort([x,node()]),lists:sort(diff_nodes(Ring0,Ring1))).
 
-preflist_test() ->
-    IB = 274031556999544297163190906134303066185487351808,
-    IC = 1004782375664995756265033322492444576013453623296,
-    R = transfer_node(IB,b,transfer_node(IC,c,fresh(16,a))),
-    {FirstFour,_} = lists:split(4,[N || {_I,N} <- 
-                                     filtered_preflist(chash:key_of(0),R,4)]),
-    ?assertEqual([a,a,b,c],lists:sort(FirstFour)).
-
 reconcile_test() ->
     Ring0 = fresh(2,node()),
     Ring1 = transfer_node(0,x,Ring0),
@@ -319,11 +294,4 @@ metadata_inequality_test() ->
                  get_meta(key,#chstate{meta=
                             merge_meta(Ring2#chstate.meta,
                                        Ring1#chstate.meta)})).
-
-full_preflist_test() ->
-    Ring0 = fresh(4,a),
-    I = 365375409332725729550921208179070754913983135744,
-    Ring = transfer_node(I,b,Ring0),
-    ?assertEqual(filtered_preflist(chash:key_of(zzzzzzzzz),Ring,2),
-                 filtered_preflist(chash:key_of(zzzzzzzzz),Ring,3)).
 
