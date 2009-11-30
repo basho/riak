@@ -64,6 +64,15 @@ handle_call({vnode_del, {Partition,_Node},
              {BKey,ReqID}}, From, State) ->
     Pid = get_vnode(Partition, State),
     gen_fsm:send_event(Pid, {delete, From, BKey, ReqID}),
+    {noreply, State};
+handle_call({get_merkle, Partition}, From, State) ->
+    Pid = get_vnode(Partition, State),
+    spawn(fun() -> gen_fsm:send_all_state_event(Pid, {get_merkle, From}) end),
+    {noreply, State};
+handle_call({get_vclocks,Partition,KeyList},From,State) ->
+    Pid = get_vnode(Partition, State),
+    spawn(fun() -> gen_fsm:send_all_state_event(
+                     Pid,{get_vclocks,From,KeyList}) end),
     {noreply, State}.
 
 %% @private

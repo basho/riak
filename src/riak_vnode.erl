@@ -373,11 +373,36 @@ syntactic_put_merge(Mod, ModState, BKey, Obj1, ReqId) ->
     end.
 
 %% @private
+get_merkle(_State=#state{mod=Mod,modstate=ModState}) ->
+    KeyList = Mod:list(ModState),
+    Merk0 = merkerl:build_tree([]),
+    get_merk(Mod,ModState,KeyList,Merk0).
+%% @private
+get_merk(_Mod,_ModState,[],Merk) -> Merk;
+get_merk(Mod,ModState,[BKey|KeyList],Merk) ->
+    V = Mod:get(ModState,BKey), % normally, V = {ok,BinObj}
+    get_merk(Mod,ModState,KeyList,merkerl:insert({BKey,erlang:phash2(V)},Merk)).
+
+%% @private
+get_vclocks(KeyList,_State=#state{mod=Mod,modstate=ModState}) ->
+    [{BKey, get_vclock(BKey,Mod,ModState)} || BKey <- KeyList].
+%% @private
+get_vclock(BKey,Mod,ModState) ->
+    case Mod:get(ModState, BKey) of
+        {error, notfound} -> vclock:fresh();
+        {ok, Val} -> riak_object:vclock(binary_to_term(Val))
+    end.
+
+%% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
 %% @private
-handle_event(_Event, _StateName, StateData) ->
-    {stop,badmsg,StateData}.
+handle_event({get_merkle, From}, StateName, State) ->
+    gen_server2:reply(From, get_merkle(State)),
+    {next_state, StateName, State, ?TIMEOUT};
+handle_event({get_vclocks, From, KeyList}, StateName, State) ->
+    gen_server2:reply(From, get_vclocks(KeyList, State)),
+    {next_state, StateName, State, ?TIMEOUT}.
 
 %% @private
 handle_sync_event(_Event, _From, _StateName, StateData) ->
