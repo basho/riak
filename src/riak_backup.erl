@@ -56,13 +56,12 @@ backup_node(Node) ->
     [backup_vnode(VNode) ||  VNode <- VNodes].
     
 backup_vnode(_VNode = {_Index, VNodePid}) ->
-    List = gen_server2:call(VNodePid,list),
+    {ok, List} = gen_fsm:sync_send_event(VNodePid, list),
     [backup_key(VNodePid, Bucket, Key) || {Bucket, Key} <- List].
 
 backup_key(VNodePid, Bucket, Key) ->
-    {ok, B} = gen_server2:call(VNodePid, {get_binary, {Bucket, Key}}),
+    {ok, B} = gen_fsm:sync_send_event(VNodePid, {get_binary, {Bucket, Key}}),
     ok = dets:insert(?TABLE, [{{Bucket,Key}, B}]).
-
 
 
 %%% RESTORE %%%

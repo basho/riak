@@ -1,4 +1,4 @@
-%% This file is provided to you under the Apache License,
+ %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
 %% except in compliance with the License.  You may obtain
 %% a copy of the License at
@@ -33,49 +33,37 @@ handle_cast({start_vnode, Partition}, State) ->
 handle_cast({vnode_map, {Partition,_Node},
              {ClientPid,QTerm,BKey,KeyData}}, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {map, ClientPid, QTerm, BKey, KeyData}),
-    % (obligation done, now the problem of the vnodes)
+    gen_fsm:send_event(Pid, {map, ClientPid, QTerm, BKey, KeyData}),
     {noreply, State};
 handle_cast({vnode_put, {Partition,_Node},
              {FSM_pid,BKey,RObj,ReqID,FSMTime}}, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {put, FSM_pid, BKey, RObj, ReqID, FSMTime}),
-    % (obligation done, now the problem of the vnodes)
+    gen_fsm:send_event(Pid, {put, FSM_pid, BKey, RObj, ReqID, FSMTime}),
     {noreply, State};
 handle_cast({vnode_get, {Partition,_Node},
              {FSM_pid,BKey,ReqID}}, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {get, FSM_pid, BKey, ReqID}),
-    % (obligation done, now the problem of the vnodes)
+    gen_fsm:send_event(Pid, {get, FSM_pid, BKey, ReqID}),
     {noreply, State};
-handle_cast({vnode_merkle, {RemoteVN,Partition,Merkle}}, State) ->
+handle_cast({vnode_merkle, {RemoteVN,Partition,Merkle,ObjList}}, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {vnode_merkle, {RemoteVN,Merkle}}),
-    % (obligation done, now the problem of the vnodes)
+    gen_fsm:send_event(Pid, {vnode_merkle, {RemoteVN,Merkle,ObjList}}),
     {noreply, State};
 handle_cast({vnode_list_bucket, {Partition,_Node},
             {FSM_pid, Bucket, ReqID}}, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {list_bucket, FSM_pid, Bucket, ReqID}),
+    gen_fsm:send_event(Pid, {list_bucket, FSM_pid, Bucket, ReqID}),
     {noreply, State}.
 
-
 %% @private
-handle_call({get_merkle,Partition},From,State) ->
-    Pid = get_vnode(Partition, State),
-    spawn(fun() -> gen_server2:cast(Pid,{get_merkle,From}) end),
-    {noreply, State};
-handle_call({get_vclocks,Partition,KeyList},From,State) ->
-    Pid = get_vnode(Partition, State),
-    spawn(fun() -> gen_server2:cast(Pid,{get_vclocks,From,KeyList}) end),
-    {noreply, State};
+handle_call(all_possible_vnodes, _From, State) ->
+    {reply, make_all_active(State), State};
 handle_call(all_vnodes, _From, State) ->
     {reply, all_vnodes(State), State};
 handle_call({vnode_del, {Partition,_Node},
              {BKey,ReqID}}, From, State) ->
     Pid = get_vnode(Partition, State),
-    gen_server2:cast(Pid, {delete, From, BKey, ReqID}),
-    % (obligation done, now the problem of the vnodes)
+    gen_fsm:send_event(Pid, {delete, From, BKey, ReqID}),
     {noreply, State}.
 
 %% @private
@@ -118,3 +106,6 @@ get_vnode(Idx, State) ->
 all_vnodes(_State=#state{idxtab=T}) ->
     lists:flatten(ets:match(T, {idxrec, '_', '$1', '_'})).
 
+make_all_active(State) ->
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    [{I,get_vnode(I,State)} || I <- riak_ring:my_indices(Ring)].
