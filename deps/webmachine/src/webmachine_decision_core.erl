@@ -25,7 +25,6 @@
 -export([do_log/1]).
 -include("webmachine_logger.hrl").
 
-
 handle_request(Resource, ReqState) ->
     put(resource, Resource),
     put(reqstate, ReqState),
@@ -66,8 +65,9 @@ respond(Code) ->
 	404 ->
 	    {ok, ErrorHandler} = application:get_env(webmachine, error_handler),
 	    Reason = {none, none, []},
-	    ErrorHTML = ErrorHandler:render_error(
+	    {ErrorHTML,ReqState} = ErrorHandler:render_error(
                           Code, {webmachine_request,get(reqstate)}, Reason),
+            put(reqstate, ReqState), 
             wrcall({set_resp_body, ErrorHTML});
         304 ->
             wrcall({remove_resp_header, "Content-Type"}),
