@@ -16,7 +16,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state,{vnode_gets,vnode_puts}).
+-record(state,{vnode_gets,vnode_puts,
+               node_gets,node_puts}).
 
 %%====================================================================
 %% API
@@ -52,7 +53,9 @@ update(Stat) ->
 %%--------------------------------------------------------------------
 init([]) ->
     {ok, #state{vnode_gets=spiraltime:fresh(),
-                vnode_puts=spiraltime:fresh()}}.
+                vnode_puts=spiraltime:fresh(),
+                node_gets=spiraltime:fresh(),
+                node_puts=spiraltime:fresh()}}.
 
 %%--------------------------------------------------------------------
 %% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
@@ -114,6 +117,10 @@ update(vnode_get, Moment, State) ->
     spiral_incr(#state.vnode_gets, Moment, State);
 update(vnode_put, Moment, State) ->
     spiral_incr(#state.vnode_puts, Moment, State);
+update(node_get, Moment, State) ->
+    spiral_incr(#state.node_gets, Moment, State);
+update(node_put, Moment, State) ->
+    spiral_incr(#state.node_puts, Moment, State);
 update(_, _, State) ->
     State.
 
@@ -125,6 +132,7 @@ produce_stats(State) ->
     Moment = spiraltime:n(),
     lists:append(
       [vnode_stats(Moment, State),
+       node_stats(Moment, State),
        cpu_stats(),
        mem_stats(),
        disk_stats()]).
@@ -138,6 +146,11 @@ vnode_stats(Moment, State) ->
     [{F, spiral_minute(Moment, Elt, State)}
      || {F, Elt} <- [{vnode_gets, #state.vnode_gets},
                      {vnode_puts, #state.vnode_puts}]].
+
+node_stats(Moment, State) ->
+    [{F, spiral_minute(Moment, Elt, State)}
+     || {F, Elt} <- [{node_gets, #state.node_gets},
+                     {node_puts, #state.node_puts}]].
 
 cpu_stats() ->
     [{cpu_nprocs, cpu_sup:nprocs()},

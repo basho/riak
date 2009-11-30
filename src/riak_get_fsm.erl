@@ -84,6 +84,7 @@ waiting_vnode_r({r, {ok, RObj}, Idx, ReqId},
     case length(Replied) >= R of
         true ->
             Final = respond(Client,Replied,AllowMult,ReqId),
+            riak_stat:update(node_get),
             case Final of
                 {error, notfound} ->
                     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
@@ -108,6 +109,7 @@ waiting_vnode_r({r, {error, notfound}, Idx, ReqId},
         true ->
             {next_state,waiting_vnode_r,NewStateData,End-riak_util:moment()};
         false ->
+            riak_stat:update(node_get),
             riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                 {ReqId, notfound}),
             Client ! {ReqId, {error,notfound}},
@@ -126,11 +128,13 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqId},
             case length(NotFound) of
                 0 ->
                     FullErr = [E || {E,_I} <- Replied],
+                    riak_stat:update(node_get),
                     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                         {ReqId, {error,FullErr}}),
                     Client ! {ReqId, {error,FullErr}},
                     {stop,normal,NewStateData};
                 _ ->
+                    riak_stat:update(node_get),
                     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                         {ReqId, notfound}),
                     Client ! {ReqId, {error,notfound}},
@@ -138,6 +142,7 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqId},
             end
     end;
 waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
+    riak_stat:update(node_get),
     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                         {ReqId, timeout}),
     Client ! {ReqId, {error,timeout}},

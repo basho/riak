@@ -87,6 +87,7 @@ waiting_vnode_w({w, Idx, ReqId},
             case DW of
                 0 ->
                     Client ! {ReqId, ok},
+                    riak_stat:update(node_put),
                     riak_eventer:notify(riak_put_fsm, put_fsm_reply_ok,
                                         {ReqId, ok, {Bucket, Key}}),
                     {stop,normal,StateData};
@@ -113,12 +114,14 @@ waiting_vnode_w({fail, Idx, ReqId},
         true ->
             {next_state,waiting_vnode_w,NewStateData,End-riak_util:moment()};
         false ->
+            riak_stat:update(node_put),
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                 {ReqId, {error,too_many_fails,Replied}}),
             Client ! {ReqId, {error,too_many_fails}},
             {stop,normal,NewStateData}
     end;
 waiting_vnode_w(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
+    riak_stat:update(node_put),
     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                         {ReqId, {error,timeout}}),
     Client ! {ReqId, {error,timeout}},
@@ -133,6 +136,7 @@ waiting_vnode_dw({dw, Idx, ReqId},
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of
         true ->
+            riak_stat:update(node_put),
             riak_eventer:notify(riak_put_fsm, put_fsm_reply_ok,
                                 {ReqId, ok, {Bucket, Key}}),
             Client ! {ReqId, ok},
@@ -156,6 +160,7 @@ waiting_vnode_dw({fail, Idx, ReqId},
             {stop,normal,NewStateData}
     end;
 waiting_vnode_dw(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
+    riak_stat:update(node_put),
     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                         {ReqId, {error,timeout}}),
     Client ! {ReqId, {error,timeout}},
