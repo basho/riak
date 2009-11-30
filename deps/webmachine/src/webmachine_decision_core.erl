@@ -67,7 +67,7 @@ respond(Code) ->
 	    Reason = {none, none, []},
 	    {ErrorHTML,ReqState} = ErrorHandler:render_error(
                           Code, {webmachine_request,get(reqstate)}, Reason),
-            put(reqstate, ReqState),
+            put(reqstate, ReqState), 
             wrcall({set_resp_body, ErrorHTML});
         304 ->
             wrcall({remove_resp_header, "Content-Type"}),

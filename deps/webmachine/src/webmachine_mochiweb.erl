@@ -78,7 +78,21 @@ loop(MochiReq) ->
                                               PathTokens,AppRoot,StringPath),
             XReq1 = {webmachine_request,RS1},
             {ok,RS2} = XReq1:set_metadata('resource_module', Mod),
-            webmachine_decision_core:handle_request(Resource, RS2)
+            try 
+                webmachine_decision_core:handle_request(Resource, RS2)
+            catch
+                error:_ -> 
+                    FailReq = {webmachine_request,RS2},
+                    {ok,RS3} = FailReq:send_response(500),
+                    PostFailReq = {webmachine_request,RS3},
+                    {LogData,_RS4} = PostFailReq:log_data(),
+                    case application:get_env(webmachine,
+                                             webmachine_logger_module) of
+                        {ok, LogModule} ->
+                            spawn(LogModule, log_access, [LogData]);
+                        _ -> nop
+                    end
+            end
     end.
 
 get_option(Option, Options) ->
