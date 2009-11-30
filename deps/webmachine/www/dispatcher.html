@@ -1,0 +1,121 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta name="author" content="Basho Technologies" />
+	<meta name="description" content="Webmachine request dispatching" />
+	<meta name="keywords" content="webmachine http rest web" />
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+	<link rel="stylesheet" href="css/style-1c.css" type="text/css" />
+	<title>Webmachine request dispatching</title>
+</head>
+<body>
+	<div id="content">
+		<h1><span class="hr"></span><a href="/">webmachine</a></h1>
+		<ul id="top">
+			<li><a href="/">Home</a></li>
+			<li><a href="http://bitbucket.org/justin/webmachine/">Source Code</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+		</ul>
+		<div id="left">
+<h3>Webmachine request dispatching</h3>
+
+<p>
+This page describes the configuration of URI dispatch to resources
+in a webmachine application. The dispatch map data structure is a list
+of 3-tuples, where each entry is of the form {pathspec, resource,
+args}. The first pathspec in the list that matches the URI for a
+request will cause the corresponding resource to be used in handling
+that request.
+
+</p>
+<p>
+
+A <code>pathspec</code> is a list of pathterms. A pathterm is any of
+[string,atom,star] where star is just the atom of "*". The
+pathspec-matching is done by breaking up the request URI into tokens
+via the "/" separator and matching those tokens against the
+pathterms. A string pathterm will match a token if the token is equal
+to that string. A non-star atom will match any single token. The star
+atom (* in single quotes) will match any number of tokens, but may
+only be present as the last pathterm in a pathspec. If all tokens are
+matched and all pathterms are used, then the pathspec matches.  The
+tokens used are available in <code>wrq:path_tokens(ReqData)</code>
+in the resource functions.
+
+</p>
+<p>
+
+Any atom pathterms that were used in a match will cause a binding in
+the path_info element of the request's
+<a href="reqdata.html">ReqData</a>.  If
+there was a <code>foo</code> atom that matched the token
+<code>"bar"</code>, then <code>wrq:path_info(foo, ReqData)</code> will
+return <code>"bar"</code> inside the resource calls, and in any case
+<code>wrq:path_info(ReqData)</code> will return a Dict term with all
+the bindings, accessible via the <code>dict</code> standard library
+module.  If there was a star pathterm in the pathspec, then
+<code>wrq:disp_path(ReqData)</code> in a resource function will return
+the URI portion that was matched by the star.
+
+</p>
+<p>
+
+The <code> resource </code> is an atom identifying a
+<a href="resources.html">resource</a> that
+should handle a matching request. It will have the <code>args</code>
+(which must be a list) passed to its init function before request
+handling begins.
+
+</p>
+<p>
+
+In the default directory structure for a new webmachine application,
+the dispatch terms will be in file:consult form in
+"priv/dispatch.conf" under the application root.
+
+</p>
+<h3 id="examples">Examples</h3>
+
+<p>
+
+The examples below are taken from
+<a href="http://www.erlang-factory.com/conference/SFBayAreaErlangFactory2009/speakers/justinsheehy">Justin Sheehy's slide at Erlang Factory 2009</a>
+</p>
+
+<table><tr><th>Dispatch Rule</th><th>URL</th><th>wrq:disp_path</th><th>wrq:path</th><th>wrq:path_info</th><th>wrq:path_tokens</th></tr>
+<tr><td>{["a"],           some_resource, []}</td><td>/a</td><td>""</td><td>"/a"</td><td>[]</td><td>[]</td></tr>
+
+<tr><td>{["a", '*'],      some_resource, []}</td><td>/a</td><td>""</td><td>"/a"</td><td>[]</td><td>[]</td></tr>
+<tr><td>{["a", '*'],      some_resource, []}</td><td>/a/b/c</td><td>"b/c"</td><td>"/a/b/c"</td><td>[]</td><td>["b", "c"]</td></tr>
+<tr><td>{["a", foo],      some_resource, []}</td><td>/a/b</td><td>""</td><td>"/a/b"</td><td>[{foo, "b"}]</td><td>[]</td></tr>
+
+<tr><td>{["a", foo, '*'], some_resource, []}</td><td>/a/b</td><td>""</td><td>"/a/b"</td><td>[{foo, "b"}]</td><td>[]</td></tr>
+<tr><td>{["a", foo, '*'], some_resource, []}</td><td>/a/b/c/d</td><td>"c/d"</td><td>"/a/b/c/d"</td><td>[{foo, "b"}]</td><td>["c", "d"]</td></tr>
+</table>
+
+<p>Query strings are easy too:</p>
+
+<ul><li>Given rule: {["a", foo, '*'], some_resource, []}
+</li><li>And URL: /a/b/c/d?fee=ah&amp;fie=ha
+</li><li>Then wrq:get_qs_value("fie",ReqData) -&gt; "ha"
+</li></ul>
+
+		</div>
+		<div id="footer">
+
+		</div>
+	</div>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-4979965-5");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+
+</body>
+</html>
+

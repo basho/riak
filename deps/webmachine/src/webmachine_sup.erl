@@ -33,22 +33,21 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 start_logger(BaseDir) ->
-    LoggerModule = 
-	case application:get_env(webmachine, webmachine_logger_module) of
-	    {ok, Val} -> Val;
-	    _ -> webmachine_logger
-	end,
-    ChildSpec = 
-	{webmachine_logger,
-	 {LoggerModule, start_link, [BaseDir]},
-	 permanent, 5000, worker, dynamic},
-    supervisor:start_child(?MODULE, ChildSpec).
+    case application:get_env(webmachine, webmachine_logger_module) of
+        {ok, LoggerModule} ->
+            ChildSpec = 
+                {webmachine_logger,
+                 {LoggerModule, start_link, [BaseDir]},
+                 permanent, 5000, worker, dynamic},
+            supervisor:start_child(?MODULE, ChildSpec);
+        _ -> nop
+    end.
 
 start_perf_logger(BaseDir) ->
     ChildSpec = 
 	{webmachine_perf_logger,
 	 {webmachine_perf_logger, start_link, [BaseDir]},
-	 permanent, 5000, worker, dynamic},
+	 permanent, 5000, worker, [webmachine_perf_logger]},
     supervisor:start_child(?MODULE, ChildSpec).
 
 %% @spec upgrade() -> ok

@@ -20,6 +20,10 @@
 -export([start/0, stop/0]).
 -export([new_request/2]).
 
+-include("webmachine_logger.hrl").
+-include_lib("include/wm_reqstate.hrl").
+-include_lib("include/wm_reqdata.hrl").
+
 %% @spec start() -> ok
 %% @doc Start the webmachine server.
 start() ->
@@ -38,8 +42,23 @@ new_request(mochiweb, Request) ->
     RawPath = Request:get(raw_path), 
     Version = Request:get(version),
     Headers = Request:get(headers),
-    {ok, Pid} = webmachine_request_srv:start_link(Socket, Method, RawPath, Version, Headers),
-    webmachine_request:new(Pid).
+    InitState = #reqstate{socket=Socket,
+                          reqdata=wrq:create(Method,Version,RawPath,Headers)},
+    InitReq = {webmachine_request,InitState},
+    {Peer, ReqState} = InitReq:get_peer(),
+    PeerState = ReqState#reqstate{reqdata=wrq:set_peer(Peer,
+                                                  ReqState#reqstate.reqdata)},
+    LogData = #wm_log_data{start_time=now(),
+			   method=Method,
+			   headers=Headers,
+			   peer=PeerState#reqstate.peer,
+			   path=RawPath,
+			   version=Version,
+			   response_code=404,
+			   response_length=0},
+    webmachine_request:new(PeerState#reqstate{log_data=LogData}).
+
+
 
 
   

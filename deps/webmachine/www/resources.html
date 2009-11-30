@@ -1,0 +1,141 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta name="author" content="Basho Technologies" />
+	<meta name="description" content="Webmachine resource functions" />
+	<meta name="keywords" content="webmachine http rest web" />
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+	<link rel="stylesheet" href="css/style-1c.css" type="text/css" />
+	<title>Webmachine resource functions</title>
+</head>
+<body>
+	<div id="content">
+		<h1><span class="hr"></span><a href="/">webmachine</a></h1>
+		<ul id="top">
+			<li><a href="/">Home</a></li>
+			<li><a href="http://bitbucket.org/justin/webmachine/">Source Code</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+		</ul>
+		<div id="left">
+<h3>Webmachine resource functions</h3>
+
+<p>All webmachine resources should include the webmachine resource library:</p>
+
+<p>
+<span class="fwf">	
+-include_lib("webmachine/include/webmachine.hrl").
+</span>
+</p>
+
+<p>
+All webmachine resources should define and export <span class="fwf">init/1</span>, which will receive a configuration property list from the <a href="dispatcher.html">dispatcher</a> as its argument. This function should, if successful, return <span class="fwf">{ok, Context}</span>. Context is any term, and will be threaded through all of the other webmachine resource functions.  Alternately, the resource can go into debugging mode by returning <span class="fwf">{{trace, Dir}, Context}</span> instead -- see <a href="debugging.html">the tracing documentation</a> for more information.</p>
+
+<p>All webmachine resource functions are of the signature:</p>
+
+<p>
+<span class="fwf">
+f(ReqData, Context) -> {Result, ReqData, Context}
+</span>
+</p>
+
+
+<p>
+<span class="fwf">Context</span> is an arbitrary <span class="fwf">term()</span> that is specific to your application.  Webmachine will never do anything with this term other than threading it through the various functions of your resource.  This is the means by which transient application-specific request state is passed along between functions.
+</p>
+<p>
+<span class="fwf">ReqData</span> is a <span class="fwf">#wm_reqdata{}</span> term, and is manipulated via the <a href="reqdata.html">wrq</a> interface.  A resource function may access request data (such as header values) from the input value.  If a resource function wishes to affect the response data in some way other than that implied by its return value (e.g. adding an X-Header) then it should modify the returned <span class="fwf">ReqData</span> term accordingly.
+</p>
+<p>
+The rest of this document is about the effects produced by different values in the <span class="fwf">Result</span> term.
+</p>
+<p>
+There are over 30 resource functions you can define, but any of them can be omitted as they have reasonable defaults.
+</p>
+<p>
+Each function is described below, showing the default and allowed values that may be in the <span class="fwf">Result</span> term. The default will be used if a resource does not export the function.  If a function has an "X" in the "Halt" column, it also has the option of returning either of the two following special values for <span class="fwf">Result</span>:
+
+</p>
+
+<table><tr><th>Result</th><th>Effect</th></tr>
+<tr><td class="fwf lhcol">{error, Err::term()}</td><td>Immediately end processing of this request, returning a 500 response code.  The response body will contain the <span class="fwf"> Err </span> term.</td></tr>
+<tr><td class="fwf lhcol">{halt, Code::integer()}</td><td>Immediately end processing of this request, returning response code Code.  It is the responsibility of the resource to ensure that all necessary response header and body elements are filled in <span class="fwf"> ReqData </span> in order to make that reponse code valid.</td></tr>
+</table>
+
+<p>
+Any function which has no description is optional and the effect of its return value should be evident from examining the <a href="diagram.html">diagram</a>.
+</p>
+
+<table>
+<tr><th>Function</th><th>Default</th><th>Halt</th><th>Allowed</th><th>Description</th></tr>
+
+<tr><td class="fwf">resource_exists</td><td class="fwf">true</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td>Returning non-true values will result in 404 Not Found.</td></tr>
+
+<tr><td class="fwf">service_available</td><td class="fwf">true</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td></td></tr>
+<tr><td class="fwf">is_authorized</td><td class="fwf">true</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> AuthHead</td><td>If this returns anything other than true, the response will be 401 Unauthorized. The AuthHead return value will be used as the value in the WWW-Authenticate header.</td></tr>
+
+<tr><td class="fwf">forbidden</td><td class="fwf">false</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td></td></tr>
+<tr><td class="fwf">allow_missing_post</td><td class="fwf">false</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td>If the resource accepts POST requests to nonexistent resources, then this should return true.</td></tr>
+
+<tr><td class="fwf">malformed_request</td><td class="fwf">false</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td></td></tr>
+<tr><td class="fwf">uri_too_long</td><td class="fwf">false</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td></td></tr>
+<tr><td class="fwf">known_content_type</td><td class="fwf">true</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td></td></tr>
+
+<tr><td class="fwf">valid_content_headers</td><td class="fwf">true</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td></td></tr>
+<tr><td class="fwf">valid_entity_length</td><td class="fwf">true</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td></td></tr>
+<tr><td class="fwf">options</td><td class="fwf">[]</td><td></td><td class="fwf">[Header]</td><td>If the OPTIONS method is supported and is used, the return value of this function is expected to be a list of pairs representing header names and values that should appear in the response.</td></tr>
+
+<tr><td class="fwf">allowed_methods</td><td class="fwf">['GET', 'HEAD']</td><td></td><td class="fwf">[Method]</td><td>If a Method not in this list is requested, then a 405 Method Not Allowed will be sent. Note that these are all-caps and are atoms. (single-quoted)</td></tr>
+<tr><td class="fwf">delete_resource</td><td class="fwf">false</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td>This is called when a DELETE request should be enacted, and should return true if the deletion succeeded.</td></tr>
+<tr><td class="fwf">delete_completed</td><td class="fwf">true</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td>This is only called after a successful delete_resource call, and should return false if the deletion was accepted but cannot yet be guaranteed to have finished.</td></tr>
+
+<tr><td class="fwf">post_is_create</td><td class="fwf">false</td><td></td><td class="fwf">true <span class="fwf">|</span> false</td><td>If POST requests should be treated as a request to put content into a (potentially new) resource as opposed to being a generic submission for processing, then this function should return true. If it does return true, then create_path will be called and the rest of the request will be treated much like a PUT to the Path entry returned by that call.</td></tr>
+<tr><td class="fwf">create_path</td><td class="fwf">undefined</td><td></td><td class="fwf">Path</td><td>This will be called on a POST request if post_is_create returns true. It is an error for this function to not produce a Path if post_is_create returns true.  The Path returned should be a valid URI part following the dispatcher prefix. That Path will replace the previous one in the return value of <span class="fwf"> wrq:disp_path(ReqData) </span> for all subsequent resource function calls in the course of this request.</td></tr>
+
+<tr><td class="fwf">process_post</td><td class="fwf">false</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td>If post_is_create returns false, then this will be called to process any POST requests. If it succeeds, it should return true.</td></tr>
+<tr><td class="fwf">content_types_provided</td><td><span class="fwf"> [{"text/html", to_html}] </span></td><td></td><td><span class="fwf"> [{Mediatype, Handler}] </span></td><td>This should return a list of pairs where each pair is of the form <span class="fwf"> {Mediatype, Handler} </span> where <span class="fwf">Mediatype</span> is a string of content-type format and the <span class="fwf">Handler</span> is an atom naming the function which can provide a resource representation in that media type.  Content negotiation is driven by this return value. For example, if a client request includes an Accept header with a value that does not appear as a first element in any of the return tuples, then a 406 Not Acceptable will be sent.</td></tr>
+
+<tr><td class="fwf">content_types_accepted</td><td><span class="fwf"> [] </span></td><td></td><td><span class="fwf"> [{Mediatype, Handler}] </span></td><td>This is used similarly to content_types_provided, except that it is for incoming resource representations -- for example, PUT requests. Handler functions usually want to use <span class="fwf"> wrq:req_body(ReqData) </span> to access the incoming request body.</td></tr>
+<tr><td class="fwf">charsets_provided</td><td class="fwf">no_charset</td><td></td><td>no_charset <span class="fwf">|</span> <span class="fwf"> [{Charset, CharsetConverter}] </span></td><td>If this is anything other than the atom no_charset, it must be a list of pairs where each pair is of the form Charset, Converter where Charset is a string naming a charset and Converter is a callable function in the resource which will be called on the produced body in a GET and ensure that it is in Charset.</td></tr>
+
+<tr><td class="fwf">encodings_provided</td><td><span class="fwf"> [{"identity", fun(X) -&gt; X end}] </span></td><td></td><td><span class="fwf"> [{Encoding, Encoder}] </span></td><td>This must be a list of pairs where in each pair Encoding is a string naming a valid content encoding and Encoder is a callable function in the resource which will be called on the produced body in a GET and ensure that it is so encoded.  One useful setting is to have the function check on method, and on GET requests return <span class="fwf"> [{"identity", fun(X) -&gt; X end}, {"gzip", fun(X) -&gt; zlib:gzip(X) end}] </span> as this is all that is needed to support gzip content encoding.</td></tr>
+
+<tr><td class="fwf">variances</td><td><span class="fwf"> [] </span></td><td></td><td><span class="fwf"> [HeaderName] </span></td><td>If this function is implemented, it should return a list of strings with header names that should be included in a given response's Vary header. The standard conneg headers (Accept, Accept-Encoding, Accept-Charset, Accept-Language) do not need to be specified here as Webmachine will add the correct elements of those automatically depending on resource behavior.</td></tr>
+<tr><td class="fwf">is_conflict</td><td class="fwf">false</td><td></td><td class="fwf">true <span class="fwf">|</span> false</td><td>If this returns true, the client will receive a 409 Conflict.</td></tr>
+<tr><td class="fwf">multiple_choices</td><td class="fwf">false</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td>If this returns true, then it is assumed that multiple representations of the response are possible and a single one cannot be automatically chosen, so a 300 Multiple Choices will be sent instead of a 200.</td></tr>
+
+<tr><td class="fwf">previously_existed</td><td class="fwf">false</td><td align='center' class='x_check'>X</td><td class="fwf">true <span class="fwf">|</span> false</td><td></td></tr>
+<tr><td class="fwf">moved_permanently</td><td class="fwf">false</td><td align='center' class='x_check'>X</td><td class="fwf"><span class="fwf"> {true, MovedURI} </span> <span class="fwf">|</span> false</td><td></td></tr>
+
+<tr><td class="fwf">moved_temporarily</td><td class="fwf">false</td><td align='center' class='x_check'>X</td><td class="fwf"><span class="fwf"> {true, MovedURI} </span> <span class="fwf">|</span> false</td><td></td></tr>
+<tr><td class="fwf">last_modified</td><td class="fwf">undefined</td><td></td><td class="fwf">undefined <span class="fwf">|</span> <span class="fwf"> {{YYYY,MM,DD}, {Hour,Min,Sec}} </span></td><td></td></tr>
+
+<tr><td class="fwf">expires</td><td class="fwf">undefined</td><td></td><td class="fwf">undefined <span class="fwf">|</span> <span class="fwf"> {{YYYY,MM,DD}, {Hour,Min,Sec}} </span></td><td></td></tr>
+<tr><td class="fwf">generate_etag</td><td class="fwf">undefined</td><td></td><td class="fwf">undefined <span class="fwf">|</span> ETag</td><td>If this returns a value, it will be used as the value of the ETag header and for comparison in conditional requests.</td></tr>
+<tr><td class="fwf">finish_request</td><td class="fwf">true</td><td></td><td class="fwf">true <span class="fwf">|</span> false</td><td>This function, if exported, is called just before the final response is constructed and sent.  The <span class="fwf"> Result </span> is ignored, so any effect of this function must be by returning a modified <span class="fwf"> ReqData </span>.</td></tr>
+
+<tr><td class="fwf">body-producing function named as a Handler by content_types_provided</td><td></td><td align='center' class='x_check'>X</td><td class="fwf"><span class="fwf"> Body </span></td><td>The Body should be either an <span class="fwf">iolist()</span> or <a href="streambody.html">{stream,streambody()}</a></td></tr>
+<tr><td class="fwf">POST-processing function named as a Handler by content_types_accepted</td><td></td><td align='center' class='x_check'>X</td><td class="fwf"><span class="fwf"> true </span></td><td></td></tr>
+</table>
+
+<p>
+The above are all of the supported predefined resource functions. In addition to whichever of these a resource wishes to use, it also must export all of the functions named in the return values of the content_types_provided and content_types_accepted functions with behavior as described in the bottom two rows of the table.
+</p>
+		</div>
+		<div id="footer">
+
+		</div>
+	</div>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-4979965-5");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+
+</body>
+</html>
+

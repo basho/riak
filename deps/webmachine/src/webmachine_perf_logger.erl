@@ -58,7 +58,7 @@ handle_cast({refresh, Time}, State) ->
     {noreply, maybe_rotate(State, Time)}.
 
 handle_info(_Info, State) ->
-    {ok, State}.
+    {noreply, State}.
 
 terminate(_Reason, _State) ->
     ok.

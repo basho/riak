@@ -19,8 +19,9 @@
 -module(webmachine_dispatcher).
 -author('Robert Ahrens <rahrens@basho.com>').
 -author('Justin Sheehy <justin@basho.com>').
+-author('Bryan Fink <bryan@basho.com>').
 
--export([dispatch/2]).
+-export([dispatch/2, dispatch/3]).
 
 -define(SEPARATOR, $\/).
 -define(MATCH_ALL, '*').
@@ -30,6 +31,14 @@
 %% @doc Interface for URL dispatching.
 %% See also http://bitbucket.org/justin/webmachine/wiki/DispatchConfiguration
 dispatch(PathAsString, DispatchList) ->
+    dispatch([], PathAsString, DispatchList).
+
+%% @spec dispatch(Host::string(), Path::string(),
+%%                DispatchList::[matchterm()]) ->
+%%         dispterm() | dispfail()
+%% @doc Interface for URL dispatching.
+%% See also http://bitbucket.org/justin/webmachine/wiki/DispatchConfiguration
+dispatch(HostAsString, PathAsString, DispatchList) ->
     Path = string:tokens(PathAsString, [?SEPARATOR]),
     % URIs that end with a trailing slash are implicitly one token
     % "deeper" than we otherwise might think as we are "inside"
@@ -38,10 +47,57 @@ dispatch(PathAsString, DispatchList) ->
 		     true -> 1;
 		     _ -> 0
 		 end,
-    try_binding(DispatchList, Path, ExtraDepth).
+    {Host, Port} = split_host_port(HostAsString),
+    try_host_binding(DispatchList, lists:reverse(Host), Port,
+                     Path, ExtraDepth).
 
-%% @type matchterm() = {[pathterm()], matchmod(), matchopts()}.
+split_host_port(HostAsString) ->
+    case string:tokens(HostAsString, ":") of
+        [HostPart, PortPart] ->
+            {split_host(HostPart), list_to_integer(PortPart)};
+        [HostPart] ->
+            {split_host(HostPart), 80};
+        [] ->
+            %% no host header
+            {[], 80}
+    end.
+
+split_host(HostAsString) ->
+    string:tokens(HostAsString, ".").
+
+%% @type matchterm() = hostmatchterm() | pathmatchterm().
 % The dispatch configuration is a list of these terms, and the
+% first one whose host and path terms match the input is used.
+% Using a pathmatchterm() here is equivalent to using a hostmatchterm()
+% of the form {{['*'],'*'}, [pathmatchterm()]}.
+
+%% @type hostmatchterm() = {hostmatch(), [pathmatchterm()]}.
+% The dispatch configuration contains a list of these terms, and the
+% first one whose host and one pathmatchterm match is used.
+
+%% @type hostmatch() = [hostterm()] | {[hostterm()], portterm()}.
+% A host header (Host, X-Forwarded-For, etc.) will be matched against
+% this term.  Using a raws [hostterm()] list is equivalent to using
+% {[hostterm()], '*'}.
+
+%% @type hostterm() = '*' | string() | atom().
+% A list of hostterms is matched against a '.'-separated hostname.
+% The '*' hosterm matches all remaining tokens, and is only allowed at
+% the head of the list.
+% A string hostterm will match a token of exactly the same string.
+% Any atom hostterm other than '*' will match any token and will
+% create a binding in the result if a complete match occurs.
+
+%% @type portterm() = '*' | integer() | atom().
+% A portterm is matched against the integer port after any ':' in
+% the hostname, or 80 if no port is found.
+% The '*' portterm patches any port
+% An integer portterm will match a port of exactly the same integer.
+% Any atom portterm other than '*' will match any port and will
+% create a binding in the result if a complete match occurs.
+
+%% @type pathmatchterm() = {[pathterm()], matchmod(), matchopts()}.
+% The dispatch configuration contains a list of these terms, and the
 % first one whose list of pathterms matches the input path is used.
 
 %% @type pathterm() = '*' | string() | atom().
@@ -80,28 +136,63 @@ dispatch(PathAsString, DispatchList) ->
 
 %% @type dispfail() = {no_dispatch_match, pathtokens()}.
 
-try_binding([], PathTokens, _) ->
-    {no_dispatch_match, PathTokens};
-try_binding([{PathSchema, Mod, Props}|Rest], PathTokens, ExtraDepth) ->
-    case bind_path(PathSchema, PathTokens, [], 0) of
-        {ok, Remainder, Bindings, Depth} ->
-            {Mod, Props, Remainder, Bindings,
-             calculate_app_root(Depth + ExtraDepth), reconstitute(Remainder)};
-        fail -> 
-            try_binding(Rest, PathTokens, ExtraDepth)
+try_host_binding([], Host, Port, Path, _Depth) ->
+    {no_dispatch_match, {Host, Port}, Path};
+try_host_binding([Dispatch|Rest], Host, Port, Path, Depth) ->
+    {{HostSpec,PortSpec},PathSpec} =
+        case Dispatch of
+            {{H,P},S} -> {{H,P},S};
+            {H,S}     -> {{H,?MATCH_ALL},S};
+            S         -> {{[?MATCH_ALL],?MATCH_ALL},[S]}
+        end,
+    case bind_port(PortSpec, Port, []) of
+        {ok, PortBindings} ->
+            case bind(lists:reverse(HostSpec), Host, PortBindings, 0) of
+                {ok, HostRemainder, HostBindings, _} ->
+                    case try_path_binding(PathSpec, Path, HostBindings, Depth) of
+                        {Mod, Props, PathRemainder, PathBindings,
+                         AppRoot, StringPath} ->
+                            {Mod, Props, HostRemainder, Port, PathRemainder,
+                             PathBindings, AppRoot, StringPath};
+                        {no_dispatch_match, _} ->
+                            try_host_binding(Rest, Host, Port, Path, Depth)
+                    end;
+                fail ->
+                    try_host_binding(Rest, Host, Port, Path, Depth)
+            end;
+        fail ->
+            try_host_binding(Rest, Host, Port, Path, Depth)
     end.
 
-bind_path([], [], Bindings, Depth) ->
+bind_port(Port, Port, Bindings) -> {ok, Bindings};
+bind_port(?MATCH_ALL, _Port, Bindings) -> {ok, Bindings};
+bind_port(PortAtom, Port, Bindings) when is_atom(PortAtom) ->
+    {ok, [{PortAtom, Port}|Bindings]};
+bind_port(_, _, _) -> fail.
+
+try_path_binding([], PathTokens, _, _) ->
+    {no_dispatch_match, PathTokens};
+try_path_binding([{PathSchema, Mod, Props}|Rest], PathTokens,
+                 Bindings, ExtraDepth) ->
+    case bind(PathSchema, PathTokens, Bindings, 0) of
+        {ok, Remainder, NewBindings, Depth} ->
+            {Mod, Props, Remainder, NewBindings,
+             calculate_app_root(Depth + ExtraDepth), reconstitute(Remainder)};
+        fail -> 
+            try_path_binding(Rest, PathTokens, Bindings, ExtraDepth)
+    end.
+
+bind([], [], Bindings, Depth) ->
     {ok, [], Bindings, Depth};
-bind_path([?MATCH_ALL], PathRest, Bindings, Depth) when is_list(PathRest) ->
-    {ok, PathRest, Bindings, Depth + length(PathRest)};
-bind_path(_, [], _, _) ->
+bind([?MATCH_ALL], Rest, Bindings, Depth) when is_list(Rest) ->
+    {ok, Rest, Bindings, Depth + length(Rest)};
+bind(_, [], _, _) ->
     fail;
-bind_path([Token|Rest],[Match|PathRest],Bindings,Depth) when is_atom(Token) ->
-    bind_path(Rest, PathRest, [{Token, Match}|Bindings], Depth + 1);
-bind_path([Token|Rest], [Token|PathRest], Bindings, Depth) ->
-    bind_path(Rest, PathRest, Bindings, Depth + 1);
-bind_path(_, _, _, _) ->
+bind([Token|RestToken],[Match|RestMatch],Bindings,Depth) when is_atom(Token) ->
+    bind(RestToken, RestMatch, [{Token, Match}|Bindings], Depth + 1);
+bind([Token|RestToken], [Token|RestMatch], Bindings, Depth) ->
+    bind(RestToken, RestMatch, Bindings, Depth + 1);
+bind(_, _, _, _) ->
     fail.
 
 reconstitute([]) -> "";

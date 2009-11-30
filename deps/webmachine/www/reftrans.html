@@ -1,0 +1,52 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta name="author" content="Basho Technologies" />
+	<meta name="description" content="Webmachine's approach to resource functions and referential transparency" />
+	<meta name="keywords" content="webmachine http rest web" />
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+	<link rel="stylesheet" href="css/style-1c.css" type="text/css" />
+	<title>Webmachine's approach to resource functions and referential transparency</title>
+</head>
+<body>
+	<div id="content">
+		<h1><span class="hr"></span><a href="/">webmachine</a></h1>
+		<ul id="top">
+			<li><a href="/">Home</a></li>
+			<li><a href="http://bitbucket.org/justin/webmachine/">Source Code</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+		</ul>
+		<div id="left">
+<h3>Webmachine's approach to resource functions and referential transparency</h3>
+
+<p>
+Webmachine goes to great lengths to help your <a href="resources.html">resource functions</a> to be as referentially transparent as possible.  By "referentially transparent" we mean that given the same input <code> {ReqData, Context} </code> the function will return the same output <code> {Result, ReqData, Context} </code> and that side effects will be insignificant from the point of view of Webmachine's execution.
+</p>
+<p>
+We don't try to force you into pure referential transparency; we give you as big a hole as you want via <code>Context</code>.  As that term is application-specific, you can put database handles, server process identifiers, or anything else you like in there and we won't try to stop you.
+</p>
+<p>
+However, all Webmachine really cares about is the rest of the terms.  Since resource functions are generally referentially transparent at least with regard to those terms, many things are easier -- testing, <a href="debugging.html">debugging</a>, and even static analysis and reasoning about your Web application.
+</p>
+<p>
+Note that there is one important exception to this.  The <a href="streambody.html">streamed body feature</a> exists to allow resources to consume or produce request/response bodies a hunk at a time without ever having the whole thing in memory.  While the continuation-passing style used in the streaming API is friendly to general functional analysis, due to the necessary side-effect of reading or writing to sockets the stream bodies cannot be treated in quite the same way as other uses of the <code>ReqData</code> interface.  Luckily, it is easy to inspect a <code>ReqData</code> to see if this is the case in any individual resource or request instance.
+</p>
+		</div>
+		<div id="footer">
+
+		</div>
+	</div>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-4979965-5");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+
+</body>
+</html>
+

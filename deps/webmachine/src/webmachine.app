@@ -1,6 +1,6 @@
 {application, webmachine,
  [{description, "webmachine"},
-  {vsn, "1.4"},
+  {vsn, "1.5"},
   {modules, [
     webmachine,
     webmachine_app,
@@ -13,8 +13,10 @@
     webmachine_resource,
     webmachine_request,
     webmachine_request_srv,
+    webmachine_skel,
     webmachine_sup,
     webmachine_mochiweb,
+    webmachine_multipart,
     webmachine_util,
     wrq,
     wmtrace_resource

@@ -1,0 +1,176 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta name="author" content="Basho Technologies" />
+	<meta name="description" content="Webmachine streamed bodies" />
+	<meta name="keywords" content="webmachine http rest web" />
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+	<link rel="stylesheet" href="css/style-1c.css" type="text/css" />
+	<title>Webmachine streamed bodies</title>
+</head>
+<body>
+	<div id="content">
+		<h1><span class="hr"></span><a href="/">webmachine</a></h1>
+		<ul id="top">
+			<li><a href="/">Home</a></li>
+			<li><a href="http://bitbucket.org/justin/webmachine/">Source Code</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+		</ul>
+		<div id="left">
+<h3>Webmachine streamed bodies</h3>
+
+<p>
+
+Webmachine allows the resource developer to handle request and
+response bodies as either whole units (binary or iolist) to be handed
+around at once, or else to choose to "stream" the body.
+
+</p>
+<p>
+
+The body-handling functions are:
+
+</p>
+
+<ul><li><code> wrq:req_body/1 </code>
+</li><li><code> wrq:stream_req_body/2 </code>
+</li><li><code> wrq:set_resp_body/2 </code>
+</li></ul>
+
+<p>
+
+The last of these, <code>wrq:set_resp_body/2</code>, is also called
+implicitly with the return value of any content-producing function
+such as <code>to_html/2</code>.
+
+</p>
+<p>
+
+The first of these (<code>req_body</code>) is the simplest.  It will
+provide the whole incoming request body as a binary.  (Unless the body
+is too large, as set by <code>wrq:set_max_recv_body/2</code> or
+defaulting to 50M) For the majority of resources, this is the easiest
+way to handle the incoming request body.
+
+</p>
+<p>
+
+If a resource wants to handle the incoming request body a hunk at a
+time, it may call <code>wrq:stream_req_body/2</code> instead.  Instead
+of a binary, this produces a <code>StreamBody</code> structure.
+
+</p>
+<p>
+
+(It is an error to call both <code>wrq:req_body/1</code> and
+<code>wrq:stream_req_body/2</code> in the execution of a single
+resource.)
+
+</p>
+<p>
+
+A <code>StreamBody</code> is a pair of the form
+<code>{Data,Next}</code> where <code>Data</code> is a binary and
+<code>Next</code> is either the atom <code>done</code> signifying the
+end of the body or else a 0-arity function that, when called, will
+produce the "next" <code>StreamBody</code> structure.
+
+</p>
+<p>
+
+The integer parameter to <code>wrq:stream_req_body/2</code> indicates
+the maximum size in bytes of any <code>Hunk</code> from the resulting
+<code>StreamBody</code>.
+
+</p>
+<p>
+
+When a resource provides a body to be sent in the response, it should
+use <code>wrq:set_resp_body/2</code>.  The parameter to this function
+may be either an iolist, representing the entire body, or else a pair
+of the form <code>{stream, StreamBody}</code>.
+
+</p>
+<p>
+
+An example may make the usage of this API clearer.  A complete and
+working resource module using this API in both directions:
+
+</p>
+<p>
+
+<pre>
+-module(mywebdemo_resource).
+-export([init/1, allowed_methods/2, process_post/2]).
+
+-include_lib("webmachine/include/webmachine.hrl").
+
+init([]) -> {ok, undefined}.
+
+allowed_methods(ReqData, State) -> {['POST'], ReqData, State}.
+
+process_post(ReqData, State) ->
+    Body = get_streamed_body(wrq:stream_req_body(ReqData, 3), []),
+    {true, wrq:set_resp_body({stream, send_streamed_body(Body,4)},ReqData), State}.
+
+send_streamed_body(Body, Max) ->
+    HunkLen=8*Max,
+    case Body of        
+        <<A:HunkLen,Rest/binary>> ->
+            io:format("SENT ~p~n",[<<A:HunkLen>>]),
+            {<<A:HunkLen>>, fun() -> send_streamed_body(Rest,Max) end};
+        _ ->
+            io:format("SENT ~p~n",[Body]),
+            {Body, done}
+    end.
+
+get_streamed_body({Hunk,done},Acc) ->
+    io:format("RECEIVED ~p~n",[Hunk]),
+    iolist_to_binary(lists:reverse([Hunk|Acc]));
+get_streamed_body({Hunk,Next},Acc) ->
+    io:format("RECEIVED ~p~n",[Hunk]),
+    get_streamed_body(Next(),[Hunk|Acc]).
+</pre>
+
+</p>
+<p>
+
+If you use this resource in place of the file
+<code>/tmp/mywebdemo/src/mywebdemo_resource.erl</code> in the
+<a href="quickstart.html">quickstart</a> setup, you should then be able
+to issue <code>curl -d '1234567890' http://127.0.0.1:8000/</code> on
+the command line and the <code>io:format</code> calls will show you
+what is going on.
+
+</p>
+<p>
+
+Obviously, a realistic resource wouldn't use this API just to collect
+the whole binary into memory or break one up that is already present
+-- you'd use <code>req_body</code> and put a simple iolist into
+<code>set_resp_body</code> instead.  Also, the choices of 3 and 4
+bytes as hunk size are far from optimal for most reasonable uses.
+This resource is intended only as a demonstration of the API, not as a
+real-world use of streaming request/response bodies.
+
+</p>
+
+		</div>
+		<div id="footer">
+
+		</div>
+	</div>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-4979965-5");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+
+</body>
+</html>
+

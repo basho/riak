@@ -16,11 +16,11 @@
 -module(wrq).
 -author('Justin Sheehy <justin@basho.com>').
 
--export([create/4,load_dispatch_data/6]).
+-export([create/4,load_dispatch_data/7]).
 -export([method/1,version/1,peer/1,disp_path/1,path/1,raw_path/1,path_info/1,
          response_code/1,req_cookie/1,req_qs/1,req_headers/1,req_body/1,
          stream_req_body/2,resp_redirect/1,resp_headers/1,resp_body/1,
-        app_root/1,path_tokens/1]).
+         app_root/1,path_tokens/1, host_tokens/1, port/1]).
 -export([path_info/2,get_req_header/2,do_redirect/2,fresh_resp_headers/2,
          get_resp_header/2,set_resp_header/3,set_resp_headers/2,
          set_disp_path/2,set_req_body/2,set_resp_body/2,set_response_code/2,
@@ -29,12 +29,14 @@
          max_recv_body/1,set_max_recv_body/2,
          get_cookie_value/2,get_qs_value/2,get_qs_value/3,set_peer/2]).
 
+% @type reqdata(). The opaque data type used for req/resp data structures.
 -include_lib("include/wm_reqdata.hrl").
+-include_lib("include/wm_reqstate.hrl").
 
 create(Method,Version,RawPath,Headers) ->
     create(#wm_reqdata{method=Method,version=Version,
                        raw_path=RawPath,req_headers=Headers,
-      wmreq=defined_in_load_dispatch_data,
+      wm_state=defined_on_call,
       path="defined_in_create",
       req_cookie=defined_in_create,
       req_qs=defined_in_create,
@@ -56,9 +58,11 @@ create(RD = #wm_reqdata{raw_path=RawPath}) ->
     {_, QueryString, _} = mochiweb_util:urlsplit_path(RawPath),
     ReqQS = mochiweb_util:parse_qs(QueryString),
     RD#wm_reqdata{path=Path,req_cookie=Cookie,req_qs=ReqQS}.
-load_dispatch_data(PathInfo, PathTokens, AppRoot, DispPath, WMReq, RD) ->
-    RD#wm_reqdata{path_info=PathInfo,path_tokens=PathTokens,
-                 app_root=AppRoot,disp_path=DispPath,wmreq=WMReq}.
+load_dispatch_data(PathInfo, HostTokens, Port, PathTokens, AppRoot,
+                   DispPath, RD) ->
+    RD#wm_reqdata{path_info=PathInfo,host_tokens=HostTokens,
+                  port=Port,path_tokens=PathTokens,
+                  app_root=AppRoot,disp_path=DispPath}.
 
 method(_RD = #wm_reqdata{method=Method}) -> Method.
 
@@ -81,19 +85,30 @@ path_info(_RD = #wm_reqdata{path_info=PathInfo}) -> PathInfo. % dict
 
 path_tokens(_RD = #wm_reqdata{path_tokens=PathT}) -> PathT. % list of strings
 
+host_tokens(_RD = #wm_reqdata{host_tokens=HostT}) -> HostT. % list of strings
+
+port(_RD = #wm_reqdata{port=Port}) -> Port. % integer
+
 response_code(_RD = #wm_reqdata{response_code=C}) when is_integer(C) -> C.
 
 req_cookie(_RD = #wm_reqdata{req_cookie=C}) when is_list(C) -> C. % string
 
-req_qs(_RD = #wm_reqdata{req_qs=QS}) when is_list(QS) -> QS. % string
+%% @spec req_qs(reqdata()) -> [{Key, Value}]
+req_qs(_RD = #wm_reqdata{req_qs=QS}) when is_list(QS) -> QS.
 
 req_headers(_RD = #wm_reqdata{req_headers=ReqH}) -> ReqH. % mochiheaders
 
-req_body(_RD = #wm_reqdata{wmreq=WMReq,max_recv_body=MRB}) ->
-    maybe_conflict_body(WMReq:req_body(MRB)).
+req_body(_RD = #wm_reqdata{wm_state=ReqState0,max_recv_body=MRB}) ->
+    Req = webmachine_request:new(ReqState0),
+    {ReqResp, ReqState} = Req:req_body(MRB),
+    put(tmp_reqstate, ReqState),
+    maybe_conflict_body(ReqResp).
 
-stream_req_body(_RD = #wm_reqdata{wmreq=WMReq}, MaxHunk) ->
-    maybe_conflict_body(WMReq:stream_req_body(MaxHunk)).
+stream_req_body(_RD = #wm_reqdata{wm_state=ReqState0}, MaxHunk) ->
+    Req = webmachine_request:new(ReqState0),
+    {ReqResp, ReqState} = Req:stream_req_body(MaxHunk),
+    put(tmp_reqstate, ReqState),
+    maybe_conflict_body(ReqResp).
 
 max_recv_body(_RD = #wm_reqdata{max_recv_body=X}) when is_integer(X) -> X.
 
@@ -123,7 +138,9 @@ resp_body(_RD = #wm_reqdata{resp_body=RespB}) -> iolist_to_binary(RespB).
 
 path_info(Key, RD) when is_atom(Key) ->
     case dict:find(Key, path_info(RD)) of
-        {ok, Value} when is_list(Value) -> Value; % string
+        {ok, Value} when is_list(Value); is_integer(Value) ->
+            Value; % string (for host or path match)
+                   % or integer (for port match)
         error -> undefined
     end.
 

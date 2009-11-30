@@ -27,39 +27,41 @@
 
 render_error(Code, Req, Reason) ->
     case Req:has_response_body() of
-        true -> Req:response_body();
-        false -> render_error_body(Code, Req, Reason)
+        {true,_} -> Req:response_body();
+        {false,_} -> render_error_body(Code, Req, Reason)
     end.
 
 render_error_body(404, Req, _Reason) ->
-    Req:add_response_header("Content-Type", "text/html"),
-    <<"<HTML><HEAD><TITLE>404 Not Found</TITLE></HEAD><BODY><H1>Not Found</H1>The requested document was not found on this server.<P><HR><ADDRESS>mochiweb+webmachine web server</ADDRESS></BODY></HTML>">>;
+    {ok, ReqState} = Req:add_response_header("Content-Type", "text/html"),
+    {<<"<HTML><HEAD><TITLE>404 Not Found</TITLE></HEAD><BODY><H1>Not Found</H1>The requested document was not found on this server.<P><HR><ADDRESS>mochiweb+webmachine web server</ADDRESS></BODY></HTML>">>, ReqState};
 
 render_error_body(500, Req, Reason) ->
-    Req:add_response_header("Content-Type", "text/html"),
-    error_logger:error_msg("webmachine error: path=~p~n~p~n", [Req:path(), Reason]),
+    {ok, ReqState} = Req:add_response_header("Content-Type", "text/html"),
+    {Path,_} = Req:path(),
+    error_logger:error_msg("webmachine error: path=~p~n~p~n", [Path, Reason]),
     STString = io_lib:format("~p", [Reason]),
     ErrorStart = "<html><head><title>500 Internal Server Error</title></head><body><h1>Internal Server Error</h1>The server encountered an error while processing this request:<br><pre>",
     ErrorEnd = "</pre><P><HR><ADDRESS>mochiweb+webmachine web server</ADDRESS></body></html>",
     ErrorIOList = [ErrorStart,STString,ErrorEnd],
-    erlang:iolist_to_binary(ErrorIOList);
+    {erlang:iolist_to_binary(ErrorIOList), ReqState};
 
 render_error_body(501, Req, _Reason) ->
-    Req:add_response_header("Content-Type", "text/html"),
+    {ok, ReqState} = Req:add_response_header("Content-Type", "text/html"),
+    {Method,_} = Req:method(),
     error_logger:error_msg("Webmachine does not support method ~p~n",
-                           [Req:method()]),
+                           [Method]),
     ErrorStr = io_lib:format("<html><head><title>501 Not Implemented</title>"
                              "</head><body><h1>Internal Server Error</h1>"
                              "The server does not support the ~p method.<br>"
                              "<P><HR><ADDRESS>mochiweb+webmachine web server"
                              "</ADDRESS></body></html>",
-                             [Req:method()]),
-    erlang:iolist_to_binary(ErrorStr);
+                             [Method]),
+    {erlang:iolist_to_binary(ErrorStr), ReqState};
 
 render_error_body(503, Req, _Reason) ->
-    Req:add_response_header("Content-Type", "text/html"),
+    {ok, ReqState} = Req:add_response_header("Content-Type", "text/html"),
     error_logger:error_msg("Webmachine cannot fulfill"
-                           "the request at this time"),
+                           " the request at this time"),
     ErrorStr = "<html><head><title>503 Service Unavailable</title>"
                "</head><body><h1>Service Unavailable</h1>"
                "The server is currently unable to handle "
@@ -67,5 +69,5 @@ render_error_body(503, Req, _Reason) ->
                "or maintenance of the server.<br>"
                "<P><HR><ADDRESS>mochiweb+webmachine web server"
                "</ADDRESS></body></html>",
-    list_to_binary(ErrorStr).
+    {list_to_binary(ErrorStr), ReqState}.
 

@@ -1,0 +1,108 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Strict//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-strict.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+	<meta name="author" content="Basho Technologies" />
+	<meta name="description" content="Webmachine mechanics" />
+	<meta name="keywords" content="webmachine http rest web" />
+    <meta http-equiv="content-type" content="text/html;charset=utf-8" />
+	<link rel="stylesheet" href="css/style-1c.css" type="text/css" />
+	<title>Webmachine mechanics</title>
+</head>
+<body>
+	<div id="content">
+		<h1><span class="hr"></span><a href="/">webmachine</a></h1>
+		<ul id="top">
+			<li><a href="/">Home</a></li>
+			<li><a href="http://bitbucket.org/justin/webmachine/">Source Code</a></li>
+                        <li><a href="contact.html">Contact</a></li>
+		</ul>
+		<div id="left">
+<h3>How does this Webmachine thing work, anyway?</h3>
+
+<p>
+This page describes the basic mechanics of Webmachine from the point
+of view of a single incoming HTTP Request, documenting the behavior of
+Webmachine through to the HTTP Response.
+</p>
+<p>
+(This is a bit different from what you might get with a "Web
+Framework" as we're not going to talk about MVC, ORMs, or anything
+else about the rest of the shape of your application.  We believe that
+you know better than we do how to structure your own app --
+Webmachine's job is to help you make sure that your app's presence on
+the Web is well-behaved and well-structured.)
+</p>
+<p>
+When a request is initially received by Webmachine it is handled by the
+<a href="dispatcher.html">dispatcher</a>.
+If the dispatcher does not find a matching resource then it will
+immediately respond with a 404 Not Found.  If a match is found then a
+<a href="reqdata.html">request data record</a>
+is created and the matching
+<a href="resources.html">resource</a> is
+kicked off via its <code>init/1</code> function.
+</p>
+<p>
+The resource then flows through the decision core, which is
+effectively just running the request through the
+<a href="diagram.html">HTTP flowchart</a>.  At
+each decision point (diamond) in the diagram, Webmachine will
+determine which path to follow.  In some cases it can determine the
+path purely from the request data -- for instance, the path from
+decision <code>C3</code> depends purely on whether the client sent
+an <code>Accept</code> header.  In many cases, however, the decision
+is application-specific -- the path from <code>B10</code> depends on
+the value the
+<a href="resources.html">resource</a> module
+returns from <code>allowed_methods.</code> Eventually the chosen path
+will terminate at one of the rectangles on the diagram.  At that point
+Webmachine will send an appropriate HTTP response, with the headers
+and body dependent on the path through the diagram and the values
+returned by the resource's functions.
+</p>
+<p>
+Most of the time you don't need to worry about this big diagram,
+though -- just define the
+<a href="resources.html">resource functions</a>
+relevant to your app and Webmachine will do the rest.  A
+good understanding of this central mechanism in Webmachine is most
+useful when
+<a href="debugging.html">debugging your resources</a>.
+</p>
+<p>
+From the way that webmachine's decision core works, it follows that
+Webmachine's HTTP behavior is transactional.  Each HTTP Request is
+fully received, and the resulting HTTP Response is then fully
+constructed before being returned.  This means that while Webmachine
+is suitable for a great many Web applications it is not a good fit for
+an application that will gradually or continuously stream responses
+back to clients inside the context of a single HTTP Request.
+</p>
+<p>
+A useful way to build Webmachine applications is often just to write a
+single function such as <code>to_html</code> to provide the most
+basic of stubs; when that function exists (or any other returned by
+<code>content_types_provided</code>) you can produce <code>200 OK</code>
+responses.  After that, you can easily extend your
+application's Web behavior simply by filling in the other
+<a href="resources.html">resource functions</a> as desired.
+</p>
+		</div>
+		<div id="footer">
+
+		</div>
+	</div>
+
+<script type="text/javascript">
+var gaJsHost = (("https:" == document.location.protocol) ? "https://ssl." : "http://www.");
+document.write(unescape("%3Cscript src='" + gaJsHost + "google-analytics.com/ga.js' type='text/javascript'%3E%3C/script%3E"));
+</script>
+<script type="text/javascript">
+try {
+var pageTracker = _gat._getTracker("UA-4979965-5");
+pageTracker._trackPageview();
+} catch(err) {}</script>
+
+</body>
+</html>
+
