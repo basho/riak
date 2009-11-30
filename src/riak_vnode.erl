@@ -243,6 +243,7 @@ do_get(FSM_pid, BKey, ReqID,
         {ok, Binary} -> {ok, binary_to_term(Binary)};
         X -> X
     end,
+    riak_stat:update(vnode_get),
     gen_fsm:send_event(FSM_pid, {r, RetVal, Idx, ReqID}).
 
 %% @private
@@ -273,7 +274,8 @@ do_diffobj_put(BKey, DiffObj,
     case syntactic_put_merge(Mod, ModState, BKey, DiffObj, ReqID) of
         {newobj, NewObj} ->
             Val = term_to_binary(NewObj),
-            Mod:put(ModState, BKey, Val);
+            Mod:put(ModState, BKey, Val),
+            riak_stat:update(vnode_put);
         _ -> nop
     end.
 
@@ -297,7 +299,8 @@ do_put(FSM_pid, BKey, RObj, ReqID, PruneTime,
                     gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
                 {error, _Reason} ->
                     gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID})
-            end
+            end,
+            riak_stat:update(vnode_put)
     end.
 
 %% @private

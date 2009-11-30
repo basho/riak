@@ -47,10 +47,14 @@ init([]) ->
     RiakWeb = {webmachine_mochiweb,
                  {webmachine_mochiweb, start, [riak_web:config()]},
                   permanent, 5000, worker, dynamic},
+    RiakStat = {riak_stat,
+                {riak_stat, start_link, []},
+                permanent, 5000, worker, [riak_stat]},
     
     % Figure out which processes we should run...
     IsWebConfigured = (riak:get_app_env(riak_web_ip) /= undefined) andalso (riak:get_app_env(riak_web_ip) /= "undefined"),
     HasStorageBackend = (riak:get_app_env(storage_backend) /= undefined) andalso (riak:get_app_env(storage_backend) /= "undefined"),
+    IsStatEnabled = (riak:get_app_env(riak_stat) == true),
     
     % Build the process list...
     Processes = lists:flatten([
@@ -59,7 +63,8 @@ init([]) ->
         RingMgr, 
         Connect, 
         LocalLogger,
-        ?IF(IsWebConfigured, RiakWeb, [])
+        ?IF(IsWebConfigured, RiakWeb, []),
+        ?IF(IsStatEnabled, RiakStat, [])
     ]),
     
     % Run the proesses...
