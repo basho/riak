@@ -34,7 +34,7 @@
                 repair_sent :: list(), 
                 final_obj :: undefined|riak_object:riak_object(),
                 timeout :: pos_integer(),
-                endtime :: pos_integer(),
+                tref    :: reference(),
                 bkey :: {riak_object:bucket(), riak_object:key()},
                 ring :: riak_ring:riak_ring()
                }).
@@ -52,6 +52,7 @@ init([ReqId,Bucket,Key,R,Timeout,Client]) ->
 %% @private
 initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
                                       bkey={Bucket,Key}, ring=Ring}) ->
+    TRef = erlang:send_after(Timeout, self(), timeout),
     RealStartTime = riak_util:moment(),
     DocIdx = riak_util:chash_key({Bucket, Key}),
     riak_eventer:notify(riak_get_fsm, get_fsm_start,
@@ -73,13 +74,13 @@ initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
                        preflist=Preflist,final_obj=undefined,
                        replied_r=[],replied_fail=[],
                        replied_notfound=[],starttime=riak_util:moment(),
-                       waiting_for=Sent,endtime=Timeout+riak_util:moment()},
-    {next_state,waiting_vnode_r,StateData,Timeout}.
+                       waiting_for=Sent,tref=TRef},
+    {next_state,waiting_vnode_r,StateData}.
 
 waiting_vnode_r({r, {ok, RObj}, Idx, ReqId},
                   StateData=#state{r=R,allowmult=AllowMult,
                                    req_id=ReqId,client=Client,
-                                   replied_r=Replied0, endtime=End}) ->
+                                   replied_r=Replied0}) ->
     Replied = [{RObj,Idx}|Replied0],
     case length(Replied) >= R of
         true ->
@@ -93,20 +94,20 @@ waiting_vnode_r({r, {ok, RObj}, Idx, ReqId},
                                         {ReqId, ok})
             end,
             NewStateData = StateData#state{replied_r=Replied,final_obj=Final},
-            finalize(NewStateData, End);
+            finalize(NewStateData);
         false ->
             NewStateData = StateData#state{replied_r=Replied},
-            {next_state,waiting_vnode_r,NewStateData,End-riak_util:moment()}
+            {next_state,waiting_vnode_r,NewStateData}
     end;
 waiting_vnode_r({r, {error, notfound}, Idx, ReqId},
                   StateData=#state{r=R,replied_fail=Fails,
                                    req_id=ReqId,client=Client,n=N,
-                                   replied_notfound=Replied0,endtime=End}) ->
+                                   replied_notfound=Replied0}) ->
     Replied = [Idx|Replied0],
     NewStateData = StateData#state{replied_notfound=Replied},
     case (N - length(Replied) - length(Fails)) >= R of
         true ->
-            {next_state,waiting_vnode_r,NewStateData,End-riak_util:moment()};
+            {next_state,waiting_vnode_r,NewStateData};
         false ->
             riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                 {ReqId, notfound}),
@@ -116,12 +117,12 @@ waiting_vnode_r({r, {error, notfound}, Idx, ReqId},
 waiting_vnode_r({r, {error, Err}, Idx, ReqId},
                   StateData=#state{r=R,client=Client,n=N,
                                    replied_fail=Replied0,req_id=ReqId,
-                                   replied_notfound=NotFound,endtime=End}) ->
+                                   replied_notfound=NotFound}) ->
     Replied = [{Err,Idx}|Replied0],
     NewStateData = StateData#state{replied_fail=Replied},
     case (N - length(Replied) - length(NotFound)) >= R of
         true ->
-            {next_state,waiting_vnode_r,NewStateData,End-riak_util:moment()};
+            {next_state,waiting_vnode_r,NewStateData};
         false ->
             case length(NotFound) of
                 0 ->
@@ -144,28 +145,23 @@ waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
     {stop,normal,StateData}.
 
 waiting_read_repair({r, {ok, RObj}, Idx, ReqId},
-                  StateData=#state{req_id=ReqId,replied_r=Replied0,
-                                   endtime=End}) ->
-    finalize(StateData#state{replied_r=[{RObj,Idx}|Replied0]}, End);
+                  StateData=#state{req_id=ReqId,replied_r=Replied0}) ->
+    finalize(StateData#state{replied_r=[{RObj,Idx}|Replied0]});
 waiting_read_repair({r, {error, notfound}, Idx, ReqId},
-                  StateData=#state{req_id=ReqId,replied_notfound=Replied0,
-                                   endtime=End}) ->
-    finalize(StateData#state{replied_notfound=[Idx|Replied0]}, End);
+                  StateData=#state{req_id=ReqId,replied_notfound=Replied0}) ->
+    finalize(StateData#state{replied_notfound=[Idx|Replied0]});
 waiting_read_repair({r, {error, Err}, Idx, ReqId},
-                  StateData=#state{req_id=ReqId,replied_fail=Replied0,
-                                   endtime=End}) ->
-    finalize(StateData#state{replied_fail=[{Err,Idx}|Replied0]}, End);
+                  StateData=#state{req_id=ReqId,replied_fail=Replied0}) ->
+    finalize(StateData#state{replied_fail=[{Err,Idx}|Replied0]});
 waiting_read_repair(timeout, StateData) ->
     finalize(StateData).
 
-finalize(StateData=#state{replied_r=R,replied_fail=F,replied_notfound=NF, n=N},
-         End) ->
+finalize(StateData=#state{replied_r=R,replied_fail=F,replied_notfound=NF, n=N}) ->
     case (length(R) + length(F) + length(NF)) >= N of
-        true -> finalize(StateData);
-        false -> {next_state,waiting_read_repair,
-                  StateData,End-riak_util:moment()}
+        true -> really_finalize(StateData);
+        false -> {next_state,waiting_read_repair,StateData}
     end.
-finalize(StateData=#state{final_obj=Final,
+really_finalize(StateData=#state{final_obj=Final,
                           replied_r=RepliedR,
                           bkey=BKey,
                           req_id=ReqId,
@@ -233,6 +229,9 @@ handle_event(_Event, _StateName, StateData) ->
 handle_sync_event(_Event, _From, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
+%% @private
+handle_info(timeout, StateName, StateData) ->
+    ?MODULE:StateName(timeout, StateData);
 %% @private
 handle_info(_Info, _StateName, StateData) ->
     {stop,badmsg,StateData}.
