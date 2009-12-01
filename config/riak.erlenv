@@ -14,10 +14,6 @@
 %%  Making it larger will reduce chatter, but will cause greater delays
 %%  in ring convergence between nodes.
 {gossip_interval, 60000}.
-%% doorbell_port is the UDP port used by clients and other nodes to connect
-%%  to the cluster via this node.  If this is undefined the node will be
-%%  storage-only and cannot be an entry point for API requests or joins.
-{doorbell_port, 9000}.
 %% storage_backend specifies the Erlang module defining the storage mechanism
 %%  that will be used on this node. 
 {storage_backend, riak_dets_backend}.
