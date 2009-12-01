@@ -43,6 +43,7 @@ handle_cast({vnode_put, {Partition,_Node},
 handle_cast({vnode_get, {Partition,_Node},
              {FSM_pid,BKey,ReqID}}, State) ->
     Pid = get_vnode(Partition, State),
+    timer:sleep(20000),
     gen_fsm:send_event(Pid, {get, FSM_pid, BKey, ReqID}),
     {noreply, State};
 handle_cast({vnode_merkle, {RemoteVN,Partition,Merkle,ObjList}}, State) ->
