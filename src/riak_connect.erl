@@ -44,7 +44,7 @@ send_ring(ToNode) -> send_ring(node(), ToNode).
 send_ring(Node, Node) -> ok;
 send_ring(FromNode, ToNode) ->
     gen_server:cast({?SERVER, FromNode}, {send_ring_to, ToNode}).
-    
+
 
 %% @private
 start_link() -> 
@@ -53,7 +53,7 @@ start_link() ->
 %% @private
 init(_State) -> 
     schedule_next_gossip(),
-    {ok, false}.
+    {ok, true}.
     
 schedule_next_gossip() ->
     MaxInterval = riak:get_app_env(gossip_interval),
