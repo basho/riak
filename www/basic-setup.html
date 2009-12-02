@@ -59,13 +59,6 @@ The following are some useful parameters:
   ring configuration.  All nodes in a cluster should have the same
   cluster name.  This parameter is required.
 </dd>
-<dt><code>doorbell_port: integer</code></dt>
-<dd>
-  Network port (UDP) on which this node will listen for connections from
-  clients and other nodes.  If this parameter is not specified, the node
-  cannot be used to service client requests, but can still participate
-  in storage.
-</dd>
 <dt><code>riak_cookie: atom</code></dt>
 <dd>
   The Erlang cookie for the riak cluster.  All nodes in a cluster
@@ -139,7 +132,6 @@ A configuration like this one may serve well for a very small cluster such as th
 <pre>
 {cluster_name, "default"}.
 {ring_creation_size, 16}.
-{doorbell_port, 9000}.
 {storage_backend, riak_dets_backend}.
 {riak_dets_backend_root, "/var/riak/store"}.
 {riak_cookie, default_riak_cookie}.
@@ -183,7 +175,6 @@ configuration.  Something like this will work:
 <pre>
 {cluster_name, "default"}.
 {ring_creation_size, 1024}.
-{doorbell_port, 9000}.
 {storage_backend, riak_dets_backend}.
 {riak_dets_backend_root, "/var/riak/store"}.
 {riak_cookie, default_riak_cookie}.

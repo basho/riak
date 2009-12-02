@@ -4,7 +4,6 @@
 %% open files (using ulimit/sysctl) when creating larger ring sizes. 
 {ring_creation_size, 16}.
 {gossip_interval, 60000}.
-{doorbell_port, 9000}.
 {storage_backend, riak_ets_backend}.
 %{riak_dets_backend_root, "priv/store/dets"}.
 {riak_cookie, riak_demo_cookie}.

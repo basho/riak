@@ -35,7 +35,7 @@
                 replied_dw :: list(), 
                 replied_fail :: list(),
                 timeout :: pos_integer(), 
-                endtime :: pos_integer(), 
+                tref    :: reference(),
                 ring :: riak_ring:riak_ring()
                }).
 
@@ -47,11 +47,13 @@ init([ReqId,RObj0,W,DW,Timeout,Client]) ->
     {ok,Ring} = riak_ring_manager:get_my_ring(),
     StateData = #state{robj=RObj0, client=Client, w=W, dw=DW,
                        req_id=ReqId, timeout=Timeout, ring=Ring},
+    
     {ok,initialize,StateData,0}.
 
 %% @private
 initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
                                       timeout=Timeout, ring=Ring}) ->
+    TRef = erlang:send_after(Timeout, self(), timeout),
     RObj = update_metadata(RObj0),
     RealStartTime = riak_util:moment(),
     Bucket = riak_object:bucket(RObj),
@@ -75,12 +77,12 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
                   robj=RObj, n=N, preflist=Preflist, bkey={Bucket,Key},
                   waiting_for=Sent, starttime=riak_util:moment(),
                   replied_w=[], replied_dw=[], replied_fail=[],
-                  endtime=Timeout+riak_util:moment()},
-    {next_state,waiting_vnode_w,StateData,Timeout}.
+                  tref=TRef},
+    {next_state,waiting_vnode_w,StateData}.
 
 waiting_vnode_w({w, Idx, ReqId},
                   StateData=#state{w=W,dw=DW,req_id=ReqId,client=Client, bkey={Bucket, Key},
-                                   replied_w=Replied0, endtime=End}) ->
+                                   replied_w=Replied0}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= W of
         true ->
@@ -93,26 +95,26 @@ waiting_vnode_w({w, Idx, ReqId},
                     {stop,normal,StateData};
                 _ ->
                     NewStateData = StateData#state{replied_w=Replied},
-                    {next_state,waiting_vnode_dw,NewStateData,
-                     End-riak_util:moment()}
+                    {next_state,waiting_vnode_dw,NewStateData}
+
             end;
         false ->
             NewStateData = StateData#state{replied_w=Replied},
-            {next_state,waiting_vnode_w,NewStateData,End-riak_util:moment()}
+            {next_state,waiting_vnode_w,NewStateData}
     end;
 waiting_vnode_w({dw, Idx, _ReqId},
-                  StateData=#state{replied_dw=Replied0, endtime=End}) ->
+                  StateData=#state{replied_dw=Replied0}) ->
     Replied = [Idx|Replied0],
     NewStateData = StateData#state{replied_dw=Replied},
-    {next_state,waiting_vnode_w,NewStateData,End-riak_util:moment()};
+    {next_state,waiting_vnode_w,NewStateData};
 waiting_vnode_w({fail, Idx, ReqId},
                   StateData=#state{n=N,w=W,client=Client,
-                                   replied_fail=Replied0,endtime=End}) ->
+                                   replied_fail=Replied0}) ->
     Replied = [Idx|Replied0],
     NewStateData = StateData#state{replied_fail=Replied},
     case (N - length(Replied)) >= W of
         true ->
-            {next_state,waiting_vnode_w,NewStateData,End-riak_util:moment()};
+            {next_state,waiting_vnode_w,NewStateData};
         false ->
             riak_stat:update(node_put),
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
@@ -128,11 +130,11 @@ waiting_vnode_w(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
     {stop,normal,StateData}.
 
 waiting_vnode_dw({w, _Idx, ReqId},
-          StateData=#state{req_id=ReqId, endtime=End}) ->
-    {next_state,waiting_vnode_dw,StateData,End-riak_util:moment()};
+          StateData=#state{req_id=ReqId}) ->
+    {next_state,waiting_vnode_dw,StateData};
 waiting_vnode_dw({dw, Idx, ReqId},
                  StateData=#state{dw=DW, client=Client, bkey={Bucket, Key},
-                                   replied_dw=Replied0, endtime=End}) ->
+                                   replied_dw=Replied0}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of
         true ->
@@ -143,16 +145,16 @@ waiting_vnode_dw({dw, Idx, ReqId},
             {stop,normal,StateData};
         false ->
             NewStateData = StateData#state{replied_dw=Replied},
-            {next_state,waiting_vnode_dw,NewStateData,End-riak_util:moment()}
+            {next_state,waiting_vnode_dw,NewStateData}
     end;
 waiting_vnode_dw({fail, Idx, ReqId},
                   StateData=#state{n=N,dw=DW,client=Client,
-                                   replied_fail=Replied0,endtime=End}) ->
+                                   replied_fail=Replied0}) ->
     Replied = [Idx|Replied0],
     NewStateData = StateData#state{replied_fail=Replied},
     case (N - length(Replied)) >= DW of
         true ->
-            {next_state,waiting_vnode_dw,NewStateData,End-riak_util:moment()};
+            {next_state,waiting_vnode_dw,NewStateData};
         false ->
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                 {ReqId, {error,too_many_fails,Replied}}),
@@ -175,6 +177,9 @@ handle_sync_event(_Event, _From, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
 %% @private
+
+handle_info(timeout, StateName, StateData) ->
+    ?MODULE:StateName(timeout, StateData);
 handle_info(_Info, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
