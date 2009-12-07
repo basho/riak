@@ -143,7 +143,7 @@ reload_all(Module) ->
      rpc:call(Node, code, load_file, [Module])} || 
         Node <- riak_ring:all_members(Ring)].
 
-%% @spec try_cast(term(), term(), [{Index :: term(), Node :: node()}]) ->
+%% @spec try_cast(term(), term(), [node()], [{Index :: term(), Node :: node()}]) ->
 %%          {[{Index :: term(), Node :: node(), Node :: node()}],
 %%           [{Index :: term(), Node :: node()}]}
 %% @doc Cast {Cmd, {Index,Node}, Msg} at riak_vnode_master on Node
