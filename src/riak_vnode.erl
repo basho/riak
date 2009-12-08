@@ -74,11 +74,17 @@ send_diff_objs(TargetNode,DiffList,
                StateData=#state{mod=Mod,modstate=ModState}) ->
     % send each obj (BKey) in difflist to targetnode
     % return a state with waiting_diffobjs populated
-    [send_diff_obj(TargetNode,BKey,Mod,ModState) || BKey <- DiffList],
-    StateData#state{waiting_diffobjs=DiffList}.
+    Sent = [K || K <- [send_diff_obj(TargetNode,BKey,Mod,ModState) 
+                       || BKey <- DiffList], K /= nop],
+    StateData#state{waiting_diffobjs=Sent}.
 send_diff_obj(TargetNode,BKey,Mod,ModState) ->
-    {ok,BinObj} = Mod:get(ModState,BKey),
-    gen_fsm:send_event(TargetNode, {diffobj,{BKey,BinObj,self()}}).
+    case Mod:get(ModState,BKey) of
+        {ok,BinObj} ->
+            gen_fsm:send_event(TargetNode, {diffobj,{BKey,BinObj,self()}}),
+            BKey;
+        _ ->
+            nop
+    end.
 
 %%%%%%%%%% in merk_waiting state, we have sent a merkle tree to the
 %%%%%%%%%% home vnode, and are waiting for a list of different objects
