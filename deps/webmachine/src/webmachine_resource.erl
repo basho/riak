@@ -118,22 +118,17 @@ wrap(Mod, Args) ->
     end.
 
 do(Fun, ReqProps) when is_atom(Fun) andalso is_list(ReqProps) ->
-    Self = proplists:get_value(resource, ReqProps),
     RState0 = proplists:get_value(reqstate, ReqProps),
     put(tmp_reqstate, empty),
     {Reply, ReqData, NewModState} = handle_wm_call(Fun, 
                     (RState0#reqstate.reqdata)#wm_reqdata{wm_state=RState0}),
-    case Reply of
-        {error, Err} -> {Err, Self};
-        _ ->
-            ReqState = case get(tmp_reqstate) of
-                empty -> RState0;
-                X -> X
-            end,
-            {Reply,
-            webmachine_resource:new(R_Mod, NewModState, R_ModExports, R_Trace),
-            ReqState#reqstate{reqdata=ReqData}}
-    end.
+    ReqState = case get(tmp_reqstate) of
+                   empty -> RState0;
+                   X -> X
+               end,
+    {Reply,
+     webmachine_resource:new(R_Mod, NewModState, R_ModExports, R_Trace),
+     ReqState#reqstate{reqdata=ReqData}}.
 
 handle_wm_call(Fun, ReqData) ->
     case default(Fun) of
@@ -192,6 +187,8 @@ escape_trace_data(Fun) when is_function(Fun) ->
       erlang:fun_info(Fun, type)]};
 escape_trace_data(Pid) when is_pid(Pid) ->
     {'WMTRACE_ESCAPED_PID', pid_to_list(Pid)};
+escape_trace_data(Port) when is_port(Port) ->
+    {'WMTRACE_ESCAPED_PORT', erlang:port_to_list(Port)};
 escape_trace_data(List) when is_list(List) ->
     escape_trace_list(List, []);
 escape_trace_data(Tuple) when is_tuple(Tuple) ->
