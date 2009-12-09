@@ -17,7 +17,7 @@
          terminate/2, code_change/3]).
 
 -record(state,{vnode_gets,vnode_puts,
-               node_gets,node_puts}).
+               get_fsm_time,put_fsm_time}).
 
 %%====================================================================
 %% API
@@ -54,8 +54,8 @@ update(Stat) ->
 init([]) ->
     {ok, #state{vnode_gets=spiraltime:fresh(),
                 vnode_puts=spiraltime:fresh(),
-                node_gets=spiraltime:fresh(),
-                node_puts=spiraltime:fresh()}}.
+                get_fsm_time=slide:fresh(),
+                put_fsm_time=slide:fresh()}}.
 
 %%--------------------------------------------------------------------
 %% Function: %% handle_call(Request, From, State) -> {reply, Reply, State} |
@@ -117,16 +117,20 @@ update(vnode_get, Moment, State) ->
     spiral_incr(#state.vnode_gets, Moment, State);
 update(vnode_put, Moment, State) ->
     spiral_incr(#state.vnode_puts, Moment, State);
-update(node_get, Moment, State) ->
-    spiral_incr(#state.node_gets, Moment, State);
-update(node_put, Moment, State) ->
-    spiral_incr(#state.node_puts, Moment, State);
+update({get_fsm_time, Microsecs}, Moment, State) ->
+    slide_incr(#state.get_fsm_time, Microsecs, Moment, State);
+update({put_fsm_time, Microsecs}, Moment, State) ->
+    slide_incr(#state.put_fsm_time, Microsecs, Moment, State);
 update(_, _, State) ->
     State.
 
 spiral_incr(Elt, Moment, State) ->
     setelement(Elt, State,
                spiraltime:incr(1, Moment, element(Elt, State))).
+
+slide_incr(Elt, Reading, Moment, State) ->
+    setelement(Elt, State,
+               slide:update(element(Elt, State), Reading, Moment)).
 
 produce_stats(State) ->
     Moment = spiraltime:n(),
@@ -142,15 +146,33 @@ spiral_minute(Moment, Elt, State) ->
     {_,Count} = spiraltime:rep_minute(Up),
     Count.
 
+slide_minute(Moment, Elt, State) ->
+    {Count, Mean} = slide:mean(element(Elt, State), Moment),
+    {_, Nines} = slide:nines(element(Elt, State), Moment),
+    {Count, Mean, Nines}.
+
 vnode_stats(Moment, State) ->
     [{F, spiral_minute(Moment, Elt, State)}
      || {F, Elt} <- [{vnode_gets, #state.vnode_gets},
                      {vnode_puts, #state.vnode_puts}]].
 
 node_stats(Moment, State) ->
-    [{F, spiral_minute(Moment, Elt, State)}
-     || {F, Elt} <- [{node_gets, #state.node_gets},
-                     {node_puts, #state.node_puts}]].
+    {Gets, GetMean, {GetMedian, GetNF, GetNN, GetH}} =
+        slide_minute(Moment, #state.get_fsm_time, State),
+    {Puts, PutMean, {PutMedian, PutNF, PutNN, PutH}} =
+        slide_minute(Moment, #state.put_fsm_time, State),
+    [{node_gets, Gets},
+     {node_get_fsm_time_mean, GetMean},
+     {node_get_fsm_time_median, GetMedian},
+     {node_get_fsm_time_95, GetNF},
+     {node_get_fsm_time_99, GetNN},
+     {node_get_fsm_time_100, GetH},
+     {node_puts, Puts},
+     {node_put_fsm_time_mean, PutMean},
+     {node_put_fsm_time_median, PutMedian},
+     {node_put_fsm_time_95, PutNF},
+     {node_put_fsm_time_99, PutNN},
+     {node_put_fsm_time_100, PutH}].
 
 cpu_stats() ->
     [{cpu_nprocs, cpu_sup:nprocs()},

@@ -36,7 +36,8 @@
                 timeout :: pos_integer(),
                 tref    :: reference(),
                 bkey :: {riak_object:bucket(), riak_object:key()},
-                ring :: riak_ring:riak_ring()
+                ring :: riak_ring:riak_ring(),
+                startnow :: {pos_integer(), pos_integer(), pos_integer()}
                }).
 
 start(ReqId,Bucket,Key,R,Timeout,From) ->
@@ -52,6 +53,7 @@ init([ReqId,Bucket,Key,R,Timeout,Client]) ->
 %% @private
 initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
                                       bkey={Bucket,Key}, ring=Ring}) ->
+    StartNow = now(),
     TRef = erlang:send_after(Timeout, self(), timeout),
     RealStartTime = riak_util:moment(),
     DocIdx = riak_util:chash_key({Bucket, Key}),
@@ -74,7 +76,7 @@ initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
                        preflist=Preflist,final_obj=undefined,
                        replied_r=[],replied_fail=[],
                        replied_notfound=[],starttime=riak_util:moment(),
-                       waiting_for=Sent,tref=TRef},
+                       waiting_for=Sent,tref=TRef,startnow=StartNow},
     {next_state,waiting_vnode_r,StateData}.
 
 waiting_vnode_r({r, {ok, RObj}, Idx, ReqId},
@@ -85,7 +87,7 @@ waiting_vnode_r({r, {ok, RObj}, Idx, ReqId},
     case length(Replied) >= R of
         true ->
             Final = respond(Client,Replied,AllowMult,ReqId),
-            riak_stat:update(node_get),
+            update_stats(StateData),
             case Final of
                 {error, notfound} ->
                     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
@@ -110,7 +112,7 @@ waiting_vnode_r({r, {error, notfound}, Idx, ReqId},
         true ->
             {next_state,waiting_vnode_r,NewStateData};
         false ->
-            riak_stat:update(node_get),
+            update_stats(StateData),
             riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                 {ReqId, notfound}),
             Client ! {ReqId, {error,notfound}},
@@ -129,13 +131,13 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqId},
             case length(NotFound) of
                 0 ->
                     FullErr = [E || {E,_I} <- Replied],
-                    riak_stat:update(node_get),
+                    update_stats(StateData),
                     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                         {ReqId, {error,FullErr}}),
                     Client ! {ReqId, {error,FullErr}},
                     {stop,normal,NewStateData};
                 _ ->
-                    riak_stat:update(node_get),
+                    update_stats(StateData),
                     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                         {ReqId, notfound}),
                     Client ! {ReqId, {error,notfound}},
@@ -143,7 +145,7 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqId},
             end
     end;
 waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
-    riak_stat:update(node_get),
+    update_stats(StateData),
     riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                         {ReqId, timeout}),
     Client ! {ReqId, {error,timeout}},
@@ -271,3 +273,7 @@ ancestor_indices(_,AnnoObjects) ->
      (vclock:descends(riak_object:vclock(O2),riak_object:vclock(O1)) == false)]
 		|| {O1,_} <- AnnoObjects],
     lists:flatten(ToRemove).
+
+update_stats(#state{startnow=StartNow}) ->
+    EndNow = now(),
+    riak_stat:update({get_fsm_time, timer:now_diff(EndNow, StartNow)}).
