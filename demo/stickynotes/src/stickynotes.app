@@ -1,6 +1,6 @@
 {application, stickynotes,
  [{description, "stickynotes"},
-  {vsn, "0.1"},
+  {vsn, "0.8"},
   {modules, [
     stickynotes,
     stickynotes_app,

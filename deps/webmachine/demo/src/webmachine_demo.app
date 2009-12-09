@@ -1,6 +1,6 @@
 {application, webmachine_demo,
  [{description, "webmachine_demo"},
-  {vsn, "0.1"},
+  {vsn, "0.8"},
   {modules, [
 	     webmachine_demo,
 	     webmachine_demo_app,
