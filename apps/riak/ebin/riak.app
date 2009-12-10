@@ -49,7 +49,6 @@
              riak_reduce_phase_fsm,
              riak_ring,
              riak_ring_manager,
-             riak_startup,
              riak_stat,
              riak_sup,
              riak_test_util,

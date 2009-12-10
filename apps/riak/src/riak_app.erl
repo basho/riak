@@ -41,7 +41,7 @@ start(_Type, _StartArgs) ->
             set_bucket_params(DefaultBucketProps);
         true ->
             error_logger:error_msg("default_bucket_props is not a list: ~p\n", [DefaultBucketProps]),
-            {error, invalid_default_bucket_props}
+            throw({error, invalid_default_bucket_props})
     end,
     
     %% Check the storage backend
@@ -54,7 +54,45 @@ start(_Type, _StartArgs) ->
             ok
     end,
 
-    riak_sup:start_link().
+    %% Validate that the ring state directory exists
+    RingStateDir = riak:get_app_env(ring_state_dir),
+    case filelib:is_directory(RingStateDir) of
+        true ->
+            ok;
+        false ->
+            error_lgoger:error_msg("Ring state directory ~p does not exist.\n", [RingStateDir]),
+            throw({error, invalid_ring_state_dir})
+    end,
+
+    %% Make sure required modules are available
+    %% TODO: Is this really necessary?!
+    check_deps(),
+
+    %% Spin up supervisor
+    io:format("Plain args: ~p\n", [init:get_plain_arguments()]),
+    case riak_sup:start_link() of
+        {ok, Pid} ->
+            %% App is basically running. Now we need to either initialize a new
+            %% ring (noop), join a new ring or rejoin existing ring (default)
+            case ring_args(init:get_plain_arguments()) of
+                new_ring ->
+                    error_logger:info_msg("Starting new ring\n"),
+                    ok;
+                {join_ring, Node} ->
+                    error_logger:info_msg("Attempting to join ring at ~p\n", [Node]),
+                    riak_connect:send_ring(Node, node());
+                rejoin ->
+                    riak_ring_manager:prune_ringfiles(),
+                    riak_ring_manager:set_my_ring(
+                      riak_ring_manager:read_ringfile(
+                        riak_ring_manager:find_latest_ringfile()))
+            end,
+            {ok, Pid};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+            
+            
 
 %% @spec stop(State :: term()) -> ok
 %% @doc The application:stop callback for riak.
@@ -68,3 +106,30 @@ set_bucket_params(In) ->
       lists:ukeymerge(1,
                       lists:keysort(1, lists:keydelete(name, 1, In)),
                       lists:keysort(1, riak_bucket:defaults()))).
+
+
+%%
+%% Scan init:get_plain_arguments/0 looking for what to do with
+%% ring initialization
+%%
+ring_args([]) ->
+    rejoin;
+ring_args(["join", Node | _Rest]) ->
+    {join, list_to_atom(Node)};
+ring_args(["bootstrap" | _Rest]) ->
+    new_ring;
+ring_args([_ | Rest]) ->
+    ring_args(Rest).
+
+
+check_deps() ->
+    % explicit list of external modules we should fail-fast on missing
+    Deps = [vclock, chash, merkerl],
+    Fails = [Fail || {Fail, {error,_}} <-
+             [{Dep, code:ensure_loaded(Dep)} || Dep <- Deps]],
+    case Fails of
+        [] ->
+            ok;
+        _ ->
+            throw({error, {missing_modules, Fails}})
+    end.
