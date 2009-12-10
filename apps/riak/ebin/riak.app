@@ -68,6 +68,25 @@
                  ]},
   {registered, []},
   {mod, {riak_app, []}},
-  {env, []}
+  {env, [
+         %% Cluster name
+         {cluster_name, "default"},
+         
+         %% Default location of ringstate
+         {ring_state_dir, "ringstate"},
+         
+         %% Default ring creation size
+         {ring_creation_size, 64},
+         
+         %% Default gossip interval (milliseconds)
+         {gossip_interval, 60000},
+
+         %% Default claims functions
+         {wants_claim_fun, {riak_claim, default_wants_claim}},
+         {choose_claim_fun, {riak_claim, default_choose_claim}},
+
+         %% Secondary code paths
+         {add_paths, []}
+        ]}
  ]}.
 
