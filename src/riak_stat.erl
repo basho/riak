@@ -22,6 +22,9 @@
 %%      get_stats/0.  Modify the internal function produce_stats/1 to
 %%      change how stats are represented.
 %%
+%%      Riak will start riak_stat for you, if you have specified
+%%      {riak_stat, true} in your config .erlenv file.
+%%
 %%      Current stats:
 %%<dl><dt>  vnode_gets
 %%</dt><dd> Total number of gets handled by all vnodes on this node
