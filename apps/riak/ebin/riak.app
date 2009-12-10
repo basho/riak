@@ -72,7 +72,7 @@
          {cluster_name, "default"},
          
          %% Default location of ringstate
-         {ring_state_dir, "ringstate"},
+         {ring_state_dir, "data/ringstate"},
          
          %% Default ring creation size
          {ring_creation_size, 64},

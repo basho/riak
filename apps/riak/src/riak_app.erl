@@ -56,11 +56,11 @@ start(_Type, _StartArgs) ->
 
     %% Validate that the ring state directory exists
     RingStateDir = riak:get_app_env(ring_state_dir),
-    case filelib:is_directory(RingStateDir) of
+    case filelib:is_dir(RingStateDir) of
         true ->
             ok;
         false ->
-            error_lgoger:error_msg("Ring state directory ~p does not exist.\n", [RingStateDir]),
+            error_logger:error_msg("Ring state directory ~p does not exist.\n", [RingStateDir]),
             throw({error, invalid_ring_state_dir})
     end,
 
@@ -69,23 +69,18 @@ start(_Type, _StartArgs) ->
     check_deps(),
 
     %% Spin up supervisor
-    io:format("Plain args: ~p\n", [init:get_plain_arguments()]),
     case riak_sup:start_link() of
         {ok, Pid} ->
-            %% App is basically running. Now we need to either initialize a new
-            %% ring (noop), join a new ring or rejoin existing ring (default)
-            case ring_args(init:get_plain_arguments()) of
-                new_ring ->
-                    error_logger:info_msg("Starting new ring\n"),
-                    ok;
-                {join_ring, Node} ->
-                    error_logger:info_msg("Attempting to join ring at ~p\n", [Node]),
-                    riak_connect:send_ring(Node, node());
-                rejoin ->
-                    riak_ring_manager:prune_ringfiles(),
-                    riak_ring_manager:set_my_ring(
-                      riak_ring_manager:read_ringfile(
-                        riak_ring_manager:find_latest_ringfile()))
+            %% App is running; search for latest ring file and initialize with it
+            riak_ring_manager:prune_ringfiles(),
+            case riak_ring_manager:find_latest_ringfile() of
+                {ok, Ring} ->
+                    riak_ring_manager:set_my_ring(riak_ring_manager:read_ringfile(Ring));
+                {error, not_found} ->
+                    error_logger:warning_msg("No ring file available.\n");
+                {error, Reason} ->
+                    error_logger:error_msg("Failed to load ring file: ~p\n", [Reason]),
+                    throw({error, Reason})
             end,
             {ok, Pid};
         {error, Reason} ->
@@ -107,19 +102,6 @@ set_bucket_params(In) ->
                       lists:keysort(1, lists:keydelete(name, 1, In)),
                       lists:keysort(1, riak_bucket:defaults()))).
 
-
-%%
-%% Scan init:get_plain_arguments/0 looking for what to do with
-%% ring initialization
-%%
-ring_args([]) ->
-    rejoin;
-ring_args(["join", Node | _Rest]) ->
-    {join, list_to_atom(Node)};
-ring_args(["bootstrap" | _Rest]) ->
-    new_ring;
-ring_args([_ | Rest]) ->
-    ring_args(Rest).
 
 
 check_deps() ->
