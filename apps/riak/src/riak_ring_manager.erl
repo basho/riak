@@ -92,14 +92,22 @@ do_write_ringfile(Ring) ->
 %% @spec find_latest_ringfile() -> string()
 find_latest_ringfile() ->
     Dir = riak:get_app_env(ring_state_dir),
-    Cluster = riak:get_app_env(cluster_name),
-    {ok, Filenames} = file:list_dir(Dir),
-    Timestamps = [list_to_integer(TS) || {"riak_ring", C1, TS} <- 
-                   [list_to_tuple(string:tokens(FN, ".")) || FN <- Filenames],
-                                         C1 =:= Cluster],
-    [Latest|_] = lists:reverse(lists:sort(Timestamps)),
-    FN = Dir ++ "/riak_ring." ++ Cluster ++ "." ++ integer_to_list(Latest),
-    FN.
+    case file:list_dir(Dir) of
+        {ok, Filenames} ->
+            Cluster = riak:get_app_env(cluster_name),
+            Timestamps = [list_to_integer(TS) || {"riak_ring", C1, TS} <- 
+                                                     [list_to_tuple(string:tokens(FN, ".")) || FN <- Filenames],
+                                                 C1 =:= Cluster],
+            SortedTimestamps = lists:reverse(lists:sort(Timestamps)),
+            case SortedTimestamps of
+                [Latest | _] ->
+                    {ok, Dir ++ "/riak_ring." ++ Cluster ++ "." ++ integer_to_list(Latest)};
+                _ ->
+                    {error, not_found}
+            end;
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 %% @spec read_ringfile(string()) -> riak_ring:riak_ring()
 read_ringfile(RingFile) ->
