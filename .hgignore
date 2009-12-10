@@ -25,3 +25,4 @@ priv/weblogs/.*
 test\.log
 ^test/.*
 ^data/.*
+.*/.eunit/.*
