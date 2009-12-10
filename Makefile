@@ -7,6 +7,9 @@ compile:
 clean:
 	./rebar clean
 
+test: 
+	./rebar eunit
+
 # docs:
 # 	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
 # 	@cp -r doc/* www/edoc
@@ -23,6 +26,4 @@ clean:
 # dialyzer: compile
 # 	@dialyzer -Wno_return -c ebin/ | tee priv/log/dialyzer.log
 
-# test: compile
-# 	scripts/run_tests.escript ebin | tee test.log
 
