@@ -1,3 +1,4 @@
+.PHONY: rel
 
 all: compile
 
@@ -9,6 +10,10 @@ clean:
 
 test: 
 	./rebar eunit
+
+rel:
+	./rebar generate force=1 dump_spec=1
+	cp -R rel/overlay/* rel/riak
 
 # docs:
 # 	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
