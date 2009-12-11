@@ -144,20 +144,18 @@ reload_all(Module) ->
      rpc:call(Node, code, load_file, [Module])} || 
         Node <- riak_ring:all_members(Ring)].
 
-%% @spec try_cast(term(), term(), [{Index :: term(), Node :: node()}]) ->
+%% @spec try_cast(term(), term(), [node()], [{Index :: term(), Node :: node()}]) ->
 %%          {[{Index :: term(), Node :: node(), Node :: node()}],
 %%           [{Index :: term(), Node :: node()}]}
 %% @doc Cast {Cmd, {Index,Node}, Msg} at riak_vnode_master on Node
-%%      if Node responds 'pong' to a net_adm:ping.  The list of
-%%      successful casts is the first element of the return tuple, and
-%%      the list of pang-responding nodes is the second element.
-%%      Used in riak_put_fsm and riak_get_fsm.
+%%      if Node is in UpNodes.  The list of successful casts is the
+%%      first element of the return tuple, and the list of unavailable
+%%      nodes is the second element.  Used in riak_put_fsm and riak_get_fsm.
 try_cast(Cmd, Msg, UpNodes, Targets) ->
     try_cast(Cmd, Msg, UpNodes, Targets, [], []).
 try_cast(_Cmd, _Msg, _UpNodes, [], Sent, Pangs) -> {Sent, Pangs};
 try_cast(Cmd, Msg, UpNodes, [{Index,Node}|Targets], Sent, Pangs) ->
-    case lists:member(Node, [node()|UpNodes])
-          orelse net_adm:ping(Node) == pong of
+    case lists:member(Node, [node()|UpNodes]) of
         false ->
             try_cast(Cmd, Msg, UpNodes, Targets, Sent, [{Index,Node}|Pangs]);
         true ->
@@ -179,7 +177,7 @@ fallback(Cmd, Msg, Pangs, Fallbacks) ->
 fallback(_Cmd, _Msg, [], _Fallbacks, Sent) -> Sent;
 fallback(_Cmd, _Msg, _Pangs, [], Sent) -> Sent;
 fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
-    case lists:member(FN, [node()|nodes()]) orelse net_adm:ping(FN) == pong of
+    case lists:member(FN, [node()|nodes()]) of
         false -> fallback(Cmd, Msg, [{Index,Node}|Pangs], Fallbacks, Sent);
         true ->
             gen_server:cast({riak_vnode_master, FN},

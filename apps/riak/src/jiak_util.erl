@@ -108,5 +108,5 @@ module_bucket_test() ->
 bucket_from_uri_test() ->
     PI = dict:store(bucket, "foo", dict:new()),
     RD0 = wrq:create('PUT', "1.1", "/jiak/foo", mochiweb_headers:empty()),
-    RD = wrq:load_dispatch_data(PI, none, none, none, none, RD0),
+    RD = wrq:load_dispatch_data(PI, none, none, none, none, none, RD0),
     ?assertEqual(<<"foo">>, bucket_from_reqdata(RD)).

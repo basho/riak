@@ -22,10 +22,10 @@
 
 %% @spec start(Partition :: integer()) ->
 %%          {ok, state()} | {{error, Reason :: term()}, state()}
-%% @doc Start this backend.  'riak_fs_backend_root' must be
-%%      set in Riak's application environment.  It must be set to
-%%      a string representing the base directory where this backend
-%%      should store its files.
+%% @doc Start this backend.  'riak_fs_backend_root' must be set in
+%%      Riak's application environment.  It must be set to a string
+%%      representing the base directory where this backend should
+%%      store its files.
 start(Partition) ->
     PartitionName = integer_to_list(Partition),
     ConfigRoot = riak:get_app_env(riak_fs_backend_root),
@@ -50,13 +50,25 @@ get(State, BKey) ->
         true -> file:read_file(File)
     end.
 
+%% @spec atomic_write(state(), File :: string(), Val :: binary()) ->
+%%       ok | {error, Reason :: term()}
+%% @doc store a atomic value to disk. Write to temp file and rename to
+%%       normal path.
+atomic_write(_State, File, Val) ->
+    FakeFile = File ++ ".tmpwrite",
+    case file:write_file(FakeFile, Val) of
+        ok ->
+            file:rename(FakeFile, File);
+        X -> X
+    end.
+
 %% @spec put(state(), BKey :: riak_object:bkey(), Val :: binary()) ->
 %%         ok | {error, Reason :: term()}
 %% @doc Store Val under Bkey
 put(State,BKey,Val) ->       
     File = location(State,BKey),
     case filelib:ensure_dir(File) of
-        ok -> file:write_file(File,Val);
+        ok -> atomic_write(State, File, Val);
         X -> X
     end.
 
