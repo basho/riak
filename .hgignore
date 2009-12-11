@@ -26,3 +26,4 @@ test\.log
 ^test/.*
 ^data/.*
 .*/.eunit/.*
+^rel/riak/.*
