@@ -31,10 +31,13 @@ main(Args) ->
             io:format("~p\n", [rpc:call(TargetNode, init, reboot, [], 60000)]);
         ["rpc", Module, Function | RpcArgs] ->
             case rpc:call(TargetNode, list_to_atom(Module), list_to_atom(Function), [RpcArgs], 60000) of
+                ok ->
+                    ok;
                 {badrpc, Reason} ->
-                    io:format("RPC to ~p failed: ~p\n", [TargetNode, Reason]);
+                    io:format("RPC to ~p failed: ~p\n", [TargetNode, Reason]),
+                    halt(1);
                 _ ->
-                    ok
+                    halt(1)
             end;
         Other ->
             io:format("Other: ~p\n", [Other]),
