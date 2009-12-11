@@ -29,7 +29,9 @@ join([NodeStr]) ->
         {error, not_reachable} ->
             io:format("Node ~s is not reachable!\n", [NodeStr]),
             error
-    end.
-
+    end;
+join(_) ->
+    io:format("Join requires a node to join with.\n"),
+    error.
 
 
