@@ -785,7 +785,7 @@ expires(ReqData, Context=#ctx{key=Key,
 diff_objects(_ReqData, Context=#ctx{incoming=NewObj, key=container}) ->
     %% same as notfound
     Diffs = jiak_object:diff(undefined, NewObj),
-    {Diffs, Context#ctx{diffs=Diffs}};
+    {ok, {Diffs, Context#ctx{diffs=Diffs}}};
 diff_objects(ReqData, Context=#ctx{incoming=NewObj0, module=Mod}) ->
     case retrieve_object(ReqData, Context) of
 	{notfound, NewContext} ->
