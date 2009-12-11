@@ -60,6 +60,10 @@ case "$1" in
 
     restore)
         ;;
+
+    *)
+        echo "Usage: $SCRIPT { join <node> }"
+        exit 1
+        ;;
 esac
 
-exit 0
