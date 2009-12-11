@@ -15,6 +15,17 @@ rel:
 	./rebar generate force=1 dump_spec=1
 	cp -R rel/overlay/* rel/riak
 
+devrel: rel
+	cp -Rp rel/riak rel/riak2
+	perl -pi -e 's/name riak/name riak2/g' rel/riak2/etc/vm.args
+	perl -pi -e 's/riak_web_port, \d+/riak_web_port, 8099/g' rel/riak2/etc/app.config
+	cp -Rp rel/riak rel/riak3
+	perl -pi -e 's/name riak/name riak3/g' rel/riak3/etc/vm.args
+	perl -pi -e 's/riak_web_port, \d+/riak_web_port, 8100/g' rel/riak3/etc/app.config
+
+devclean: clean
+	rm -rf rel/riak*
+
 # docs:
 # 	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
 # 	@cp -r doc/* www/edoc
