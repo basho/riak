@@ -55,10 +55,21 @@ case "$1" in
         $NODETOOL rpc riak_console join $@
         ;;
 
-    backup)
-        ;;
+    backup | restore)
+        ACTION=$1
+        shift
 
-    restore)
+        if [ $# -lt 3 ]; then
+            echo "Usage: $SCRIPT $ACTION <node> <cookie> <filename>"
+            exit 1
+        fi
+
+        NODE=$1
+        COOKIE=$2
+        FILENAME=$3
+
+        $ERTS_PATH/erl -noshell -name riak_backup -setcookie $COOKIE \
+                       -eval "riak_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
 
     *)
