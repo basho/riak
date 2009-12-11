@@ -90,8 +90,25 @@ case "$1" in
                        -eval "riak_event_logger:start('$NODE', \"$FILENAME\")."            
         ;;
 
+    test)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+
+        shift
+
+        # Parse out the node name to pass to the client
+        NODE_NAME=${NAME_ARG#* }
+
+        $ERTS_PATH/erl -noshell -name riak_test $COOKIE_ARG \
+                       -eval "riak:client_test(\"$NODE_NAME\")" -s init stop
+
+        ;;
     *)
-        echo "Usage: $SCRIPT { join | backup | restore | logger }"
+        echo "Usage: $SCRIPT { join | backup | restore | logger | test }"
         exit 1
         ;;
 esac

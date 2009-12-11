@@ -57,6 +57,7 @@
              riak_vnode,
              riak_vnode_master,
              riak_web,
+             slide,
              spiraltime,
              vclock
             ]},
