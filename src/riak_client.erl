@@ -300,7 +300,7 @@ remove_event_handler(Pid, MatchHead, MatchGuard) ->
     rpc:call(Node, riak_eventer, remove_handler, [Pid, MatchHead, MatchGuard]). 
 
 get_stats(local) ->
-    [{node(), gen_server:call(riak_stat, get_stats)}];
+    [{Node, rpc:call(Node, gen_server, call, [riak_stat, get_stats])}];
 get_stats(global) ->
     {ok, Ring} = rpc:call(Node, riak_ring_manager, get_my_ring, []),
     Nodes = riak_ring:all_members(Ring),
