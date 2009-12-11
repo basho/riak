@@ -25,7 +25,8 @@
 -export([stop/0, stop/1]).
 -export([get_app_env/1,get_app_env/2]).
 -export([client_connect/1,client_connect/2,
-         local_client/0,local_client/1]).
+         local_client/0,local_client/1,
+         join/1]).
 -export([code_hash/0]).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -95,6 +96,16 @@ client_connect(Node, undefined) ->
     client_connect(Node, riak_util:mkclientid(Node));
 client_connect(Node, Other) ->
     client_connect(Node, <<(erlang:phash2(Other)):32>>).
+
+join(NodeStr) when is_list(NodeStr) ->
+    join(riak_util:str_to_node(NodeStr));
+join(Node) when is_atom(Node) ->
+    case net_adm:ping(Node) of
+        pong ->
+            riak_connect:send_ring(Node, node());
+        pang ->
+            {error, not_reachable}
+    end.
 
 
 %% 719528 days from Jan 1, 0 to Jan 1, 1970

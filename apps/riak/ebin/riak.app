@@ -28,6 +28,7 @@
              riak_claim,
              riak_client,
              riak_connect,
+             riak_console,
              riak_delete,
              riak_dets_backend,
              riak_ets_backend,

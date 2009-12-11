@@ -18,7 +18,8 @@
 
 -export([moment/0,make_tmp_dir/0,compare_dates/2,reload_all/1,
          is_x_deleted/1,obj_not_deleted/1,integer_to_list/2,
-         unique_id_62/0]).
+         unique_id_62/0,
+         str_to_node/1]).
 -export([chash_key/1,chash_std_keyfun/1,chash_bucketonly_keyfun/1]).
 -export([try_cast/4, fallback/4, mkclientid/1]).
 
@@ -237,3 +238,27 @@ deleted_test() ->
 clientid_uniqueness_test() ->
     ClientIds = [mkclientid('somenode@somehost') || _I <- lists:seq(0, 10000)],
     length(ClientIds) =:= length(sets:to_list(sets:from_list(ClientIds))).
+
+str_to_node(NodeStr) ->
+    case string:tokens(NodeStr, "@") of
+        [NodeName] ->
+            %% Node name only; no host name. If the local node has a hostname,
+            %% append it
+            case node_hostname() of
+                [] ->
+                    list_to_atom(NodeName);
+                Hostname ->
+                    list_to_atom(NodeName ++ "@" ++ Hostname)
+            end;
+        _ ->
+            list_to_atom(NodeStr)
+    end.
+
+node_hostname() ->
+    NodeStr = atom_to_list(node()),
+    case string:tokens(NodeStr, "@") of
+        [_NodeName, Hostname] ->
+            Hostname;
+        _ ->
+            []
+    end.
