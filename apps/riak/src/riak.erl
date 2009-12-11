@@ -22,7 +22,7 @@
 -author('Andy Gross <andy@basho.com>').
 -author('Justin Sheehy <justin@basho.com>').
 -author('Bryan Fink <bryan@basho.com>').
--export([start/0, start/1, stop/0, stop/1]).
+-export([stop/0, stop/1]).
 -export([get_app_env/1,get_app_env/2]).
 -export([client_connect/1,client_connect/2,
          local_client/0,local_client/1]).
@@ -96,15 +96,6 @@ client_connect(Node, undefined) ->
 client_connect(Node, Other) ->
     client_connect(Node, <<(erlang:phash2(Other)):32>>).
 
-%% @spec ensure_started(Application :: atom()) -> ok
-%% @doc Start the named application if not already started.
-ensure_started(App) ->
-    case application:start(App) of
-	ok ->
-	    ok;
-	{error, {already_started, App}} ->
-	    ok
-    end.
 
 %% 719528 days from Jan 1, 0 to Jan 1, 1970
 %%  *86400 seconds/day
