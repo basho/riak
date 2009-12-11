@@ -72,8 +72,26 @@ case "$1" in
                        -eval "riak_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
 
+    logger)
+        shift
+
+        if [ $# -lt 2 ]; then
+            echo "Usage:"
+            echo "    Log to console: $SCRIPT logger <node> <cookie>"  
+            echo "    Log to file:    $SCRIPT logger <node> <cookie> <filename>"  
+            exit 1
+        fi
+
+        NODE=$1
+        COOKIE=$2
+        FILENAME=$3
+
+        $ERTS_PATH/erl -noshell -name riak_logger -setcookie $COOKIE \
+                       -eval "riak_event_logger:start('$NODE', \"$FILENAME\")."            
+        ;;
+
     *)
-        echo "Usage: $SCRIPT { join <node> }"
+        echo "Usage: $SCRIPT { join | backup | restore | logger }"
         exit 1
         ;;
 esac
