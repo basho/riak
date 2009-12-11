@@ -1,20 +1,8 @@
-                                       Welcome to Riak.
-                                       ================
+#+OPTIONS: author:nil timestamp:nil
 
+Welcome to Riak.
 
-
-
-Table of Contents
-=================
-1 Overview 
-2 Quick Start 
-    2.1 Building Riak 
-    2.2 Starting Riak 
-    2.3 Connecting a client to Riak 
-
-
-1 Overview 
-~~~~~~~~~~~
+* Overview
   Riak is a distributed, decentralized data storage system. 
   
   Below, you will find the "quick start" directions for setting up and
@@ -31,16 +19,14 @@ Table of Contents
     - index.html:       the root of the edoc output of 'make docs'
 
 
-2 Quick Start 
-~~~~~~~~~~~~~~
+* Quick Start
 
   This section assumes that you have copy of the Riak source tree. To get started, you need to:
   1. Build Riak
   2. Start the Riak server
   3. Connect a client and store/fetch data
 
-2.1 Building Riak 
-==================
+** Building Riak
 
    Assuming you have a working Erlang (R13B03 or later) installation,
    building Riak should be as simple as:
@@ -48,8 +34,7 @@ Table of Contents
    $ cd $RIAK
    $ make all rel
 
-2.2 Starting Riak 
-==================
+** Starting Riak
 
    Once you have successfully built Riak, you can start the server with the following commands:
 
@@ -60,8 +45,7 @@ Table of Contents
 
    $ bin/riak-admin test
 
-2.3 Connecting a client to Riak 
-================================
+** Connecting a client to Riak
 
 !!! UNDER CONSTRUCTION !!!
 
@@ -77,8 +61,8 @@ $ erl -name riaktest@127.0.0.1 -pa $RIAK/ebin -setcookie riak_demo_cookie
                  "20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664"}}
 
 riaktest@127.0.0.1)2> %% Create a shopping list for bread at /groceries/mine
-riaktest@127.0.0.1)2> O0 = riak_object:new("groceries", "mine", ["bread"]).
-{r_object,"groceries","mine",
+riaktest@127.0.0.1)2> O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
+{r_object,<<"groceries">>,<<"mine">>,
           [{r_content,{dict,0,16,16,8,80,48,
                             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                             {{[],[],[],[],[],[],[],[],[],[],[],[],...}}},
@@ -94,12 +78,12 @@ riaktest@127.0.0.1)2> O0 = riak_object:new("groceries", "mine", ["bread"]).
 ok
 
 (riaktest@127.0.0.1)4> %% retrieve the list
-(riaktest@127.0.0.1)4> {ok, O1} = C:get("groceries", "mine", 1).
-{ok,{r_object,"groceries","mine",
+(riaktest@127.0.0.1)4> {ok, O1} = C:get(<<"groceries">>, <<"mine">>, 1).
+{ok,{r_object,<<"groceries">>,<<"mine">>,
               [{r_content,{dict,2,16,16,8,80,48,
                                 {[],[],[],[],[],[],[],[],[],[],[],[],...},
                                 {{[],[],[],[],[],[],
-                                  ["X-Riak-Last-Modified",87|...],
+                                  [["X-Riak-Last-Modified",87|...]],
                                   [],[],[],...}}},
                           ["bread"]}],
               [{"20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664",
@@ -115,11 +99,11 @@ ok
 
 (riaktest@127.0.0.1)6> %% add milk to the list
 (riaktest@127.0.0.1)6> O2 = riak_object:update_value(O1, ["milk"|V]).
-{r_object,"groceries","mine",
+{r_object,<<"groceries">>,<<"mine">>,
           [{r_content,{dict,2,16,16,8,80,48,
                             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                             {{[],[],[],[],[],[],
-                              ["X-Riak-Last-Modified",87,101,100|...],
+                              [["X-Riak-Last-Modified",87,101,100|...]],
                               [],[],[],[],[],...}}},
                       ["bread"]}],
           [{"20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664",
@@ -135,9 +119,5 @@ ok
 
 
 (riaktest@127.0.0.1)8> %% find out what else is in the groceries bucket
-(riaktest@127.0.0.1)8> C:list_keys("groceries").
-{ok,["mine"]}
-
-["X-Riak-Last-Modified",87|...]: sec-2.3
-["X-Riak-Last-Modified",87,101,100|...]: sec-2.3
-
+(riaktest@127.0.0.1)8> C:list_keys(<<"groceries">>).
+{ok,[<<"mine">>]}
