@@ -30,31 +30,6 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-%% @spec start([ConfigPath :: list()]) -> ok
-%% @doc Start the riak server.
-%%      ConfigPath specifies the location of the riak configuration file.
-start([ConfigPath]) ->
-    application:set_env(riak, configpath, ConfigPath),
-    start().
-    
-%% @spec start() -> ok
-%% @doc Start the riak server.
-start() ->
-    %% force full GC sweeps more often to resolve memory usage issues, mostly
-    %% on Linux.  Using erlang:system_flag() is a relatively blunt way of 
-    %% solving this (the value can be specified per-process with spawn_opt,
-    %% but this works and doesn't have a noticeable impact on performance.
-    erlang:system_flag(fullsweep_after, 20),
-    ensure_started(sasl),
-    ensure_started(crypto),
-    confirm_epoch(),
-    case riak:get_app_env(no_config) of
-        true -> nop; % promising to set all env variables some other way
-        _ -> riak_app:read_config()
-    end,
-    ensure_started(webmachine),
-    application:start(riak, permanent).
-
 %% @spec stop() -> ok
 %% @doc Stop the riak application and the calling process.
 stop() -> stop("riak stop requested").
