@@ -53,7 +53,7 @@ init([Node, Filename]) ->
     end,
     
     State = #state {
-        node = Node,
+        node = riak_util:str_to_node(Node),
         fd = FD
     },
     {ok, State}.
