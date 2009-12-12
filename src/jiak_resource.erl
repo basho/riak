@@ -439,20 +439,27 @@ forbidden(ReqData, Context) ->
 %% @doc Determine whether an object write violates the write mask of
 %%      the bucket.
 object_forbidden(ReqData, Context=#ctx{jiak_context=JC,module=Mod}) ->
-    {Diffs, NewContext0} = diff_objects(ReqData, Context),
-    NewContext = NewContext0#ctx{jiak_context=JC:set_diff(Diffs)},
-    Permitted = check_write_mask(Mod, Diffs),    
-    case Permitted of
-        false ->
-            {true,
-             wrq:append_to_response_body(
-               io_lib:format(
-                 "Write disallowed, some of ~p not writable.~n", 
-                 [[K || {K,_,_} <- element(1, Diffs)]]),
-               ReqData),
-             NewContext};
-        true ->
-            {false, ReqData, NewContext}
+    case diff_objects(ReqData, Context) of
+        {ok, {Diffs, NewContext0}} ->
+            NewContext = NewContext0#ctx{jiak_context=JC:set_diff(Diffs)},
+            Permitted = check_write_mask(Mod, Diffs),    
+            case Permitted of
+                false ->
+                    {true,
+                     wrq:append_to_response_body(
+                       io_lib:format(
+                         "Write disallowed, some of ~p not writable.~n", 
+                         [[K || {K,_,_} <- element(1, Diffs)]]),
+                       ReqData),
+                     NewContext};
+                true ->
+                    {false, ReqData, NewContext}
+            end;
+        {error, {timeout, NewContext}} ->
+            {{halt, 503},
+             wrq:set_resp_body("Timeout during object_forbidden read.",
+                               ReqData),
+             NewContext}
     end.
 
 %% @spec encodings_provided(webmachine:wrq(), context()) ->
@@ -778,17 +785,18 @@ expires(ReqData, Context=#ctx{key=Key,
 diff_objects(_ReqData, Context=#ctx{incoming=NewObj, key=container}) ->
     %% same as notfound
     Diffs = jiak_object:diff(undefined, NewObj),
-    {Diffs, Context#ctx{diffs=Diffs}};
+    {ok, {Diffs, Context#ctx{diffs=Diffs}}};
 diff_objects(ReqData, Context=#ctx{incoming=NewObj0, module=Mod}) ->
     case retrieve_object(ReqData, Context) of
 	{notfound, NewContext} ->
 	    Diffs = jiak_object:diff(undefined, NewObj0),
-	    {Diffs, NewContext#ctx{diffs=Diffs}};
+	    {ok, {Diffs, NewContext#ctx{diffs=Diffs}}};
 	{ok, {JiakObject, NewContext}} ->
 	    NewObj = copy_unreadable_props(Mod,JiakObject, NewObj0),
 	    Diffs = jiak_object:diff(JiakObject, NewObj),
-	    {Diffs, NewContext#ctx{diffs=Diffs, storedobj=NewObj, 
-				   incoming=NewObj}}
+	    {ok, {Diffs, NewContext#ctx{diffs=Diffs, storedobj=NewObj, 
+                                        incoming=NewObj}}};
+        Error -> Error
     end.
 
 %% @spec apply_read_mask(jiak_object()) -> jiak_object()
