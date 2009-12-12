@@ -56,6 +56,8 @@
 %%     Last-Modified: The last-modified time of the object
 %%     Encoding: The value of the incoming Encoding header from
 %%       the request that stored the data.
+%%     X-Riak-Meta-: Any headers prefixed by X-Riak-Meta- supplied
+%%       on PUT are returned verbatim
 %%   Specifying the query param "r=R", where R is an integer will
 %%   cause Riak to use R as the r-value for the read request. A
 %%   default r-value of 2 will be used if none is specified.
@@ -80,6 +82,8 @@
 %%   Include a Link header to set the links of the object.
 %%   Include an Encoding header if you would like an Encoding header
 %%   to be included in the response to subsequent GET requests.
+%%   Include custom metadata using headers prefixed with X-Riak-Meta-.
+%%   They will be returned verbatim on subsequent GET requests.
 %%   Specifying the query param "w=W", where W is an integer will
 %%   cause Riak to use W as the w-value for the write request. A
 %%   default w-value of 2 will be used if none is specified.
@@ -640,6 +644,7 @@ accept_doc_body(RD, Ctx=#ctx{bucket=B, key=K, client=C, links=L}) ->
            end,
     VclockDoc = riak_object:set_vclock(Doc0, decode_vclock_header(RD)),
     {CType, Charset} = extract_content_type(RD),
+    UserMeta = extract_user_meta(RD),
     CTypeMD = dict:store(?MD_CTYPE, CType, dict:new()),
     CharsetMD = if Charset /= undefined ->
                         dict:store(?MD_CHARSET, Charset, CTypeMD);
@@ -650,7 +655,8 @@ accept_doc_body(RD, Ctx=#ctx{bucket=B, key=K, client=C, links=L}) ->
                 E -> dict:store(?MD_ENCODING, E, CharsetMD)
             end,
     LinkMD = dict:store(?MD_LINKS, L, EncMD),
-    MDDoc = riak_object:update_metadata(VclockDoc, LinkMD),
+    UserMetaMD = dict:store(?MD_USERMETA, UserMeta, LinkMD),
+    MDDoc = riak_object:update_metadata(VclockDoc, UserMetaMD),
     Doc = riak_object:update_value(MDDoc, wrq:req_body(RD)),
     ok = C:put(Doc, Ctx#ctx.w, Ctx#ctx.dw),
     {true, RD, Ctx#ctx{doc={ok, Doc}}}.
@@ -665,6 +671,17 @@ extract_content_type(RD) ->
     [CType|RawParams] = string:tokens(RawCType, "; "),
     Params = [ list_to_tuple(string:tokens(P, "=")) || P <- RawParams],
     {CType, proplists:get_value("charset", Params)}.
+
+%% @spec extract_user_meta(reqdata()) -> proplist()
+%% @doc Extract headers prefixed by X-Riak-Meta- in the client's PUT request
+%%      to be returned by subsequent GET requests.
+extract_user_meta(RD) ->
+    lists:filter(fun({K,_V}) ->
+                    lists:prefix(
+                        ?HEAD_USERMETA_PREFIX,
+                        any_to_list(K))
+                end,
+                mochiweb_headers:to_list(wrq:req_headers(RD))).
 
 %% @spec multiple_choices(reqdata(), context()) ->
 %%          {boolean(), reqdata(), context()}
@@ -694,8 +711,8 @@ multiple_choices(RD, Ctx) ->
 
 %% @spec produce_doc_body(reqdata(), context()) -> {binary(), reqdata(), context()}
 %% @doc Extract the value of the document, and place it in the response
-%%      body of the request.  This function also adds the Link header
-%%      to the response.  One link will point to the bucket, with the
+%%      body of the request.  This function also adds the Link and X-Riak-Meta-
+%%      headers to the response.  One link will point to the bucket, with the
 %%      property "rel=container".  The rest of the links will be constructed
 %%      from the links of the document.
 produce_doc_body(RD, Ctx) ->
@@ -711,7 +728,15 @@ produce_doc_body(RD, Ctx) ->
                                    end,
                                    RD, Links),
                        Ctx),
-            {Doc, encode_vclock_header(LinkRD, Ctx), Ctx};
+            UserMetaRD = case dict:find(?MD_USERMETA, MD) of
+                        {ok, UserMeta} -> 
+                            lists:foldl(fun({K,V},Acc) ->
+                                            wrq:merge_resp_headers([{K,V}],Acc)
+                                        end,
+                                        LinkRD, UserMeta);
+                        error -> LinkRD
+                    end,
+            {Doc, encode_vclock_header(UserMetaRD, Ctx), Ctx};
         multiple_choices ->
             {<<"">>, RD, Ctx}
     end.
@@ -779,6 +804,14 @@ multipart_encode_body(Prefix, Bucket, {MD, V}) ->
              Rfc1123
      end,
      "\n",
+     case dict:find(?MD_USERMETA, MD) of
+         {ok, M} -> 
+            lists:foldl(fun({Hdr,Val},Acc) ->
+                            [Acc|[Hdr,": ",Val,"\n"]]
+                        end,
+                        [], M);
+         error -> []
+     end,
      "\n",V].
     
 
@@ -938,3 +971,10 @@ get_link_heads(RD, #ctx{prefix=Prefix, bucket=B}) ->
               end,
               lists:delete(BucketLink, string:tokens(Heads, ",")))
     end.
+
+any_to_list(V) when is_list(V) ->
+    V;
+any_to_list(V) when is_atom(V) ->
+    atom_to_list(V);
+any_to_list(V) when is_binary(V) ->
+    binary_to_list(V).

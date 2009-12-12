@@ -21,13 +21,15 @@
 -define(MD_VTAG,     <<"X-Riak-VTag">>).
 -define(MD_LINKS,    <<"Links">>).
 -define(MD_LASTMOD,  <<"X-Riak-Last-Modified">>).
+-define(MD_USERMETA, <<"X-Riak-Meta">>).
 
 %% Names of HTTP header fields
--define(HEAD_CTYPE,    "Content-Type").
--define(HEAD_VCLOCK,   "X-Riak-Vclock").
--define(HEAD_LINK,     "Link").
--define(HEAD_ENCODING, "Content-Encoding").
--define(HEAD_CLIENT,   "X-Riak-ClientId").
+-define(HEAD_CTYPE,           "Content-Type").
+-define(HEAD_VCLOCK,          "X-Riak-Vclock").
+-define(HEAD_LINK,            "Link").
+-define(HEAD_ENCODING,        "Content-Encoding").
+-define(HEAD_CLIENT,          "X-Riak-ClientId").
+-define(HEAD_USERMETA_PREFIX, "X-Riak-Meta-").
 
 %% Names of JSON fields in bucket properties
 -define(JSON_PROPS,   <<"props">>).
