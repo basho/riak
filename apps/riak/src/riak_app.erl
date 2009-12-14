@@ -125,7 +125,7 @@ check_deps() ->
 %%  *86400 seconds/day
 -define(SEC_TO_EPOCH, 62167219200).
 
-%% @spec confirm_epoch() -> ok
+%% @spec check_epoch() -> ok
 %% @doc 
 check_epoch() ->
     %% doc for erlang:now/0 says return value is platform-dependent
