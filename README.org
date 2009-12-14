@@ -47,77 +47,88 @@ Welcome to Riak.
 
 ** Connecting a client to Riak
 
-!!! UNDER CONSTRUCTION !!!
+   Now that you have a functional server, let's try storing some data in it. First,
+   start up a erlang node using our embedded version of erlang:
 
-Assuming no errors were generated during the server start step, a
-simple client interaction will look like:
-(remember, $RIAK should be set to the local path to your Riak installation)
+   $ erts-<vsn>/bin/erl -name riaktest -setcookie riak
+   
+   Eshell V5.7.4  (abort with ^G)
+   (riaktest@example.com)1>
 
-$ erl -name riaktest@127.0.0.1 -pa $RIAK/ebin -setcookie riak_demo_cookie
+   Now construct the node name of Riak server and make sure we can talk to it:
 
-(riaktest@127.0.0.1)1> %% connect to Riak
-(riaktest@127.0.0.1)1> {ok, C} = riak:client_connect('riakdemo@127.0.0.1').
-{ok,{riak_client,'riakdemo@127.0.0.1',
-                 "20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664"}}
+   (riaktest@example.com)4> RiakNode = riak_util:str_to_node(riak).
 
-riaktest@127.0.0.1)2> %% Create a shopping list for bread at /groceries/mine
-riaktest@127.0.0.1)2> O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
-{r_object,<<"groceries">>,<<"mine">>,
+   (riaktest@example.com)2> net_adm:ping(RiakNode).
+   pong
+   (riaktest@example.com)2>
+   
+   We are now ready to start the Riak client:
+
+   (riaktest@example.com)2> {ok, C} = riak:client_connect(RiakNode).
+   {ok,{riak_client,'riak@example.com',<<4,136,81,151>>}}
+
+   Let's create a shopping list for bread at /groceries/mine:
+
+   (riaktest@example.com)6> O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
+   O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
+   {r_object,<<"groceries">>,<<"mine">>,
           [{r_content,{dict,0,16,16,8,80,48,
                             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                             {{[],[],[],[],[],[],[],[],[],[],[],[],...}}},
                       ["bread"]}],
           [],
-          {dict,0,16,16,8,80,48,
+          {dict,1,16,16,8,80,48,
                 {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                 {{[],[],[],[],[],[],[],[],[],[],[],[],[],...}}},
           undefined}
 
-(riaktest@127.0.0.1)3> %% store the list
-(riaktest@127.0.0.1)3> C:put(O0, 1).
-ok
+    (riaktest@example.com)3> C:put(01, 1).
+    
+    Now, read the list back from the Riak server and extract the value
 
-(riaktest@127.0.0.1)4> %% retrieve the list
-(riaktest@127.0.0.1)4> {ok, O1} = C:get(<<"groceries">>, <<"mine">>, 1).
-{ok,{r_object,<<"groceries">>,<<"mine">>,
+    (riaktest@example.com)4> {ok, O1} = C:get(<<"groceries">>, <<"mine">>, 1).
+    {ok,{r_object,<<"groceries">>,<<"mine">>,
               [{r_content,{dict,2,16,16,8,80,48,
                                 {[],[],[],[],[],[],[],[],[],[],[],[],...},
                                 {{[],[],[],[],[],[],
                                   [["X-Riak-Last-Modified",87|...]],
                                   [],[],[],...}}},
                           ["bread"]}],
-              [{"20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664",
+              [{"20090722191020-riaktest@example.com-riakdemo@example.com-266664",
                 {1,63415509105}}],
               {dict,0,16,16,8,80,48,
                     {[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                     {{[],[],[],[],[],[],[],[],[],[],[],...}}},
               undefined}}
 
-(riaktest@127.0.0.1)5> %% extract the value
-(riaktest@127.0.0.1)5> V = riak_object:get_value(O1).
-["bread"]
+     (riaktest@example.com)5> %% extract the value
+     (riaktest@example.com)5> V = riak_object:get_value(O1).
+     ["bread"]
 
-(riaktest@127.0.0.1)6> %% add milk to the list
-(riaktest@127.0.0.1)6> O2 = riak_object:update_value(O1, ["milk"|V]).
-{r_object,<<"groceries">>,<<"mine">>,
+     Add milk to our list of groceries and write the new value to Riak:
+
+     (riaktest@example.com)6> %% add milk to the list
+     (riaktest@example.com)6> O2 = riak_object:update_value(O1, ["milk" | V]).
+     {r_object,<<"groceries">>,<<"mine">>,
           [{r_content,{dict,2,16,16,8,80,48,
                             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                             {{[],[],[],[],[],[],
                               [["X-Riak-Last-Modified",87,101,100|...]],
                               [],[],[],[],[],...}}},
                       ["bread"]}],
-          [{"20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664",
+          [{"20090722191020-riaktest@example.com-riakdemo@example.com-266664",
             {1,63415509105}}],
           {dict,0,16,16,8,80,48,
                 {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                 {{[],[],[],[],[],[],[],[],[],[],[],[],[],...}}},
           ["milk","bread"]}
 
-(riaktest@127.0.0.1)7> %% store the new list
-(riaktest@127.0.0.1)7> C:put(O2, 1).
-ok
+     (riaktest@example.com)7> %% store the new list
+     (riaktest@example.com)7> C:put(O2, 1).
+     ok
 
+     Finally, see what other keys are available in groceries bucket:
 
-(riaktest@127.0.0.1)8> %% find out what else is in the groceries bucket
-(riaktest@127.0.0.1)8> C:list_keys(<<"groceries">>).
-{ok,[<<"mine">>]}
+     (riaktest@example.com)8> C:list_keys(<<"groceries">>).
+     {ok,[<<"mine">>]}
