@@ -24,6 +24,10 @@
 %% @doc The application:start callback for riak.
 %%      Arguments are ignored as all configuration is done via the erlenv file.
 start(_Type, _StartArgs) ->
+
+    %% Look at the epoch and generating an error message if it doesn't match up to our expectations
+    check_epoch(),
+    
     %% Append user-provided code paths 
     case riak:get_app_env(add_paths) of
         List when is_list(List) ->
@@ -114,4 +118,30 @@ check_deps() ->
             ok;
         _ ->
             throw({error, {missing_modules, Fails}})
+    end.
+
+
+%% 719528 days from Jan 1, 0 to Jan 1, 1970
+%%  *86400 seconds/day
+-define(SEC_TO_EPOCH, 62167219200).
+
+%% @spec confirm_epoch() -> ok
+%% @doc 
+check_epoch() ->
+    %% doc for erlang:now/0 says return value is platform-dependent
+    %% -> let's emit an error if this platform doesn't think the epoch
+    %%    is Jan 1, 1970
+    {MSec, Sec, _} = erlang:now(),
+    GSec = calendar:datetime_to_gregorian_seconds(
+             calendar:universal_time()),
+    case GSec - ((MSec*1000000)+Sec) of
+        N when (N < ?SEC_TO_EPOCH+5 andalso N > ?SEC_TO_EPOCH-5);
+        (N < -?SEC_TO_EPOCH+5 andalso N > -?SEC_TO_EPOCH-5) ->
+            %% if epoch is within 10 sec of expected, accept it
+            ok;
+        N ->
+            Epoch = calendar:gregorian_seconds_to_datetime(N),
+            error_logger:error_msg("Riak expects your system's epoch to be Jan 1, 1970,~n"
+                                   "but your system says the epoch is ~p~n", [Epoch]),
+            ok
     end.
