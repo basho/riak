@@ -237,6 +237,8 @@ clientid_uniqueness_test() ->
     ClientIds = [mkclientid('somenode@somehost') || _I <- lists:seq(0, 10000)],
     length(ClientIds) =:= length(sets:to_list(sets:from_list(ClientIds))).
 
+str_to_node(Node) when is_atom(Node) ->
+    str_to_node(atom_to_list(Node));
 str_to_node(NodeStr) ->
     case string:tokens(NodeStr, "@") of
         [NodeName] ->

@@ -189,7 +189,7 @@ find_biggest_hole(Mine) ->
                         end;
                    ({I0, I1}, {C0, C1}) ->
                         %% wrap-around end-start of the ring
-                        Span = I0+trunc(math:pow(2, 160))-1-I1,
+                        Span = I1+trunc(math:pow(2, 160))-1-I0,
                         if Span > C1-C0 ->
                                 {I0, I1};
                            true ->
@@ -232,3 +232,27 @@ wants_claim_test() ->
     ?assertEqual(yes, erlang:element(1,default_wants_claim(Ring))),
     riak_ring_manager:stop(),
     riak_eventer:stop().
+
+find_biggest_hole_test() ->
+    Max = trunc(math:pow(2, 160)),
+    Part16 = Max/16,
+
+    %% single partition claimed
+    ?assertEqual({Part16*5, Part16*5},
+                 find_biggest_hole([Part16*5])),
+    
+    %% simple hole is in the middle
+    ?assertEqual({Part16*3, Part16*13},
+                 find_biggest_hole([Part16*3, Part16*13])),
+    %% complex hole in the middle
+    ?assertEqual({Part16*5, Part16*10},
+                 find_biggest_hole([Part16*3, Part16*5,
+                                    Part16*10, Part16*15])),
+    
+    %% simple hole is around the end
+    ?assertEqual({Part16*10, Part16*8},
+                 find_biggest_hole([Part16*8, Part16*10])),
+    %% complex hole is around the end
+    ?assertEqual({Part16*13, Part16*3},
+                 find_biggest_hole([Part16*3, Part16*7,
+                                    Part16*10, Part16*13])).

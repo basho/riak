@@ -138,7 +138,7 @@ class JiakClient {
     function delete($bucket, $key, $dw=2) {
         $resp = $this->_do_req("DELETE", $this->JKP .
                     urlencode($bucket) . "/" . urlencode($key) .
-                    "&dw=" . $dw);
+                    "?dw=" . $dw);
         $http_code = $resp['http_code'];
         if ($http_code == 404) return false;
         else if ($http_code == 204) return true;

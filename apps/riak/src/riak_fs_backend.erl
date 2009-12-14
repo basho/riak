@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 % @doc riak_fs_backend is a simple filesystem storage system.
 
@@ -65,7 +65,7 @@ atomic_write(_State, File, Val) ->
 %% @spec put(state(), BKey :: riak_object:bkey(), Val :: binary()) ->
 %%         ok | {error, Reason :: term()}
 %% @doc Store Val under Bkey
-put(State,BKey,Val) ->       
+put(State,BKey,Val) ->
     File = location(State,BKey),
     case filelib:ensure_dir(File) of
         ok -> atomic_write(State, File, Val);

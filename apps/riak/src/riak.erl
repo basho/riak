@@ -32,6 +32,7 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
+
 %% @spec stop() -> ok
 %% @doc Stop the riak application and the calling process.
 stop() -> stop("riak stop requested").

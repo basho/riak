@@ -10,65 +10,66 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
-%% @doc 
-%% riak_event_logger is an example of how to connect to a 
+%% @doc
+%% riak_event_logger is an example of how to connect to a
 %% running Riak cluster to receive events.
 
 -module(riak_event_logger).
 -behavior(gen_server).
 
+-include_lib("eunit/include/eunit.hrl").
+
 -define (RECONNECT_INTERVAL, 200).
 -define (SERVER, ?MODULE).
 -record (state, {node, pid, fd}).
--export ([start/2, start_link/2]).
+-export ([start/2, start_link/2, test_start/2]).
 -export ([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 %% @private
 start(Node, Filename) ->
-    gen_server:start({local, ?SERVER}, ?MODULE, [Node, Filename], []).
+    gen_server:start({local, ?SERVER}, ?MODULE, [Node, Filename, false], []).
 
-start_link(Node, Filename) -> 
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [Node, Filename], []).
+start_link(Node, Filename) ->
+    gen_server:start_link({local, ?SERVER}, ?MODULE, [Node, Filename, false], []).
 
 %% @private
-init([Node, Filename]) -> 
+init([Node, Filename, IsTest]) ->
     % If this gen_server dies and is supervised, then it will
     % be restarted under a new pid. If this happens, then we will
     % lose our connection to the Riak cluster. So, send a keepalive
     % every few seconds to reconnect.
-    timer:apply_interval(?RECONNECT_INTERVAL, gen_server, call, [?SERVER, connect]),
-    
+    %
+    % NOTE that we disable this behaviour when running unit tests!!
+    case IsTest of
+        false ->
+            timer:apply_interval(?RECONNECT_INTERVAL, gen_server, call, [?SERVER, connect]);
+        true ->
+            ok
+    end,
+
     % Open the file, get the file descriptor....
     {ok, FD} = case Filename of
-        _ when Filename == "stdout" orelse Filename == "" -> 
+        _ when Filename == "stdout" orelse Filename == "" ->
             {ok, stdout};
         _ ->
             {ok, CWD} = file:get_cwd(),
             LogFN = filename:join([CWD,Filename]),
             ok = filelib:ensure_dir(LogFN),
-            io:format("Writing event log to ~p~n",[LogFN]),
             file:open(LogFN, [raw, append, delayed_write])
     end,
-    
-    State = #state {
-        node = riak_util:str_to_node(Node),
-        fd = FD
-    },
-    {ok, State}.
-    
+
+    {ok, #state { node = riak_util:str_to_node(Node),
+                  fd = FD}}.
+
 %% @private
 %% Check if we need to reconnect to the Riak cluster.
-handle_call(connect, _From, State) ->
-    PidHasChanged = State#state.pid /= self(),
-    case PidHasChanged of
-        true ->  register_for_events(State);
-        false -> ignore
-    end,
+handle_call(connect, _From, State) when State#state.pid /= self() ->
+    register_for_events(State),
     {reply, ok, State#state { pid=self() }};
-    
-handle_call(_, _, State) -> {ok, State}.
+
+handle_call(_, _, State) -> {reply, ok, State}.
 
 handle_cast(_, State) -> {noreply, State}.
 
@@ -84,7 +85,7 @@ handle_info({event, Event}, State) ->
             file:write(FD, io_lib:format(": ~p~n",[Event]))
     end,
     {noreply, State};
-    
+
 handle_info(_, State) -> {noreply, State}.
 
 %% @private
@@ -93,6 +94,7 @@ terminate(_Reason,_State)  -> ok.
 
 %% @private
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
+
 
 register_for_events(State) ->
     % Get the client...
@@ -134,3 +136,28 @@ fmtnow() ->
     io_lib:format("[~2..0w/~s/~4..0w:~2..0w:~2..0w:~2..0w ~s]",
                   [Date,month(Month),Year, Hour, Min, Sec, zone()]).
 
+
+%%% Unit tests %%%
+
+-ifdef(EUNIT).
+
+%% @private
+%% For testing only
+test_start(Node, FileName) ->
+    gen_server:start({local, ?SERVER}, ?MODULE, [Node, FileName, true], []).
+
+%% @private
+file_write_test() ->
+    {T1, T2, T3} = erlang:now(),
+    random:seed(T1, T2, T3),
+    FileName = "/tmp/event_" ++ integer_to_list(random:uniform(1000)) ++ ".log",
+    {ok, Pid} = riak_event_logger:test_start('foo@bar', FileName),
+    Pid ! {event, test_event},
+    %% Wait for delayed_write to flush
+    timer:sleep(2100),
+    exit(Pid, shutdown),
+    {ok, Data} = file:read_file(FileName),
+    %file:delete(FileName),
+    ?assert(size(Data) > 0).
+
+-endif.
