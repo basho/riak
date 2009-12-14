@@ -17,10 +17,11 @@ main([Ebin]) ->
                    (M) when M =:= json_pp ->
                         false;
                    (M) ->
+                        proplists:get_value(test, M:module_info(exports)) == 0 orelse
                         nomatch == re:run(atom_to_list(M), NonTestRe)
                 end,
                 proplists:get_value(modules, App)),
-    
+
     crypto:start(),
     start_cover(Modules),
     eunit:test(Modules, [verbose]),
@@ -53,7 +54,7 @@ analyze_cover(Modules) ->
                   [], Modules),
     IndexFilename = filename:join([CoverBase, "index.html"]),
     {ok, Index} = file:open(IndexFilename, [write]),
-    {LineTotal, CoverTotal} = 
+    {LineTotal, CoverTotal} =
         lists:foldl(fun({_,_,Lines,Covered}, {LineAcc, CovAcc}) ->
                             {LineAcc+Lines, CovAcc+Covered}
                     end, {0,0}, Coverages),
@@ -73,7 +74,7 @@ analyze_cover(Modules) ->
     io:format("Cover analysis in ~s~n", [IndexFilename]).
 
 analyze_module(CoverBase, Module) ->
-    {ok, Filename} = 
+    {ok, Filename} =
         cover:analyze_to_file(
           Module,
           filename:join(CoverBase, atom_to_list(Module)++".COVER.html"),
@@ -92,4 +93,3 @@ count_lines(Filename, Pattern) ->
 percentage(_, 0) -> 1000.0;
 percentage(Part, Total) ->
     (Part/Total)*100.
-
