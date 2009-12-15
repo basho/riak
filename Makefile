@@ -8,24 +8,44 @@ compile:
 clean:
 	./rebar clean
 
+distclean: clean devclean relclean
+
 test: 
 	./rebar eunit
 
+##
+## Release targets
+##
 rel:
-	./rebar compile generate force=1 dump_spec=1
-	cp -R rel/overlay/* rel/riak
+	./rebar compile generate 
 
-devrel: rel
-	cp -Rp rel/riak rel/riak2
-	perl -pi -e 's/name riak/name riak2/g' rel/riak2/etc/vm.args
-	perl -pi -e 's/riak_web_port, \d+/riak_web_port, 8099/g' rel/riak2/etc/app.config
-	cp -Rp rel/riak rel/riak3
-	perl -pi -e 's/name riak/name riak3/g' rel/riak3/etc/vm.args
-	perl -pi -e 's/riak_web_port, \d+/riak_web_port, 8100/g' rel/riak3/etc/app.config
+relclean:
+	rm -rf rel/riak
+
+##
+## Developer targets
+##
+
+devrel: dev1 dev2 dev3
+
+dev: 
+	mkdir dev
+	cp -R rel/overlay rel/reltool.config dev
+	./rebar compile && cd dev && ../rebar generate
+
+dev1 dev2 dev3: dev
+	cp -Rn dev/riak dev/$@
+	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
+	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
+	perl -pi -e 's/riak_web_port, \d+/riak_web_port, 809$(subst dev,,$@)/g' \
+                    dev/$@/etc/app.config
 
 devclean: clean
-	rm -rf rel/riak*
+	rm -rf dev
 
+##
+## Doc targets
+##
 docs:
 	@erl -noshell -run edoc_run application riak '"apps/riak"' '[]' 
 	@cp -r doc/* www/edoc
