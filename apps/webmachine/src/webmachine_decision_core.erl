@@ -101,8 +101,9 @@ respond(Code, Headers) ->
 
 error_response(Code, Reason) ->
     {ok, ErrorHandler} = application:get_env(webmachine, error_handler),
-    ErrorHTML = ErrorHandler:render_error(
-                  Code, {webmachine_request,get(reqstate)}, Reason),
+    {ErrorHTML, ReqState} = ErrorHandler:render_error(
+                              Code, {webmachine_request,get(reqstate)}, Reason),
+    put(reqstate, ReqState),
     wrcall({set_resp_body, ErrorHTML}),
     respond(Code).
 error_response(Reason) ->
