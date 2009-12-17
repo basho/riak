@@ -11,6 +11,11 @@ Table of Contents
     2.1 Building Riak 
     2.2 Starting Riak 
     2.3 Connecting a client to Riak 
+3 Server Management 
+    3.1 Configuration 
+    3.2 Server Control 
+        3.2.1 bin/riak 
+        3.2.2 bin/riak-admin 
 
 
 1 Overview 
@@ -59,6 +64,10 @@ Table of Contents
    Now, verify that the server started up cleanly and is working:
 
    $ bin/riak-admin test
+
+   Note that the $RIAK/rel/riak directory is a complete, self-contained instance of Riak and
+   Erlang. It is strongly suggested that you move this directory outside the source tree if you
+   plan to run a production instance.
 
 2.3 Connecting a client to Riak 
 ================================
@@ -149,6 +158,71 @@ Table of Contents
      (riaktest@example.com)8> C:list_keys("groceries").
      {ok,["mine"]}
 
+
+
      ["X-Riak-Last-Modified",87|...]: sec-2.3
      ["X-Riak-Last-Modified",87,101,100|...]: sec-2.3
 
+3 Server Management 
+~~~~~~~~~~~~~~~~~~~~
+
+3.1 Configuration 
+==================
+   Configuration for the Riak server is stored in $RIAK/rel/riak/etc directory. There are two
+   files:
+   - vm.args     
+     This file contains the arguments that are passed to the Erlang VM in which Riak runs. The default
+     settings in this file shouldn't need to be changed for most environments.
+
+   - app.config
+     This file contains the configuration for the Erlang applications that run on the Riak server. 
+
+3.2 Server Control 
+===================
+
+3.2.1 bin/riak 
+---------------
+    This script is the primary interface for starting and stopping the Riak server. 
+
+    To start a daemonized (background) instance of Riak:
+
+    $ bin/riak start 
+
+    Once a server is running in the background you can attach to the Erlang console via:
+
+    $ bin/riak attach
+
+    Alternatively, if you want to run a foreground instance of Riak, start it with:
+
+    $ bin/riak console
+
+    Stopping a foreground or background instance of Riak can be done from a shell prompt via:
+
+    $ bin/riak stop 
+
+    Or if you are attached/on the Erlang console:
+
+    (riak@example.com)1> q().
+
+    You can determine if the server is running by:
+
+    $ bin/riak ping
+
+3.2.2 bin/riak-admin 
+---------------------
+    This script provides access to general administration of the Riak server. 
+
+    To join a new Riak node to an existing cluster:
+
+    $ bin/riak start # If a local server is not already running
+    $ bin/riak-admin join <node in cluster>
+
+    (Note that you must have a local node already running for this to work)
+    
+    To verify that the local Riak node is able to read/write data:
+
+    $ bin/riak-admin test
+
+    
+    
+     
