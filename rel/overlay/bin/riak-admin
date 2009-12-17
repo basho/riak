@@ -12,6 +12,9 @@ if [ ! -z "$RUNNER_USER" ] && [ `whoami` != "$RUNNER_USER" ]; then
     exec sudo -u $RUNNER_USER -i $0 $@
 fi
 
+# Make sure CWD is set to runner base dir
+cd $RUNNER_BASE_DIR
+
 # Extract the target node name from node.args
 NAME_ARG=`grep -e '-[s]*name' $RUNNER_ETC_DIR/vm.args`
 if [ -z "$NAME_ARG" ]; then
