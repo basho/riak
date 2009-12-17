@@ -6,7 +6,8 @@
 -setcookie riak
 
 ## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
--heart
+## (Disabled by default..use with caution!)
+##-heart
 
 ## Enable kernel poll and a few async threads
 +K true
