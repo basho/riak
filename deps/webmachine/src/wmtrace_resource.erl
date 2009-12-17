@@ -20,11 +20,11 @@
 -record(ctx, {trace_dir, trace}).
 
 -define(MAP_EXTERNAL, "static/map.png").
--define(MAP_INTERNAL, "deps/webmachine/docs/http-headers-status-v3.png").
+-define(MAP_INTERNAL, "docs/http-headers-status-v3.png").
 -define(SCRIPT_EXTERNAL, "static/wmtrace.js").
--define(SCRIPT_INTERNAL, "deps/webmachine/trace/wmtrace.js").
+-define(SCRIPT_INTERNAL, "trace/wmtrace.js").
 -define(STYLE_EXTERNAL, "static/wmtrace.css").
--define(STYLE_INTERNAL, "deps/webmachine/trace/wmtrace.css").
+-define(STYLE_INTERNAL, "trace/wmtrace.css").
 
 %%
 %% Dispatch Modifiers
@@ -88,15 +88,18 @@ resource_exists(RD, Ctx) ->
                      Ctx}
             end;
         ?MAP_EXTERNAL ->
-            {filelib:is_file(?MAP_INTERNAL), RD, Ctx};
+            {filelib:is_file(wm_path(?MAP_INTERNAL)), RD, Ctx};
         ?SCRIPT_EXTERNAL ->
-            {filelib:is_file(?SCRIPT_INTERNAL), RD, Ctx};
+            {filelib:is_file(wm_path(?SCRIPT_INTERNAL)), RD, Ctx};
         ?STYLE_EXTERNAL ->
-            {filelib:is_file(?STYLE_INTERNAL), RD, Ctx};
+            {filelib:is_file(wm_path(?STYLE_INTERNAL)), RD, Ctx};
         TraceName ->
             TracePath = filename:join([Ctx#ctx.trace_dir, TraceName]),
             {filelib:is_file(TracePath), RD, Ctx#ctx{trace=TracePath}}
     end.
+
+wm_path(File) ->
+    filename:join(code:lib_dir(webmachine), File).
 
 content_types_provided(RD, Ctx) ->
     case wrq:disp_path(RD) of
@@ -211,15 +214,15 @@ trace_html(Filename, Data) ->
          ]).
 
 produce_javascript(RD, Ctx) ->
-    {ok, Script} = file:read_file(?SCRIPT_INTERNAL),
+    {ok, Script} = file:read_file(wm_path(?SCRIPT_INTERNAL)),
     {Script, RD, Ctx}.
 
 produce_map(RD, Ctx) ->
-    {ok, Map} = file:read_file(?MAP_INTERNAL),
+    {ok, Map} = file:read_file(wm_path(?MAP_INTERNAL)),
     {Map, RD, Ctx}.
 
 produce_css(RD, Ctx) ->
-    {ok, Script} = file:read_file(?STYLE_INTERNAL),
+    {ok, Script} = file:read_file(wm_path(?STYLE_INTERNAL)),
     {Script, RD, Ctx}.
 
 %%

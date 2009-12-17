@@ -249,6 +249,7 @@ do_get(FSM_pid, BKey, ReqID,
         {ok, Binary} -> {ok, binary_to_term(Binary)};
         X -> X
     end,
+    riak_stat:update(vnode_get),
     gen_fsm:send_event(FSM_pid, {r, RetVal, Idx, ReqID}).
 
 %% @private
@@ -273,13 +274,15 @@ do_delete(Client, BKey, ReqID,
 
 %% @private
 % upon receipt of a handoff datum, there is no client FSM
-do_diffobj_put(BKey, DiffObj, 
+do_diffobj_put(BKey={Bucket,_}, DiffObj, 
        _StateData=#state{mod=Mod,modstate=ModState}) ->
     ReqID = erlang:phash2(erlang:now()),
     case syntactic_put_merge(Mod, ModState, BKey, DiffObj, ReqID) of
         {newobj, NewObj} ->
-            Val = term_to_binary(NewObj),
-            Mod:put(ModState, BKey, Val);
+            AMObj = enforce_allow_mult(NewObj, riak_bucket:get_bucket(Bucket)),
+            Val = term_to_binary(AMObj),
+            Mod:put(ModState, BKey, Val),
+            riak_stat:update(vnode_put);
         _ -> nop
     end.
 
@@ -295,7 +298,8 @@ do_put(FSM_pid, BKey, RObj, ReqID, PruneTime,
             gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
         {newobj, NewObj} ->
             VC = riak_object:vclock(NewObj),
-            ObjToStore = riak_object:set_vclock(NewObj,
+            AMObj = enforce_allow_mult(NewObj, BProps),
+            ObjToStore = riak_object:set_vclock(AMObj,
                                            vclock:prune(VC,PruneTime,BProps)),
             Val = term_to_binary(ObjToStore),
             case Mod:put(ModState, BKey, Val) of
@@ -303,8 +307,35 @@ do_put(FSM_pid, BKey, RObj, ReqID, PruneTime,
                     gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
                 {error, _Reason} ->
                     gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID})
+            end,
+            riak_stat:update(vnode_put)
+    end.
+
+%% @private
+%% enforce allow_mult bucket property so that no backend ever stores
+%% an object with multiple contents if allow_mult=false for that bucket
+enforce_allow_mult(Obj, BProps) ->
+    case proplists:get_value(allow_mult, BProps) of
+        true -> Obj;
+        _ ->
+            case riak_object:get_contents(Obj) of
+                [_] -> Obj;
+                Mult ->
+                    {MD, V} = select_newest_content(Mult),
+                    riak_object:set_contents(Obj, [{MD, V}])
             end
     end.
+
+%% @private
+%% choose the latest content to store for the allow_mult=false case
+select_newest_content(Mult) ->
+    hd(lists:sort(
+         fun({MD0, _}, {MD1, _}) ->
+                 riak_util:compare_dates(
+                   dict:fetch(<<"X-Riak-Last-Modified">>, MD0),
+                   dict:fetch(<<"X-Riak-Last-Modified">>, MD1))
+         end,
+         Mult)).
 
 %% @private
 do_map(ClientPid,{map,FunTerm,Arg,_Acc},

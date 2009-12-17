@@ -36,7 +36,8 @@
                 replied_fail :: list(),
                 timeout :: pos_integer(), 
                 tref    :: reference(),
-                ring :: riak_ring:riak_ring()
+                ring :: riak_ring:riak_ring(),
+                startnow :: {pos_integer(), pos_integer(), pos_integer()}
                }).
 
 start(ReqId,RObj,W,DW,Timeout,From) ->
@@ -53,6 +54,7 @@ init([ReqId,RObj0,W,DW,Timeout,Client]) ->
 %% @private
 initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
                                       timeout=Timeout, ring=Ring}) ->
+    StartNow = now(),
     TRef = erlang:send_after(Timeout, self(), timeout),
     RObj = update_metadata(RObj0),
     RealStartTime = riak_util:moment(),
@@ -77,7 +79,7 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
                   robj=RObj, n=N, preflist=Preflist, bkey={Bucket,Key},
                   waiting_for=Sent, starttime=riak_util:moment(),
                   replied_w=[], replied_dw=[], replied_fail=[],
-                  tref=TRef},
+                  tref=TRef,startnow=StartNow},
     {next_state,waiting_vnode_w,StateData}.
 
 waiting_vnode_w({w, Idx, ReqId},
@@ -89,6 +91,7 @@ waiting_vnode_w({w, Idx, ReqId},
             case DW of
                 0 ->
                     Client ! {ReqId, ok},
+                    update_stats(StateData),
                     riak_eventer:notify(riak_put_fsm, put_fsm_reply_ok,
                                         {ReqId, ok, {Bucket, Key}}),
                     {stop,normal,StateData};
@@ -115,12 +118,14 @@ waiting_vnode_w({fail, Idx, ReqId},
         true ->
             {next_state,waiting_vnode_w,NewStateData};
         false ->
+            update_stats(StateData),
             riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                                 {ReqId, {error,too_many_fails,Replied}}),
             Client ! {ReqId, {error,too_many_fails}},
             {stop,normal,NewStateData}
     end;
 waiting_vnode_w(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
+    update_stats(StateData),
     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                         {ReqId, {error,timeout}}),
     Client ! {ReqId, {error,timeout}},
@@ -135,6 +140,7 @@ waiting_vnode_dw({dw, Idx, ReqId},
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of
         true ->
+            update_stats(StateData),
             riak_eventer:notify(riak_put_fsm, put_fsm_reply_ok,
                                 {ReqId, ok, {Bucket, Key}}),
             Client ! {ReqId, ok},
@@ -158,6 +164,7 @@ waiting_vnode_dw({fail, Idx, ReqId},
             {stop,normal,NewStateData}
     end;
 waiting_vnode_dw(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
+    update_stats(StateData),
     riak_eventer:notify(riak_put_fsm, put_fsm_reply,
                         {ReqId, {error,timeout}}),
     Client ! {ReqId, {error,timeout}},
@@ -207,3 +214,7 @@ make_vtag_test() ->
     Obj = riak_object:new(<<"b">>,<<"k">>,<<"v1">>),
     ?assertNot(make_vtag(Obj) =:= 
                make_vtag(riak_object:increment_vclock(Obj,<<"client_id">>))).
+
+update_stats(#state{startnow=StartNow}) ->
+    EndNow = now(),
+    riak_stat:update({put_fsm_time, timer:now_diff(EndNow, StartNow)}).

@@ -36,6 +36,7 @@
 -export([send_event/2]).
 -export ([add_event_handler/2, add_event_handler/3, add_event_handler/4]).
 -export ([remove_event_handler/3]).
+-export([get_stats/1]).
 %% @type default_timeout() = 15000
 -define(DEFAULT_TIMEOUT, 15000).
 -define(DEFAULT_ERRTOL, 0.00003).
@@ -364,6 +365,14 @@ add_event_handler(Pid, Desc, MatchHead, MatchGuard) ->
 %% See {@link riak_eventer:remove_handler/3.} for more information.
 remove_event_handler(Pid, MatchHead, MatchGuard) ->
     rpc:call(Node, riak_eventer, remove_handler, [Pid, MatchHead, MatchGuard]). 
+
+get_stats(local) ->
+    [{Node, rpc:call(Node, gen_server, call, [riak_stat, get_stats])}];
+get_stats(global) ->
+    {ok, Ring} = rpc:call(Node, riak_ring_manager, get_my_ring, []),
+    Nodes = riak_ring:all_members(Ring),
+    [{N, rpc:call(N, gen_server, call, [riak_stat, get_stats])}
+     || N <- Nodes].
 
 %% @private
 mk_reqid() -> erlang:phash2(erlang:now()). % only has to be unique per-pid

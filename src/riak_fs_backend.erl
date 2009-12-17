@@ -50,7 +50,7 @@ get(State, BKey) ->
         true -> file:read_file(File)
     end.
 
-%% @spec atomic_write(File :: string(), Val :: binary()) ->
+%% @spec atomic_write(state(), File :: string(), Val :: binary()) ->
 %%       ok | {error, Reason :: term()}
 %% @doc store a atomic value to disk. Write to temp file and rename to
 %%       normal path.
