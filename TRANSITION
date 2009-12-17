@@ -56,6 +56,10 @@ Table of Contents
    are NOT suitable for redistribution. They simply make it easy to quickly test
    changes to the Riak source code in a development environment.
 
+   NOTE: If you have just pulled the 0.7 version of Riak into an existing
+   clone of a previous Riak version, you will need to remove the old "ebin"
+   and "src" directories before running "make".
+
 2.2 Server scripts 
 ===================
    start-*.sh and debug-*.sh have all been replaced with the bin/riak and
