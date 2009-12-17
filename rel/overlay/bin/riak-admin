@@ -1,0 +1,118 @@
+#!/bin/bash
+
+RUNNER_SCRIPT_DIR=$(cd ${0%/*} && pwd)
+
+RUNNER_BASE_DIR=${RUNNER_SCRIPT_DIR%/*}
+RUNNER_ETC_DIR=$RUNNER_BASE_DIR/etc
+RUNNER_LOG_DIR=$RUNNER_BASE_DIR/log
+RUNNER_USER=
+
+# Make sure this script is running as the appropriate user
+if [ ! -z "$RUNNER_USER" ] && [ `whoami` != "$RUNNER_USER" ]; then
+    exec sudo -u $RUNNER_USER -i $0 $@
+fi
+
+# Make sure CWD is set to runner base dir
+cd $RUNNER_BASE_DIR
+
+# Extract the target node name from node.args
+NAME_ARG=`grep -e '-[s]*name' $RUNNER_ETC_DIR/vm.args`
+if [ -z "$NAME_ARG" ]; then
+    echo "vm.args needs to have either -name or -sname parameter."
+    exit 1
+fi
+
+# Extract the target cookie
+COOKIE_ARG=`grep -e '-setcookie' $RUNNER_ETC_DIR/vm.args`
+if [ -z "$COOKIE_ARG" ]; then
+    echo "vm.args needs to have a -setcookie parameter."
+    exit 1
+fi
+
+# Identify the script name
+SCRIPT=`basename $0`
+
+# Parse out release and erts info
+START_ERL=`cat $RUNNER_BASE_DIR/releases/start_erl.data`
+ERTS_VSN=${START_ERL% *}
+APP_VSN=${START_ERL#* }
+
+# Add ERTS bin dir to our path
+ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
+
+# Setup command to control the node
+NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
+
+# Check the first argument for instructions
+case "$1" in
+    join)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+
+        shift
+
+        $NODETOOL rpc riak_console join $@
+        ;;
+
+    backup | restore)
+        ACTION=$1
+        shift
+
+        if [ $# -lt 3 ]; then
+            echo "Usage: $SCRIPT $ACTION <node> <cookie> <filename>"
+            exit 1
+        fi
+
+        NODE=$1
+        COOKIE=$2
+        FILENAME=$3
+
+        $ERTS_PATH/erl -noshell -name riak_backup -setcookie $COOKIE \
+                       -eval "riak_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
+        ;;
+
+    logger)
+        shift
+
+        if [ $# -lt 2 ]; then
+            echo "Usage:"
+            echo "    Log to console: $SCRIPT logger <node> <cookie>"  
+            echo "    Log to file:    $SCRIPT logger <node> <cookie> <filename>"  
+            exit 1
+        fi
+
+        NODE=$1
+        COOKIE=$2
+        FILENAME=$3
+
+        $ERTS_PATH/erl -noshell -name riak_logger -setcookie $COOKIE \
+                       -eval "riak_event_logger:start('$NODE', \"$FILENAME\")."            
+        ;;
+
+    test)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+
+        shift
+
+        # Parse out the node name to pass to the client
+        NODE_NAME=${NAME_ARG#* }
+
+        $ERTS_PATH/erl -noshell -name riak_test $COOKIE_ARG \
+                       -eval "riak:client_test(\"$NODE_NAME\")" -s init stop
+
+        ;;
+    *)
+        echo "Usage: $SCRIPT { join | backup | restore | logger | test }"
+        exit 1
+        ;;
+esac
+

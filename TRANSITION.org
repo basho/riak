@@ -1,0 +1,67 @@
+#+OPTIONS: author:nil timestamp:nil
+
+Notes on Riak Source Tree Restructuring
+
+* Overview
+  The Riak source tree has undergone a major restructuring as part of a
+  transition to a new build tool -- rebar. This tool enforces OTP compliant
+  directory structures for the riak application and its dependencies and
+  provides an easy-to-use wrapper around the new reltool system available in
+  Erlang R1303+. Using reltool makes it possible to construct a standalone
+  server instance that can be used on machines without Erlang installed. This
+  transition has also enabled us to introduce a standardized script for
+  starting/stopping and other server management tasks.
+
+
+* Summary of changes
+
+** Building
+   The source code can still be compiled using a single invocation of make at
+   the top-level $RIAK directory:
+
+   $ make
+
+   However, if you want a runnable, redistributable server you need to make sure
+   the "rel" target gets built:
+
+   $ make rel
+
+   This will place a full server install in the $RIAK/rel/riak directory. You
+   can safely copy this riak directory to any other machine with the SAME
+   operating system and architecture and run riak.  See the README for more
+   information about how to start/stop the server.
+
+   As an alternative to the "rel" target, if you are doing active development on
+   the Riak source code you may want to try the "devrel" target. This will
+   generate three runnable nodes in $RIAK/dev and symlink them in such a way
+   that recompiles of the Riak source code (i.e. simple invocation of "make") is
+   automatically available to those nodes. These three nodes, (dev1, dev2, dev2)
+   are NOT suitable for redistribution. They simply make it easy to quickly test
+   changes to the Riak source code in a development environment.
+
+** Server scripts
+   start-*.sh and debug-*.sh have all been replaced with the bin/riak and
+   bin/riak-admin scripts that are generated as part of the "rel" or "devrel"
+   targets.
+
+*** riak_demo.escript 
+    The functionality of this script is now available via:
+
+    $ bin/riak-admin test
+
+
+*** start-backup/restore/logger.sh
+    The functionality of these scripts is now available via the bin/riak-admin
+    script.
+
+** Configuration
+   The config/ directory has been removed; you can now find default
+   configuration in $RIAK/rel/overlay/etc directory -- the app.config and
+   vm.args files are copied from that location when running the "rel" or
+   "devrel" targets. If you already have run the release targets you can just
+   edit the files in the $RIAK/rel/riak/etc or $RIAK/dev/dev*/etc directories
+   respectively.
+
+*** riak-env.sh
+    This file has been replaced with vm.args. 
+
