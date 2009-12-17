@@ -1,5 +1,5 @@
-                                       Welcome to Riak.
-                                       ================
+                                Welcome to Riak.
+                                ================
 
 
 
@@ -39,7 +39,8 @@ Table of Contents
 2 Quick Start 
 ~~~~~~~~~~~~~~
 
-  This section assumes that you have copy of the Riak source tree. To get started, you need to:
+  This section assumes that you have copy of the Riak source tree. To get
+  started, you need to:
   1. Build Riak
   2. Start the Riak server
   3. Connect a client and store/fetch data
@@ -56,7 +57,8 @@ Table of Contents
 2.2 Starting Riak 
 ==================
 
-   Once you have successfully built Riak, you can start the server with the following commands:
+   Once you have successfully built Riak, you can start the server with the
+   following commands:
 
    $ cd $RIAK/rel/riak
    $ bin/riak start
@@ -65,15 +67,15 @@ Table of Contents
 
    $ bin/riak-admin test
 
-   Note that the $RIAK/rel/riak directory is a complete, self-contained instance of Riak and
-   Erlang. It is strongly suggested that you move this directory outside the source tree if you
-   plan to run a production instance.
+   Note that the $RIAK/rel/riak directory is a complete, self-contained instance
+   of Riak and Erlang. It is strongly suggested that you move this directory
+   outside the source tree if you plan to run a production instance.
 
 2.3 Connecting a client to Riak 
 ================================
 
-   Now that you have a functional server, let's try storing some data in it. First,
-   start up a erlang node using our embedded version of erlang:
+   Now that you have a functional server, let's try storing some data in
+   it. First, start up a erlang node using our embedded version of erlang:
 
    $ erts-<vsn>/bin/erl -name riaktest -setcookie riak
    
@@ -168,35 +170,41 @@ Table of Contents
 
 3.1 Configuration 
 ==================
-   Configuration for the Riak server is stored in $RIAK/rel/riak/etc directory. There are two
-   files:
-   - vm.args     
-     This file contains the arguments that are passed to the Erlang VM in which Riak runs. The default
-     settings in this file shouldn't need to be changed for most environments.
+   Configuration for the Riak server is stored in $RIAK/rel/riak/etc
+   directory. There are two files:
+   - vm.args 
+     This file contains the arguments that are passed to the Erlang VM
+     in which Riak runs. The default settings in this file shouldn't need to be
+     changed for most environments.
 
-   - app.config
-     This file contains the configuration for the Erlang applications that run on the Riak server. 
+   - app.config 
+     This file contains the configuration for the Erlang applications
+     that run on the Riak server.
 
 3.2 Server Control 
 ===================
 
 3.2.1 bin/riak 
 ---------------
-    This script is the primary interface for starting and stopping the Riak server. 
+    This script is the primary interface for starting and stopping the Riak
+    server.
 
     To start a daemonized (background) instance of Riak:
 
     $ bin/riak start 
 
-    Once a server is running in the background you can attach to the Erlang console via:
+    Once a server is running in the background you can attach to the Erlang
+    console via:
 
     $ bin/riak attach
 
-    Alternatively, if you want to run a foreground instance of Riak, start it with:
+    Alternatively, if you want to run a foreground instance of Riak, start it
+    with:
 
     $ bin/riak console
 
-    Stopping a foreground or background instance of Riak can be done from a shell prompt via:
+    Stopping a foreground or background instance of Riak can be done from a
+    shell prompt via:
 
     $ bin/riak stop 
 
