@@ -3,6 +3,7 @@
  [{description, "riak"},
   {vsn, "0.6"},
   {modules, [
+             bloom,
              chash,
              gen_server2,
              jaywalker_resource,
