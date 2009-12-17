@@ -48,10 +48,7 @@ devclean: clean
 ##
 docs:
 	@erl -noshell -run edoc_run application riak '"apps/riak"' '[]' 
-	@cp -r doc/* www/edoc
-	@cp README www/
-	@cp LICENSE www/
-	@cp TODO www/
+	@cp -R apps/riak/doc doc/riak
 
 reldocs: docs
 	@mkdir -p www/java_client_api
