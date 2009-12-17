@@ -20,10 +20,14 @@
 
 -export([mapred/2,mapred/3]).
 -export([mapred_stream/2,mapred_stream/3]).
+-export([mapred_bucket/2,mapred_bucket/3,mapred_bucket/4]).
+-export([mapred_bucket_stream/3,mapred_bucket_stream/4,mapred_bucket_stream/5]).
 -export([get/3,get/4]).
 -export([put/2,put/3,put/4]).
 -export([delete/3,delete/4]).
--export([list_keys/1,list_keys/2]).
+-export([list_keys/1,list_keys/2,list_keys/3]).
+-export([stream_list_keys/1,stream_list_keys/2,stream_list_keys/3,
+         stream_list_keys/4,stream_list_keys/5]).
 -export([filter_keys/2,filter_keys/3]).
 -export([list_buckets/0,list_buckets/1]).
 -export([set_bucket/2,get_bucket/1]).
@@ -34,6 +38,7 @@
 -export ([remove_event_handler/3]).
 %% @type default_timeout() = 15000
 -define(DEFAULT_TIMEOUT, 15000).
+-define(DEFAULT_ERRTOL, 0.00003).
 
 %% @spec mapred(Inputs :: list(),
 %%              Query :: [riak_mapreduce_fsm:mapred_queryterm()]) ->
@@ -89,6 +94,30 @@ mapred_stream(Query,ClientPid,Timeout)
     {ok, MR_FSM} = rpc:call(Node, riak_mapreduce_fsm, start,
                             [ReqId,Query,Timeout,ClientPid]),
     {ok, {ReqId, MR_FSM}}.
+
+mapred_bucket_stream(Bucket, Query, ClientPid) ->
+    mapred_bucket_stream(Bucket, Query, ClientPid, ?DEFAULT_TIMEOUT).
+
+mapred_bucket_stream(Bucket, Query, ClientPid, Timeout) ->
+    mapred_bucket_stream(Bucket, Query, ClientPid, Timeout, ?DEFAULT_ERRTOL).
+
+mapred_bucket_stream(Bucket, Query, ClientPid, Timeout, ErrorTolerance) ->
+    {ok,{MR_ReqId,MR_FSM}} = mapred_stream(Query,ClientPid,Timeout),
+    {ok,_Stream_ReqID} = stream_list_keys(Bucket, Timeout, ErrorTolerance,
+                                  MR_FSM, mapred),
+    {ok,MR_ReqId}.
+
+mapred_bucket(Bucket, Query) ->
+    mapred_bucket(Bucket, Query, ?DEFAULT_TIMEOUT).
+
+mapred_bucket(Bucket, Query, Timeout) ->
+    mapred_bucket(Bucket, Query, Timeout, ?DEFAULT_ERRTOL).
+
+mapred_bucket(Bucket, Query, Timeout, ErrorTolerance) ->
+    Me = self(),
+    {ok,MR_ReqId} = mapred_bucket_stream(Bucket, Query, Me,
+                                         Timeout, ErrorTolerance),
+    collect_mr_results(MR_ReqId, Timeout, []).
 
 %% @spec get(riak_object:bucket(), riak_object:key(), R :: integer()) ->
 %%       {ok, riak_object:riak_object()} |
@@ -195,10 +224,48 @@ list_keys(Bucket) ->
 %%      Key lists are updated asynchronously, so this may be slightly
 %%      out of date if called immediately after a put or delete.
 list_keys(Bucket, Timeout) -> 
+    list_keys(Bucket, Timeout, ?DEFAULT_ERRTOL).
+list_keys(Bucket, Timeout, ErrorTolerance) -> 
     Me = self(),
     ReqId = mk_reqid(),
-    spawn(Node, riak_keys_fsm, start, [ReqId,Bucket,Timeout,Me]),
-    wait_for_reqid(ReqId, Timeout).
+    spawn(Node, riak_keys_fsm, start,
+          [ReqId,Bucket,Timeout,plain,ErrorTolerance,Me]),
+    wait_for_listkeys(ReqId, Timeout).
+
+stream_list_keys(Bucket) -> 
+    stream_list_keys(Bucket, ?DEFAULT_TIMEOUT).
+
+stream_list_keys(Bucket, Timeout) -> 
+    stream_list_keys(Bucket, Timeout, ?DEFAULT_ERRTOL).
+
+stream_list_keys(Bucket, Timeout, ErrorTolerance) -> 
+    Me = self(),
+    stream_list_keys(Bucket, Timeout, ErrorTolerance, Me).
+
+stream_list_keys(Bucket, Timeout, ErrorTolerance, Client) -> 
+    stream_list_keys(Bucket, Timeout, ErrorTolerance, Client, plain).
+
+%% @spec stream_list_keys(riak_object:bucket(),
+%%                        TimeoutMillisecs :: integer(),
+%%                        ErrorTolerance :: float(),
+%%                        Client :: pid(),
+%%                        ClientType :: atom()) ->
+%%       {ok, ReqId :: term()}
+%% @doc List the keys known to be present in Bucket.
+%%      Key lists are updated asynchronously, so this may be slightly
+%%      out of date if called immediately after a put or delete.
+%%      The list will not be returned directly, but will be sent
+%%      to Client in a sequence of {ReqId, {keys,Keys}} messages
+%%      and a final {ReqId, done} message.
+%%      None of the Keys lists will be larger than the number of
+%%      keys in Bucket on any single vnode.
+%%      If ClientType is set to 'mapred' instead of 'plain', then the
+%%      messages will be sent in the form of a MR input stream.
+stream_list_keys(Bucket, Timeout, ErrorTolerance, Client, ClientType) -> 
+    ReqId = mk_reqid(),
+    spawn(Node, riak_keys_fsm, start,
+          [ReqId,Bucket,Timeout,ClientType,ErrorTolerance,Client]),
+    {ok, ReqId}.
 
 %% @spec filter_keys(riak_object:bucket(), Fun :: function()) ->
 %%       {ok, [Key :: riak_object:key()]} |
@@ -320,6 +387,15 @@ collect_mr_results(ReqId, Timeout, Acc) ->
             {error, timeout}
     end.
 
+%% @private
+wait_for_listkeys(ReqId, Timeout) ->
+    wait_for_listkeys(ReqId,Timeout,[]).
+%% @private
+wait_for_listkeys(ReqId,Timeout,Acc) ->
+    receive
+        {ReqId, done} -> {ok, Acc};
+        {ReqId,{keys,Res}} -> wait_for_listkeys(ReqId,Timeout,Acc++Res)
+    after Timeout ->
+            {error, timeout, Acc}
+    end.
 
-            
-            
