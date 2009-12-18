@@ -1,0 +1,80 @@
+%% -*- erlang -*-
+%% -------------------------------------------------------------------
+%%
+%% nodetool: Helper Script for interacting with live nodes
+%%
+%% -------------------------------------------------------------------
+
+main(Args) ->
+    %% Extract the args
+    {RestArgs, TargetNode} = process_args(Args, [], undefined),
+
+    %% See if the node is currently running  -- if it's not, we'll bail
+    case net_adm:ping(TargetNode) of
+        pong -> 
+            ok;
+        pang -> 
+            io:format("Node ~p not responding to pings.\n", [TargetNode]),
+            halt(1)
+    end,
+
+    case RestArgs of
+        ["ping"] ->
+            %% If we got this far, the node already responsed to a ping, so just dump
+            %% a "pong"
+            io:format("pong\n");
+        ["stop"] ->
+            io:format("~p\n", [rpc:call(TargetNode, init, stop, [], 60000)]);
+        ["restart"] ->
+            io:format("~p\n", [rpc:call(TargetNode, init, restart, [], 60000)]);
+        ["reboot"] ->
+            io:format("~p\n", [rpc:call(TargetNode, init, reboot, [], 60000)]);
+        ["rpc", Module, Function | RpcArgs] ->
+            case rpc:call(TargetNode, list_to_atom(Module), list_to_atom(Function), [RpcArgs], 60000) of
+                ok ->
+                    ok;
+                {badrpc, Reason} ->
+                    io:format("RPC to ~p failed: ~p\n", [TargetNode, Reason]),
+                    halt(1);
+                _ ->
+                    halt(1)
+            end;
+        Other ->
+            io:format("Other: ~p\n", [Other]),
+            io:format("Usage: nodetool {ping|stop|restart|reboot}\n")
+    end,
+    net_kernel:stop().
+    
+process_args([], Acc, TargetNode) ->
+    {lists:reverse(Acc), TargetNode};
+process_args(["-setcookie", Cookie | Rest], Acc, TargetNode) ->
+    erlang:set_cookie(node(), list_to_atom(Cookie)),
+    process_args(Rest, Acc, TargetNode);
+process_args(["-name", TargetName | Rest], Acc, _) ->
+    ThisNode = append_node_suffix(TargetName, "_maint_"),
+    {ok, _} = net_kernel:start([ThisNode, longnames]),
+    process_args(Rest, Acc, nodename(TargetName));
+process_args(["-sname", TargetName | Rest], Acc, _) ->
+    ThisNode = append_node_suffix(TargetName, "_maint_"),
+    {ok, _} = net_kernel:start([ThisNode, shortnames]),
+    process_args(Rest, Acc, nodename(TargetName));
+process_args([Arg | Rest], Acc, Opts) ->
+    process_args(Rest, [Arg | Acc], Opts).
+
+
+nodename(Name) ->
+    case string:tokens(Name, "@") of
+        [_Node, _Host] ->
+            list_to_atom(Name);
+        [Node] ->
+            [_, Host] = string:tokens(atom_to_list(node()), "@"),
+            list_to_atom(lists:concat([Node, "@", Host]))
+    end.
+
+append_node_suffix(Name, Suffix) ->
+    case string:tokens(Name, "@") of
+        [Node, Host] ->
+            list_to_atom(lists:concat([Node, Suffix, os:getpid(), "@", Host]));
+        [Node] ->
+            list_to_atom(lists:concat([Node, Suffix, os:getpid()]))
+    end.

@@ -1,39 +1,62 @@
-ERL          ?= erl
-EBIN_DIRS    := $(wildcard deps/*/ebin)
-APP          := riak
+.PHONY: rel
 
-all:  webmachine erl 
+all: compile
 
-erl: ebin/$(APP).app
-	@$(ERL) -pa ebin -pa $(EBIN_DIRS) -noinput +B \
-	  -eval 'case make:all() of up_to_date -> halt(0); error -> halt(1) end.'
-
-webmachine:
-	@(cd deps/webmachine;$(MAKE))
-
-docs:
-	@erl -noshell -run edoc_run application '$(APP)' '"."' '[]'
-	@cp -r doc/* www/edoc
-	@cp README www/
-	@cp LICENSE www/
-	@cp TODO www/
-
-reldocs: docs
-	@cd client_lib/java && make javadoc && \
-		cp -r javadoc/* ../../www/java_client_api
-
+compile:
+	./rebar compile
 
 clean:
-	@echo "removing:"
-	@rm -fv ebin/*.beam ebin/*.app
+	./rebar clean
 
-ebin/$(APP).app: src/$(APP).app.src
-	@echo "generating ebin/riak.app"
-	@bash scripts/make_appfile.sh >ebin/riak.app	
+distclean: clean devclean relclean
 
-dialyzer: erl 
-	@dialyzer -Wno_return -c ebin/ | tee priv/log/dialyzer.log
+test: 
+	./rebar eunit
 
-test: erl
-	scripts/run_tests.escript ebin | tee test.log
+##
+## Release targets
+##
+rel:
+	./rebar compile generate 
+
+relclean:
+	rm -rf rel/riak
+
+##
+## Developer targets
+##
+
+devrel: dev1 dev2 dev3
+
+dev: 
+	mkdir dev
+	cp -R rel/overlay rel/reltool.config dev
+	./rebar compile && cd dev && ../rebar generate
+
+dev1 dev2 dev3: dev
+	cp -Rn dev/riak dev/$@
+	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
+	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
+	perl -pi -e 's/riak_web_port, \d+/riak_web_port, 809$(subst dev,,$@)/g' \
+                    dev/$@/etc/app.config
+
+devclean: clean
+	rm -rf dev
+
+##
+## Doc targets
+##
+docs:
+	@erl -noshell -run edoc_run application riak '"apps/riak"' '[]' 
+	@cp -R apps/riak/doc doc/riak
+
+reldocs: docs
+	@mkdir -p www/java_client_api
+	@cd client_lib/java && make javadoc && \
+            cp -R javadoc/* ../../www/java_client_api
+
+
+dialyzer: compile
+	@dialyzer -Wno_return -c apps/riak/ebin
+
 
