@@ -1,6 +1,6 @@
 
 ## Name of the riak node
--name riak
+-name riak@127.0.0.1
 
 ## Cookie for distributed erlang
 -setcookie riak
