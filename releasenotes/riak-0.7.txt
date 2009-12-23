@@ -1,0 +1,58 @@
+----------------------
+Riak 0.7 Release Notes
+----------------------
+
+- The Riak source tree has undergone a major restructuring as part of a
+  transition to a new build tool -- rebar. This tool enforces OTP compliant
+  directory structures for the riak application and its dependencies and
+  provides an easy-to-use wrapper around the new reltool system available in
+  Erlang R1303+. Using reltool makes it possible to construct a standalone
+  server instance that can be used on machines without Erlang installed. This
+  transition has also enabled us to introduce a standardized script for
+  starting/stopping and other server management tasks.
+
+  You can watch a screencast on Riak and Rebar here:
+
+  http://blog.basho.com/2009/12/17/basho-screencast---dave-smith-introduces-riak-in-an-embedded-node/
+
+- In addition to the existing Client:list_keys function, there is now also 
+  a Client:stream_list_keys function that provides the keys in a bucket over a 
+  series of messages instead of in a single list.  This can be useful with 
+  larger buckets.  The messages will be of the form {ReqId,{keys,Res}} followed
+  by a single {ReqId, done} to notify the client that all keys have been sent.
+
+- riak_vnode has undergone a complete rewrite to fix some handoff-related bugs
+  and to eliminate the need for a separate riak_vnode_sidekick process.
+
+- riak_stat : Riak can now track basic internal statistics about how many 
+  reads and writes happened, and with what latency, in the last minute.
+  Add {riak_stat, true} to your Riak config file to enable stat tracking, then 
+  use riak_client:get_stats/1 to retrieve the latest stats.
+
+- Setting the bucket property "allow_mult" to 'false' enables Riak's 
+  automatic sibling resolution.  Prior to this release, all resolution was 
+  done at read time.  With 0.7, sibling resolution is done at write time for 
+  allow_mult=false buckets.
+
+- In fixing a bug in filtered_preflist, we also made Riak's default ring 
+  partition claiming function more explicitly evenly distributed in 0.7.  The 
+  function will attempt to to produce an "optimal" claim for the N-value set 
+  by the "target_n_val" configuration parameter (3, by default).
+
+- The latest version of Webmachine (http://webmachine.basho.com) has been 
+  integrated into Riak, which increases HTTP/Jiak performance considerably.
+
+- Jonathan Lee contributed a patch that causes any object metadata keys 
+  beginning with "X-Riak-Meta" to be emitted as HTTP headers when using the
+  "raw" HTTP interface.
+
+- Sean Cribbs refactored the Ruby client library to be more idiomatic and 
+  maintainable.
+
+- Jayson Baird contributed a new Python client that uses PyCURL when available.
+
+
+
+
+
+
