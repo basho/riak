@@ -29,7 +29,8 @@ start(Idx) ->
     gen_fsm:start(?MODULE, [Idx], []).
 init([VNodeIndex]) ->
     Mod = riak:get_app_env(storage_backend),
-    {ok, ModState} = Mod:start(VNodeIndex),
+    Configuration = riak:get_app_env(),
+    {ok, ModState} = Mod:start(VNodeIndex, Configuration),
     StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState},
     {next_state, StateName, StateData, Timeout} = hometest(StateData0),
     {ok, StateName, StateData, Timeout}.

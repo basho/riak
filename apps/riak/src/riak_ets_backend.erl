@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 % @doc riak_ets_backend is a Riak storage backend using ets.
 
@@ -18,7 +18,7 @@
 -behaviour(gen_server).
 
 -include_lib("eunit/include/eunit.hrl").
--export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -26,13 +26,9 @@
 % @type state() = term().
 -record(state, {t}).
 
-% @private
-simple_test() ->
-    riak_test_util:standard_backend_test(riak_ets_backend).
-
-% @spec start(Partition :: integer()) ->
+% @spec start(Partition :: integer(), Config :: proplist()) ->
 %                        {ok, state()} | {{error, Reason :: term()}, state()}
-start(Partition) ->
+start(Partition, _Config) ->
     gen_server:start_link(?MODULE, [Partition], []).
 
 %% @private
@@ -115,3 +111,11 @@ terminate(_Reason, _State) -> ok.
 
 %% @private
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
+
+%%
+%% Test
+%%
+
+% @private
+simple_test() ->
+    riak_test_util:standard_backend_test(riak_ets_backend, []).

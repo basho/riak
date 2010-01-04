@@ -10,25 +10,25 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.
+%% under the License.    
 
 % @doc riak_fs_backend is a simple filesystem storage system.
 
 -module(riak_fs_backend).
--export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
 -include_lib("eunit/include/eunit.hrl").
 % @type state() = term().
 -record(state, {dir}).
 
-%% @spec start(Partition :: integer()) ->
+%% @spec start(Partition :: integer(), Config :: proplist()) ->
 %%          {ok, state()} | {{error, Reason :: term()}, state()}
 %% @doc Start this backend.  'riak_fs_backend_root' must be set in
 %%      Riak's application environment.  It must be set to a string
 %%      representing the base directory where this backend should
 %%      store its files.
-start(Partition) ->
+start(Partition, Config) ->
     PartitionName = integer_to_list(Partition),
-    ConfigRoot = riak:get_app_env(riak_fs_backend_root),
+    ConfigRoot = proplists:get_value(riak_fs_backend_root, Config),
     if
         ConfigRoot =:= undefined ->
             riak:stop("riak_fs_backend_root unset, failing.");
@@ -50,11 +50,11 @@ get(State, BKey) ->
         true -> file:read_file(File)
     end.
 
-%% @spec atomic_write(state(), File :: string(), Val :: binary()) ->
+%% @spec atomic_write(File :: string(), Val :: binary()) ->
 %%       ok | {error, Reason :: term()}
 %% @doc store a atomic value to disk. Write to temp file and rename to
 %%       normal path.
-atomic_write(_State, File, Val) ->
+atomic_write(File, Val) ->
     FakeFile = File ++ ".tmpwrite",
     case file:write_file(FakeFile, Val) of
         ok ->
@@ -65,10 +65,10 @@ atomic_write(_State, File, Val) ->
 %% @spec put(state(), BKey :: riak_object:bkey(), Val :: binary()) ->
 %%         ok | {error, Reason :: term()}
 %% @doc Store Val under Bkey
-put(State,BKey,Val) ->
+put(State,BKey,Val) ->       
     File = location(State,BKey),
     case filelib:ensure_dir(File) of
-        ok -> atomic_write(State, File, Val);
+        ok -> atomic_write(File, Val);
         X -> X
     end.
 
@@ -197,10 +197,9 @@ nest([],N,Acc) ->
 %%
 
 simple_test() ->
-    application:set_env(riak, riak_fs_backend_root,
-                        "test/fs-backend"),
-    ?assertCmd("rm -rf test/fs-backend"),
-    riak_test_util:standard_backend_test(riak_fs_backend).
+   ?assertCmd("rm -rf test/fs-backend"),
+   Config = [{riak_fs_backend_root, "test/fs-backend"}],
+   riak_test_util:standard_backend_test(riak_fs_backend, Config).
 
 dirty_clean_test() ->
     Dirty = "abc=+/def",

@@ -39,14 +39,14 @@
 %%    under riak_osmos_backend_root.
 -module(riak_osmos_backend).
 
--export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
 -include_lib("eunit/include/eunit.hrl").
 -record(state, {table}).
 
-%% @spec start(Partition :: integer()) ->
+%% @spec start(Partition :: integer(), Config :: proplist()) ->
 %%                        {ok, state()} | {{error, Reason :: term()}, state()}
-start(Partition) ->
-    ConfigRoot = riak:get_app_env(riak_osmos_backend_root),
+start(Partition, Config) ->
+    ConfigRoot = proplists:get_value(riak_osmos_backend_root, Config),
     if ConfigRoot =:= undefined ->
             riak:stop("riak_osmos_backend_root unset, failing.");
        true -> ok
@@ -167,10 +167,9 @@ accum2(Table, Fun, {ok, NewList, Continue}, Acc) ->
 simple_test() ->
     case application:start(osmos) of
        ok ->
-            application:set_env(riak, riak_osmos_backend_root,
-                                "test/osmos-backend"),
             ?assertCmd("rm -rf test/osmos-backend"),
-            riak_test_util:standard_backend_test(riak_osmos_backend);
+            Config = [{riak_osmos_backend_root, "test/osmos-backend"}],
+            riak_test_util:standard_backend_test(riak_osmos_backend, Config);
        Error ->
             ?debugFmt("Skipping osmos tests: ~p", [Error])
     end.

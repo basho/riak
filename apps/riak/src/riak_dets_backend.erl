@@ -17,22 +17,15 @@
 -module(riak_dets_backend).
 
 -include_lib("eunit/include/eunit.hrl").
--export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
 
 % @type state() = term().
 -record(state, {table}).
 
-% @private
-simple_test() ->
-    application:set_env(riak, riak_dets_backend_root,
-                        "test/dets-backend"),
-    ?assertCmd("rm -rf test/dets-backend"),
-    riak_test_util:standard_backend_test(riak_dets_backend).
-
-% @spec start(Partition :: integer()) ->
+% @spec start(Partition :: integer(), Config :: proplist()) ->
 %                        {ok, state()} | {{error, Reason :: term()}, state()}
-start(Partition) ->
-    ConfigRoot = riak:get_app_env(riak_dets_backend_root),
+start(Partition, Config) ->
+    ConfigRoot = proplists:get_value(riak_dets_backend_root, Config),
     if ConfigRoot =:= undefined ->
             riak:stop("riak_dets_backend_root unset, failing.~n");
        true -> ok
@@ -98,3 +91,12 @@ list_bucket(#state{table=T}, Bucket) ->
     MList = dets:match(T,MatchSpec),
     list(MList,[]).
 
+%%
+%% Test
+%%
+
+% @private
+simple_test() ->
+    ?assertCmd("rm -rf test/dets-backend"),
+    Config = [{riak_dets_backend_root, "test/dets-backend"}],
+    riak_test_util:standard_backend_test(riak_dets_backend, Config).

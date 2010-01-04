@@ -17,22 +17,15 @@
 -module(riak_gb_trees_backend).
 
 -include_lib("eunit/include/eunit.hrl").
--export([start/1,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
 
 % @type state() = term().
 -record(state, {pid}).
 
 
-% @private
-simple_test() ->
-    application:set_env(riak, riak_gb_trees_backend_root,
-                        "test/gb_trees-backend"),
-    ?assertCmd("rm -rf test/gb_trees-backend"),
-    riak_test_util:standard_backend_test(riak_gb_trees_backend).
-
-% @spec start(Partition :: integer()) ->
+% @spec start(Partition :: integer(), Config :: integer()) ->
 %                        {ok, state()} | {{error, Reason :: term()}, state()}
-start(_Partition) ->
+start(_Partition, _Config) ->
     Pid = spawn(fun() -> 
         {A1,A2,A3} = now(),
         random:seed(A1, A2, A3),
@@ -129,16 +122,12 @@ srv_list_bucket(Tree, '_') ->
 srv_list_bucket(Tree, Bucket) ->
     [ Key || {B, Key} <- gb_trees:keys(Tree), B == Bucket ].
 
-% riak_gb_trees_backend does not currently serialize. But if it did,
-% it could use the functions below.
-%
-% read_tree(Filename) ->
-%     case file:read_file(Filename) of
-%         {ok, B} -> binary_to_term(zlib:unzip(B));
-%         _ -> gb_trees:empty()
-%     end.        
-%     
-% write_tree(Tree, Filename) ->
-%     B = term_to_binary(Tree),
-%     BC = zlib:zip(B),
-%     ok = file:write_file(Filename, BC).
+
+%%
+%% Test
+%%
+
+% @private
+simple_test() ->
+    riak_test_util:standard_backend_test(riak_gb_trees_backend, []).
+

@@ -23,7 +23,7 @@
 -author('Justin Sheehy <justin@basho.com>').
 -author('Bryan Fink <bryan@basho.com>').
 -export([stop/0, stop/1]).
--export([get_app_env/1,get_app_env/2]).
+-export([get_app_env/0, get_app_env/1,get_app_env/2]).
 -export([client_connect/1,client_connect/2,
          client_test/1,
          local_client/0,local_client/1,
@@ -40,7 +40,13 @@ stop(Reason) ->
     % we never do an application:stop because that makes it very hard
     %  to really halt the runtime, which is what we need here.
     error_logger:info_msg(io_lib:format("~p~n",[Reason])),
-    init:stop().    
+    init:stop().
+    
+%% @spec get_app_env() -> [{Key :: atom(), Value :: term()}]
+%% @doc Retrieve all values set in riak's configuration file.
+%%      Returns a list of Key/Value pairs.
+get_app_env() -> 
+    application:get_all_env(riak) ++ init:get_arguments().   
 
 %% @spec get_app_env(Opt :: atom()) -> term()
 %% @doc The official way to get the values set in riak's configuration file.
