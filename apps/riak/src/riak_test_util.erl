@@ -1,9 +1,9 @@
 -module(riak_test_util).
--export([standard_backend_test/1,setup_mockring1/0]).
+-export([standard_backend_test/2,setup_mockring1/0]).
 -include_lib("eunit/include/eunit.hrl").
 
-standard_backend_test(BackendMod) ->
-    {ok, S} = BackendMod:start(42),
+standard_backend_test(BackendMod, Config) ->
+    {ok, S} = BackendMod:start(42, Config),
     ?assertEqual(ok, BackendMod:put(S,{<<"b1">>,<<"k1">>},<<"v1">>)),
     ?assertEqual(ok, BackendMod:put(S,{<<"b2">>,<<"k2">>},<<"v2">>)),
     ?assertEqual({ok,<<"v2">>}, BackendMod:get(S,{<<"b2">>,<<"k2">>})),
