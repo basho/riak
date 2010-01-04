@@ -52,9 +52,12 @@
 %%            when GETting a bucket, set schema=false if you do not
 %%            want the schema included in the response
 %%</dd><dt> keys
-%%</dt><dd>   allowed values: true (default), false
+%%</dt><dd>   allowed values: true (default), false, stream
 %%            when GETting a bucket, set keys=false if you do not want
-%%            the keylist included in the response
+%%            the keylist included in the response. Set keys=stream if
+%%            you want the list of keys streamed in chunks.  The first
+%%            chunk will be the normal bucket schema (if requested), followed by JSON-encoded
+%%            chunks of this format: {"keys": [Key1, Key2, ...]}
 %%</dd><dt> returnbody
 %%</dt><dd>   allowed values: true, false (default)
 %%            when PUTting or POSTing an object, set returnbody=true
@@ -318,7 +321,7 @@ malformed_request(ReqData, Context=#ctx{key=schema}) ->
                             end;
                         undefined ->
                             {true,
-                             wrq:append_to_respons_body(
+                             wrq:append_to_response_body(
                                "JSON object must contain either"
                                " a 'schema' field or a 'bucket_mod' field",
                                ReqData),
@@ -524,6 +527,7 @@ produce_body(ReqData, Context=#ctx{key=container,module=Mod,bucket=Bucket}) ->
              end,
     {Keys, Context1} = case proplists:lookup("keys", Qopts) of
                            {"keys", "false"} -> {[], Context};
+                           {"keys", "stream"} -> {stream, Context};
                            _ -> 
                                {ok, {K, NewCtx}} = retrieve_keylist(Context),
                                {[{keys, K}], NewCtx}
@@ -536,8 +540,15 @@ produce_body(ReqData, Context=#ctx{key=container,module=Mod,bucket=Bucket}) ->
                                      add_link_head(Bucket,K,"contained",RD)
                              end,
                              ReqData, KeyList),
-    JSONSpec = {struct, Schema ++ Keys},
-    {mochijson2:encode(JSONSpec), NewReqData, Context1};
+    case Keys of
+        stream ->
+            JSONSpec = {struct, Schema},
+            {{stream, {mochijson2:encode(JSONSpec), stream_keys(Context1)}},
+             NewReqData, Context1};
+        _ ->
+            JSONSpec = {struct, Schema ++ Keys},
+            {mochijson2:encode(JSONSpec), NewReqData, Context1}
+    end;
 produce_body(ReqData, Context=#ctx{module=Module,bucket=Bucket}) ->
     {ok, {JiakObject0, Context1}} = retrieve_object(ReqData, Context),
     JiakObject = apply_read_mask(Module, JiakObject0),
@@ -886,6 +897,20 @@ integer_query(ParamName, Default, ReqData) ->
     case wrq:get_qs_value(ParamName, ReqData) of
         undefined -> Default;
         String    -> list_to_integer(String)
+    end.
+
+%% @private
+stream_keys(Context=#ctx{bucket=Bucket,jiak_client=Client}) ->
+    RiakClient = Client:riak_client(),
+    {ok, ReqId} = RiakClient:stream_list_keys(Bucket),
+    fun() -> stream_keys(ReqId, Context) end.
+
+%% @private
+stream_keys(ReqId, Context) ->
+    receive
+        {ReqId, {keys, Keys}} ->
+            {mochijson2:encode({struct, [{<<"keys">>, Keys}]}), fun() -> stream_keys(ReqId, Context) end};                                                                     
+        {ReqId, done} -> {mochijson2:encode({struct, [{<<"keys">>, []}]}), done}
     end.
 
 %%
