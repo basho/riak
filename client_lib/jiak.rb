@@ -104,7 +104,7 @@ module Riak
     # and 'acc' fields.  If a field is not defined in a spec hash,
     # the wildcard '_' will be used instead.
     def walk(bucket, key, spec)
-      do_req(Net::HTTP::Get.new(path(bucket, key)+convert_walk_spec(spec)),
+      do_req(Net::HTTP::Get.new(path(bucket, key)+'/'+convert_walk_spec(spec)),
              '200')
     end
 
