@@ -1,26 +1,443 @@
+#+TITLE: Riak Administration Guide
 
 * Overview
+  
+  This document is a guide for people who want to run Riak.  It
+  discusses [[Downloading%20Riak][downloading]], [[Installation][installing]], [[Configuration][configuring]], and [[Running%20Riak][running]] Riak, as
+  well as basic [[Client%20Interaction][client interaction]].
+
+  As always, questions are welcome on the [[http://lists.basho.com/mailman/listinfo/riak-users_lists.basho.com][Riak mailing list]],
+  riak-users@basho.com.  The latest version of this document, and
+  other Riak information is available at [[http://riak.basho.com/]].
+
+
 * Downloading Riak
+  
+  Riak can be downloaded as a pre-built, binary release for many
+  popular platforms, or as source code, ready to build on most
+  platforms supporting [[http://erlang.org/][Erlang]] releases R13B03 and later.
+
 ** Binary Releases
-*** List of OS packages
+*** TODO where do binary releases come from?
+*** TODO List of OS packages
+
 ** Source Releases
+*** Prerequisites
+    
+    To build Riak from source, you'll need Erlang/OTP version R13B03
+    or later installed.  Erlang is available at [[http://erlang.org/]].
+
+*** Obtaining Riak Source
+
+    The source for tagged Riak releases is available as tarballs at
+    [[http://hg.basho.com/riak/downloads/]].  Once downloaded, unpack the
+    tarball in a convenient location.
+
+    If you prefer to follow the latest Riak development, use Mercurial
+    to clone the public repository:
+    : hg clone http://hg.basho.com/riak
+
 *** Building Riak from Source
-** Installation
+
+    Building Riak should be as simple as running =make= in the top
+    level of the source directory.
+
+#+BEGIN_EXAMPLE
+    $ make
+    ./rebar compile
+    ==> mochiweb (compile)
+    Compiled src/mochifmt_std.erl
+    Compiled src/mochifmt_records.erl
+    Compiled src/mochifmt.erl
+    Compiled src/mochihex.erl
+    ...snipped...
+    ==> webmachine (compile)
+    Compiled src/webmachine_app.erl
+    Compiled src/webmachine.erl
+    Compiled src/webmachine_deps.erl
+    Compiled src/webmachine_error_handler.erl
+    ...snipped...
+    ==> riak (compile)
+    Compiled src/gen_server2.erl
+    Compiled src/bloom.erl
+    Compiled src/jaywalker_resource.erl
+    Compiled src/jiak_client.erl
+    ...snipped...
+    Compiled src/slide.erl
+    $
+#+END_EXAMPLE
+    
+    (The =...snipped...= lines represent several lines of similar
+    output, removed for display in this document.)
+
+    If no errors are printed, Riak was built successfully.  See the
+    [[Troubleshooting]] section of this document for help with build
+    errors.
+
+*** Creating the Release
+    
+    Riak's command line scripts expect the object files and their
+    dependencies to be packaged into an Erlang release.  To create
+    this release, simply run =make rel= in the top-level source
+    directory.
+
+#+BEGIN_EXAMPLE
+    $ make rel
+    ./rebar compile generate 
+    ==> mochiweb (compile)
+    ==> webmachine (compile)
+    ==> riak (compile)
+    ==> rel (generate)
+    Generating target specification...
+    Constructing release...
+    $
+#+END_EXAMPLE
+
+    That's it.  This process created an Erlang "embedded node" in
+    rel/riak.  You should now be able to run Riak from that directory,
+    or copy the directory to any other path on this machine, or to any
+    other machine with matching architecture.  See the [[Installation]]
+    section for more details.
+
+
+* Installation
 *** Embedded Erlang Node
-** Configuration
-*** Capacity Planning
-*** OS Configuration  (noatime, separate disks, max fds, ...)
-*** app.config
-**** List of Riak Configuration Variables
-*** vm.args
-**** Erlang Runtime Configuration Options
-** The =riak= and =riak-admin= scripts
+
+    If you downloaded a pre-built, binary release of Riak, or if
+    you've made it through building the release from source, you
+    should have an Erlang embedded node ready to run Riak in-place.
+    No further installation is needed.
+
+    To run Riak on other machines, simply copy the entire embedded
+    node directory to those machines.  See the [[Configuration]] section
+    for details about altering configurations for each machine.
+
+
+*** Installing to OTP Libary Path
+
+    You also have the option of installing Riak into the Erlang/OTP
+    library path.  This will make Riak modules available to all other
+    Erlang applications on your system without needing to muck about
+    with code paths.
+
+    To install, simply execute =rebar install= in the top-level Riak
+    directory.
+
+#+BEGIN_EXAMPLE
+    $ sudo ./rebar install
+    ==> mochiweb (install)
+    Installing: mochiweb-0.01
+    ==> webmachine (install)
+    Installing: webmachine-1.5
+    ==> riak (install)
+    Installing: riak-0.8
+    $ ls $ERLANG_ROOT/lib/riak-*
+    ebin	priv	src
+#+END_EXAMPLE
+
+
+* Configuration
+** TODO Capacity Planning
+** TODO OS Configuration  (noatime, separate disks, max fds, ...)
+** vm.args
+   
+   Parameters for the Erlang node on which Riak runs are set in the
+   =vm.args= file in the =etc= directory of the embedded Erlang node.
+   Most of these settings can be left at their defaults until you're
+   ready to tune performance.  Two settings you may be interested in
+   right away, though, are =-name= and =-setcookie=.
+
+   The format of the file is fairly loose: all lines that do not begin
+   with the =#= character are concatentated, and passed to the =erl=
+   on the command line, as is.
+
+   More details about each of these settings can be found in the
+   Erlang [[http://www.erlang.org/doc/man/erl.html][documentation for the =erl= Erlang emulator]].
+
+*** Erlang Runtime Configuration Options
+
+    + -name :: the name of the Erlang node (default: =riak@127.0.0.1=)
+
+               The default value, =riak@127.0.0.1= will work for
+               running Riak locally, but for distributed use, the
+               value after the =@= should be changed to the IP address
+               of the machine on which the node is running.
+
+               If you have properly-configured DNS, the short-form of
+               this name can be used, like =riak=.  The name of the
+               node will then be =riak@Host.Domain=.
+
+    + -setcookie :: the cookie of the Erlang node (default: =riak=)
+
+                    Erlang nodes grant or deny access based on the
+                    sharing of a previously-shared cookie.  You should
+                    use the same cookie for every node in your Riak
+                    cluster, but it should be a not-easily-guessed
+                    string unique to your deployment, to prevent
+                    non-authorized access.
+
+    + -heart :: enable =heart= node monitoring (default: /disabled/)
+
+                Heart will restart nodes automatically, should they
+                crash.  However, heart is so good at restarting nodes
+                that it can be difficult to prevent it from doing so.
+                Enable heart once you are sure that you wish to have
+                the node restarted automatically on failure.
+
+    + +K :: enable kernel polling (default: true)
+
+    + +A :: number of threads in the async thread pool (default: 5)
+
+    + -env :: set host environment variables for Erlang
+
+** app.config
+
+   Riak and the Erlang applications it depends on are configured by
+   settings in the =app.config= file in the =etc= directory of the
+   embedded Erlang node.  The format of the file is similar to
+   Erlang's ".app" files:
+
+#+BEGIN_SRC erlang
+   [
+    {riak, [
+            {storage_backend, riak_dets_backend},
+            {riak_dets_backend_root, "data/dets"}
+
+            %% More Riak settings...
+           ]}
+    %% Other application configurations...
+   ].
+#+END_SRC
+
+   That is, the file starts with =[=, and ends with =].=.  Inside the
+   square brackets are comma-separated application sections of the
+   form ={ApplictionName, [Setting1, Setting2, ...]}=.  Each setting
+   is a 2-tuple of the form ={SettingName, SettingValue}=.
+
+*** List of Riak Configuration Variables
+
+#+COMMENT TODO figure out verbatim escaping: ="blah"= 
+
+    + =ring_state_dir= :: the directory on-disk in which to store the
+         ring state (default: ="data/dets"=)
+
+         Riak's ring state is stored on-disk by each
+         node, such that that node may be restarted and
+         automatically know its place in the cluster
+         before it halted.
+
+    + =riak_web_ip= :: the ip address on which Riak's HTTP interface
+                       should listen (default: ="127.0.0.1"=)
+
+                       Riak's HTTP interface will not be started if
+                       this setting is not defined.
+
+    + =riak_web_port= :: the port on which Riak's HTTP interface should
+         listen (default: =8098=)
+
+         Riak's HTTP interface will not be started if
+         this setting is not defined.
+
+    + =jiak_name= :: the base of the path in the URL exposing Riak's
+                     JSON-based HTTP interface (default: ="jiak"=)
+
+                     The default value will expose objects at
+                     =/jiak/Bucket/Key=.  For example, changing this
+                     setting to ="foo"= would expose the interface at
+                     =/foo/Bucket/Key=.
+
+    + =raw_name= :: the base of the path in the URL exposing Riak's
+                    "raw" HTTP interface (default: ="raw"=)
+
+                    The default value will expose data at
+                    =/raw/Bucket/Key=.  For example, changing this
+                    setting to ="bar"= would expose the interface at
+                    =/bar/Bucket/Key=.
+
+    + =storage_backend= :: module name of the storage backend that
+         Riak should use (default: =riak_dets_backend=)
+
+         The storage format Riak uses is configurable.  Riak will
+         refuse to start if no storage backend is specified.
+
+         Available backends, and their additional configuration
+         options are:
+
+         - =riak_dets_backend= :: data is stored in DETS files
+
+              * =riak_dets_backend_root= :: root directory where DETS
+                   files are stored (default: "data/dets")
+
+         - =riak_ets_backend= :: data is stored in ETS tables
+              (in-memory)
+
+         - =riak_gb_trees_backend= :: data is stored in ETS tables
+              (in-memory)
+
+         - =riak_fs_backend= :: data is stored in binary files on the
+              filesystem
+
+              * =riak_fs_backend_root= :: root directory where files
+                   are stored
+
+         - =riak_osmos_backend= :: data is stored in osmos tables
+
+              Osmos must be installed separately.  It is available at
+              [[http://code.google.com/p/osmos/]].  More details are
+              available at
+              [[http://dukesoferl.blogspot.com/2009/07/osmos.html]].
+
+              * =riak_osmos_backend_root= :: root directory where
+                   osmos files are stored
+
+** Rebar Overlays
+
+   If you're going to be rebuilding Riak often, you will want to edit
+   the =vm.args= and =app.config= files in the =rel/overlays/etc=
+   directory.  The copies of those files in the release (embedded
+   node) directory will be overwritten by the files in the =overlays=
+   directory when a =make rel= or =rebar generate= command is issued.
+
+
+* Running Riak
+
+  Riak is controlled using the =riak= and =riak-admin= scripts in the
+  =bin= directory of the release.
+
+** The =riak= script
+
+   This script is the primary interface for starting and stopping the
+   Riak server.  It takes one parameter, the command to execute:
+
+   : $ bin/riak COMMAND
+
+   Available commands are:
+
+   + console :: start a Riak node in the foreground, which the
+                console/Erlang shell attached
+
+   + start :: start a Riak node in the background (daemonized)
+
+              Running =start= will print an warning if the Riak node
+              is already running.
+
+   + attach :: attach a console to a daemonized Riak node
+
+   + ping :: check whether or not the Riak node is alive
+
+             The script should print out =pong= if it finds a live
+             Riak node, or an error about not responding to pings if
+             it does not.
+
+   + stop :: stop a running Riak node
+
+             If you have a shell connected to the node, you can also
+             use the =q()= command.
+
+             : (riak@example.com)1> q().
+
+** The =riak-admin= script
+
+   This script provides access to general administration of the Riak
+   server.  The Riak node should be running before using the
+   riak-admin script.
+
+   Much like the =riak= script, =riak-admin= expects a command, plus
+   options on the command line.
+
+   : $ bin/riak-admin COMMAND [OPTIONS]
+
+   Available commands are:
+
+   + test :: writes and reads a Riak object, to test basic
+             functionality
+
+             The code for the test is in =riak:client_test/1=, if
+             you'd like to evaluate it.
+
+   + join :: join a running Riak cluster
+
+             This command requires one option: the node in the running
+             cluster to connect to.  Example:
+
+             : $ bin/riak-admin join riak2@example.com
+
+   + backup :: backup the data in the cluster to a file
+
+               This command requires three options: the node in the
+               running cluster to connect to, the Erlang cookie for
+               that node, and the filename to store the backup under.
+               Example:
+
+               : $ bin/riak-admin backup riak2@example.com riak backup.dets
+
+   + restore :: restore data into a cluster from a backup file
+
+                This command expects the same parameters as =backup=.
+
+   + logger :: attach the riak event logger to the cluster
+
+               This command requires at least two options: the node in
+               the running cluster to connect to, and the Erlang
+               cookie for that node.  With just these two parameters,
+               the log will print on the console.  Adding a filename
+               as a third parameter will cause the log to be written
+               to that file.
+
+** Simple startup
+*** TODO simple example startup of one node
+** Cluster startup
+*** TODO example of forming a cluster of two nodes
 ** Verifying your Installation
-** Client Libraries
-** HTTP Interface
-** Using an HTTP Cache
-** Troubleshooting
-** FAQ
+*** TODO show what happens with riak-admin test?
+
+
+* Client Interaction
+** TODO Client Libraries
+** TODO HTTP Interface
+** TODO Using an HTTP Cache
+
+
+* Troubleshooting
+
+** Build Errors
+
+*** Rebar requires at least erts 5.7.4; ...
+
+    Riak supports only Erlang/OTP version R13B03 and later.  To check
+    your installed OTP version:
+
+#+BEGIN_EXAMPLE
+    $ erl
+    Erlang...
+
+    Eshell Vx.x.x (abort with ^G)
+    1> erlang:system_info(otp_release).
+    "R13B03"
+#+END_EXAMPLE
+
+    If the version printed is earlier than R13B03 (for example R13B02,
+    or R12B), you will need to upgrade your Erlang installation before
+    being able to build Riak from source.
+
+*** ERROR: Release target directory "XXX" already exists!
+
+    If you have previously generated a release, or installed a release
+    to the OTP library path, you will receive this error if you
+    attempt to generate a new release of the same version.  Possible
+    resolutions are:
+
+    + =make relclean= to clean out the =rel= directory
+
+    + =rm -rf $ERLANG_ROOT/lib/XXX
+
+    + change the application version in the =.app= and
+      =rel/reltool.config= files
+
+** TODO Startup Errors
+** TODO Client Errors
+
+* TODO FAQ
 
 
 
