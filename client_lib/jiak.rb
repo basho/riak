@@ -156,7 +156,8 @@ if __FILE__ == $0
   jc = Riak::Client.new("127.0.0.1", 8098)
 
   puts "Creating bucket foo..."
-  jc.set_bucket_schema('foo', {'allowed_fields'=>['bar','baz']})
+  jc.set_bucket_schema('foo', {'allowed_fields'=>['bar','baz'],
+                               'write_mask'=>['bar','baz']})
   b = jc.list_bucket('foo')
   puts "Bucket foo's schema: "
   p b['schema']
