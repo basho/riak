@@ -89,7 +89,7 @@ Welcome to Riak.
                 {{[],[],[],[],[],[],[],[],[],[],[],[],[],...}}},
           undefined}
 
-    (riaktest@example.com)3> C:put(01, 1).
+    (riaktest@example.com)3> C:put(O0, 1).
     
     Now, read the list back from the Riak server and extract the value
 
