@@ -28,7 +28,7 @@
 %% is specified, then the 'multi_backend_default' setting is used.
 %% If this is unset, then the first defined backend is used.
 %% 
-%% === Configuration == 
+%% === Configuration ===
 %% 
 %%     {storage_backend, riak_multi_backend},
 %%     {multi_backend_default, first_backend},
@@ -47,7 +47,8 @@
 %%
 %% Then, tell a bucket which one to use...
 %%
-%%     riak_bucket:set_bucket(<<"MY_BUCKET">>, [{backend, second_backend}])
+%%     riak_bucket:set_bucket(&lt;&lt;"MY_BUCKET"&gt;&gt;, [{backend, second_backend}])
+%%
 %%
 
 
