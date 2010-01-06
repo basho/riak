@@ -94,7 +94,10 @@ code_change(_OldVsn, State, _Extra) ->
 %%--------------------------------------------------------------------
 
 prepare_mibs() ->
-    MibDir = riak:get_app_env(mib_dir, "snmp/mibs"),
+    DefaultMibDir = filename:join(
+                      code:priv_dir(riak_snmp),
+                      "snmp/mibs"),
+    MibDir = riak:get_app_env(mib_dir, DefaultMibDir),
     Mibs = filelib:wildcard(filename:join([MibDir, "*.mib"])),
     lists:foreach(
       fun(Mib) ->
