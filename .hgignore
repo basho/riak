@@ -17,6 +17,7 @@ log/.*.log.*$
 .*\.orig$
 priv/log/.*
 priv/weblogs/.*
+priv/mibs/.*
 ^priv/store
 ^priv/ringstate/*
 ^client_lib/java/build/*
