@@ -43,28 +43,38 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo}) ->
             {stop, normal, State}
     end.
 
-merkle_exchange(timeout, State=#state{socket=_Socket, merk_q=[]}) ->
-    %%ok = send(Socket, event_subscribe),
+merkle_exchange(timeout, State=#state{socket=Socket, merk_q=[]}) ->
+    riak_repl_eventer:subscribe(self()),
+    ok = send(Socket, event_subscribe),
     {next_state, connected, State};
 merkle_exchange(timeout, State=#state{socket=Socket, merk_q=[H|T]}) ->
     ok = send(Socket, H),
     {next_state, merkle_exchange, State#state{merk_q=T}};
 merkle_exchange({merkle, Partition, MerkleTree}, State=#state{socket=Socket}) ->
-    io:format("got merkle tree for partition ~p~n", [Partition]),
+    %io:format("got merkle tree for partition ~p~n", [Partition]),
     case diff_merkle(Partition, MerkleTree, State) of
         [] ->
-            io:format("no merkle diff~n"),
-            {next_state, merkle_exchange, State, 0};
+            %io:format("no merkle diff~n"),
+            {next_state, merkle_exchange, State, 30000};
         DiffVClocks ->
-            io:format("got merkle diff of length ~p~n", [length(DiffVClocks)]),
+            %io:format("got merkle diff of length ~p~n", [length(DiffVClocks)]),
             ok = send(Socket, {diff_vclocks, Partition, DiffVClocks}),
             {next_state, merkle_exchange, State}
     end;
-merkle_exchange({diff_response,_Partition,{get, _Gets},{send, Sends}},State=#state{update_q=RQ}) ->
+merkle_exchange({diff_response,_Partition,{get, _Gets},{send, Sends}},
+                State=#state{update_q=RQ}) ->
     NewState = State#state{update_q=lists:append(Sends, RQ)},
-    {next_state, merkle_exchange, write_next(NewState), 0}.
+    {next_state, merkle_exchange, write_next(NewState), 30000};
+merkle_exchange({remote_update, Obj}, State) ->
+    NewState = enqueue_update(State, Obj),
+    {next_state, connected, write_next(NewState)}.
 
-connected({updates, _ObjList}, State) ->
+connected({remote_update, Obj}, State) ->
+    NewState = enqueue_update(State, Obj),
+    {next_state, connected, write_next(NewState)};
+connected({updates, ObjList}, State=#state{update_q=Q}) ->
+    {next_state, connected, State#state{update_q=lists:append(ObjList, Q)}};
+connected(_, State) ->
     {next_state, connected, State}.
 
 handle_event(_Event, StateName, State) ->
@@ -80,18 +90,11 @@ handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
     R = ?MODULE:StateName(binary_to_term(Data), State),
     inet:setopts(Socket, [{active, once}]),
     R;
-handle_info({local_update, Obj}, StateName, State=#state{update_q=Q, 
-                                                         socket=Socket}) ->
-    case queue_full(State) of
-        true ->
-            ok = send(Socket, {updates, lists:reverse(Q)}),
-            {next_state, StateName, State#state{update_q=[]}};
-        false ->
-            BinObj = zlib:zip(term_to_binary(Obj)),
-            {next_state, StateName, enqueue_update(State, BinObj)}
-    end;
+handle_info({local_update, Obj}, StateName, State=#state{socket=Socket}) ->
+    ok = send(Socket, {remote_update, Obj}),
+    {next_state, StateName, State};
 handle_info({_ReqId, _Status}, StateName, State) ->
-    io:format("repl fsm ~p finished: ~p~n", [_ReqId, _Status]),
+    %io:format("repl fsm ~p finished: ~p~n", [_ReqId, _Status]),
     {next_state, StateName, write_next(State)}.
 
 terminate(_Reason, _StateName, _State) ->
@@ -101,7 +104,6 @@ code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
 enqueue_update(State=#state{update_q=Q}, Obj) -> State#state{update_q=[Obj|Q]}.
-queue_full(#state{update_q=Q}) -> length(Q) >= 100.
 
 send(Socket, Data) -> 
     ok = gen_tcp:send(Socket, term_to_binary(Data, [compressed])).
@@ -109,17 +111,17 @@ send(Socket, Data) ->
 diff_merkle(Partition, MerkleTree, #state{my_pi=#peer_info{ring=Ring}}) ->
     OwnerNode = riak_ring:index_owner(Ring, Partition),
     case riak_repl_util:vnode_master_call(OwnerNode, {get_merkle, Partition}) of
-        {error, Reason} ->
-            io:format("~p:error getting merkle tree for ~p from ~p: ~p~n",
-                      [?MODULE, Partition, OwnerNode, Reason]),
+        {error, _Reason} ->
+            %io:format("~p:error getting merkle tree for ~p from ~p: ~p~n",
+            %[?MODULE, Partition, OwnerNode, Reason]),
             [];
         OurMerkleTree ->
             DiffKeys = merkerl:diff(MerkleTree, OurMerkleTree),
             case riak_repl_util:vnode_master_call(OwnerNode,
                                                   {get_vclocks, Partition, DiffKeys}) of
-                {error, Reason} ->
-                    io:format("~p:error getting vclock list for ~p from ~p: ~p~n",
-                              [?MODULE, Partition, OwnerNode, Reason]),
+                {error, _Reason} ->
+                    %io:format("~p:error getting vclock list for ~p from ~p: ~p~n",
+                    %[?MODULE, Partition, OwnerNode, Reason]),
                     [];
                 VClocks ->
                     VClocks

@@ -7,9 +7,21 @@
 -record(state, {client, all, connected}).
 
 start_link() ->
-    PortNum = riak:get_app_env(riak_repl_port, 9010),
-    IpAddr = riak:get_app_env(riak_repl_ip, "0.0.0.0"),
-    Peers = riak:get_app_env(riak_repl_hosts, []),
+    PortNum = 
+        case application:get_env(riak_repl, riak_repl_port) of
+            undefined -> 9010;
+            {ok, N} -> N
+        end,
+    IpAddr = 
+        case application:get_env(riak_repl, riak_repl_ip) of
+            undefined -> "0.0.0.0";
+            {ok, IP} -> IP
+        end,
+    Peers = 
+        case application:get_env(riak_repl, riak_repl_hosts) of
+            undefined -> [];
+            {ok, P}-> P
+        end,
     gen_nb_server:start_link(?MODULE, IpAddr, PortNum, [Peers]).
 
 init([Peers]) ->

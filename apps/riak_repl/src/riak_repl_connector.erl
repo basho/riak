@@ -26,17 +26,17 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info({connect, ok, {Host, Port}, Pid}, State) ->
-    %%io:format("connect ok to ~p:~p~n", [Host, Port]),
+    %io:format("connect ok to ~p:~p~n", [Host, Port]),
     MonRef = erlang:monitor(process, Pid),
     ConnRec = #connrec{hostport={Host,Port}, pid=Pid, monref=MonRef},
     add_connrec(ConnRec, State),
     {noreply, State};
 handle_info({connect, error, {Host, Port}, _Reason}, State) ->
-    %%io:format("connect fail to ~p:~p:  ~p~n", [Host, Port, _Reason]),
+    %io:format("connect fail to ~p:~p:  ~p~n", [Host, Port, _Reason]),
     erlang:send_after(?REPL_CONN_RETRY, self(), {retry_connect, Host, Port}),
     {noreply, State};
 handle_info({'DOWN', MonRef, process, _P, _I}, State) ->
-    %%io:format("got down message for process ~p~n", [_P]),
+    %io:format("got down message for process ~p~n", [_P]),
     case del_connrec(MonRef, State) of
         {Host,Port} ->
             erlang:send_after(?REPL_CONN_RETRY, self(), {retry_connect, Host, Port});
@@ -45,7 +45,7 @@ handle_info({'DOWN', MonRef, process, _P, _I}, State) ->
     end,
     {noreply, State};
 handle_info({retry_connect, Host, Port}, State) ->
-    %%io:format("retrying connect to to ~p:~p~n", [Host, Port]),
+    %io:format("retrying connect to to ~p:~p~n", [Host, Port]),
     Self = self(),
     spawn(fun() -> do_connect(Host, Port, Self) end),
     {noreply, State};
