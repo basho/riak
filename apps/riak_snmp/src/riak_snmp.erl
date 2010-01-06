@@ -11,12 +11,6 @@ start() ->
     application:start(riak_snmp, permanent).
 
 start_snmp() ->
-    {ok, [[{snmp, [{agent, AgentConf}]}]]} =
-        file:consult(
-          filename:join(
-            code:priv_dir(riak_snmp),
-            "snmp/agent.config")),
-    application:set_env(snmp, agent, AgentConf),
     ensure_started(mnesia), % needed for otp_mib
     ensure_started(snmp),
     otp_mib:load(snmp_master_agent).
