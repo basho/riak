@@ -96,20 +96,10 @@ code_change(_OldVsn, State, _Extra) ->
 prepare_mibs() ->
     DefaultMibDir = filename:join(
                       code:priv_dir(riak_snmp),
-                      "snmp/mibs"),
+                      "mibs"),
     MibDir = riak:get_app_env(mib_dir, DefaultMibDir),
-    Mibs = filelib:wildcard(filename:join([MibDir, "*.mib"])),
-    lists:foreach(
-      fun(Mib) ->
-              case snmpc:compile(Mib, [{outdir, MibDir}]) of
-                  {ok, BinFilename} ->
-                      snmpa:load_mibs([BinFilename]);
-                  {error, Reason} ->
-                      error_logger:info_msg("Failed to compile MIB ~p: ~p",
-                                            [Mib, Reason])
-              end
-      end,
-      Mibs).
+    snmpa:load_mibs(filelib:wildcard(
+                      filename:join(MibDir, "*.bin"))).
 
 poll_stats() ->
     {ok, C} = riak:local_client(),
