@@ -226,6 +226,18 @@
          automatically know its place in the cluster
          before it halted.
 
+    + =ring_creation_size= :: the number of partitions to divide the
+         hash space into (default: 64)
+
+         By default, each Riak node will own
+         (=ring_creation_size=)/(number of nodes in the cluster)
+         partitions.  It is generally a good idea to specify a
+         =ring_creation_size= a few times the number of nodes in your
+         cluster (e.g. specify 64-256 partitions for a 4-node
+         cluster).  This gives you room to expand the number of nodes
+         in the cluster, without worrying about underuse due to owning
+         too few partitions.
+
     + =riak_web_ip= :: the ip address on which Riak's HTTP interface
                        should listen (default: ="127.0.0.1"=)
 
@@ -289,6 +301,58 @@
 
               * =riak_osmos_backend_root= :: root directory where
                    osmos files are stored
+
+         - =riak_multi_backend= :: enables storing data for different
+              buckets in different backends
+
+              Specify the backend to use for a bucket with
+              =riak_bucket:set_bucket(BucketName, [{backend, BackendName}])=
+
+              * =multi_backend_default= :: default multi backend to
+                   use if none is specified for a bucket (one of the
+                   =BackendName= atoms specified in the
+                   =multi_backend= setting)
+
+              * =multi_backend= :: list of backends to provide
+
+                   Format of each backend specification is
+                   ={BackendName, BackendModule, BackendConfig}=,
+                   where =BackendName= is any atom, =BackendModule= is
+                   the name of the Erlang module implementing the
+                   backend (the same values you would provide as
+                   =storage_backend= settings), and =BackendConfig= is
+                   a parameter that will be passed to the =start/2=
+                   function of the backend module.
+
+         - =riak_cache_backend= :: a backend that behaves as an
+              LRU-with-timed-expiry cache
+
+              * =riak_cache_backend_memory= :: maximum amount of
+                   memory to allocate, in megabytes (default: 100)
+
+              * =riak_cache_backend_ttl= :: amount by which to extend
+                   an object's expiry lease on each access, in seconds
+                   (default: 600)
+
+              * =riak_cache_backend_max_ttl= :: maximum allowed lease
+                   time (default: 3600)
+
+    + =add_paths= :: a list of paths to add to the Erlang code path
+
+                     This setting is especially useful for allowing
+                     Riak to use external modules during map/reduce
+                     queries.
+
+    + =default_bucket_props= :: properties to give each bucket, by
+         default
+
+         Properties in this list will override the hardcoded defaults
+         in riak_bucket:defaults/0.  This setting is the best way to
+         set the default N-value for Riak objects, as well as whether
+         or not siblings are allowed (allow_mult), and the function
+         for extracting links from objects (linkfun).
+
+    + =riak_stat= :: enable the statistics-aggregator (default: false)
 
 ** Rebar Overlays
 
