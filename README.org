@@ -32,20 +32,24 @@ Welcome to Riak.
    Assuming you have a working Erlang (R13B03 or later) installation,
    building Riak should be as simple as:
 
+#+BEGIN_EXAMPLE
    $ cd $RIAK
    $ make all rel
+#+END_EXAMPLE
 
 ** Starting Riak
 
    Once you have successfully built Riak, you can start the server with the
    following commands:
 
+#+BEGIN_EXAMPLE
    $ cd $RIAK/rel/riak
    $ bin/riak start
+#+END_EXAMPLE
 
    Now, verify that the server started up cleanly and is working:
 
-   $ bin/riak-admin test
+   : $ bin/riak-admin test
 
    Note that the $RIAK/rel/riak directory is a complete, self-contained instance
    of Riak and Erlang. It is strongly suggested that you move this directory
@@ -56,26 +60,33 @@ Welcome to Riak.
    Now that you have a functional server, let's try storing some data in
    it. First, start up a erlang node using our embedded version of erlang:
 
+#+BEGIN_EXAMPLE
    $ erts-<vsn>/bin/erl -name riaktest -setcookie riak
    
    Eshell V5.7.4  (abort with ^G)
    (riaktest@example.com)1>
+#+END_EXAMPLE
 
    Now construct the node name of Riak server and make sure we can talk to it:
 
+#+BEGIN_EXAMPLE
    (riaktest@example.com)4> RiakNode = riak_util:str_to_node(riak).
 
    (riaktest@example.com)2> net_adm:ping(RiakNode).
    pong
    (riaktest@example.com)2>
+#+END_EXAMPLE
    
    We are now ready to start the Riak client:
 
+#+BEGIN_EXAMPLE
    (riaktest@example.com)2> {ok, C} = riak:client_connect(RiakNode).
    {ok,{riak_client,'riak@example.com',<<4,136,81,151>>}}
+#+END_EXAMPLE
 
    Let's create a shopping list for bread at /groceries/mine:
 
+#+BEGIN_EXAMPLE
    (riaktest@example.com)6> O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
    O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
    {r_object,<<"groceries">>,<<"mine">>,
@@ -90,9 +101,11 @@ Welcome to Riak.
           undefined}
 
     (riaktest@example.com)3> C:put(O0, 1).
+#+END_EXAMPLE
     
     Now, read the list back from the Riak server and extract the value
 
+#+BEGIN_EXAMPLE
     (riaktest@example.com)4> {ok, O1} = C:get(<<"groceries">>, <<"mine">>, 1).
     {ok,{r_object,<<"groceries">>,<<"mine">>,
               [{r_content,{dict,2,16,16,8,80,48,
@@ -111,9 +124,11 @@ Welcome to Riak.
      (riaktest@example.com)5> %% extract the value
      (riaktest@example.com)5> V = riak_object:get_value(O1).
      ["bread"]
+#+END_EXAMPLE
 
      Add milk to our list of groceries and write the new value to Riak:
 
+#+BEGIN_EXAMPLE
      (riaktest@example.com)6> %% add milk to the list
      (riaktest@example.com)6> O2 = riak_object:update_value(O1, ["milk" | V]).
      {r_object,<<"groceries">>,<<"mine">>,
@@ -133,11 +148,14 @@ Welcome to Riak.
      (riaktest@example.com)7> %% store the new list
      (riaktest@example.com)7> C:put(O2, 1).
      ok
+#+END_EXAMPLE
 
      Finally, see what other keys are available in groceries bucket:
 
+#+BEGIN_EXAMPLE
      (riaktest@example.com)8> C:list_keys(<<"groceries">>).
      {ok,[<<"mine">>]}
+#+END_EXAMPLE
 
 
 * Server Management
@@ -161,44 +179,46 @@ Welcome to Riak.
 
     To start a daemonized (background) instance of Riak:
 
-    $ bin/riak start 
+    : $ bin/riak start 
 
     Once a server is running in the background you can attach to the Erlang
     console via:
 
-    $ bin/riak attach
+    : $ bin/riak attach
 
     Alternatively, if you want to run a foreground instance of Riak, start it
     with:
 
-    $ bin/riak console
+    : $ bin/riak console
 
     Stopping a foreground or background instance of Riak can be done from a
     shell prompt via:
 
-    $ bin/riak stop 
+    : $ bin/riak stop 
 
     Or if you are attached/on the Erlang console:
 
-    (riak@example.com)1> q().
+    : (riak@example.com)1> q().
 
     You can determine if the server is running by:
 
-    $ bin/riak ping
+    : $ bin/riak ping
 
 *** bin/riak-admin
     This script provides access to general administration of the Riak server. 
 
     To join a new Riak node to an existing cluster:
 
+#+BEGIN_EXAMPLE
     $ bin/riak start # If a local server is not already running
     $ bin/riak-admin join <node in cluster>
+#+END_EXAMPLE
 
     (Note that you must have a local node already running for this to work)
     
     To verify that the local Riak node is able to read/write data:
 
-    $ bin/riak-admin test
+    : $ bin/riak-admin test
 
     
     
