@@ -411,4 +411,5 @@ handle_info(vnode_shutdown, _StateName, StateData) ->
     {stop,normal,StateData}.
 
 %% @private
-terminate(_Reason, _StateName, _State) -> ok.
+terminate(_Reason, _StateName, #state{mapstate=MapState}) ->
+    riak_mapper:terminate(MapState).

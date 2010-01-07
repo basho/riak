@@ -2,11 +2,21 @@
 
 -record(jsenv, {ctx, csums=dict:new()}).
 
--export([init_state/0, init_js/1, do_map/8]).
+-export([init_state/0, terminate/1, init_js/1, do_map/8]).
 
 init_state() ->
     {ok, JsCtx} = js_driver:new({?MODULE, init_js}),
     #jsenv{ctx=JsCtx}.
+
+init_js(Ctx) ->
+    EmitFunction = <<"var __map_results__ = []; function emit(data) { __map_results__[__map_results__.length] = data; };">>,
+    GetResultsFunction = <<"function __get_map_results__() { var retval = __map_results__; __map_results__ = []; return retval; };">>,
+    ok = js:define(Ctx, EmitFunction),
+    ok = js:define(Ctx, GetResultsFunction),
+    ok.
+
+terminate(#jsenv{ctx=Ctx}) ->
+    js_driver:destroy(Ctx).
 
 do_map({map,FunTerm,Arg,_Acc}, BKey, Mod, ModState, KeyData, MapState, Cache, VNode) ->
     CacheKey = build_key(FunTerm, Arg, KeyData),
@@ -17,13 +27,6 @@ do_map({map,FunTerm,Arg,_Acc}, BKey, Mod, ModState, KeyData, MapState, Cache, VN
         CV ->
             {ok, CV, MapState}
     end.
-
-init_js(Ctx) ->
-    EmitFunction = <<"var __map_results__ = []; function emit(data) { __map_results__[__map_results__.length] = data; };">>,
-    GetResultsFunction = <<"function __get_map_results__() { var retval = __map_results__; __map_results__ = []; return retval; };">>,
-    ok = js:define(Ctx, EmitFunction),
-    ok = js:define(Ctx, GetResultsFunction),
-    ok.
 
 %% Internal functions
 build_key({modfun, CMod, CFun}, Arg, KeyData) ->
