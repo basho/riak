@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 %% @doc riak_mapreduce_fsm is the driver of a mapreduce query.
 %%
@@ -57,7 +57,7 @@
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
--export([wait/2]). 
+-export([wait/2]).
 
 -record(state, {client,reqid,fsms,starttime,timeout,ring,input_done}).
 
@@ -105,16 +105,18 @@ check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest])
                                 false -> {bad_qterm, QTerm};
                                 true -> check_query_syntax(Rest)
                             end;
+                        {jsfun, JF_F} when is_binary(JF_F) ->
+                            check_query_syntax(Rest);
                         _ -> {bad_qterm, QTerm}
                     end
             end
     end;
 check_query_syntax([BadQTerm|_]) -> {bad_qterm,BadQTerm}.
 
-make_phase_fsms(Query, Ring) -> 
+make_phase_fsms(Query, Ring) ->
     make_phase_fsms(lists:reverse(Query),final,[], Ring).
 make_phase_fsms([], _NextFSM, FSMs, _Ring) -> FSMs;
-make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring) -> 
+make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring) ->
     PhaseMod = case QTerm of
         {reduce, _, _, _} -> riak_reduce_phase_fsm;
         {map, _, _, _} -> riak_map_phase_fsm;
@@ -193,4 +195,3 @@ terminate(Reason, _StateName, _State=#state{reqid=ReqId}) ->
 
 %% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
-

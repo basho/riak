@@ -75,13 +75,13 @@
   {env, [
          %% Cluster name
          {cluster_name, "default"},
-         
+
          %% Default location of ringstate
          {ring_state_dir, "data/ring"},
-         
+
          %% Default ring creation size
          {ring_creation_size, 64},
-         
+
          %% Default gossip interval (milliseconds)
          {gossip_interval, 60000},
 
@@ -93,4 +93,3 @@
          {add_paths, []}
         ]}
  ]}.
-
