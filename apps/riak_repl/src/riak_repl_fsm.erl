@@ -50,9 +50,8 @@ init([ReqId,RObj0,W,DW,Timeout,Client]) ->
     {ok,initialize,StateData,0}.
 
 %% @private
-initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
+initialize(timeout, StateData0=#state{robj=RObj, req_id=ReqId,
                                       timeout=Timeout, ring=Ring}) ->
-    RObj = update_metadata(RObj0),
     RealStartTime = riak_util:moment(),
     Bucket = riak_object:bucket(RObj),
     BucketProps = riak_bucket:get_bucket(Bucket, Ring),
@@ -164,17 +163,6 @@ terminate(Reason, _StateName, _State=#state{req_id=_ReqId}) ->
 %% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
-update_metadata(RObj) ->
-    MD0 = riak_object:get_update_metadata(RObj),
-    NewMD = case dict:is_key("no_update", MD0) of
-        true -> dict:erase("no_update", MD0);
-        false -> dict:store(<<"X-Riak-VTag">>,
-                       make_vtag(RObj),
-                       dict:store(<<"X-Riak-Last-Modified">>,
-                                  erlang:now(),
-                                  MD0))
-    end,
-    riak_object:apply_updates(riak_object:update_metadata(RObj, NewMD)).
 
 make_vtag(RObj) ->
     <<HashAsNum:128/integer>> = crypto:md5(term_to_binary(riak_object:vclock(RObj))),
