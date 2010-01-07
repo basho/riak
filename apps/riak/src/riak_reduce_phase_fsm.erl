@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 -module(riak_reduce_phase_fsm).
 -behaviour(gen_fsm).
@@ -19,9 +19,9 @@
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
--export([wait/2]). 
+-export([wait/2]).
 
--record(state, {done,qterm,next_fsm,coord,acc,reduced,fresh_input}).
+-record(state, {done,qterm,next_fsm,coord,acc,reduced,fresh_input, jsctx}).
 
 start_link(_Ring,QTerm,NextFSM,Coordinator) ->
     gen_fsm:start_link(?MODULE, [QTerm,NextFSM,Coordinator], []).
@@ -29,13 +29,15 @@ start_link(_Ring,QTerm,NextFSM,Coordinator) ->
 init([QTerm,NextFSM,Coordinator]) ->
     {_,_,_,Acc} = QTerm,
     riak_eventer:notify(riak_reduce_phase_fsm, reduce_start, start),
+    {ok, Ctx} = js_driver:new(),
     {ok,wait,#state{done=false,qterm=QTerm,next_fsm=NextFSM,fresh_input=false,
-                    coord=Coordinator,acc=Acc,reduced=[]}}.
+                    coord=Coordinator,acc=Acc,reduced=[], jsctx=Ctx}}.
 
 wait(timeout, StateData=#state{next_fsm=NextFSM,done=Done,
                                acc=Acc,fresh_input=Fresh,
                                qterm={reduce,FunTerm,Arg,_Acc},
-                               coord=Coord,reduced=Reduced}) ->
+                               coord=Coord,reduced=Reduced,
+                               jsctx=JsCtx}) ->
     {Res,Red} = case Fresh of
         false ->
             {{next_state, wait, StateData#state{reduced=Reduced}},Reduced};
@@ -43,7 +45,8 @@ wait(timeout, StateData=#state{next_fsm=NextFSM,done=Done,
             try
                 NewReduced = case FunTerm of
                                  {qfun,F} -> F(Reduced,Arg);
-                                 {modfun,M,F} -> M:F(Reduced,Arg)
+                                 {modfun,M,F} -> M:F(Reduced,Arg);
+                                 {jsfun, F} -> invoke_js(JsCtx, <<"riak_reducer">>, F, Reduced, Arg)
                              end,
                 {{next_state, wait, StateData#state{reduced=NewReduced}},
                  NewReduced}
@@ -62,7 +65,7 @@ wait(timeout, StateData=#state{next_fsm=NextFSM,done=Done,
         true ->
             case NextFSM of
                 final -> nop;
-                _ -> 
+                _ ->
                     gen_fsm:send_event(NextFSM, {input, Red}),
                     gen_fsm:send_event(NextFSM, done)
             end,
@@ -95,9 +98,20 @@ handle_sync_event(_Event, _From, _StateName, StateData) ->
 handle_info(_Info, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 %% @private
-terminate(Reason, _StateName, _State) ->
+terminate(Reason, _StateName, State) ->
     riak_eventer:notify(riak_reduce_phase_fsm, phase_end, Reason),
+    js_driver:destroy(State#state.jsctx),
     Reason.
+
 %% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
+%% @private
+invoke_js(JsCtx, FunName, FunSource, Reduced, Arg) ->
+    js:define(JsCtx, list_to_binary(["var ", FunName, "=", FunSource])),
+    case js:call(JsCtx, FunName, [Reduced, Arg]) of
+        {ok, Result} ->
+            Result;
+        Error ->
+            Error
+    end.

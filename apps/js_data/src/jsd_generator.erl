@@ -6,9 +6,7 @@
 generate(Client, Count) ->
     rand_init(),
     Records = generate_data(Client, Count, []),
-    lists:foreach(fun(Record) ->
-                          Obj = riak_object:new(<<"customers">>, <<"customer_list">>, Record),
-                          Client:put(Obj, 1) end, Records).
+    Client:put(riak_object:new(<<"customers">>, <<"customer_list">>, Records), 1).
 
 %% Internal functions
 generate_data(_Client, 0, Accum) ->
