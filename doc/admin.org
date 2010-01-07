@@ -493,7 +493,7 @@
 
     + =make relclean= to clean out the =rel= directory
 
-    + =rm -rf $ERLANG_ROOT/lib/XXX
+    + =rm -rf $ERLANG_ROOT/lib/XXX=
 
     + change the application version in the =.app= and
       =rel/reltool.config= files
