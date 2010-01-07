@@ -90,17 +90,13 @@ invoke_js(#jsenv{ctx=JsCtx, csums=CSums}=MapState, V, FunName, F) ->
     MD5 = erlang:md5(F),
     NewState = case needs_defining(CSums, FunName, MD5) of
                    true ->
-                       io:format("Compiling map fun~n"),
                        F1 = list_to_binary(["var ", FunName, "=", F]),
                        js:define(JsCtx, F1),
                        MapState#jsenv{csums=dict:store(FunName, MD5, CSums)};
                    false ->
-                       io:format("Not compiling map fun~n"),
                        MapState
                end,
-    R = js:call(JsCtx, FunName, [V]),
-    io:format("R: ~p~n", [R]),
-    case R of
+    case js:call(JsCtx, FunName, [V]) of
         {ok, _} ->
             case js:call(JsCtx, <<"__get_map_results__">>, []) of
                 {ok, Results} ->
