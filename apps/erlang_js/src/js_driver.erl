@@ -32,7 +32,23 @@ new() ->
     end.
 
 new(no_json) ->
-    {ok, open_port({spawn, ?DRIVER_NAME}, [binary])}.
+    {ok, open_port({spawn, ?DRIVER_NAME}, [binary])};
+new(Initializer) when is_function(Initializer) ->
+    {ok, Port} = new(),
+    case Initializer(Port) of
+        ok ->
+            {ok, Port};
+        _ ->
+            throw({error, init_failed})
+    end;
+new({InitMod, InitFun}) ->
+    {ok, Port} = new(),
+    case InitMod:InitFun(Port) of
+        ok ->
+            {ok, Port};
+        _ ->
+            throw({error, init_failed})
+    end.
 
 destroy(Ctx) ->
     port_close(Ctx).
@@ -71,8 +87,12 @@ eval_js(Ctx, Js, Timeout) when is_binary(Js) ->
         {ok, Result} ->
             {ok, mochijson2:decode(Result)};
         {error, ErrorJson} when is_binary(ErrorJson) ->
-            {struct, [{<<"error">>, {struct, Error}}]} = mochijson2:decode(ErrorJson),
-            {error, Error};
+            case mochijson2:decode(ErrorJson) of
+                {struct, [{<<"error">>, {struct, Error}}]} ->
+                    {error, Error};
+                {struct, [{<<"error">>, Error}]} ->
+                    {error, Error}
+            end;
         Error ->
             Error
     end.

@@ -44,6 +44,7 @@
              riak_map_executor,
              riak_map_localphase,
              riak_map_phase_fsm,
+             riak_mapper,
              riak_mapreduce,
              riak_mapreduce_fsm,
 			 riak_multi_backend,

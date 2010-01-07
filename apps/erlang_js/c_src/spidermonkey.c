@@ -108,7 +108,7 @@ char *sm_eval(spidermonkey_vm *vm, const char *filename, const char *code, int h
 	retval = copy_jsstring(str);
       }
       else {
-	retval = copy_string("{error: non_json_return}");
+	retval = copy_string("{\"error\": \"non-JSON return value\"}");
       }
     }
     JS_DestroyScript(vm->context, script);

@@ -25,7 +25,7 @@
 
 -define(TIMEOUT, 60000).
 
--record(state, {idx,mapcache,mod,modstate,waiting_diffobjs,jsctx}).
+-record(state, {idx,mapcache,mod,modstate,waiting_diffobjs,mapstate}).
 
 start(Idx) ->
     gen_fsm:start(?MODULE, [Idx], []).
@@ -33,8 +33,7 @@ init([VNodeIndex]) ->
     Mod = riak:get_app_env(storage_backend),
     Configuration = riak:get_app_env(),
     {ok, ModState} = Mod:start(VNodeIndex, Configuration),
-    {ok, Ctx} = js_driver:new(),
-    StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState,jsctx=Ctx},
+    StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState,mapstate=riak_mapper:init_state()},
     {next_state, StateName, StateData, Timeout} = hometest(StateData0),
     {ok, StateName, StateData, Timeout}.
 
@@ -117,8 +116,9 @@ merk_waiting({merk_diff,TargetVNode,DiffList}, StateData0) ->
 merk_waiting({diffobj,{_BKey,_BinObj,_RemNode}}, StateData) ->
     hometest(StateData);
 merk_waiting({map, ClientPid, QTerm, BKey, KeyData}, StateData) ->
-    do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
-    {next_state,merk_waiting,StateData,?TIMEOUT};
+
+    NewState = do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
+    {next_state,merk_waiting,NewState,?TIMEOUT};
 merk_waiting({put, FSM_pid, _BKey, _RObj, ReqID, _FSMTime},
              StateData=#state{idx=Idx}) ->
     gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID}),
@@ -169,8 +169,8 @@ waiting_diffobjs({merk_diff,_TargetNode,_DiffList}, StateData) ->
 waiting_diffobjs({diffobj,{_BKey,_BinObj,_RemNode}}, StateData) ->
     hometest(StateData);
 waiting_diffobjs({map, ClientPid, QTerm, BKey, KeyData}, StateData) ->
-    do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
-    {next_state,waiting_diffobjs,StateData,?TIMEOUT};
+    NewState = do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
+    {next_state,waiting_diffobjs,NewState,?TIMEOUT};
 waiting_diffobjs({put, FSM_pid, _BKey, _RObj, ReqID, _FSMTime},
                  StateData=#state{idx=Idx}) ->
     gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID}),
@@ -204,8 +204,8 @@ active({diffobj,{BKey,BinObj,FromVN}}, StateData) ->
     gen_fsm:send_event(FromVN,{resolved_diffobj,BKey}),
     {next_state,active,StateData,?TIMEOUT};
 active({map, ClientPid, QTerm, BKey, KeyData}, StateData) ->
-    do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
-    {next_state,active,StateData,?TIMEOUT};
+    NewState = do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
+    {next_state,active,NewState,?TIMEOUT};
 active({put, FSM_pid, BKey, RObj, ReqID, FSMTime},
        StateData=#state{idx=Idx,mapcache=Cache}) ->
     gen_fsm:send_event(FSM_pid, {w, Idx, ReqID}),
@@ -339,81 +339,89 @@ select_newest_content(Mult) ->
          Mult)).
 
 %% @private
-do_map(ClientPid,{map,FunTerm,Arg,_Acc},
-       BKey,KeyData,#state{mapcache=Cache}=State,VNode) ->
-    CacheVal = case FunTerm of
-        {qfun,_} -> not_cached; % live funs are not cached
-        {jsfun,_} -> not_cached; % Javascript funs are not cached
-        {modfun,CMod,CFun} ->
-            case orddict:find(BKey, Cache) of
-                error -> not_cached;
-                {ok,CDict} ->
-                    case orddict:find({CMod,CFun,Arg,KeyData},CDict) of
-                        error -> not_cached;
-                        {ok,CVal} -> CVal
-                    end
-            end
-    end,
-    RetVal = case CacheVal of
-        not_cached ->
-             uncached_map(BKey,State,FunTerm,Arg,KeyData,VNode);
-        CV ->
-             {mapexec_reply, CV, self()}
-    end,
-    ?debugFmt("RetVal: ~p~n", [RetVal]),
-    gen_fsm:send_event(ClientPid, RetVal).
-uncached_map(BKey,#state{mod=Mod,modstate=ModState,jsctx=JsCtx},FunTerm,Arg,KeyData,VNode) ->
-    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm,Arg,BKey}),
-    case do_get_binary(BKey, Mod, ModState) of
-        {ok, Binary} ->
-            V = binary_to_term(Binary),
-            uncached_map1(V,JsCtx,FunTerm,Arg,BKey,KeyData,VNode);
-        {error, notfound} ->
-            uncached_map1({error, notfound},JsCtx,FunTerm,Arg,BKey,KeyData,VNode);
-        X -> {mapexec_error, self(), X}
-    end.
-uncached_map1(V,JsCtx,FunTerm,Arg,BKey,KeyData,VNode) ->
-    ?debugMsg("Running uncached_map1"),
-    try
-        MapVal = case FunTerm of
-            {qfun,F} -> (F)(V,KeyData,Arg);
-            {jsfun,F} -> invoke_js(JsCtx, [extract_values(V),KeyData,Arg], <<"riak_mapper">>, F);
-            {modfun,M,F} ->
-                MF_Res = M:F(V,KeyData,Arg),
-                gen_fsm:send_event(VNode,
-                                   {mapcache, BKey,{M,F,Arg,KeyData},MF_Res}),
-                MF_Res
-        end,
-        {mapexec_reply, MapVal, self()}
-    catch C:R ->
-         Reason = {C, R, erlang:get_stacktrace()},
-         {mapexec_error, self(), Reason}
-    end.
+do_map(ClientPid, QTerm, BKey, KeyData, #state{mod=Mod, modstate=ModState, mapstate=MapState, mapcache=Cache}=State, VNode) ->
+    {Reply, NewState} = case riak_mapper:do_map(QTerm, BKey, Mod, ModState, KeyData, MapState, Cache, VNode) of
+                            {ok, Retval, NewMapState} ->
+                                {{mapexec_reply, Retval, self()}, State#state{mapstate=NewMapState}};
+                            {error, Error, NewMapState} ->
+                                {{mapexec_error, self(), Error}, State#state{mapstate=NewMapState}}
+                        end,
+    ?debugFmt("Map reply: ~p~n", [Reply]),
+    gen_fsm:send_event(ClientPid, Reply),
+    NewState.
 
-%% @private
-extract_values(V) ->
-    case riak_object:value_count(V) of
-        0 ->
-            [];
-        1 ->
-            riak_object:get_value(V);
-        _ ->
-            riak_object:get_values(V)
-    end.
+%% do_map(ClientPid,{map,FunTerm,Arg,_Acc},
+%%        BKey,KeyData,#state{mapcache=Cache}=State,VNode) ->
+%%     CacheVal = case FunTerm of
+%%         {qfun,_} -> not_cached; % live funs are not cached
+%%         {jsfun,_} -> not_cached; % Javascript funs are not cached
+%%         {modfun,CMod,CFun} ->
+%%             case orddict:find(BKey, Cache) of
+%%                 error -> not_cached;
+%%                 {ok,CDict} ->
+%%                     case orddict:find({CMod,CFun,Arg,KeyData},CDict) of
+%%                         error -> not_cached;
+%%                         {ok,CVal} -> CVal
+%%                     end
+%%             end
+%%     end,
+%%     RetVal = case CacheVal of
+%%         not_cached ->
+%%              uncached_map(BKey,State,FunTerm,Arg,KeyData,VNode);
+%%         CV ->
+%%              {mapexec_reply, CV, self()}
+%%     end,
+%%     gen_fsm:send_event(ClientPid, RetVal).
+%% uncached_map(BKey,#state{mod=Mod,modstate=ModState,jsenv=Js},FunTerm,Arg,KeyData,VNode) ->
+%%     riak_eventer:notify(riak_vnode, uncached_map, {FunTerm,Arg,BKey}),
+%%     case do_get_binary(BKey, Mod, ModState) of
+%%         {ok, Binary} ->
+%%             V = binary_to_term(Binary),
+%%             uncached_map1(V,JsCtx,FunTerm,Arg,BKey,KeyData,VNode);
+%%         {error, notfound} ->
+%%             uncached_map1({error, notfound},JsCtx,FunTerm,Arg,BKey,KeyData,VNode);
+%%         X -> {mapexec_error, self(), X}
+%%     end.
+%% uncached_map1(V,JsCtx,FunTerm,Arg,BKey,KeyData,VNode) ->
+%%     try
+%%         MapVal = case FunTerm of
+%%             {qfun,F} -> (F)(V,KeyData,Arg);
+%%             {jsfun,F} -> invoke_js(JsCtx, [extract_values(V),KeyData,Arg], <<"riak_mapper">>, F);
+%%             {modfun,M,F} ->
+%%                 MF_Res = M:F(V,KeyData,Arg),
+%%                 gen_fsm:send_event(VNode,
+%%                                    {mapcache, BKey,{M,F,Arg,KeyData},MF_Res}),
+%%                 MF_Res
+%%         end,
+%%         {mapexec_reply, MapVal, self()}
+%%     catch C:R ->
+%%          Reason = {C, R, erlang:get_stacktrace()},
+%%          {mapexec_error, self(), Reason}
+%%     end.
 
-invoke_js(JsCtx, {error, notfound}, FunName, F) ->
-    %% Encode error as proplist so we can jsonify the value
-    invoke_js(JsCtx, [{<<"error">>, <<"notfound">>}], FunName, F);
-invoke_js(JsCtx, V, FunName, F) ->
-    ?debugMsg("Running invoke_js"),
-    F1 = list_to_binary(["var ", FunName, "=", F]),
-    js:define(JsCtx, F1),
-    case js:call(JsCtx, FunName, [V]) of
-        {ok, Retval} ->
-            Retval;
-        Error ->
-            Error
-    end.
+%% %% @private
+%% extract_values(V) ->
+%%     case riak_object:value_count(V) of
+%%         0 ->
+%%             [];
+%%         1 ->
+%%             riak_object:get_value(V);
+%%         _ ->
+%%             riak_object:get_values(V)
+%%     end.
+
+%% invoke_js(JsCtx, {error, notfound}, FunName, F) ->
+%%     %% Encode error as proplist so we can jsonify the value
+%%     invoke_js(JsCtx, [{<<"error">>, <<"notfound">>}], FunName, F);
+%% invoke_js(JsCtx, V, FunName, F) ->
+%%     F1 = list_to_binary(["var ", FunName, "=", F]),
+%%     js:define(JsCtx, F1),
+%%     case js:call(JsCtx, FunName, [V]) of
+%%         {ok, Retval} ->
+%%             Retval;
+%%         Error ->
+%%             Error
+%%     end.
 %% @private
 do_merkle(Me,RemoteVN,RemoteMerkle,ObjList,StateData) ->
     % given a RemoteMerkle over the ObjList from RemoteVN
