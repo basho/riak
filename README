@@ -97,9 +97,9 @@ Table of Contents
 
    Let's create a shopping list for bread at /groceries/mine:
 
-   (riaktest@example.com)6> O0 = riak_object:new("groceries", "mine", ["bread"]).
-   O0 = riak_object:new("groceries", "mine", ["bread"]).
-   {r_object,"groceries","mine",
+   (riaktest@example.com)6> O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
+   O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
+   {r_object,<<"groceries">>,<<"mine">>,
           [{r_content,{dict,0,16,16,8,80,48,
                             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                             {{[],[],[],[],[],[],[],[],[],[],[],[],...}}},
@@ -110,12 +110,12 @@ Table of Contents
                 {{[],[],[],[],[],[],[],[],[],[],[],[],[],...}}},
           undefined}
 
-    (riaktest@example.com)3> C:put(01, 1).
+    (riaktest@example.com)3> C:put(O0, 1).
     
     Now, read the list back from the Riak server and extract the value
 
-    (riaktest@example.com)4> {ok, O1} = C:get("groceries", "mine", 1).
-    {ok,{r_object,"groceries","mine",
+    (riaktest@example.com)4> {ok, O1} = C:get(<<"groceries">>, <<"mine">>, 1).
+    {ok,{r_object,<<"groceries">>,<<"mine">>,
               [{r_content,{dict,2,16,16,8,80,48,
                                 {[],[],[],[],[],[],[],[],[],[],[],[],...},
                                 {{[],[],[],[],[],[],
@@ -137,7 +137,7 @@ Table of Contents
 
      (riaktest@example.com)6> %% add milk to the list
      (riaktest@example.com)6> O2 = riak_object:update_value(O1, ["milk" | V]).
-     {r_object,"groceries","mine",
+     {r_object,<<"groceries">>,<<"mine">>,
           [{r_content,{dict,2,16,16,8,80,48,
                             {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                             {{[],[],[],[],[],[],
@@ -157,8 +157,8 @@ Table of Contents
 
      Finally, see what other keys are available in groceries bucket:
 
-     (riaktest@example.com)8> C:list_keys("groceries").
-     {ok,["mine"]}
+     (riaktest@example.com)8> C:list_keys(<<"groceries">>).
+     {ok,[<<"mine">>]}
 
 
 
