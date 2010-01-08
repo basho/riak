@@ -104,7 +104,7 @@ module Riak
     # and 'acc' fields.  If a field is not defined in a spec hash,
     # the wildcard '_' will be used instead.
     def walk(bucket, key, spec)
-      do_req(Net::HTTP::Get.new(path(bucket, key)+convert_walk_spec(spec)),
+      do_req(Net::HTTP::Get.new(path(bucket, key)+'/'+convert_walk_spec(spec)),
              '200')
     end
 
@@ -156,7 +156,8 @@ if __FILE__ == $0
   jc = Riak::Client.new("127.0.0.1", 8098)
 
   puts "Creating bucket foo..."
-  jc.set_bucket_schema('foo', {'allowed_fields'=>['bar','baz']})
+  jc.set_bucket_schema('foo', {'allowed_fields'=>['bar','baz'],
+                               'write_mask'=>['bar','baz']})
   b = jc.list_bucket('foo')
   puts "Bucket foo's schema: "
   p b['schema']
