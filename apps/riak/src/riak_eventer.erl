@@ -217,7 +217,7 @@ handle_cast({event, Event}, State) ->
     [begin
         Pid = X#handler.pid,
         Pid ! {event, Event}
-     end || X <- MatchingHandlers, erlang:is_process_alive(X#handler.pid)],
+     end || X <- MatchingHandlers],
     {noreply, State};
     
 handle_cast(_, State) -> {noreply, State}.
