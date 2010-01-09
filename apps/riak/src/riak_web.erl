@@ -63,7 +63,9 @@ dispatch_table() ->
      {[proplists:get_value(prefix, RawProps),bucket,key],
       raw_http_resource, RawProps},
      {[proplists:get_value(prefix, RawProps),bucket,key,'*'],
-      raw_link_walker_resource, RawProps}].
+      raw_link_walker_resource, RawProps},
+
+     {["ping"], ping_http_resource, []}].
 
 jiak_props() ->
     [{jiak_name, riak:get_app_env(jiak_name, "jiak")},
