@@ -19,6 +19,7 @@
              jiak_util,
              json_pp,
              merkerl,
+             ping_http_resource,
              priority_queue,
              raw_http_resource,
              raw_link_walker_resource,
