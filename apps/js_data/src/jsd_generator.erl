@@ -3,10 +3,79 @@
 -compile([export_all]).
 %-export([generate/2]).
 
+start_proc_count() ->
+    spawn(fun() -> proc_count([], []) end).
+
+proc_count([], []) ->
+    timer:sleep(5000),
+    proc_count(erlang:processes(), []);
+proc_count(Last, Accum) ->
+    timer:sleep(5000),
+    Current = erlang:processes(),
+    case diff(Current, Last) of
+        [] ->
+            proc_count(Current, Accum);
+        Procs ->
+            NewAccum = prune(Procs ++ Accum),
+            Info = get_info(NewAccum),
+            lists:foreach(fun({Pid, Mod}) ->
+                                  io:format("~p: ~p~n", [Pid, Mod]) end, Info),
+            io:format("~p total orphans~n", [length(NewAccum)]),
+            proc_count(Current, NewAccum)
+    end.
+
+prune(Procs) ->
+    lists:filter(fun(P) ->
+                         lists:member(P, erlang:processes()) end, Procs).
+
+diff(Current, Last) ->
+    lists:foldl(fun(C, A) ->
+                        case lists:member(C, Last) of
+                            false ->
+                                [C|A];
+                            true ->
+                                A
+                        end end, [], Current).
+
+get_info(Procs) ->
+    lists:map(fun(P) ->
+                      {_, {Mod, _, _}} = erlang:process_info(P, current_function),
+                      {P, Mod} end, Procs).
+
 generate(Client, Count) ->
     rand_init(),
     Records = generate_data(Client, Count, []),
     Client:put(riak_object:new(<<"customers">>, <<"customer_list">>, Records), 1).
+
+stress(Count) ->
+    {ok, C} = riak:client_connect('riak@127.0.0.1'),
+    jsd_generator:generate(C, 1000),
+    Start = erlang:now(),
+    stress(C, Count),
+    End = erlang:now(),
+    Elapsed = timer:now_diff(End, Start),
+    {Elapsed, Elapsed / Count}.
+
+stress(_Client, 0) ->
+    io:format("~n"),
+    ok;
+stress(Client, Count) ->
+    if
+        Count rem 1000 == 0 ->
+            io:format(".");
+        true ->
+            nop
+    end,
+    %M = fun(Obj, _, _) ->
+    %            Values = riak_object:get_value(Obj), [proplists:get_value(avg_sales, V) || V <- Values] end,
+    %R = fun(Values, _) ->
+    %            lists:sum(Values) / length(Values) end,
+    M = <<"function(values, key_data, arg) { var v = values[0]; v.map(function(value) { Riak.emit(value[\"avg_sales\"]); }); return true;};">>,
+    R = <<"function(values, arg) { var accum = 0; values.map(function(v) { accum = accum + v;}); return accum / values.length; };">>,
+    {ok, _} = Client:mapred([{<<"customers">>, <<"customer_list">>}], [{map, {jsanon, M}, none, false},
+                                                                       {reduce, {jsanon, R}, none, true}]),
+    stress(Client, Count - 1).
+
 
 %% Internal functions
 generate_data(_Client, 0, Accum) ->

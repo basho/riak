@@ -21,7 +21,7 @@
 
 -export([wait/2]).
 
--record(state, {done,qterm,next_fsm,coord,acc,reduced,fresh_input, jsctx}).
+-record(state, {done,qterm,next_fsm,coord,acc,reduced,fresh_input, jsctx, csums=dict:new()}).
 
 start_link(_Ring,QTerm,NextFSM,Coordinator) ->
     gen_fsm:start_link(?MODULE, [QTerm,NextFSM,Coordinator], []).
@@ -29,7 +29,7 @@ start_link(_Ring,QTerm,NextFSM,Coordinator) ->
 init([QTerm,NextFSM,Coordinator]) ->
     {_,_,_,Acc} = QTerm,
     riak_eventer:notify(riak_reduce_phase_fsm, reduce_start, start),
-    {ok, Ctx} = js_driver:new(),
+    {ok, Ctx} = riak_js:new_context(),
     {ok,wait,#state{done=false,qterm=QTerm,next_fsm=NextFSM,fresh_input=false,
                     coord=Coordinator,acc=Acc,reduced=[], jsctx=Ctx}}.
 
@@ -37,18 +37,25 @@ wait(timeout, StateData=#state{next_fsm=NextFSM,done=Done,
                                acc=Acc,fresh_input=Fresh,
                                qterm={reduce,FunTerm,Arg,_Acc},
                                coord=Coord,reduced=Reduced,
-                               jsctx=JsCtx}) ->
+                               jsctx=JsCtx, csums=CSums}) ->
     {Res,Red} = case Fresh of
         false ->
             {{next_state, wait, StateData#state{reduced=Reduced}},Reduced};
         true ->
             try
-                NewReduced = case FunTerm of
-                                 {qfun,F} -> F(Reduced,Arg);
-                                 {modfun,M,F} -> M:F(Reduced,Arg);
-                                 {jsfun, F} -> invoke_js(JsCtx, <<"riak_reducer">>, F, Reduced, Arg)
-                             end,
-                {{next_state, wait, StateData#state{reduced=NewReduced}},
+                {NewReduced, NewCSums} = case FunTerm of
+                                             {qfun,F} -> {F(Reduced,Arg), CSums};
+                                             {modfun,M,F} -> {M:F(Reduced,Arg), CSums};
+                                             {jsanon, F} ->
+                                                 {Retval, CSums1} = riak_js:invoke_reduce(JsCtx, CSums,
+                                                                                          [Reduced, Arg], undefined, <<"riakReducer">>, F),
+                                                 {Retval, CSums1};
+                                             {jsfun, F} ->
+                                                 {Retval, _} = riak_js:invoke_reduce(JsCtx, CSums, [Reduced, Arg],
+                                                                                     <<"Riak">>, F, undefined),
+                                                 {Retval, CSums}
+                                             end,
+                {{next_state, wait, StateData#state{reduced=NewReduced, csums=NewCSums}},
                  NewReduced}
             catch C:R ->
                     Reason = {C, R, erlang:get_stacktrace()},
@@ -105,13 +112,3 @@ terminate(Reason, _StateName, State) ->
 
 %% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
-
-%% @private
-invoke_js(JsCtx, FunName, FunSource, Reduced, Arg) ->
-    js:define(JsCtx, list_to_binary(["var ", FunName, "=", FunSource])),
-    case js:call(JsCtx, FunName, [Reduced, Arg]) of
-        {ok, Result} ->
-            Result;
-        Error ->
-            Error
-    end.

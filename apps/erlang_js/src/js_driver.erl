@@ -22,7 +22,7 @@ load_driver() ->
 
 new() ->
     {ok, Port} = new(no_json),
-%% Load json converter for use later
+    %% Load json converter for use later
     case define_js(Port, <<"json2.js">>, json_converter(), ?SCRIPT_TIMEOUT) of
         ok ->
             {ok, Port};
@@ -38,7 +38,8 @@ new(Initializer) when is_function(Initializer) ->
     case Initializer(Port) of
         ok ->
             {ok, Port};
-        _ ->
+        Error ->
+            error_logger:error_report(Error),
             throw({error, init_failed})
     end;
 new({InitMod, InitFun}) ->
@@ -46,7 +47,8 @@ new({InitMod, InitFun}) ->
     case InitMod:InitFun(Port) of
         ok ->
             {ok, Port};
-        _ ->
+        Error ->
+            error_logger:error_report(Error),
             throw({error, init_failed})
     end.
 

@@ -105,6 +105,8 @@ check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest])
                                 false -> {bad_qterm, QTerm};
                                 true -> check_query_syntax(Rest)
                             end;
+                        {jsanon, JF_F} when is_binary(JF_F) ->
+                            check_query_syntax(Rest);
                         {jsfun, JF_F} when is_binary(JF_F) ->
                             check_query_syntax(Rest);
                         _ -> {bad_qterm, QTerm}

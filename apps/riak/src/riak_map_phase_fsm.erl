@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 -module(riak_map_phase_fsm).
 -behaviour(gen_fsm).
@@ -19,7 +19,7 @@
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
--export([wait/2]). 
+-export([wait/2]).
 
 -record(state, {done,qterm,next_fsm,coord,acc,map_fsms,ring}).
 
@@ -43,15 +43,13 @@ wait({mapexec_reply,Reply,MapFSM}, StateData=
         false -> nop;
         true -> gen_fsm:send_event(Coord, {acc, {list, Reply}})
     end,
-    case FSMs of
-        [] -> 
-            case Done of
-                true -> finish(StateData);
-                _ -> nop
-            end;
-        _ -> nop
-    end,
-    {next_state, wait, StateData#state{map_fsms=FSMs}};
+    case FSMs =:= [] andalso Done =:= true of
+        true ->
+            finish(StateData);
+        false ->
+            {next_state, wait, StateData#state{map_fsms=FSMs}}
+    end;
+
 wait({mapexec_error, _ErrFSM, ErrMsg}, StateData=
      #state{next_fsm=NextFSM,coord=Coord}) ->
     riak_eventer:notify(riak_map_phase_fsm, error, ErrMsg),
@@ -118,4 +116,3 @@ convert_input(I={{_B,_K},_D})
   when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> I;
 convert_input(I={_B,_K})
   when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> {I,undefined}.
-

@@ -39,6 +39,7 @@
              riak_fs_backend,
              riak_gb_trees_backend,
              riak_get_fsm,
+             riak_js,
              riak_keys_fsm,
              riak_local_logger,
              riak_map_executor,

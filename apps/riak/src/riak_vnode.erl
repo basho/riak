@@ -33,6 +33,7 @@ init([VNodeIndex]) ->
     {ok, ModState} = Mod:start(VNodeIndex, Configuration),
     StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState,mapstate=riak_mapper:init_state()},
     {next_state, StateName, StateData, Timeout} = hometest(StateData0),
+    dbg:stop(),
     {ok, StateName, StateData, Timeout}.
 
 %% @private

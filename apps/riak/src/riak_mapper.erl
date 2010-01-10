@@ -2,18 +2,11 @@
 
 -record(jsenv, {ctx, csums=dict:new()}).
 
--export([init_state/0, terminate/1, init_js/1, do_map/8]).
+-export([init_state/0, terminate/1, do_map/8]).
 
 init_state() ->
-    {ok, JsCtx} = js_driver:new({?MODULE, init_js}),
+    {ok, JsCtx} = riak_js:new_context(),
     #jsenv{ctx=JsCtx}.
-
-init_js(Ctx) ->
-    EmitFunction = <<"var __map_results__ = []; function emit(data) { __map_results__[__map_results__.length] = data; };">>,
-    GetResultsFunction = <<"function __get_map_results__() { var retval = __map_results__; __map_results__ = []; return retval; };">>,
-    ok = js:define(Ctx, EmitFunction),
-    ok = js:define(Ctx, GetResultsFunction),
-    ok.
 
 terminate(#jsenv{ctx=Ctx}) ->
     js_driver:destroy(Ctx).
@@ -29,6 +22,7 @@ do_map({map,FunTerm,Arg,_Acc}, BKey, Mod, ModState, KeyData, MapState, Cache, VN
     end.
 
 %% Internal functions
+
 build_key({modfun, CMod, CFun}, Arg, KeyData) ->
     {CMod, CFun, Arg, KeyData};
 build_key(_, _, _) ->
@@ -37,6 +31,8 @@ build_key(_, _, _) ->
 cache_fetch({qfun, _}, _BKey, _CacheKey, _MapState) ->
     not_cached;
 cache_fetch({jsfun, _}, _BKey, _CacheKey, _MapState) ->
+    not_cached;
+cache_fetch({jsanon, _}, _BKey, _CacheKey, _MapState) ->
     not_cached;
 cache_fetch({modfun, _CMod, _CFun}, BKey, CacheKey, Cache) ->
     case orddict:find(BKey, Cache) of
@@ -60,17 +56,24 @@ uncached_map(BKey, Mod, ModState, MapState, FunTerm, Arg, KeyData, VNode) ->
             {error, X, MapState}
     end.
 
-exec_map(V, MapState, FunTerm, Arg, BKey, KeyData, VNode) ->
+exec_map(V, #jsenv{ctx=JsCtx, csums=CSums}=MapState, FunTerm, Arg, BKey, KeyData, VNode) ->
     try
         {MapVal, NewMapState} = case FunTerm of
-            {qfun,F} -> {(F)(V,KeyData,Arg), MapState};
-            {jsfun,F} -> invoke_js(MapState, [extract_values(V),KeyData,Arg], <<"riak_mapper">>, F);
-            {modfun,M,F} ->
-                MF_Res = M:F(V,KeyData,Arg),
-                gen_fsm:send_event(VNode,
-                                   {mapcache, BKey,{M,F,Arg,KeyData},MF_Res}),
-                {MF_Res, MapState}
-        end,
+                                    {qfun, F} -> {(F)(V,KeyData,Arg), MapState};
+                                    {jsfun, F} ->
+                                        {Retval, _} = riak_js:invoke_map(JsCtx, CSums, [extract_values(V), KeyData, Arg],
+                                                                         <<"Riak">>, F, undefined),
+                                        {Retval, MapState};
+                                    {jsanon, F} ->
+                                        {Retval, NewCSums} = riak_js:invoke_map(JsCtx, CSums, [extract_values(V), KeyData, Arg],
+                                                                                undefined, <<"riakMapper">>, F),
+                                        {Retval, MapState#jsenv{csums=NewCSums}};
+                                    {modfun, M, F} ->
+                                        MF_Res = M:F(V,KeyData,Arg),
+                                        gen_fsm:send_event(VNode,
+                                                           {mapcache, BKey,{M,F,Arg,KeyData},MF_Res}),
+                                        {MF_Res, MapState}
+                                end,
         {ok, MapVal, NewMapState}
     catch C:R ->
             Reason = {C, R, erlang:get_stacktrace()},
@@ -87,32 +90,4 @@ extract_values(V) ->
             riak_object:get_value(V);
         _ ->
             riak_object:get_values(V)
-    end.
-
-invoke_js(#jsenv{ctx=JsCtx, csums=CSums}=MapState, V, FunName, F) ->
-    MD5 = erlang:md5(F),
-    NewState = case needs_defining(CSums, FunName, MD5) of
-                   true ->
-                       F1 = list_to_binary(["var ", FunName, "=", F]),
-                       js:define(JsCtx, F1),
-                       MapState#jsenv{csums=dict:store(FunName, MD5, CSums)};
-                   false ->
-                       MapState
-               end,
-    case js:call(JsCtx, FunName, [V]) of
-        {ok, _} ->
-            case js:call(JsCtx, <<"__get_map_results__">>, []) of
-                {ok, Results} ->
-                    {Results, NewState};
-                Error ->
-                    {Error, NewState}
-            end
-    end.
-
-needs_defining(CSums, FunName, CSum) ->
-    case dict:find(FunName, CSums) of
-        error ->
-            true;
-        {ok, OldCSum} ->
-            not(OldCSum =:= CSum)
     end.
