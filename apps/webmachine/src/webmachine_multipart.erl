@@ -20,7 +20,8 @@
 -author('Justin Sheehy <justin@basho.com>').
 -author('Andy Gross <andy@basho.com>').
 -export([get_all_parts/2,stream_parts/2, find_boundary/1]).
--export([test_body/0,test_body2/0]).
+
+-include_lib("eunit/include/eunit.hrl").
 
 % @type incoming_req_body() = binary().
 % The request body, in "multipart/form-data" (rfc2388) form,
@@ -54,7 +55,7 @@ find_boundary(ReqData) ->
 % @spec get_all_parts(incoming_req_body(), boundary()) -> [fpart()]
 get_all_parts(Body, Boundary) when is_binary(Body), is_list(Boundary) ->
     StreamStruct = send_streamed_body(Body,1024),
-    getparts1(stream_parts(StreamStruct, "--" ++ Boundary), []).
+    getparts1(stream_parts(StreamStruct, Boundary), []).
 
 % @doc Similar to get_all_parts/2, but for streamed/chunked bodies.
 %   Takes as input the result of wrq:stream_req_body/2, and provides
@@ -142,24 +143,31 @@ send_streamed_body(Body, Max) ->
             {Body, done}
     end.
 
-test_body() ->
+body_test() ->
     Body = <<"------------ae0gL6gL6Ij5KM7Ef1KM7ei4ae0cH2\r\nContent-Disposition: form-data; name=\"Filename\"\r\n\r\ntestfile.txt\r\n------------ae0gL6gL6Ij5KM7Ef1KM7ei4ae0cH2\r\nContent-Disposition: form-data; name=\"Filedata\"; filename=\"testfile.txt\"\r\nContent-Type: application/octet-stream\r\n\r\n%%% The contents of this file are a test,\n%%% do not be alarmed.\n\r\n------------ae0gL6gL6Ij5KM7Ef1KM7ei4ae0cH2\r\nContent-Disposition: form-data; name=\"Upload\"\r\n\r\nSubmit Query\r\n------------ae0gL6gL6Ij5KM7Ef1KM7ei4ae0cH2--">>,
     Boundary = "----------ae0gL6gL6Ij5KM7Ef1KM7ei4ae0cH2",
-    [{"Filename",
-      {[{<<"name">>,<<"Filename">>}],[]},
-      <<"testfile.txt\r\n">>},
-     {"Filedata",
-      {[{<<"name">>,<<"Filedata">>},
-        {<<"filename">>,<<"testfile.txt">>}],
-       [{<<"Content-Type">>,<<"application/octet-stream">>}]},
-      <<"%%% The contents of this file are a test,\n%%% do not be alarmed.\n\r\n">>},
-     {"Upload",
-      {[{<<"name">>,<<"Upload">>}],[]},
-      <<"Submit Query\r\n">>}]
-    = get_all_parts(Body, Boundary),
-    ok.
+    ?assertEqual(
+       [{"Filename",
+         {[{<<"name">>,<<"Filename">>}],[]},
+         <<"testfile.txt\r\n">>},
+        {"Filedata",
+         {[{<<"name">>,<<"Filedata">>},
+           {<<"filename">>,<<"testfile.txt">>}],
+          [{<<"Content-Type">>,<<"application/octet-stream">>}]},
+         <<"%%% The contents of this file are a test,\n%%% do not be alarmed.\n\r\n">>},
+        {"Upload",
+         {[{<<"name">>,<<"Upload">>}],[]},
+         <<"Submit Query\r\n">>}],
+       get_all_parts(Body, Boundary)).
     
-test_body2() ->
+body2_test() ->
     Body = <<"-----------------------------89205314411538515011004844897\r\nContent-Disposition: form-data; name=\"Filedata\"; filename=\"akamai.txt\"\r\nContent-Type: text/plain\r\n\r\nCAMBRIDGE, MA - February 18, 2009 - Akamai Technologies, Inc. (NASDAQ: AKAM), the leader in powering rich media, dynamic transactions and enterprise applications online, today announced that its Service & Support organization was awarded top honors for Innovation in Customer Service at the 3rd Annual Stevie Awards for Sales & Customer Service, an international competition recognizing excellence in disciplines that are crucial to business success.\n\n\"We have always set incredibly high standards with respect to the service and support we provide our customers,\" said Sanjay Singh, vice president of Global Service & Support at Akamai. \"Our support team provides highly responsive service around the clock to our global customer base and, as a result, has become an extension of our customers' online businesses. This prestigious award is validation of Akamai's commitment to customer service and technical support.\"\n\nAkamai Service & Support professionals are dedicated to working with customers on a daily basis to fine tune, optimize, and support their Internet initiatives. Akamai's winning submission highlighted the key pillars of its service and support offering, as well as the initiatives established to meet customer requirements for proactive communication, simplification, and faster response times.\n\n\"This year's honorees demonstrate that even in challenging economic times, it's possible for organizations to continue to shine in sales and customer service, the two most important functions in business: acquiring and keeping customers,\" said Michael Gallagher, president of the Stevie Awards.\n\nThe awards are presented by the Stevie Awards, which organizes several of the world's leading business awards shows, including the prestigious American Business Awards. Nicknamed the Stevies for the Greek word \"crowned,\" winners were announced during a gala banquet on Monday, February 9 at Caesars Palace in Las Vegas. Nominated customer service and sales executives from the U.S.A. and several other countries attended. More than 500 entries from companies of all sizes and in virtually every industry were submitted to this year's competition. There are 27 categories for customer service professionals, as well as 41 categories for sales professionals.\n\nDetails about the Stevie Awards for Sales & Customer Service and the list of honorees in all categories are available at www.stevieawards.com/sales. \n\r\n-----------------------------89205314411538515011004844897--\r\n">>,
     Boundary = "---------------------------89205314411538515011004844897",
-    get_all_parts(Body,Boundary).
+    ?assertEqual(
+       [{"Filedata",
+         {[{<<"name">>,<<"Filedata">>},
+           {<<"filename">>,<<"akamai.txt">>}],
+          [{<<"Content-Type">>,<<"text/plain">>}]},
+         <<"CAMBRIDGE, MA - February 18, 2009 - Akamai Technologies, Inc. (NASDAQ: AKAM), the leader in powering rich media, dynamic transactions and enterprise applications online, today announced that its Service & Support organization was awarded top honors for Innovation in Customer Service at the 3rd Annual Stevie Awards for Sales & Customer Service, an international competition recognizing excellence in disciplines that are crucial to business success.\n\n\"We have always set incredibly high standards with respect to the service and support we provide our customers,\" said Sanjay Singh, vice president of Global Service & Support at Akamai. \"Our support team provides highly responsive service around the clock to our global customer base and, as a result, has become an extension of our customers' online businesses. This prestigious award is validation of Akamai's commitment to customer service and technical support.\"\n\nAkamai Service & Support professionals are dedicated to working with customers on a daily basis to fine tune, optimize, and support their Internet initiatives. Akamai's winning submission highlighted the key pillars of its service and support offering, as well as the initiatives established to meet customer requirements for proactive communication, simplification, and faster response times.\n\n\"This year's honorees demonstrate that even in challenging economic times, it's possible for organizations to continue to shine in sales and customer service, the two most important functions in business: acquiring and keeping customers,\" said Michael Gallagher, president of the Stevie Awards.\n\nThe awards are presented by the Stevie Awards, which organizes several of the world's leading business awards shows, including the prestigious American Business Awards. Nicknamed the Stevies for the Greek word \"crowned,\" winners were announced during a gala banquet on Monday, February 9 at Caesars Palace in Las Vegas. Nominated customer service and sales executives from the U.S.A. and several other countries attended. More than 500 entries from companies of all sizes and in virtually every industry were submitted to this year's competition. There are 27 categories for customer service professionals, as well as 41 categories for sales professionals.\n\nDetails about the Stevie Awards for Sales & Customer Service and the list of honorees in all categories are available at www.stevieawards.com/sales. \n\r\n">>
+        }],
+       get_all_parts(Body,Boundary)).
