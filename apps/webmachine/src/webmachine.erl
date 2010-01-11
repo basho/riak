@@ -42,21 +42,22 @@ new_request(mochiweb, Request) ->
     RawPath = Request:get(raw_path), 
     Version = Request:get(version),
     Headers = Request:get(headers),
-    InitState = #reqstate{socket=Socket,
+    InitState = #wm_reqstate{socket=Socket,
                           reqdata=wrq:create(Method,Version,RawPath,Headers)},
+    
     InitReq = {webmachine_request,InitState},
     {Peer, ReqState} = InitReq:get_peer(),
-    PeerState = ReqState#reqstate{reqdata=wrq:set_peer(Peer,
-                                                  ReqState#reqstate.reqdata)},
+    PeerState = ReqState#wm_reqstate{reqdata=wrq:set_peer(Peer,
+                                              ReqState#wm_reqstate.reqdata)},
     LogData = #wm_log_data{start_time=now(),
 			   method=Method,
 			   headers=Headers,
-			   peer=PeerState#reqstate.peer,
+			   peer=PeerState#wm_reqstate.peer,
 			   path=RawPath,
 			   version=Version,
 			   response_code=404,
 			   response_length=0},
-    webmachine_request:new(PeerState#reqstate{log_data=LogData}).
+    webmachine_request:new(PeerState#wm_reqstate{log_data=LogData}).
 
 
 

@@ -100,8 +100,7 @@ get_option(Option, Options) ->
 
 host_headers(Req) ->
     [ V || {V,_ReqState} <- [Req:get_header_value(H)
-                             || H <- ["x-forwarded-for",
-                                      "x-forwarded-host",
+                             || H <- ["x-forwarded-host",
                                       "x-forwarded-server",
                                       "host"]],
            V /= undefined].
