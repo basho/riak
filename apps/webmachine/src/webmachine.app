@@ -12,7 +12,6 @@
     webmachine_perf_logger,
     webmachine_resource,
     webmachine_request,
-    webmachine_request_srv,
     webmachine_skel,
     webmachine_sup,
     webmachine_mochiweb,
