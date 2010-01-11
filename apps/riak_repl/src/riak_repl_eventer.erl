@@ -75,16 +75,34 @@ terminate(_Reason, _State) ->
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
+match_head() -> {'$1', '$2', '_', '_'}.
+
+match_guard() ->
+    [{'orelse',
+      {'andalso', 
+       {'==', '$1', riak_put_fsm},
+       {'==', '$2', put_fsm_reply_ok}},
+      {'andalso',
+       {'==', '$1', riak_delete},
+       {'==', '$2', finalize_reap}}}].
+    
+
 start_eventer() ->
     {ok, Client} = riak:local_client(),
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    purge_handlers(get_handlers(Ring), Client),
     EventerName = "Replication Eventer",
-    MatchHead = {'$1', '$2', '_', '_'}, 
-    MatchGuard = [{'orelse',
-                   {'andalso', 
-                    {'==', '$1', riak_put_fsm},
-                    {'==', '$2', put_fsm_reply_ok}},
-                   {'andalso',
-                    {'==', '$1', riak_delete},
-                    {'==', '$2', finalize_reap}}}],
-    Client:add_event_handler(self(), EventerName, MatchHead, MatchGuard),
+    Client:add_event_handler(self(), EventerName, match_head(), match_guard()),
     Client.
+
+purge_handlers([], _Client) -> ok;
+purge_handlers([{handler, _Id, _Name, Pid, MH, MG}|T], Client) ->
+    Client:remove_event_handler(Pid, MH, MG),
+    purge_handlers(T, Client).
+    
+
+get_handlers(Ring) ->
+    case riak_ring:get_meta(handlers, Ring) of
+        undefined -> [];
+        {ok, X} -> X
+    end.
