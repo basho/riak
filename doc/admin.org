@@ -1,4 +1,5 @@
 #+TITLE: Riak Administration Guide
+#+STYLE: <link rel="stylesheet" type="text/css" href="doc-style.css" />
 
 * Overview
   

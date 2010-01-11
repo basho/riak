@@ -55,6 +55,14 @@ reldocs: docs
 	@cd client_lib/java && make javadoc && \
             cp -R javadoc/* ../../www/java_client_api
 
+orgs: orgs-doc orgs-README
+
+orgs-doc:
+	@emacs -l orgbatch.el -batch --eval="(riak-export-doc-dir \"doc\" 'html)"
+
+orgs-README:
+	@emacs -l orgbatch.el -batch --eval="(riak-export-doc-file \"README.org\" 'ascii)"
+	@mv README.txt README
 
 dialyzer: compile
 	@dialyzer -Wno_return -c apps/riak/ebin
