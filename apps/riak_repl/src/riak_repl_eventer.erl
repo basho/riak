@@ -57,8 +57,11 @@ handle_info(riak_up, State) ->
 handle_info({'DOWN', MonRef, process, Pid, _Reason}, State=#state{subs=Subs, monrefs=MRs}) ->
     {noreply, State#state{subs=sets:del_element(Pid, Subs), 
                           monrefs=lists:delete({Pid, MonRef}, MRs)}};
-handle_info({event, {riak_put_fsm, put_fsm_reply_ok, _, 
-                     {_,_,{Bucket,Key}}}}, State=#state{client=Client, subs=Subs}) ->
+handle_info({event, {riak_put_fsm, put_fsm_reply_ok, _,  {_,_,{_Bucket,_Key}}}}, 
+            State=#state{client=undefined}) ->
+    {noreply, State};
+handle_info({event, {riak_put_fsm, put_fsm_reply_ok, _,  {_,_,{Bucket,Key}}}}, 
+            State=#state{client=Client, subs=Subs}) ->
     case Client:get(Bucket, Key, 1) of
         {ok, O} -> [P ! {local_update, O} || P <- sets:to_list(Subs)];
         _Other -> nop
