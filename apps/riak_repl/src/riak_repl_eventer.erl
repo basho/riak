@@ -44,8 +44,15 @@ handle_cast(_Msg, State) ->
     {noreply, State}.
 
 handle_info(riak_up, State) ->
-    Client = start_eventer(),
-    {noreply, State#state{client=Client}};
+    case application:get_env(riak_repl, riak_repl_hosts) of
+        undefined ->
+            {noreply, State};
+        {ok, []} ->
+            {noreply, State};
+        {ok, L} when is_list(L) ->
+            Client = start_eventer(),
+            {noreply, State#state{client=Client}}
+    end;
 handle_info({'DOWN', MonRef, process, Pid, _Reason}, State=#state{subs=Subs, monrefs=MRs}) ->
     {noreply, State#state{subs=sets:del_element(Pid, Subs), 
                           monrefs=lists:delete({Pid, MonRef}, MRs)}};
