@@ -23,7 +23,7 @@
 
 -define(TIMEOUT, 60000).
 
--record(state, {idx,mapcache,mod,modstate,waiting_diffobjs}).
+-record(state, {idx,mapcache,mod,modstate,waiting_diffobjs,config}).
 
 start(Idx) ->
     gen_fsm:start(?MODULE, [Idx], []).
@@ -31,7 +31,7 @@ init([VNodeIndex]) ->
     Mod = riak:get_app_env(storage_backend),
     Configuration = riak:get_app_env(),
     {ok, ModState} = Mod:start(VNodeIndex, Configuration),
-    StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState},
+    StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState, config=Configuration},
     {next_state, StateName, StateData, Timeout} = hometest(StateData0),
     {ok, StateName, StateData, Timeout}.
 
@@ -217,7 +217,10 @@ active({get, FSM_pid, BKey, ReqID}, StateData) ->
     {next_state,active,StateData,?TIMEOUT};
 active({vnode_merkle, {RemoteVN,Merkle,ObjList}}, StateData) ->
     Me = self(),
-    spawn(fun() -> do_merkle(Me,RemoteVN,Merkle,ObjList,StateData) end),
+    spawn(fun() ->
+                  {ok, ModStateNew} = (StateData#state.mod):start(StateData#state.idx, StateData#state.config),
+                  do_merkle(Me,RemoteVN,Merkle,ObjList,StateData#state { modstate = ModStateNew })
+          end),
     {next_state,active,StateData,?TIMEOUT};
 active({list_bucket, FSM_pid, Bucket, ReqID},
        StateData=#state{mod=Mod,modstate=ModState,idx=Idx}) ->
