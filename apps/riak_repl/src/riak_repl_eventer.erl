@@ -4,6 +4,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 -export([subscribe/1, unsubscribe/1]).
+-export([purge_handlers/0]).
 -record(state, {subs, monrefs, client}).
 
 start_link() ->
@@ -89,11 +90,15 @@ match_guard() ->
 
 start_eventer() ->
     {ok, Client} = riak:local_client(),
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
-    purge_handlers(get_handlers(Ring), Client),
+    purge_handlers(),
     EventerName = "Replication Eventer",
     Client:add_event_handler(self(), EventerName, match_head(), match_guard()),
     Client.
+
+purge_handlers() ->
+    {ok, Client} = riak:local_client(),
+    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    purge_handlers(get_handlers(Ring), Client).
 
 purge_handlers([], _Client) -> ok;
 purge_handlers([{handler, _Id, _Name, Pid, MH, MG}|T], Client) ->
