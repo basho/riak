@@ -115,4 +115,6 @@ code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 convert_input(I={{_B,_K},_D})
   when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> I;
 convert_input(I={_B,_K})
-  when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> {I,undefined}.
+  when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> {I,undefined};
+convert_input([B,K]) when is_binary(B), is_binary(K) -> {{B,K},undefined};
+convert_input([B,K,D]) when is_binary(B), is_binary(K) -> {{B,K},D}.
