@@ -17,7 +17,7 @@ parse_inputs([[Bucket, Key]|T], Accum) when is_binary(Bucket),
     parse_inputs(T, [{Bucket, Key}|Accum]);
 parse_inputs([[Bucket, Key, KeyData]|T], Accum) when is_binary(Bucket),
                                                       is_binary(Key) ->
-    parse_inputs(T, [{Bucket, Key, KeyData}|Accum]);
+    parse_inputs(T, [{{Bucket, Key}, KeyData}|Accum]);
 parse_inputs(_, _Accum) ->
     error.
 
