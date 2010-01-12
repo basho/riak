@@ -31,7 +31,7 @@ parse_query([], Accum) ->
         true ->
             error
     end;
-parse_query([{struct, Type, {struct, StepDef}}|T], Accum) when Type =:= <<"map">>;
+parse_query([{struct, [{Type, {struct, StepDef}}]}|T], Accum) when Type =:= <<"map">>;
                                                                Type =:= <<"reduce">> ->
     StepType = case Type of
                    <<"map">> -> map;
