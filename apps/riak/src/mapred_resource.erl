@@ -7,10 +7,10 @@
 -include_lib("webmachine/include/webmachine.hrl").
 
 -define(QUERY_TOKEN, <<"query">>).
--define(TARGETS_TOKEN, <<"targets">>).
+-define(INPUTS_TOKEN, <<"inputs">>).
 -define(DEFAULT_TIMEOUT, 30000).
 
--record(state, {client, targets, mrquery}).
+-record(state, {client, inputs, mrquery}).
 
 init(_) ->
     {ok, undefined}.
@@ -33,7 +33,6 @@ malformed_request(RD, State) ->
                                       {true, State};
                                   Body ->
                                       {Verified, State1} = verify_body(Body, State),
-                                      io:format("Verified: ~p~nState:~p~n", [Verified, State1]),
                                       {not(Verified), State1}
                               end,
     {IsMalformed, RD, NewState}.
@@ -45,19 +44,19 @@ content_types_provided(RD, State) ->
 nop(_RD, _State) ->
     ok.
 
-process_post(RD, #state{targets=Targets, mrquery=Query}=State) ->
+process_post(RD, #state{inputs=Inputs, mrquery=Query}=State) ->
     Me = self(),
     {ok, Client} = riak:local_client(),
     case wrq:get_qs_value("chunked", RD) of
         "true" ->
             {ok, {ReqId, FSM}} = Client:mapred_stream(Query, Me, ?DEFAULT_TIMEOUT),
-            gen_fsm:send_event(FSM,{input, Targets }),
+            gen_fsm:send_event(FSM,{input, Inputs }),
             gen_fsm:send_event(FSM,input_done),
             RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
             {true, wrq:set_resp_body({stream, stream_mapred_results(RD1, ReqId)}, RD1), State};
         Param when Param =:= "false";
                    Param =:= undefined ->
-            case Client:mapred(Targets, Query) of
+            case Client:mapred(Inputs, Query) of
                 {ok, Result} ->
                     RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
                     {true, wrq:set_resp_body(mochijson2:encode(Result), RD1), State};
@@ -94,15 +93,15 @@ stream_mapred_results(RD, ReqId) ->
 verify_body(Body, State) ->
     case mochijson2:decode(Body) of
         {struct, MapReduceDesc} ->
-            Targets = proplists:get_value(?TARGETS_TOKEN, MapReduceDesc),
+            Inputs = proplists:get_value(?INPUTS_TOKEN, MapReduceDesc),
             Query = proplists:get_value(?QUERY_TOKEN, MapReduceDesc),
-            case not(Targets =:= undefined) andalso not(Query =:= undefined) of
+            case not(Inputs =:= undefined) andalso not(Query =:= undefined) of
                 true ->
-                    case riak_mapred_json:parse_targets(Targets) of
-                        {ok, ParsedTargets} ->
+                    case riak_mapred_json:parse_inputs(Inputs) of
+                        {ok, ParsedInputs} ->
                             case riak_mapred_json:parse_query(Query) of
                                 {ok, ParsedQuery} ->
-                                    {true, State#state{targets=ParsedTargets, mrquery=ParsedQuery}};
+                                    {true, State#state{inputs=ParsedInputs, mrquery=ParsedQuery}};
                                 error ->
                                     {false, State}
                             end;

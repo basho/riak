@@ -1,24 +1,24 @@
 -module(riak_mapred_json).
 
--export([parse_targets/1, parse_query/1]).
+-export([parse_inputs/1, parse_query/1]).
 
-parse_targets(Targets) ->
-    parse_targets(Targets, []).
+parse_inputs(Targets) ->
+    parse_inputs(Targets, []).
 
-parse_targets([], Accum) ->
+parse_inputs([], Accum) ->
     if
         length(Accum) > 0 ->
             {ok, lists:reverse(Accum)};
         true ->
             error
     end;
-parse_targets([[Bucket, Key]|T], Accum) when is_binary(Bucket),
+parse_inputs([[Bucket, Key]|T], Accum) when is_binary(Bucket),
                                              is_binary(Key) ->
-    parse_targets(T, [{Bucket, Key}|Accum]);
-parse_targets([[Bucket, Key, KeyData]|T], Accum) when is_binary(Bucket),
+    parse_inputs(T, [{Bucket, Key}|Accum]);
+parse_inputs([[Bucket, Key, KeyData]|T], Accum) when is_binary(Bucket),
                                                       is_binary(Key) ->
-    parse_targets(T, [{Bucket, Key, KeyData}|Accum]);
-parse_targets(_, _Accum) ->
+    parse_inputs(T, [{Bucket, Key, KeyData}|Accum]);
+parse_inputs(_, _Accum) ->
     error.
 
 parse_query(Query) ->
