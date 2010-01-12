@@ -48,34 +48,37 @@ nop(_RD, _State) ->
 process_post(RD, #state{targets=Targets, mrquery=Query}=State) ->
     Me = self(),
     {ok, Client} = riak:local_client(),
-    {ok, {ReqId, FSM}} = Client:mapred_stream(Query, Me, ?DEFAULT_TIMEOUT),
-    gen_fsm:send_event(FSM,{input, Targets }),
-    gen_fsm:send_event(FSM,input_done),
-    RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
-    {true, wrq:set_resp_body({stream, stream_mapred_results(RD1, ReqId)}, RD1), State}.
+    case wrq:get_qs_value("chunked", RD) of
+        "true" ->
+            {ok, {ReqId, FSM}} = Client:mapred_stream(Query, Me, ?DEFAULT_TIMEOUT),
+            gen_fsm:send_event(FSM,{input, Targets }),
+            gen_fsm:send_event(FSM,input_done),
+            RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
+            {true, wrq:set_resp_body({stream, stream_mapred_results(RD1, ReqId)}, RD1), State};
+        Param when Param =:= "false";
+                   Param =:= undefined ->
+            case Client:mapred(Targets, Query) of
+                {ok, Result} ->
+                    RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
+                    {true, wrq:set_resp_body(mochijson2:encode(Result), RD1), State};
+                Error ->
+                    error_logger:error_report(Error),
+                    {false, RD, State}
+            end
+    end.
 
 %% Internal functions
 stream_mapred_results(RD, ReqId) ->
     receive
         {ReqId, done} -> {<<"">>, done};
         {ReqId, {mr_results, Res}} ->
-            Body = case is_proplist(Res) of
-                       true ->
-                           mochijson2:encode({struct, Res});
-                       false ->
-                           mochijson2:encode(Res)
-                   end,
+            Body = mochijson2:encode(Res),
             {iolist_to_binary(Body), fun() -> stream_mapred_results(RD, ReqId) end};
         WTF ->
             io:format("WTF: ~p~n", [WTF])
     after ?DEFAULT_TIMEOUT ->
             {error, timeout}
     end.
-
-is_proplist([H|_]) when is_tuple(H) andalso size(H) == 2 ->
-    true;
-is_proplist(_) ->
-    false.
 
 verify_body(Body, State) ->
     case mochijson2:decode(Body) of
