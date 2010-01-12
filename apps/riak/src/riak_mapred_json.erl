@@ -2,7 +2,7 @@
 
 -export([parse_targets/1, parse_query/1]).
 
-parse_targets({struct, Targets}) ->
+parse_targets(Targets) ->
     parse_targets(Targets, []).
 
 parse_targets([], Accum) ->
@@ -12,11 +12,14 @@ parse_targets([], Accum) ->
         true ->
             error
     end;
-parse_targets([{Bucket, Key}|T], Accum) when is_binary(Bucket),
+parse_targets([{struct, [{Bucket, Keys}]}|T], Accum) when is_binary(Bucket),
+                                                          is_list(Keys) ->
+    parse_targets(T, [{Bucket, Keys}|Accum]);
+parse_targets([{struct, [{Bucket, Key}]}|T], Accum) when is_binary(Bucket),
                                                          is_binary(Key) ->
     parse_targets(T, [{Bucket, Key}|Accum]);
-parse_targets([Bucket|T], Accum) when is_binary(Bucket) ->
-    parse_targets(T, [Bucket|Accum]).
+parse_targets(_, _Accum) ->
+    error.
 
 parse_query(Query) ->
     parse_query(Query, []).

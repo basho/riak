@@ -1,7 +1,8 @@
 -module(mapred_resource).
 
 -export([init/1, service_available/2, allowed_methods/2]).
--export([malformed_request/2, process_post/2]).
+-export([malformed_request/2, process_post/2, content_types_provided/2]).
+-export([nop/2]).
 
 -include_lib("webmachine/include/webmachine.hrl").
 
@@ -37,15 +38,21 @@ malformed_request(RD, State) ->
                               end,
     {IsMalformed, RD, NewState}.
 
+content_types_provided(RD, State) ->
+    {[{"application/json", nop}], RD, State}.
+
+%% This should never get called
+nop(_RD, _State) ->
+    ok.
+
 process_post(RD, #state{targets=Targets, mrquery=Query}=State) ->
-    io:format("Processing body~n"),
     Me = self(),
     {ok, Client} = riak:local_client(),
     {ok, {ReqId, FSM}} = Client:mapred_stream(Query, Me, ?DEFAULT_TIMEOUT),
     gen_fsm:send_event(FSM,{input, Targets }),
     gen_fsm:send_event(FSM,input_done),
-    wrq:set_resp_header("Content-Type", "application/json", RD),
-    {true, wrq:set_resp_body({stream, stream_mapred_results(RD, ReqId)}, RD), State}.
+    RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
+    {true, wrq:set_resp_body({stream, stream_mapred_results(RD1, ReqId)}, RD1), State}.
 
 %% Internal functions
 stream_mapred_results(RD, ReqId) ->

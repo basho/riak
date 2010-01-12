@@ -92,10 +92,8 @@ mapred_stream(Query,ClientPid,Timeout)
   when is_list(Query), is_pid(ClientPid),
        (is_integer(Timeout) orelse Timeout =:= infinity) ->
     ReqId = mk_reqid(),
-    io:format("before~n"),
     {ok, MR_FSM} = rpc:call(Node, riak_mapreduce_fsm, start,
                             [ReqId,Query,Timeout,ClientPid]),
-    io:format("after~n"),
     {ok, {ReqId, MR_FSM}}.
 
 mapred_bucket_stream(Bucket, Query, ClientPid) ->
