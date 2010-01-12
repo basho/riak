@@ -68,14 +68,16 @@ process_post(RD, #state{targets=Targets, mrquery=Query}=State) ->
     end.
 
 %% Internal functions
-send_error({error, Message}=Error, RD) when is_atom(Message);
-                                            is_binary(Message),
-                                            is_list(Message) ->
+send_error(Error, RD)  ->
     RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
-    wrq:set_resp_body(mochijson2:encode({struct, [Error]}), RD1);
-send_error(_Error, RD) ->
-    RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
-    wrq:set_resp_body(mochijson2:encode({struct, [{error, map_reduce_error}]}), RD1).
+    wrq:set_resp_body(format_error(Error), RD1).
+
+format_error({error, Message}=Error) when is_atom(Message);
+                                    is_binary(Message),
+                                    is_list(Message) ->
+    mochijson2:encode({struct, [Error]});
+format_error(_Error) ->
+    mochijson2:encode({struct, [{error, map_reduce_error}]}).
 
 stream_mapred_results(RD, ReqId) ->
     receive
@@ -83,10 +85,10 @@ stream_mapred_results(RD, ReqId) ->
         {ReqId, {mr_results, Res}} ->
             Body = mochijson2:encode(Res),
             {iolist_to_binary(Body), fun() -> stream_mapred_results(RD, ReqId) end};
-        {ReqId, {error, _}} ->
-            {<<"">>, done}
+        {ReqId, {error, _}=Error} ->
+            {format_error(Error), done}
     after ?DEFAULT_TIMEOUT ->
-            {<<"">>, done}
+            {format_error({error, timeout}), done}
     end.
 
 verify_body(Body, State) ->
