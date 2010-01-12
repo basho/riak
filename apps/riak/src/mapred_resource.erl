@@ -63,8 +63,7 @@ process_post(RD, #state{targets=Targets, mrquery=Query}=State) ->
                     {true, wrq:set_resp_body(mochijson2:encode(Result), RD1), State};
                 Error ->
                     error_logger:error_report(Error),
-                    send_error(Error, RD),
-                    {halt, 500}
+                    {{halt, 500}, send_error(Error, RD), State}
             end
     end.
 
