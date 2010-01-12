@@ -45,7 +45,7 @@ invoke_map(JsCtx, CSums, Args, undefined, FunName, F) ->
                            end,
     case Continue of
         ok ->
-            case js:call(JsCtx, FunName, [Args]) of
+            case js:call(JsCtx, FunName, Args) of
                 {ok, _} ->
                     case js:call(JsCtx, <<"Riak.getResults">>, []) of
                         {ok, Results} ->
