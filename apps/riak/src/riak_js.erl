@@ -18,13 +18,8 @@ init_context(Ctx) ->
 invoke_map(JsCtx, CSums, Args, Class, FunName, undefined) when Class =:= <<"Riak">> ->
     RealFunName = list_to_binary([Class, <<".">>, FunName]),
     case js:call(JsCtx, RealFunName, Args) of
-        {ok, _} ->
-            case js:call(JsCtx, <<"Riak.getResults">>, []) of
-                {ok, Results} ->
-                    {Results, CSums};
-                Error ->
-                    {Error, CSums}
-            end;
+        {ok, Results} ->
+            {Results, CSums};
         Error ->
             {Error, CSums}
     end;
@@ -46,13 +41,8 @@ invoke_map(JsCtx, CSums, Args, undefined, FunName, F) ->
     case Continue of
         ok ->
             case js:call(JsCtx, FunName, Args) of
-                {ok, _} ->
-                    case js:call(JsCtx, <<"Riak.getResults">>, []) of
-                        {ok, Results} ->
-                            {Results, NewCSums};
-                        Err ->
-                            {Err, CSums}
-                    end;
+                {ok, Results} ->
+                    {Results, NewCSums};
                 Err ->
                     {Err, CSums}
             end;
