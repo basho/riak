@@ -25,12 +25,12 @@ do_map({map,FunTerm,Arg,_Acc}, BKey, Mod, ModState, KeyData, MapState, Cache, VN
 
 build_key({modfun, CMod, CFun}, Arg, KeyData) ->
     {CMod, CFun, Arg, KeyData};
+build_key({jsfun, FunName}, Arg, KeyData) ->
+    {FunName, Arg, KeyData};
 build_key(_, _, _) ->
     no_key.
 
 cache_fetch({qfun, _}, _BKey, _CacheKey, _MapState) ->
-    not_cached;
-cache_fetch({jsfun, _}, _BKey, _CacheKey, _MapState) ->
     not_cached;
 cache_fetch({jsanon, _}, _BKey, _CacheKey, _MapState) ->
     not_cached;
@@ -42,7 +42,10 @@ cache_fetch({modfun, _CMod, _CFun}, BKey, CacheKey, Cache) ->
                 error -> not_cached;
                 {ok,CVal} -> CVal
             end
-    end.
+    end;
+%% TODO: Cache jsfun results, too
+cache_fetch({jsfun, _FunName}, _BKey, _CacheKey, _Cache) ->
+    not_cached.
 
 uncached_map(BKey, Mod, ModState, MapState, FunTerm, Arg, KeyData, VNode) ->
     riak_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
@@ -64,6 +67,8 @@ exec_map(V, #jsenv{ctx=JsCtx, csums=CSums}=MapState, FunTerm, Arg, BKey, KeyData
                                         {Retval, _} = riak_js:invoke_map(JsCtx, CSums, [extract_values(V), KeyData, Arg],
                                                                          <<"Riak">>, F, undefined),
                                         {Retval, MapState};
+                                    {jsanon, {Bucket, Key}} ->
+                                        exec_map(V, MapState, {jsanon, riak_js:fetch_fun(Bucket, Key)}, Arg, BKey, KeyData, VNode);
                                     {jsanon, F} ->
                                         {Retval, NewCSums} = riak_js:invoke_map(JsCtx, CSums, [extract_values(V), KeyData, Arg],
                                                                                 undefined, <<"riakMapper">>, F),

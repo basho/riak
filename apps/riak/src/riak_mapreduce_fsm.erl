@@ -75,6 +75,7 @@ init([ReqId,Query,Timeout,Client]) ->
                                ring=Ring,input_done=false},
             {ok,wait,StateData,Timeout};
         {bad_qterm, QTerm} ->
+            io:format("Bad term: ~p~n", [QTerm]),
             riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done,
                                 {error, {bad_qterm, QTerm}}),
             Client ! {ReqId, {error, {bad_qterm, QTerm}}},
@@ -105,6 +106,9 @@ check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest])
                                 false -> {bad_qterm, QTerm};
                                 true -> check_query_syntax(Rest)
                             end;
+                        {jsanon, {Bucket, Key}} when is_binary(Bucket),
+                                                     is_binary(Key) ->
+                            check_query_syntax(Rest);
                         {jsanon, JF_F} when is_binary(JF_F) ->
                             check_query_syntax(Rest);
                         {jsfun, JF_F} when is_binary(JF_F) ->

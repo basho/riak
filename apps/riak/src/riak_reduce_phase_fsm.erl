@@ -46,17 +46,19 @@ wait(timeout, StateData=#state{next_fsm=NextFSM,done=Done,
                 {NewReduced, NewCSums} = case FunTerm of
                                              {qfun,F} -> {F(Reduced,Arg), CSums};
                                              {modfun,M,F} -> {M:F(Reduced,Arg), CSums};
+                                             {jsanon, {Bucket, Key}} ->
+                                                 Source = riak_js:fetch_fun(Bucket, Key),
+                                                 riak_js:invoke_reduce(JsCtx, CSums, [Reduced, Arg], undefined,
+                                                                       <<"riakReducer">>, Source);
                                              {jsanon, F} ->
-                                                 {Retval, CSums1} = riak_js:invoke_reduce(JsCtx, CSums,
-                                                                                          [Reduced, Arg], undefined, <<"riakReducer">>, F),
-                                                 {Retval, CSums1};
+                                                 riak_js:invoke_reduce(JsCtx, CSums,
+                                                                       [Reduced, Arg], undefined, <<"riakReducer">>, F);
                                              {jsfun, F} ->
                                                  {Retval, _} = riak_js:invoke_reduce(JsCtx, CSums, [Reduced, Arg],
                                                                                      <<"Riak">>, F, undefined),
                                                  {Retval, CSums}
                                              end,
-                {{next_state, wait, StateData#state{reduced=NewReduced, csums=NewCSums}},
-                 NewReduced}
+                {{next_state, wait, StateData#state{reduced=NewReduced, csums=NewCSums}}, NewReduced}
             catch C:R ->
                     Reason = {C, R, erlang:get_stacktrace()},
                     case NextFSM of

@@ -1,6 +1,7 @@
 -module(riak_js).
 
 -export([new_context/0, init_context/1, invoke_map/6, invoke_reduce/6]).
+-export([fetch_fun/2]).
 
 new_context() ->
     js_driver:new({?MODULE, init_context}).
@@ -101,6 +102,18 @@ needs_defining(CSums, FunName, CSum) ->
         {ok, OldCSum} ->
             not(OldCSum =:= CSum)
     end.
+
+fetch_fun(Bucket, Key) ->
+    {ok, Client} = riak:local_client(),
+    Source = case Client:get(Bucket, Key) of
+                 {ok, Obj} ->
+                     riak_object:get_value(Obj);
+                 Error ->
+                     error_logger:error_report(Error),
+                     <<>>
+                         end,
+    Client:stop(),
+    Source.
 
 %% Internal functions
 priv_dir() ->

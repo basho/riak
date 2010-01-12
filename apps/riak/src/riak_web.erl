@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 %% @doc Convenience functions for setting up the Jiak HTTP interface
 %%      of Riak.  This module loads parameters from the application
@@ -49,6 +49,8 @@ config() ->
 dispatch_table() ->
     JiakProps = jiak_props(),
     RawProps = raw_props(),
+    MapredProps = mapred_props(),
+
     [{[proplists:get_value(jiak_name, JiakProps),bucket],
       jiak_resource,
       [{key_type, container}|JiakProps]},
@@ -63,7 +65,10 @@ dispatch_table() ->
      {[proplists:get_value(prefix, RawProps),bucket,key],
       raw_http_resource, RawProps},
      {[proplists:get_value(prefix, RawProps),bucket,key,'*'],
-      raw_link_walker_resource, RawProps}].
+      raw_link_walker_resource, RawProps},
+
+     {[proplists:get_value(prefix, MapredProps)],
+      mapred_resource, MapredProps}].
 
 jiak_props() ->
     [{jiak_name, riak:get_app_env(jiak_name, "jiak")},
@@ -73,3 +78,6 @@ jiak_props() ->
 raw_props() ->
     [{prefix, riak:get_app_env(raw_name, "raw")},
      {riak, local}].
+
+mapred_props() ->
+    [{prefix, riak:get_app_env(mapred_name, "mapred")}].
