@@ -22,6 +22,7 @@
 -author('Bryan Fink <bryan@basho.com>').
 
 -export([dispatch/2, dispatch/3]).
+-include_lib("eunit/include/eunit.hrl").
 
 -define(SEPARATOR, $\/).
 -define(MATCH_ALL, '*').
@@ -201,3 +202,195 @@ reconstitute(UnmatchedTokens) -> string:join(UnmatchedTokens, [?SEPARATOR]).
 calculate_app_root(1) -> ".";
 calculate_app_root(N) when N > 1 ->
     string:join(lists:duplicate(N, ".."), [?SEPARATOR]).
+
+%%
+%% TEST
+%%
+
+app_root_test() ->
+    ?assertEqual(".",           calculate_app_root(1)),
+    ?assertEqual("../..",       calculate_app_root(2)),
+    ?assertEqual("../../..",    calculate_app_root(3)),
+    ?assertEqual("../../../..", calculate_app_root(4)).
+
+reconstitute_test() ->
+    ?assertEqual("",            reconstitute([])),
+    ?assertEqual("foo",         reconstitute(["foo"])),
+    ?assertEqual("foo/bar",     reconstitute(["foo","bar"])),
+    ?assertEqual("foo/bar/baz", reconstitute(["foo","bar","baz"])).
+
+split_host_test() ->
+    ?assertEqual(["foo","bar","baz"], split_host("foo.bar.baz")).
+
+split_host_port_test() ->
+    ?assertEqual({[], 80}, split_host_port("")),
+    ?assertEqual({["foo","bar","baz"], 80},
+                 split_host_port("foo.bar.baz:80")),
+    ?assertEqual({["foo","bar","baz"], 1234},
+                 split_host_port("foo.bar.baz:1234")).
+
+%% port binding
+bind_port_simple_match_test() ->
+    ?assertEqual({ok, []}, bind_port(80, 80, [])),
+    ?assertEqual({ok, [{foo, bar}]},
+                 bind_port(1234, 1234, [{foo, bar}])).
+
+bind_port_matchall_test() ->
+    ?assertEqual({ok, []}, bind_port('*', 80, [])),
+    ?assertEqual({ok, [{foo, bar}]},
+                 bind_port('*', 1234, [{foo, bar}])).
+
+bind_port_match_test() ->
+    ?assertEqual({ok, [{foo, 80}]}, bind_port(foo, 80, [])),
+    {ok, WholeBinding} = bind_port(foo, 1234, [{bar, baz}]),
+    ?assertEqual(2, length(WholeBinding)),
+    ?assertEqual(1234, proplists:get_value(foo, WholeBinding)),
+    ?assertEqual(baz, proplists:get_value(bar, WholeBinding)).
+
+ind_port_fail_test() ->
+    ?assertEqual(fail, bind_port(80, 1234, [])).
+
+%% path binding
+
+bind_path_empty_test() ->
+    ?assertEqual({ok, [], [], 0}, bind([], [], [], 0)),
+    ?assertEqual({ok, [], [{x,"a"}], 1},
+                 bind([], [], [{x,"a"}], 1)).
+
+bind_path_matchall_test() ->
+    ?assertEqual({ok, [], [], 1},
+                 bind(['*'], [], [], 1)),
+    ?assertEqual({ok, ["a","b"], [], 2},
+                 bind(['*'], ["a","b"], [], 0)).
+
+bind_path_fail_longer_match_test() ->
+    ?assertEqual(fail, bind(["x"], [], [], 0)),
+    ?assertEqual(fail, bind([foo], [], [], 0)).
+
+bind_path_with_binding_test() ->
+    ?assertEqual({ok, [], [{foo, "a"}], 1},
+                 bind([foo], ["a"], [], 0)),
+    {ok, Rest, Bind, Depth} = bind([foo,'*'], ["a","b"], [{bar, baz}], 1),
+    ?assertEqual(["b"], Rest),
+    ?assertEqual(3, Depth),
+    ?assertEqual(2, length(Bind)),
+    ?assertEqual("a", proplists:get_value(foo, Bind)),
+    ?assertEqual(baz, proplists:get_value(bar, Bind)).
+
+bind_path_string_match_test() ->
+    ?assertEqual({ok, [], [], 1},
+                 bind(["a"], ["a"], [], 0)),
+    ?assertEqual({ok, [], [{foo, bar}], 4},
+                 bind(["a","b","c"], ["a","b","c"], [{foo, bar}], 1)).
+
+bind_path_string_fail_test() ->
+    ?assertEqual(fail, bind(["a"], ["b"], [], 0)),
+    ?assertEqual(fail, bind(["a","b"], ["a","c"], [], 0)).
+
+try_path_matching_test() ->
+    ?assertEqual({bar, baz, [], [], ".", ""},
+                 try_path_binding([{["foo"], bar, baz}], ["foo"], [], 0)),
+    Dispatch = [{["a", x], foo, bar},
+                {["b", y], baz, quux},
+                {["b", y, '*'], baz2, quux2}],
+    ?assertEqual({foo, bar, [], [{x, "c"}], "../..", []},
+                 try_path_binding(Dispatch, ["a","c"], [], 0)),
+    ?assertEqual({baz, quux, [], [{y, "c"}], "../..", []},
+                 try_path_binding(Dispatch, ["b","c"], [], 0)),
+    ?assertEqual({baz2, quux2, ["z"], [{y, "c"}], "../../..", "z"},
+                 try_path_binding(Dispatch, ["b","c","z"], [], 0)),
+    ?assertEqual({baz2, quux2, ["z","v"], [{y, "c"}], "../../../..", "z/v"},
+                 try_path_binding(Dispatch, ["b","c","z","v"], [], 0)).
+
+try_path_failing_test() ->
+    ?assertEqual({no_dispatch_match, ["a"]},
+                 try_path_binding([{["b"], x, y}], ["a"], [], 0)).
+
+%% host binding
+
+try_host_binding_nohosts_test() ->
+    PathDispatches = [{["a"], foo, bar},
+                      {["b"], baz, quux}],
+    ?assertEqual(try_host_binding([{{['*'],'*'},PathDispatches}],
+                                  ["quux","baz"], 80, ["a"], 0),
+                 try_host_binding(PathDispatches,
+                                  ["quux","baz"], 80, ["a"], 0)),
+    ?assertEqual(try_host_binding([{{['*'],'*'},PathDispatches}],
+                                  ["quux","baz"], 80, ["b"], 0),
+                 try_host_binding(PathDispatches,
+                                  ["quux","baz"], 80, ["b"], 0)),
+    ?assertEqual(try_host_binding([ {{['*'],'*'},[D]} || D <- PathDispatches],
+                                  ["quux","baz"], 1234, ["a"], 0),
+                 try_host_binding(PathDispatches,
+                                  ["quux","baz"], 1234, ["a"], 0)),
+    ?assertEqual(try_host_binding([ {{['*'],'*'},[D]} || D <- PathDispatches],
+                                  ["quux","baz"], 1234, ["b"], 0),
+                 try_host_binding(PathDispatches,
+                                  ["quux","baz"], 1234, ["b"], 0)).
+
+try_host_binding_noport_test() ->
+    Dispatch = [{["foo","bar"], [{["a"],x,y}]},
+                {["baz","quux"],[{["b"],z,q}]},
+                {[m,"quux"],    [{["c"],r,s}]},
+                {['*',"quux"],  [{["d"],t,u}]}],
+    ExplicitWildPort = [ {{H, '*'},P} || {H, P} <- Dispatch ],
+    ?assertEqual(try_host_binding(ExplicitWildPort,
+                                  ["bar","foo"], 80, ["a"], 0),
+                 try_host_binding(Dispatch,
+                                  ["bar","foo"], 80, ["a"], 0)),
+    ?assertEqual(try_host_binding(ExplicitWildPort,
+                                  ["quux","baz"], 1234, ["b"], 0),
+                 try_host_binding(Dispatch,
+                                  ["quux","baz"], 1234, ["b"], 0)),
+    ?assertEqual(try_host_binding(ExplicitWildPort,
+                                  ["quux","yes"], 81, ["c"], 0),
+                 try_host_binding(Dispatch,
+                                  ["quux","yes"], 81, ["c"], 0)),
+    ?assertEqual(try_host_binding(ExplicitWildPort,
+                                  ["quux","no"], 82, ["d"], 0),
+                 try_host_binding(Dispatch,
+                                  ["quux","no"], 82, ["d"], 0)).
+
+try_host_binding_fullmatch_test() ->
+    Dispatch = [{{["foo","bar"],80},[{["a"],x,y}]},
+                {{[foo,"bar"],80},  [{["b"],z,q}]},
+                {{[foo,"bar"],baz}, [{["c"],r,s}]},
+                {{['*',"bar"],'*'}, [{["d"],t,u}]}],
+    ?assertEqual({x, y, [], 80, [], [], ".", ""},
+                 try_host_binding(Dispatch,
+                                  ["bar","foo"], 80, ["a"], 0)),
+    ?assertEqual({z, q, [], 80, [], [{foo,"baz"}], ".", ""},
+                 try_host_binding(Dispatch,
+                                  ["bar","baz"], 80, ["b"], 0)),
+    {Mod, Props, HostRemainder, Port, PathRemainder,
+     PathBindings, AppRoot, StringPath}=
+        try_host_binding(Dispatch, ["bar","quux"], 1234, ["c"], 0),
+    ?assertEqual(r, Mod),
+    ?assertEqual(s, Props),
+    ?assertEqual("", HostRemainder),
+    ?assertEqual(1234, Port),
+    ?assertEqual([], PathRemainder),
+    ?assertEqual(2, length(PathBindings)),
+    ?assertEqual("quux", proplists:get_value(foo, PathBindings)),
+    ?assertEqual(1234, proplists:get_value(baz, PathBindings)),
+    ?assertEqual(".", AppRoot),
+    ?assertEqual("", StringPath),
+    ?assertEqual({t, u, ["quux","foo"], 80, [], [], ".", ""},
+                 try_host_binding(Dispatch, ["bar","quux","foo"],80,["d"],0)).
+
+try_host_binding_fail_test() ->
+    ?assertEqual({no_dispatch_match, {["bar","foo"], 1234}, ["x","y","z"]},
+                 try_host_binding([], ["bar","foo"], 1234, ["x","y","z"], 0)).
+
+dispatch_test() ->
+    ?assertEqual({x, y, [], 80, [], [], "../../..", ""},
+                 dispatch("a/b/c",[{["a","b","c"],x,y}])),
+    ?assertEqual({x, y, [], 80, [], [], "../../..", ""},
+                 dispatch("foo.bar", "a/b/c",
+                          [{{["foo","bar"],80},[{["a","b","c"],x,y}]}])),
+    ?assertEqual({x, y, [], 1234, [], [], "../../..", ""},
+                 dispatch("foo.bar:1234", "a/b/",
+                          [{{["foo","bar"],1234},[{["a","b"],x,y}]}])),
+    ?assertEqual({no_dispatch_match, {["bar","baz"],8000}, ["q","r"]},
+                 dispatch("baz.bar:8000", "q/r",
+                          [{{["foo","bar"],80},[{["a","b","c"],x,y}]}])).
