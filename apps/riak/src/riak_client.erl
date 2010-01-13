@@ -65,10 +65,14 @@ mapred(Inputs,Query,Timeout)
   when is_list(Inputs), is_list(Query),
        (is_integer(Timeout) orelse Timeout =:= infinity) ->
     Me = self(),
-    {ok, {ReqId, MR_FSM}} = mapred_stream(Query,Me,Timeout),
-    gen_fsm:send_event(MR_FSM,{input,Inputs}),
-    gen_fsm:send_event(MR_FSM,input_done),
-    collect_mr_results(ReqId, Timeout, []).
+    case mapred_stream(Query,Me,Timeout) of
+        {ok, {ReqId, MR_FSM}} ->
+            gen_fsm:send_event(MR_FSM,{input,Inputs}),
+            gen_fsm:send_event(MR_FSM,input_done),
+            collect_mr_results(ReqId, Timeout, []);
+        Error ->
+            Error
+    end.
 
 %% @spec mapred_stream(Query :: [riak_mapreduce_fsm:mapred_queryterm()],
 %%                     ClientPid :: pid()) ->
@@ -92,9 +96,7 @@ mapred_stream(Query,ClientPid,Timeout)
   when is_list(Query), is_pid(ClientPid),
        (is_integer(Timeout) orelse Timeout =:= infinity) ->
     ReqId = mk_reqid(),
-    {ok, MR_FSM} = rpc:call(Node, riak_mapreduce_fsm, start,
-                            [ReqId,Query,Timeout,ClientPid]),
-    {ok, {ReqId, MR_FSM}}.
+    riak_mapreduce_sup:new_mapreduce_fsm(Node, ReqId, Query, Timeout, ClientPid).
 
 mapred_bucket_stream(Bucket, Query, ClientPid) ->
     mapred_bucket_stream(Bucket, Query, ClientPid, ?DEFAULT_TIMEOUT).

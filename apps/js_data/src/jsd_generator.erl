@@ -14,14 +14,21 @@ proc_count(Last, Accum) ->
     Current = erlang:processes(),
     case diff(Current, Last) of
         [] ->
-            proc_count(Current, Accum);
+            proc_count(Current, display_procs(Accum));
         Procs ->
-            NewAccum = prune(Procs ++ Accum),
-            Info = get_info(NewAccum),
+            proc_count(Current, display_procs(Procs ++ Accum))
+    end.
+
+display_procs(Procs) ->
+    case prune(Procs) of
+        [] ->
+            [];
+        Orphans ->
+            Info = get_info(Orphans),
             lists:foreach(fun({Pid, Mod}) ->
                                   io:format("~p: ~p~n", [Pid, Mod]) end, Info),
-            io:format("~p total orphans~n", [length(NewAccum)]),
-            proc_count(Current, NewAccum)
+            io:format("~p total orphans~n", [length(Orphans)]),
+            Orphans
     end.
 
 prune(Procs) ->
@@ -70,7 +77,7 @@ stress(Client, Count) ->
     %            Values = riak_object:get_value(Obj), [proplists:get_value(avg_sales, V) || V <- Values] end,
     %R = fun(Values, _) ->
     %            lists:sum(Values) / length(Values) end,
-    M = <<"function(values, key_data, arg) { var v = values[0]; v.map(function(value) { Riak.emit(value[\"avg_sales\"]); }); return true;};">>,
+    M = <<"function(values, key_data, arg) { return values.map(function(value) { return value[\"avg_sales\"]; });};">>,
     R = <<"function(values, arg) { var accum = 0; values.map(function(v) { accum = accum + v;}); return accum / values.length; };">>,
     {ok, _} = Client:mapred([{<<"customers">>, <<"customer_list">>}], [{map, {jsanon, M}, none, false},
                                                                        {reduce, {jsanon, R}, none, true}]),
