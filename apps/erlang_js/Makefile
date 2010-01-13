@@ -3,6 +3,7 @@ all:
 
 clean:
 	./rebar clean
+	cd c_src;make jsclean dist
 
 test: all
 	@cd tests;erl -make

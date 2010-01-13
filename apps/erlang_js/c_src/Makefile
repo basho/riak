@@ -38,7 +38,6 @@ dist:
 	@rm -rf deps
 
 jsclean:
-	@rm -rf deps
 	@rm -f *flymake*
 	@rm -f libjs.a libnspr4.a
 	@rm -rf include
