@@ -25,15 +25,9 @@ init([]) ->
     SupFlags = {simple_one_for_one, 0, 1},
     Process = {undefined,
                {gen_fsm, start_link, []},
-               transient, brutal_kill, worker, dynamic},
+               temporary, brutal_kill, worker, dynamic},
     {ok, {SupFlags, [Process]}}.
 
 %% Internal functions
 start_child(ModName, Args) ->
-    case supervisor:start_child(?MODULE, [ModName, Args, []]) of
-        {ok, Pid} ->
-            MRef = erlang:monitor(process, Pid),
-            {ok, MRef, Pid};
-        Error ->
-            Error
-    end.
+  supervisor:start_child(?MODULE, [ModName, Args, []]).

@@ -123,12 +123,14 @@ make_phase_fsms(Query, Ring) ->
     make_phase_fsms(lists:reverse(Query),final,[], Ring).
 make_phase_fsms([], _NextFSM, FSMs, _Ring) -> FSMs;
 make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring) ->
-    PhaseMod = case QTerm of
-        {reduce, _, _, _} -> riak_reduce_phase_fsm;
-        {map, _, _, _} -> riak_map_phase_fsm;
-        {link, _, _, _} -> riak_map_phase_fsm
-    end,
-    {ok, Pid} = PhaseMod:start_link(Ring, QTerm, NextFSM, self()),
+    {ok, Pid} = case QTerm of
+                    {reduce, _, _, _} ->
+                        riak_phase_sup:new_reduce_phase(Ring, QTerm, NextFSM, self());
+                    {map, _, _, _} ->
+                        riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self());
+                    {link, _, _, _} ->
+                        riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self())
+                end,
     make_phase_fsms(Rest,Pid,[Pid|FSMs], Ring).
 
 wait({input,Inputs},
