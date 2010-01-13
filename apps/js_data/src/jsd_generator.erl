@@ -73,14 +73,14 @@ stress(Client, Count) ->
         true ->
             nop
     end,
-    %M = fun(Obj, _, _) ->
-    %            Values = riak_object:get_value(Obj), [proplists:get_value(avg_sales, V) || V <- Values] end,
-    %R = fun(Values, _) ->
-    %            lists:sum(Values) / length(Values) end,
-    M = <<"function(values, key_data, arg) { return values.map(function(value) { return value[\"avg_sales\"]; });};">>,
-    R = <<"function(values, arg) { var accum = 0; values.map(function(v) { accum = accum + v;}); return accum / values.length; };">>,
-    {ok, _} = Client:mapred([{<<"customers">>, <<"customer_list">>}], [{map, {jsanon, M}, none, false},
-                                                                       {reduce, {jsanon, R}, none, true}]),
+    M = fun(Obj, _, _) ->
+                Values = riak_object:get_value(Obj), [proplists:get_value(avg_sales, V) || V <- Values] end,
+    R = fun(Values, _) ->
+                lists:sum(Values) / length(Values) end,
+    %M = <<"function(values, key_data, arg) { return values.map(function(value) { return value[\"avg_sales\"]; });};">>,
+    %R = <<"function(values, arg) { var accum = 0; values.map(function(v) { accum = accum + v;}); return accum / values.length; };">>,
+    {ok, _} = Client:mapred([{<<"customers">>, <<"customer_list">>}], [{map, {qfun, M}, none, false},
+                                                                       {reduce, {qfun, R}, none, true}]),
     stress(Client, Count - 1).
 
 

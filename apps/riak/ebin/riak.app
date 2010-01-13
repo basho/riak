@@ -54,6 +54,7 @@
 			 riak_multi_backend,
              riak_object,
              riak_osmos_backend,
+             riak_phase_proto,
              riak_phase_sup,
              riak_put_fsm,
              riak_reduce_phase_fsm,

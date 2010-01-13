@@ -63,9 +63,9 @@ wait(timeout, StateData=#state{next_fsm=NextFSM,done=Done,
                     Reason = {C, R, erlang:get_stacktrace()},
                     case NextFSM of
                         final -> nop;
-                        _ -> gen_fsm:send_event(NextFSM, die)
+                        _ -> riak_phase_proto:die(NextFSM)
                     end,
-                    gen_fsm:send_event(Coord, {error, self(), Reason}),
+                    riak_phase_proto:error(Coord, Reason),
                     {{stop,normal,StateData},Reduced}
             end
     end,
@@ -75,14 +75,14 @@ wait(timeout, StateData=#state{next_fsm=NextFSM,done=Done,
             case NextFSM of
                 final -> nop;
                 _ ->
-                    gen_fsm:send_event(NextFSM, {input, Red}),
-                    gen_fsm:send_event(NextFSM, done)
+                    riak_phase_proto:input(NextFSM, Red),
+                    riak_phase_proto:done(NextFSM)
             end,
             case Acc of
                 false -> nop;
-                true -> gen_fsm:send_event(Coord, {acc, {list, Red}})
+                true -> riak_phase_proto:phase_results(Coord, Red)
             end,
-            gen_fsm:send_event(Coord, {done, self()}),
+            riak_phase_proto:phase_done(Coord),
             {stop,normal,StateData}
     end;
 wait(done, StateData) ->
@@ -94,7 +94,7 @@ wait(die, StateData=#state{next_fsm=NextFSM}) ->
     riak_eventer:notify(riak_reduce_phase_fsm, die, die),
     case NextFSM of
         final -> nop;
-        _ -> gen_fsm:send_event(NextFSM, die)
+        _ -> riak_phase_proto:die(NextFSM)
     end,
     {stop,normal,StateData}.
 

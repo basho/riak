@@ -37,11 +37,11 @@ wait({mapexec_reply,Reply,MapFSM}, StateData=
     FSMs = lists:delete(MapFSM,FSMs0),
     case NextFSM of
         final -> nop;
-        _ -> gen_fsm:send_event(NextFSM, {input, Reply})
+        _ -> riak_phase_proto:send_inputs(NextFSM, Reply)
     end,
     case Acc of
         false -> nop;
-        true -> gen_fsm:send_event(Coord, {acc, {list, Reply}})
+        true -> riak_phase_proto:phase_results(Coord, Reply)
     end,
     case FSMs =:= [] andalso Done =:= true of
         true ->
@@ -53,10 +53,10 @@ wait({mapexec_reply,Reply,MapFSM}, StateData=
 wait({mapexec_error, _ErrFSM, ErrMsg}, StateData=
      #state{next_fsm=NextFSM,coord=Coord}) ->
     riak_eventer:notify(riak_map_phase_fsm, error, ErrMsg),
-    gen_fsm:send_event(Coord, {error, self(), ErrMsg}),
+    riak_phase_proto:error(Coord, ErrMsg),
     case NextFSM of
         final -> nop;
-        _ -> gen_fsm:send_event(NextFSM, die)
+        _ -> riak_phase_proto:die(NextFSM)
     end,
     {stop,normal,StateData};
 wait(done, StateData=#state{map_fsms=FSMs}) ->
@@ -79,16 +79,16 @@ wait(die, StateData=#state{next_fsm=NextFSM}) ->
     riak_eventer:notify(riak_map_phase_fsm, map_die, die),
     case NextFSM of
         final -> nop;
-        _ -> gen_fsm:send_event(NextFSM, die)
+        _ -> riak_phase_proto:die(NextFSM)
     end,
     {stop,normal,StateData}.
 
 finish(StateData=#state{next_fsm=NextFSM,coord=Coord}) ->
     case NextFSM of
         final -> nop;
-        _ -> gen_fsm:send_event(NextFSM, done)
+        _ -> riak_phase_proto:done(NextFSM)
     end,
-    gen_fsm:send_event(Coord, {done, self()}),
+    riak_phase_proto:phase_done(Coord),
     riak_eventer:notify(riak_map_phase_fsm, map_done, done),
     {stop,normal,StateData}.
 

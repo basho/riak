@@ -137,11 +137,11 @@ wait({input,Inputs},
      StateData=#state{reqid=ReqId,timeout=Timeout,fsms=FSMs}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_got_input,
                         {ReqId, length(Inputs)}),
-    gen_fsm:send_event(hd(FSMs), {input, Inputs}),
+    riak_phase_proto:send_inputs(hd(FSMs), Inputs),
     {next_state, wait, StateData, Timeout};
 wait(input_done, StateData=#state{reqid=ReqId,fsms=FSMs}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_done_input, {ReqId}),
-    gen_fsm:send_event(hd(FSMs), done),
+    riak_phase_proto:done(hd(FSMs)),
     maybe_finish(StateData#state{input_done=true});
 wait({done,FSM}, StateData=#state{fsms=FSMs0}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done_msg, {FSM,FSMs0}),
@@ -150,7 +150,7 @@ wait({done,FSM}, StateData=#state{fsms=FSMs0}) ->
 wait({error, ErrFSM, ErrMsg}, StateData=#state{client=Client,reqid=ReqId,
                                                fsms=FSMs0}) ->
     FSMs = lists:delete(ErrFSM,FSMs0),
-    [gen_fsm:send_event(FSM, die) || FSM <- FSMs],
+    riak_phase_proto:die_all(FSMs),
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done, {error, ReqId}),
     Client ! {ReqId, {error, ErrMsg}},
     {stop,normal,StateData};
