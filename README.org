@@ -172,6 +172,8 @@ Welcome to Riak.
      This file contains the configuration for the Erlang applications
      that run on the Riak server.
 
+   More information about this files is available in doc/basic-setup.txt.
+
 ** Server Control
 *** bin/riak
     This script is the primary interface for starting and stopping the Riak

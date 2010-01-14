@@ -5,6 +5,7 @@ This document explains how to set up a Riak cluster.  It assumes that
 you have already downloaded an successfully built Riak.  For help with
 those steps, please refer to riak/README.
 
+
 Overview
 ---
 
@@ -14,24 +15,60 @@ the common configuration parameters, then describe two typical setups,
 one small, one large.
 
 
-Configuration Format
+Configuration
 ---
 
-Configurations are stored in simple text files.  Users familiar with
-Erlang's file:consult/1 function will recognize the format:
+Configurations are stored in the simple text files vm.args and
+app.config.  Initial versions of these files are stored in the
+rel/overlay/etc/ subdirectory of the riak source tree.  When a release
+is generated, these "overlays" are copied to rel/riak/etc/.
 
-{ParameterName1, Setting1}.
-{ParameterName2, Setting2}.
-...
-
-
-Parameter Descriptions
+vm.args
 ---
 
-Some of the terminology used below is better explained in
+The vm.args configuration file sets the parameters passed on the
+command line to the Erlang VM.  Lines starting with a '#' are
+comments, and are ignored.  The other lines are concatenated and
+passed on the command line verbatim.
+
+Two important parameters to configure here are "-name", the name to
+give the Erlang node running Riak, and "-setcookie", the cookie that
+all Riak nodes need to share in order to communicate.
+
+app.config
+---
+
+The app.config configuration file is formatted as an Erlang VM config
+file.  The syntax is simply:
+
+[
+ {AppName, [
+            {Option1, Value1},
+            {Option2, Value2},
+            ...
+           ]},
+ ...
+].
+
+Normally, this will look something like:
+
+[
+ {riak, [
+         {storage_backend, riak_dets_backend},
+         {riak_dets_backend_root, "data/dets"}
+        ]},
+ {sasl, [
+         {sasl_error_logger, {file, "log/sasl-error.log"}}
+        ]}
+].
+
+This would set the 'storage_backend' and 'riak_dets_backend_root'
+options for the 'riak' application, and the 'sasl_error_logger' option
+for the 'sasl' application.
+
+The following parameters can be used in app.config to configure Riak
+behavior.  Some of the terminology used below is better explained in
 riak/doc/architecture.txt.
-
-The following are the parameters required for Riak to run:
 
 cluster_name: string
   The name of the cluster.  Can be anything.  Used mainly in saving
@@ -41,24 +78,6 @@ gossip_interval: integer
   The period, in milliseconds, at which ring state gossiping will
   happen.  A good default is 60000 (sixty seconds).  Best not to
   change it unless you know what you're doing.
-
-riak_cookie: atom
-  The Erlang cookie for the riak cluster.  All nodes should have the
-  same cookie.
-
-riak_heart_command: string
-  The command that heart should use to restart this node.  This
-  usually takes the form of:
-  "(cd /riak; ./start-restart.sh /riak/config/riak.erlenv)"
-
-riak_hostname: string
-  The host on which this node is running.  This is used to construct
-  the long-name form of the Erlang node.  On a developer machine, this
-  will usually be "127.0.0.1".
-
-riak_nodename: atom
-  The short-name form of the Erlang node.  This is used to construct
-  the long-name form.
 
 ring_creation_size: integer
   The number of partitions to divide the keyspace into.  This can be
@@ -108,50 +127,14 @@ storage_backend: atom
       Defaults to 2048.
 
 
-Small (Developer) Configuration
+Single-node Configuration
 ---
 
-If you're running a very small Riak cluster, in development, for
-example, a simple configuration file may look like this:
-
-{cluster_name, "default"}.
-{ring_state_dir, "priv/ringstate"}.
-{ring_creation_size, 16}.
-{gossip_interval, 60000}.
-{storage_backend, riak_fs_backend}.
-{riak_fs_backend_root, "/var/riak/store"}.
-{riak_cookie, default_riak_cookie}.
-{riak_heart_command,
- "(cd /usr/local/riak; ./start-restart.sh /usr/local/riak/config/riak.erlenv)"}.
-{riak_nodename, riak}.
-{riak_hostname, "127.0.0.1"}.
-
-This configuration assumes that you'll be connecting to the cluster
-from localhost, and that Riak is installed at /usr/local/riak.  The
-cluster will store its data in /var/riak/store.
-
-To start the first node of this cluster:
-
-1. Save the configuration to /usr/local/riak/config/riak.erlenv
-2. cd /usr/local/riak
-3. ./start-fresh.sh config/riak.erlenv
-
-The node will start and background itself.  Your cluster should now be
-ready to accept requests.  See riak/doc/basic-client.txt for simple
-instructions on connecting and storing and fetching data.
-
-It is possible to start more nodes on localhost.  There is little
-reason to do so, other than for testing and Riak development, but it
-is possible.  To do so:
-
-1. cd /usr/local/riak
-2. cp config/riak.erlenv config/riak2.erlenv
-3. Edit riak2.erlenv, and change riak_fs_backend_root
-   and riak_nodename to something unique.
-3. ./start-join config/riak2.erlenv riak@127.0.0.1
-
-That node will also start and background itself.  You cluster will
-still be ready to accept requests, with no further changes.
+If you're running a single Riak node, you likely don't need to change
+any configuration at all.  After compiling and generating the release
+("./rebar compile generate"), simply start Riak from the rel/
+directory.  (Details about the "riak" control script can be found in
+the README.)
 
 
 Large (Production) Configuration
@@ -160,79 +143,103 @@ Large (Production) Configuration
 If you're running any sort of cluster that could be labeled
 "production", "deployment", "scalable", "enterprise", or any other
 word implying that the cluster will be running interminably with
-on-going maintenance, then you will want a bit of a different
-configuration file.  Something like this will work:
+on-going maintenance, then you will want to change configurations a
+bit.  Some recommended changes:
 
-{cluster_name, "default"}.
-{ring_state_dir, "priv/ringstate"}.
-{ring_creation_size, 1024}.
-{gossip_interval, 60000}.
-{storage_backend, riak_fs_backend}.
-{riak_fs_backend_root, "/var/riak/store"}.
-{riak_cookie, default_riak_cookie}.
-{riak_heart_command,
- "(cd /usr/local/riak; ./start-restart.sh /usr/local/riak/config/riak.erlenv)"}.
-{riak_nodename, riak}.
-{riak_hostname, "prod0.domain.net"}.
+* Uncomment the "-heart" line in vm.args.  This will cause the "heart"
+  utility to monitor the Riak node, and restart it if it stops.
 
-Yes, it looks much like the developer configuration.  Two things have
-changed: ring_creation_size and riak_hostname.
+* Change the name of the Riak node in vm.args from riak@127.0.0.1 to
+  riak@VISIBLE.HOSTNAME.  This will allow Riak nodes separate machines
+  to communicate.
 
-ring_creation_size changed because it is expected that you will have
-more nodes into your production cluster.  In order to give some room
-for node addition, this configuration bumped up the partition count so
-that new nodes will have something to claim.
+* Change 'riak_web_ip' in app.config if you'll be accessing that
+  interface from a non-host-local client.
 
-riak_hostname changed because the hosts running the other nodes and
-clients will need something more resolve-able than 127.0.0.1.
+* Consider adding a 'ring_creation_size' entry to app.config, and
+  setting it to a number higher than the default of 64.  More
+  partitions will allow you to add more Riak nodes later, if you need
+  to.
 
-Starting the first node in this cluster is just like starting the
-first node in the dev cluster:
+* Consider changing the 'riak_storage_backend' entry in app.config.
+  Depending on your use case, riak_dets_backend may not be your best
+  choice.
 
-1. Save the configuration to /usr/local/riak/config/riak.erlenv
-2. cd /usr/local/riak
-3. ./start-fresh.sh config/riak.erlenv
+To get the cluster, up and running, first start Riak on each node with
+the usual "riak start" command.  Next, tell each node to join the
+cluster with the riak-admin script:
 
-The node will start and background itself.  Your cluster should now be
-ready to accept requests.  See riak/doc/basic-client.txt for simple
-instructions on connecting and storing and fetching data, though
-you'll need to use an Erlang node name for your client that isn't
-hosted on "127.0.0.1".
+box2$ bin/riak-admin join riak@box1.example.com
+Sent join request to riak@box1.example.com
+
+To check that all nodes have joined the cluster, attach a console to
+any node, and request the ring from the ring manager, then check that
+all nodes are represented:
+
+$ bin/riak attach
+Attaching to /tmp/erlang.pipe.1 (^D to exit)
+(riak@box1.example.com)1> {ok, R} = riak_ring_manager:get_my_ring().
+{ok,{chstate,'riak@box1.example.com',
+...snip...
+(riak@box1.example.com)2> riak_ring:all_members(R).
+['riak@box1.example.com','riak@box2.example.com']
+
+
+Your cluster should now be ready to accept requests.  See
+riak/doc/basic-client.txt for simple instructions on connecting and
+storing and fetching data, though you'll need to use an Erlang node
+name for your client that isn't hosted on "127.0.0.1".
 
 Starting more nodes in production is just as easy:
 
-1. Install Riak on another host.
-2. Copy riak.erlenv from your original host to the new host.
-3. Edit riak.erlenv and change riak_hostname to match the new host.
-4. ./start-join config/riak.erlenv riak@prod0.domain.net
+1. Install Riak on another host, modifying hostnames in configuration
+   files, if necessary.
+2. Start the node with "riak start"
+3. Add the node to the cluster with
+   "riak-admin join ExistingClusterNode"
 
-That node will also start and background itself.  You cluster will
-still be ready to accept requests, with no further changes.
 
-Notice that there is no need to change riak_fs_backend_root, or
-riak_nodename on the new host, because they won't conflict with 
-those settings on the original host, unlike the development configuration.
+Developer Configuration
+---
+
+If you're hacking on Riak, and you need to run multiple nodes on a
+single physical machine, use the "devrel" make command:
+
+$ make devrel
+mkdir dev
+cp -R rel/overlay rel/reltool.config dev
+./rebar compile && cd dev && ../rebar generate
+==> mochiweb (compile)
+==> webmachine (compile)
+==> riak (compile)
+==> dev (generate)
+Generating target specification...
+Constructing release...
+cp -Rn dev/riak dev/dev1
+...snip...
+cp -Rn dev/riak dev/dev2
+...snip...
+cp -Rn dev/riak dev/dev3
+...snip...
+
+This make target creates a release, and then modifies configuration
+files such that each Riak node uses a different Erlang node name
+(riak1-3), web port (8091-3), data directory (dev/dev1-3/data/), etc.
+
+Start each developer node just as you would a regular node, but use
+the 'riak' script in dev/devN/bin/.
 
 
 Logging
 ---
 
-Riak doesn't do any persistent logging in the default configuration.
-Instead, logging can be "enabled" and "disabled" by connecting and
-disconnecting an "eventer".  Eventers are described more fully in
-the riak_eventer module documentation, but this simple steps for starting 
-the default logging eventer are:
+Viewing the activity log of a given riak node is done using the
+riak-admin script.  Just pass it the command "logger", the Erlang node
+name of the Riak node, and the cookie for that node:
 
-1. cd /usr/local/riak
-2. ./start-logger.sh node@hostname cookie filename
-   Filename can be left blank to log to stdout.
-
-This command will start an Erlang node, named riak_logger@localhost,
-that will stay running. It will connect to the cluster through the
-specified node, and attach an eventer to the cluster. The eventer will
-capture all events about the system and either dump them to the provided file,
-or print them to the screen.
-
-Note that it is not recommended that you connect this
-particular logger to an active production cluster, as it generates a
-*lot* of data, and has no provision for things like log file rollover.
+$ riak-admin logger dev1@127.0.0.1 riak
+[13/Jan/2010:14:45:37 -0500]: {riak_connect,send_ring_to,'dev1@127.0.0.1','dev2@127.0.0.1'}
+[13/Jan/2010:14:45:37 -0500]: {riak_ring_manager,write_ringfile,'dev1@127.0.0.1',
+                     <<"data/ring/riak_ring.default.20100113194537">>}
+[13/Jan/2010:14:45:37 -0500]: {riak_connect,changed_ring,'dev2@127.0.0.1',gossip_changed}
+...snip...
