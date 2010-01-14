@@ -61,6 +61,7 @@
              riak_vnode,
              riak_vnode_master,
              riak_web,
+             riakserver_pb,
              slide,
              spiraltime,
              vclock
