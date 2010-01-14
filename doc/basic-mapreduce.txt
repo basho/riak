@@ -25,7 +25,8 @@ queries on it like this:
                           dict:new(),
                           Gcounts)]
            end.
-3> {ok, [R]} = Client:mapred([{groceries, "mine"},{groceries, "yours"}],
+3> {ok, [R]} = Client:mapred([{<<"groceries">>, <<"mine">>},
+                              {<<"groceries">>, <<"yours">>}],
                              [{map, {qfun, Count}, none, false},
                               {reduce, {qfun, Merge}, none, true}]).
 4> L = dict:to_list(R).
@@ -139,11 +140,6 @@ This means a few things to you:
   the Riak node.  This isn't a huge concern for libraries that ship
   with Erlang, but for any of your custom code, you'll need to make
   sure it's loadable.
-
-  The easiest way to get your custom modules in the code path of a
-  Riak node is to symlink your application from riak's "deps"
-  directory.  The node start script (start-fresh.sh, start-join.sh,
-  etc.) automatically adds deps/*/ebin to the code path.
 
 - If you use the {modfun, Module, Function} form of the FunTerm in the
   map/reduce step definition, you'll need to force the Riak nodes to
