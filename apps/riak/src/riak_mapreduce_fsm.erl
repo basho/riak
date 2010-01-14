@@ -75,7 +75,6 @@ init([ReqId,Query,Timeout,Client]) ->
                                ring=Ring,input_done=false},
             {ok,wait,StateData,Timeout};
         {bad_qterm, QTerm} ->
-            io:format("Bad term: ~p~n", [QTerm]),
             riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done,
                                 {error, {bad_qterm, QTerm}}),
             Client ! {ReqId, {error, {bad_qterm, QTerm}}},

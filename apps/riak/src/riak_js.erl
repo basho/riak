@@ -10,8 +10,8 @@ init_context(Ctx) ->
     case load_init_source() of
         {ok, Source} ->
             js:define(Ctx, Source);
-        Error ->
-            Error
+        {error, Error} ->
+            {error, Error}
     end.
 
 
@@ -20,8 +20,8 @@ invoke_map(JsCtx, CSums, Args, Class, FunName, undefined) when Class =:= <<"Riak
     case js:call(JsCtx, RealFunName, Args) of
         {ok, Results} ->
             {Results, CSums};
-        Error ->
-            {Error, CSums}
+        {error, Error} ->
+            {{error, Error}, CSums}
     end;
 
 invoke_map(JsCtx, CSums, Args, undefined, FunName, F) ->
@@ -32,8 +32,8 @@ invoke_map(JsCtx, CSums, Args, undefined, FunName, F) ->
                                    case js:define(JsCtx, F1) of
                                        ok ->
                                            {ok, dict:store(FunName, MD5, CSums)};
-                                       Error ->
-                                           {Error, CSums}
+                                       {error, Error} ->
+                                           {{error, Error}, CSums}
                                    end;
                                false ->
                                    {ok, CSums}
@@ -43,8 +43,8 @@ invoke_map(JsCtx, CSums, Args, undefined, FunName, F) ->
             case js:call(JsCtx, FunName, Args) of
                 {ok, Results} ->
                     {Results, NewCSums};
-                Err ->
-                    {Err, CSums}
+                {error, Err} ->
+                    {{error, Err}, CSums}
             end;
         Err ->
             {Err, CSums}
@@ -55,8 +55,8 @@ invoke_reduce(JsCtx, CSums, Args, Class, FunName, undefined) when Class =:= <<"R
     case js:call(JsCtx, RealFunName, Args) of
         {ok, Results} ->
             {Results, CSums};
-        Error ->
-            {Error, CSums}
+        {error, Error} ->
+            {{error, Error}, CSums}
     end;
 
 invoke_reduce(JsCtx, CSums, Args, undefined, FunName, F) ->
@@ -67,8 +67,8 @@ invoke_reduce(JsCtx, CSums, Args, undefined, FunName, F) ->
                                    case js:define(JsCtx, F1) of
                                        ok ->
                                            {ok, dict:store(FunName, MD5, CSums)};
-                                       Error ->
-                                           {Error, CSums}
+                                       {error, Error} ->
+                                           {{error, Error}, CSums}
                                    end;
                                false ->
                                    {ok, CSums}
@@ -98,7 +98,7 @@ fetch_fun(Bucket, Key) ->
     Source = case Client:get(Bucket, Key) of
                  {ok, Obj} ->
                      riak_object:get_value(Obj);
-                 Error ->
+                 {error, Error} ->
                      error_logger:error_report(Error),
                      <<>>
                          end,
