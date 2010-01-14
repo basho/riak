@@ -31,28 +31,56 @@ parse_query([], Accum) ->
         true ->
             error
     end;
-parse_query([{struct, [{Type, {struct, StepDef}}]}|T], Accum) when Type =:= <<"map">>;
-                                                               Type =:= <<"reduce">> ->
+parse_query([{struct, [{Type, {struct, StepDef}}]}|T], Accum)
+  when Type =:= <<"map">>; Type =:= <<"reduce">>; Type =:= <<"link">> ->
     StepType = case Type of
                    <<"map">> -> map;
-                   <<"reduce">> -> reduce
+                   <<"reduce">> -> reduce;
+                   <<"link">> -> link
                end,
-    Lang = proplists:get_value(<<"language">>, StepDef),
     Keep = proplists:get_value(<<"keep">>, StepDef),
-    case not(Keep =:= true orelse Keep =:= false) of
-        true ->
-            error;
-        false ->
-            case parse_step(Lang, StepDef) of
-                error ->
-                    error;
-                {ok, ParsedStep} ->
-                    Arg = proplists:get_value(<<"arg">>, StepDef, none),
-                    parse_query(T, [{StepType, ParsedStep, Arg, Keep}|Accum])
-            end
+    Step = case not(Keep =:= true orelse Keep =:= false) of
+               true -> error;
+               false ->
+                   if StepType == link ->
+                          case parse_link_step(StepDef) of
+                              {ok, {Bucket, Tag}} ->
+                                  {ok, {link, Bucket, Tag, Keep}};
+                              LError ->
+                                  LError
+                          end;
+                      true -> % map or reduce
+                           Lang = proplists:get_value(<<"language">>, StepDef),
+                           case parse_step(Lang, StepDef) of
+                               error ->
+                                   error;
+                               {ok, ParsedStep} ->
+                                   Arg = proplists:get_value(<<"arg">>, StepDef, none),
+                                   {ok, {StepType, ParsedStep, Arg, Keep}}
+                           end
+                   end
+           end,
+    case Step of
+        {ok, S} -> parse_query(T, [S|Accum]);
+        SError  -> SError
     end;
 parse_query(_, _Accum) ->
     error.
+
+parse_link_step(StepDef) ->
+    Bucket = proplists:get_value(<<"bucket">>, StepDef, <<"_">>),
+    Tag = proplists:get_value(<<"tag">>, StepDef, <<"_">>),
+    case not(is_binary(Bucket) andalso is_binary(Tag)) of
+        true ->
+            error;
+        false ->
+            {ok, {if Bucket == <<"_">> -> '_';
+                     true              -> Bucket
+                  end,
+                  if Tag == <<"_">> -> '_';
+                     true           -> Tag
+                  end}}
+    end.
 
 parse_step(<<"javascript">>, StepDef) ->
     Source = proplists:get_value(<<"source">>, StepDef),
