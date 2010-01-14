@@ -19,7 +19,6 @@
 -export([define_js/2, define_js/3, eval_js/2, eval_js/3]).
 
 -define(SCRIPT_TIMEOUT, 5000).
--define(CALL_TOKEN, <<"$js">>).
 -define(DRIVER_NAME, "spidermonkey_drv").
 
 load_driver() ->
@@ -137,19 +136,23 @@ priv_dir() ->
     end.
 
 call_driver(Ctx, Command, Args, Timeout) ->
-    Marshalled = js_drv_comm:pack(Command, [?CALL_TOKEN] ++ Args),
+    CallToken = make_call_token(),
+    Marshalled = js_drv_comm:pack(Command, [CallToken] ++ Args),
     port_command(Ctx, Marshalled),
     Result = receive
-                 {?CALL_TOKEN, ok} ->
+                 {CallToken, ok} ->
                      ok;
-                 {?CALL_TOKEN, ok, R} ->
+                 {CallToken, ok, R} ->
                      {ok, R};
-                 {?CALL_TOKEN, error, Error} ->
+                 {CallToken, error, Error} ->
                      {error, Error}
              after Timeout ->
                      {error, timeout}
              end,
     Result.
+
+make_call_token() ->
+    list_to_binary(integer_to_list(erlang:phash2(erlang:make_ref()))).
 
 json_converter() ->
     FileName = filename:join([priv_dir(), "json2.js"]),
