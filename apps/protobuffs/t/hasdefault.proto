@@ -1,0 +1,13 @@
+
+message Person {
+	required string name = 1;
+	required string address = 2;
+	required string phone_number = 3 [default = "+1 (000) 000-0000"];
+	required int32 age = 4 [default = 25];
+	optional Location location = 5;
+}
+
+message Location {
+    required string region = 1;
+    required string country = 2;
+}
