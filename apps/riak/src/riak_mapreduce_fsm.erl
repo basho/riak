@@ -78,7 +78,7 @@ init([ReqId,Query,Timeout,Client]) ->
             riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done,
                                 {error, {bad_qterm, QTerm}}),
             Client ! {ReqId, {error, {bad_qterm, QTerm}}},
-            {stop,normal}
+            {stop, {bad_qterm, QTerm}}
     end.
 
 check_query_syntax([]) -> ok;
