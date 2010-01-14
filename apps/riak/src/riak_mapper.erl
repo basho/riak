@@ -64,13 +64,13 @@ exec_map(V, #jsenv{ctx=JsCtx, csums=CSums}=MapState, FunTerm, Arg, BKey, KeyData
         {MapVal, NewMapState} = case FunTerm of
                                     {qfun, F} -> {(F)(V,KeyData,Arg), MapState};
                                     {jsfun, F} ->
-                                        {Retval, _} = riak_js:invoke_map(JsCtx, CSums, [extract_values(V), KeyData, Arg],
+                                        {Retval, _} = riak_js:invoke_map(JsCtx, CSums, [jsonify_object(V), KeyData, Arg],
                                                                          <<"Riak">>, F, undefined),
                                         {Retval, MapState};
                                     {jsanon, {Bucket, Key}} ->
                                         exec_map(V, MapState, {jsanon, riak_js:fetch_fun(Bucket, Key)}, Arg, BKey, KeyData, VNode);
                                     {jsanon, F} ->
-                                        {Retval, NewCSums} = riak_js:invoke_map(JsCtx, CSums, [extract_values(V), KeyData, Arg],
+                                        {Retval, NewCSums} = riak_js:invoke_map(JsCtx, CSums, [jsonify_object(V), KeyData, Arg],
                                                                                 undefined, <<"riakMapper">>, F),
                                         {Retval, MapState#jsenv{csums=NewCSums}};
                                     {modfun, M, F} ->
@@ -85,14 +85,37 @@ exec_map(V, #jsenv{ctx=JsCtx, csums=CSums}=MapState, FunTerm, Arg, BKey, KeyData
             {error, Reason, MapState}
     end.
 
-extract_values({error, not_found}) ->
-    [{<<"error">>, <<"not_found">>}];
-extract_values(V) ->
-    case riak_object:value_count(V) of
-        0 ->
-            [];
-        1 ->
-            riak_object:get_value(V);
-        _ ->
-            riak_object:get_values(V)
-    end.
+jsonify_object({error, notfound}) ->
+    [{<<"error">>, <<"notfound">>}];
+jsonify_object(Obj) ->
+    {_,Vclock} = raw_http_resource:vclock_header(Obj),
+    [{<<"bucket">>, riak_object:bucket(Obj)},
+     {<<"key">>, riak_object:key(Obj)},
+     {<<"vclock">>, list_to_binary(Vclock)},
+     {<<"values">>,
+      [
+       [{<<"metadata">>, jsonify_metadata(MD)},
+        {<<"data">>, V}]
+       || {MD, V} <- riak_object:get_contents(Obj)
+      ]}].
+
+jsonify_metadata(MD) ->
+    MDJS = fun({LastMod, Now={_,_,_}}) ->
+                   % convert Now to JS-readable time string
+                   {LastMod, list_to_binary(
+                               httpd_util:rfc1123_date(
+                                 calendar:now_to_local_time(Now)))};
+              ({Name, List=[_|_]}) ->
+                   % convert strings to binaries
+                   case lists:all(fun(C) ->
+                                          is_integer(C) andalso
+                                              C >= 0 andalso C =< 256
+                                  end,
+                                  List) of
+                       true  -> {Name, list_to_binary(List)};
+                       false -> {Name, List}
+                   end;
+              ({Name, Value}) ->
+                   {Name, Value}
+           end,
+    lists:map(MDJS, dict:to_list(MD)).
