@@ -1,9 +1,25 @@
+%% @author Kevin Smith <ksmith@basho.com>
+%% @copyright 2009-2010 Basho Technologies
+%%
+%%    Licensed under the Apache License, Version 2.0 (the "License");
+%%    you may not use this file except in compliance with the License.
+%%    You may obtain a copy of the License at
+%%
+%%        http://www.apache.org/licenses/LICENSE-2.0
+%%
+%%    Unless required by applicable law or agreed to in writing, software
+%%    distributed under the License is distributed on an "AS IS" BASIS,
+%%    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+%%    See the License for the specific language governing permissions and
+%%    limitations under the License.
+
 -module(js_driver).
 
 -export([load_driver/0, new/0, new/1, destroy/1, shutdown/1]).
 -export([define_js/2, define_js/3, eval_js/2, eval_js/3]).
 
 -define(SCRIPT_TIMEOUT, 5000).
+-define(CALL_TOKEN, <<"$js">>).
 -define(DRIVER_NAME, "spidermonkey_drv").
 
 load_driver() ->
@@ -121,15 +137,14 @@ priv_dir() ->
     end.
 
 call_driver(Ctx, Command, Args, Timeout) ->
-    CallId = js_cache:call_id(),
-    Marshalled = js_drv_comm:pack(Command, [CallId] ++ Args),
+    Marshalled = js_drv_comm:pack(Command, [?CALL_TOKEN] ++ Args),
     port_command(Ctx, Marshalled),
     Result = receive
-                 {CallId, ok} ->
+                 {?CALL_TOKEN, ok} ->
                      ok;
-                 {CallId, ok, R} ->
+                 {?CALL_TOKEN, ok, R} ->
                      {ok, R};
-                 {CallId, error, Error} ->
+                 {?CALL_TOKEN, error, Error} ->
                      {error, Error}
              after Timeout ->
                      {error, timeout}
