@@ -28,3 +28,4 @@ test\.log
 .*/.eunit/.*
 ^rel/riak/.*
 ^dev/.*
+include/.*_pb.hrl$
