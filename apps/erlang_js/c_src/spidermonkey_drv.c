@@ -49,29 +49,34 @@ static void send_output(ErlDrvPort port, ErlDrvTermData *terms, int term_count) 
   driver_output_term(port, terms, term_count);
 }
 
-static void send_ok_response(spidermonkey_drv_t *dd) {
-  ErlDrvTermData terms[] = {ERL_DRV_ATOM, dd->atom_ok};
+static void send_ok_response(spidermonkey_drv_t *dd, const char *call_id) {
+  ErlDrvTermData terms[] = {ERL_DRV_BUF2BINARY, (ErlDrvTermData) call_id, strlen(call_id),
+			    ERL_DRV_ATOM, dd->atom_ok,
+			    ERL_DRV_TUPLE, 2};
   send_output(dd->port, terms, sizeof(terms) / sizeof(terms[0]));
 }
 
-static void send_error_string_response(spidermonkey_drv_t *dd, const char *msg) {
-  ErlDrvTermData terms[] = {ERL_DRV_ATOM, dd->atom_error,
+static void send_error_string_response(spidermonkey_drv_t *dd, const char *call_id, const char *msg) {
+  ErlDrvTermData terms[] = {ERL_DRV_BUF2BINARY, (ErlDrvTermData) call_id, strlen(call_id),
+                            ERL_DRV_ATOM, dd->atom_error,
 			    ERL_DRV_BUF2BINARY, (ErlDrvTermData) msg, strlen(msg),
-			    ERL_DRV_TUPLE, 2};
+			    ERL_DRV_TUPLE, 3};
   send_output(dd->port, terms, sizeof(terms) / sizeof(terms[0]));
 }
 
-static void send_string_response(spidermonkey_drv_t *dd, const char *result) {
-  ErlDrvTermData terms[] = {ERL_DRV_ATOM, dd->atom_ok,
+static void send_string_response(spidermonkey_drv_t *dd, const char *call_id, const char *result) {
+  ErlDrvTermData terms[] = {ERL_DRV_BUF2BINARY, (ErlDrvTermData) call_id, strlen(call_id),
+                            ERL_DRV_ATOM, dd->atom_ok,
 			    ERL_DRV_BUF2BINARY, (ErlDrvTermData) result, strlen(result),
-			    ERL_DRV_TUPLE, 2};
+			    ERL_DRV_TUPLE, 3};
   send_output(dd->port, terms, sizeof(terms) / sizeof(terms[0]));
 }
 
-static void unknown_command(spidermonkey_drv_t *dd) {
-  ErlDrvTermData terms[] = {ERL_DRV_ATOM, dd->atom_error,
+static void unknown_command(spidermonkey_drv_t *dd, const char *call_id) {
+  ErlDrvTermData terms[] = {ERL_DRV_BUF2BINARY, (ErlDrvTermData) call_id, strlen(call_id),
+                            ERL_DRV_ATOM, dd->atom_error,
 			    ERL_DRV_ATOM, dd->atom_unknown_cmd,
-			    ERL_DRV_TUPLE, 2};
+			    ERL_DRV_TUPLE, 3};
   send_output(dd->port, terms, sizeof(terms) / sizeof(terms[0]));
 }
 
@@ -104,16 +109,17 @@ static void process(ErlDrvData handle, ErlIOVec *ev) {
   ErlDrvBinary *args = ev->binv[1];
   char *data = args->orig_bytes;
   char *command = read_command(&data);
+  char *call_id = read_string(&data);
   char *result = NULL;
   if (strncmp(command, "ej", 2) == 0) {
     char *filename = read_string(&data);
     char *code = read_string(&data);
     result = sm_eval(dd->vm, filename, code, 1);
     if (strstr(result, "{\"error\"") != NULL) {
-      send_error_string_response(dd, result);
+      send_error_string_response(dd, call_id, result);
     }
     else {
-      send_string_response(dd, result);
+      send_string_response(dd, call_id, result);
     }
     driver_free(filename);
     driver_free(code);
@@ -124,10 +130,10 @@ static void process(ErlDrvData handle, ErlIOVec *ev) {
     char *code = read_string(&data);
     result = sm_eval(dd->vm, filename, code, 0);
     if (result == NULL) {
-      send_ok_response(dd);
+      send_ok_response(dd, call_id);
     }
     else {
-      send_error_string_response(dd, result);
+      send_error_string_response(dd, call_id, result);
       driver_free(result);
     }
     driver_free(filename);
@@ -135,10 +141,11 @@ static void process(ErlDrvData handle, ErlIOVec *ev) {
   }
   else if (strncmp(command, "sd", 2) == 0) {
     dd->shutdown = 1;
-    send_ok_response(dd);
+    send_ok_response(dd, call_id);
   }
   else {
-    unknown_command(dd);
+    unknown_command(dd, call_id);
   }
   driver_free(command);
+  driver_free(call_id);
 }

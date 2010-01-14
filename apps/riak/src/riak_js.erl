@@ -14,16 +14,6 @@ init_context(Ctx) ->
             {error, Error}
     end.
 
-
-invoke_map(JsCtx, CSums, Args, Class, FunName, undefined) when Class =:= <<"Riak">> ->
-    RealFunName = list_to_binary([Class, <<".">>, FunName]),
-    case js:call(JsCtx, RealFunName, Args) of
-        {ok, Results} ->
-            {Results, CSums};
-        {error, Error} ->
-            {{error, Error}, CSums}
-    end;
-
 invoke_map(JsCtx, CSums, Args, undefined, FunName, F) ->
     MD5 = erlang:md5(F),
     {Continue, NewCSums} = case needs_defining(CSums, FunName, MD5) of
@@ -48,6 +38,15 @@ invoke_map(JsCtx, CSums, Args, undefined, FunName, F) ->
             end;
         Err ->
             {Err, CSums}
+    end;
+
+invoke_map(JsCtx, CSums, Args, Class, FunName, undefined) ->
+    RealFunName = list_to_binary([Class, <<".">>, FunName]),
+    case js:call(JsCtx, RealFunName, Args) of
+        {ok, Results} ->
+            {Results, CSums};
+        {error, Error} ->
+            {{error, Error}, CSums}
     end.
 
 invoke_reduce(JsCtx, CSums, Args, Class, FunName, undefined) when Class =:= <<"Riak">> ->

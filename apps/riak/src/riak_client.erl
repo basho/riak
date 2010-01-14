@@ -394,7 +394,6 @@ collect_mr_results(ReqId, Timeout, Acc) ->
     receive
         {ReqId, done} -> {ok, Acc};
         {ReqId,{mr_results,Res}} ->
-            io:format("Got mr_results: ~p~n", [Res]),
             collect_mr_results(ReqId,Timeout,Acc++Res)
     after Timeout ->
             {error, timeout}

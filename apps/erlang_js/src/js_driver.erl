@@ -38,7 +38,7 @@ new(Initializer) when is_function(Initializer) ->
     case Initializer(Port) of
         ok ->
             {ok, Port};
-        Error ->
+        {error, Error} ->
             error_logger:error_report(Error),
             throw({error, init_failed})
     end;
@@ -47,7 +47,7 @@ new({InitMod, InitFun}) ->
     case InitMod:InitFun(Port) of
         ok ->
             {ok, Port};
-        Error ->
+        {error, Error} ->
             error_logger:error_report(Error),
             throw({error, init_failed})
     end.
@@ -74,8 +74,8 @@ define_js(Ctx, FileName, Js, Timeout) when is_binary(FileName),
         {error, ErrorJson} when is_binary(ErrorJson) ->
             {struct, [{<<"error">>, {struct, Error}}]} = mochijson2:decode(ErrorJson),
             {error, Error};
-        Result ->
-            Result
+        ok ->
+            ok
     end.
 
 eval_js(Ctx, Js) ->
@@ -95,8 +95,8 @@ eval_js(Ctx, Js, Timeout) when is_binary(Js) ->
                 {struct, [{<<"error">>, Error}]} ->
                     {error, Error}
             end;
-        Error ->
-            Error
+        {error, Error} ->
+            {error, Error}
     end.
 
 %% Internal functions
@@ -121,11 +121,16 @@ priv_dir() ->
     end.
 
 call_driver(Ctx, Command, Args, Timeout) ->
-    Marshalled = js_drv_comm:pack(Command, Args),
+    CallId = js_cache:call_id(),
+    Marshalled = js_drv_comm:pack(Command, [CallId] ++ Args),
     port_command(Ctx, Marshalled),
     Result = receive
-                 Response ->
-                     Response
+                 {CallId, ok} ->
+                     ok;
+                 {CallId, ok, R} ->
+                     {ok, R};
+                 {CallId, error, Error} ->
+                     {error, Error}
              after Timeout ->
                      {error, timeout}
              end,
