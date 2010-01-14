@@ -198,8 +198,12 @@ active(list, _From, StateData=#state{mod=Mod,modstate=ModState}) ->
 active(timeout, StateData) ->
     hometest(StateData);
 active({diffobj,{BKey,BinObj,FromVN}}, StateData) ->
-    do_diffobj_put(BKey, binary_to_term(BinObj), StateData),
-    gen_fsm:send_event(FromVN,{resolved_diffobj,BKey}),
+    case do_diffobj_put(BKey, binary_to_term(BinObj), StateData) of
+        ok ->
+            gen_fsm:send_event(FromVN,{resolved_diffobj,BKey});
+        {error, Err} ->
+            error_logger:error_msg("Error storing handoff obj: ~p~n", [Err])
+    end,
     {next_state,active,StateData,?TIMEOUT};
 active({map, ClientPid, QTerm, BKey, KeyData}, StateData) ->
     NewState = do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
@@ -280,9 +284,13 @@ do_diffobj_put(BKey={Bucket,_}, DiffObj,
         {newobj, NewObj} ->
             AMObj = enforce_allow_mult(NewObj, riak_bucket:get_bucket(Bucket)),
             Val = term_to_binary(AMObj),
-            Mod:put(ModState, BKey, Val),
-            riak_stat:update(vnode_put);
-        _ -> nop
+            Res = Mod:put(ModState, BKey, Val),
+            case Res of
+                ok -> riak_stat:update(vnode_put);
+                _ -> nop
+            end,
+            Res;
+        _ -> ok
     end.
 
 %% @private
