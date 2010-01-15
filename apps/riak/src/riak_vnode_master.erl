@@ -82,7 +82,6 @@ handle_info({'DOWN', MonRef, process, _P, _I}, State) ->
 
 %% @private
 terminate(_Reason, _State) -> 
-    io:format("riak_vnode terminating with reason ~p~n", [_Reason]),
     ok.
 
 %% @private
