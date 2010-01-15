@@ -64,13 +64,13 @@ exec_map(V, #jsenv{ctx=JsCtx, csums=CSums}=MapState, FunTerm, Arg, BKey, KeyData
         {MapVal, NewMapState} = case FunTerm of
                                     {qfun, F} -> {(F)(V,KeyData,Arg), MapState};
                                     {jsfun, F} ->
-                                        {Retval, _} = riak_js:invoke_map(JsCtx, CSums, [jsonify_object(V), KeyData, Arg],
+                                        {Retval, _} = riak_js:invoke_map(JsCtx, CSums, [jsonify_object(V), KeyData, jsonify_arg(Arg)],
                                                                          <<"Riak">>, F, undefined),
                                         {Retval, MapState};
                                     {jsanon, {Bucket, Key}} ->
                                         exec_map(V, MapState, {jsanon, riak_js:fetch_fun(Bucket, Key)}, Arg, BKey, KeyData, VNode);
                                     {jsanon, F} ->
-                                        {Retval, NewCSums} = riak_js:invoke_map(JsCtx, CSums, [jsonify_object(V), KeyData, Arg],
+                                        {Retval, NewCSums} = riak_js:invoke_map(JsCtx, CSums, [jsonify_object(V), KeyData, jsonify_arg(Arg)],
                                                                                 undefined, <<"riakMapper">>, F),
                                         {Retval, MapState#jsenv{csums=NewCSums}};
                                     {modfun, M, F} ->
@@ -121,3 +121,11 @@ jsonify_metadata(MD) ->
                    {Name, Value}
            end,
     lists:map(MDJS, dict:to_list(MD)).
+
+jsonify_arg({Bucket,Tag}) when (Bucket == '_' orelse is_binary(Bucket)),
+                               (Tag == '_' orelse is_binary(Tag)) ->
+    %% convert link match syntax
+    [{<<"bucket">>,Bucket},
+     {<<"tag">>,Tag}];
+jsonify_arg(Other) ->
+    Other.
