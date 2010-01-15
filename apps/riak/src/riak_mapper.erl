@@ -105,6 +105,8 @@ jsonify_metadata(MD) ->
                    {LastMod, list_to_binary(
                                httpd_util:rfc1123_date(
                                  calendar:now_to_local_time(Now)))};
+              ({<<"Links">>, Links}) ->
+                   {<<"Links">>, [ [B, K, T] || {{B, K}, T} <- Links ]};
               ({Name, List=[_|_]}) ->
                    % convert strings to binaries
                    case lists:all(fun(C) ->
