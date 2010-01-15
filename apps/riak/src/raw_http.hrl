@@ -38,6 +38,10 @@
 -define(JSON_MOD,     <<"mod">>).
 -define(JSON_FUN,     <<"fun">>).
 -define(JSON_CHASH,   <<"chash_keyfun">>).
+-define(JSON_JSFUN,    <<"jsfun">>).
+-define(JSON_JSANON,   <<"jsanon">>).
+-define(JSON_JSBUCKET, <<"bucket">>).
+-define(JSON_JSKEY,    <<"key">>).
 
 %% Names of HTTP query parameters
 -define(Q_PROPS, "props").
