@@ -15,7 +15,7 @@
 -module(riak_vnode).
 -behaviour(gen_fsm).
 
--export([start/1]).
+-export([start_link/1]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 -export([active/2,merk_waiting/2,waiting_diffobjs/2]).
@@ -25,8 +25,9 @@
 
 -record(state, {idx,mapcache,mod,modstate,waiting_diffobjs}).
 
-start(Idx) ->
-    gen_fsm:start(?MODULE, [Idx], []).
+start_link(Idx) ->
+    gen_fsm:start_link(?MODULE, [Idx], []).
+
 init([VNodeIndex]) ->
     Mod = riak:get_app_env(storage_backend),
     Configuration = riak:get_app_env(),
