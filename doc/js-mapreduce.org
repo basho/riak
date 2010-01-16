@@ -247,7 +247,46 @@ function(v) {
     Return the empty list if your reduce function chooses not to
     produce output.
 
-*** TODO Link functions
+*** Link functions
+
+    If you're storing data through the "raw" interface, and using the
+    =Link= HTTP header, you don't need to worry about writing a
+    link-extraction function.  Just use the predefined
+    =raw_link_walker_resource:mapreduce_linkfun/3=.
+
+    But, if you need to extract links from your data in some other
+    manner, there are many ways to specify Javascript functions to do
+    that.  They all start with setting the =linkfun= bucket property.
+    Through the raw HTTP interface:
+
+:$ curl -X PUT -H "application/json" http://localhost:8098/raw/bucket \
+:> --data "{\"props\":{\"linkfun\":{...function...}}}"
+
+    The three ways to fill in the value of the =linkfun= key are:
+
+    + Quoted source code, as the value of the =jsanon= key:
+
+      :{"jsanon":"function(v,kd,bt) { return []; }"}
+
+    + The bucket and key of an object containing the function source:
+
+      :{"jsanon":{"bucket":Bucket,"key":Key}}
+
+    + The name of a predefined Javascript function:
+
+      :{"jsfun":FunctionName}
+
+    The function has basically the same contract as a map function.
+    The first argument is the object from which links should be
+    extracted.  The second argument is the =KeyData= for the object.
+
+    The third argument is a Javascript object representing the links
+    to match at return.  The two fields in the object, =bucket= and
+    =tag=, will have the values given in the link phase spec from the
+    query.
+
+    The link fun should return a list of the same form as the =inputs=
+    list: 2-item bucket/key lists, or 3-item bucket/key/keydata lists.
 
 * TODO How M/R works on Riak
   I'm thinking of moving some content from basic-mapreduce.txt into
