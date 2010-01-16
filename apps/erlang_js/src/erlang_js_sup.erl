@@ -13,6 +13,8 @@
 %%    See the License for the specific language governing permissions and
 %%    limitations under the License.
 
+%% @doc Top level supervisor for erlang_js. It is chiefly responsible for
+%% the js_cache file cache process.
 -module(erlang_js_sup).
 
 -behaviour(supervisor).
@@ -25,9 +27,11 @@
 
 -define(SERVER, ?MODULE).
 
+%% @private
 start_link() ->
     supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
+%% @private
 init([]) ->
     RestartStrategy = one_for_one,
     MaxRestarts = 1000,

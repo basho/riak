@@ -4,5 +4,4 @@
 
 all_test_() ->
   [{module, driver_tests},
-   {module, eval_tests},
-   {module, json_tests}].
+   {module, eval_tests}].

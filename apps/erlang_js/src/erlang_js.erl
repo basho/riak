@@ -13,6 +13,7 @@
 %%    See the License for the specific language governing permissions and
 %%    limitations under the License.
 
+%% @ doc This module is the entry point to start erlang_js as an OTP application.
 -module(erlang_js).
 
 -behaviour(application).
@@ -20,13 +21,20 @@
 %% Application callbacks
 -export([start/0, start/2, stop/1]).
 
+
+%% @spec start() -> ok | {error, any()}
+%% @doc Starts the erlang_js OTP application and all
+%% dependencies. Intended for use with the Erlang VM's
+%% -s option
 start() ->
     start_deps([sasl]),
     application:start(erlang_js).
 
+%% @private
 start(_StartType, _StartArgs) ->
     erlang_js_sup:start_link().
 
+%% @private
 stop(_State) ->
     ok.
 
