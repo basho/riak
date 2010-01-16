@@ -47,7 +47,7 @@ well.
 
 #+BEGIN_EXAMPLE
 $ curl -X POST -H "content-type: application/json" http://localhost:8098/mapred --data @-
-{"inputs":[["alice","p1"],["alice","p2"],["alice","p5"]],"query":[{"map":{"language":"javascript","source":"function(v) { var m = v.values[0].data.toLowerCase().match('\\\\w*','g'); var r = []; for(var i in m) if (m[i] != '') { var o = {}; o[m[i]] = 1; r.push(o); } return r; }","keep":false}},{"reduce":{"language":"javascript","source":"function(v) { var r = {}; for (var i in v) { for(var w in v[i]) { if (w in r) r[w] += v[i][w]; else r[w] = v[i][w]; } } return [r]; }","keep":true}}]}
+{"inputs":[["alice","p1"],["alice","p2"],["alice","p5"]],"query":[{"map":{"language":"javascript","source":"function(v) { var m = v.values[0].data.toLowerCase().match('\\\\w*','g'); var r = []; for(var i in m) if (m[i] != '') { var o = {}; o[m[i]] = 1; r.push(o); } return r; }"}},{"reduce":{"language":"javascript","source":"function(v) { var r = {}; for (var i in v) { for(var w in v[i]) { if (w in r) r[w] += v[i][w]; else r[w] = v[i][w]; } } return [r]; }"}}]}
 ^D
 #+END_EXAMPLE
 
@@ -135,10 +135,14 @@ function(v) {
    form ={PhaseType:{...spec...}}=.  Valid =PhaseType= values are
    "map", "reduce", and "link".
 
-   Every phase spec must include the =keep= field, which must have a
+   Every phase spec may include a =keep= field, which must have a
    boolean value: =true= means that the results of this phase should
-   be included in the final result of the map/reduce, =false= means it
-   should be used internally only.
+   be included in the final result of the map/reduce, =false= means
+   the results of this phase should be used only by the next phase.
+   Omitting the =keep= field accepts its default value, which is
+   =false= for all phases except the final phase (Riak assumes that
+   you were most interested in the results of the last phase of your
+   map/reduce query).
 
 *** Map
 

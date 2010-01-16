@@ -38,7 +38,7 @@ parse_query([{struct, [{Type, {struct, StepDef}}]}|T], Accum)
                    <<"reduce">> -> reduce;
                    <<"link">> -> link
                end,
-    Keep = proplists:get_value(<<"keep">>, StepDef),
+    Keep = proplists:get_value(<<"keep">>, StepDef, T==[]),
     Step = case not(Keep =:= true orelse Keep =:= false) of
                true -> error;
                false ->
