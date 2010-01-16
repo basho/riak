@@ -2,6 +2,8 @@
 
 -export([parse_inputs/1, parse_query/1]).
 
+parse_inputs(Bucket) when is_binary(Bucket) ->
+    {ok, Bucket};
 parse_inputs(Targets) ->
     parse_inputs(Targets, []).
 

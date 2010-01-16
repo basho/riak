@@ -49,14 +49,27 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query}=State) ->
     {ok, Client} = riak:local_client(),
     case wrq:get_qs_value("chunked", RD) of
         "true" ->
-            {ok, {ReqId, FSM}} = Client:mapred_stream(Query, Me, ?DEFAULT_TIMEOUT),
-            gen_fsm:send_event(FSM,{input, Inputs }),
-            gen_fsm:send_event(FSM,input_done),
+            {ok, ReqId} = 
+                if is_list(Inputs) ->
+                        {ok, {RId, FSM}} = Client:mapred_stream(Query, Me,
+                                                                ?DEFAULT_TIMEOUT),
+                        gen_fsm:send_event(FSM,{input, Inputs }),
+                        gen_fsm:send_event(FSM,input_done),
+                        {ok, RId};
+                   is_binary(Inputs) ->
+                        Client:mapred_bucket_stream(Inputs, Query, Me,
+                                                    ?DEFAULT_TIMEOUT)
+                end,
             RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
             {true, wrq:set_resp_body({stream, stream_mapred_results(RD1, ReqId)}, RD1), State};
         Param when Param =:= "false";
                    Param =:= undefined ->
-            case Client:mapred(Inputs, Query) of
+            Results = if is_list(Inputs) ->
+                              Client:mapred(Inputs, Query);
+                         is_binary(Inputs) ->
+                              Client:mapred_bucket(Inputs, Query)
+                      end,
+            case Results of
                 {ok, Result} ->
                     RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
                     {true, wrq:set_resp_body(mochijson2:encode(Result), RD1), State};

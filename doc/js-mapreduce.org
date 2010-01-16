@@ -129,6 +129,13 @@ function(v) {
    the form =[Bucket,Key]= or 3-element lists of the form
    =[Bucket,Key,KeyData]=.
 
+   You may also pass just the name of a bucket
+   (={"inputs":"mybucket",...}=), which is equivalent to passing all
+   of the keys in that bucket as inputs (i.e. "a map/reduce across the
+   whole bucket").  You should be aware that this triggers the
+   somewhat expensive "list keys" operation, so you should use it
+   sparingly.
+
 ** Query
 
    The query is given as a list of phases, each phase being of the
