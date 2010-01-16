@@ -25,38 +25,57 @@ service_available(RD, State) ->
     end.
 
 allowed_methods(RD, State) ->
-    {['POST'], RD, State}.
+    {['GET','HEAD','POST'], RD, State}.
 
 malformed_request(RD, State) ->
-    {IsMalformed, NewState} = case wrq:req_body(RD) of
-                                  undefined ->
-                                      {true, State};
-                                  Body ->
-                                      {Verified, State1} = verify_body(Body, State),
-                                      {not(Verified), State1}
-                              end,
-    {IsMalformed, RD, NewState}.
+    {Verified, Message, NewState} =
+        case {wrq:method(RD), wrq:req_body(RD)} of
+            {'POST', Body} when Body /= undefined ->
+                verify_body(Body, State);
+            _ ->
+                {false, usage(), State}
+        end,
+    {not Verified,
+     if Verified -> RD;
+        true ->
+             wrq:set_resp_header(
+               "Content-Type", "text/plain",
+               wrq:set_resp_body(Message, RD))
+     end,
+     NewState}.
 
 content_types_provided(RD, State) ->
     {[{"application/json", nop}], RD, State}.
 
-%% This should never get called
-nop(_RD, _State) ->
-    ok.
+nop(RD, State) ->
+    {usage(), RD, State}.
 
 process_post(RD, #state{inputs=Inputs, mrquery=Query}=State) ->
     Me = self(),
     {ok, Client} = riak:local_client(),
     case wrq:get_qs_value("chunked", RD) of
         "true" ->
-            {ok, {ReqId, FSM}} = Client:mapred_stream(Query, Me, ?DEFAULT_TIMEOUT),
-            gen_fsm:send_event(FSM,{input, Inputs }),
-            gen_fsm:send_event(FSM,input_done),
+            {ok, ReqId} = 
+                if is_list(Inputs) ->
+                        {ok, {RId, FSM}} = Client:mapred_stream(Query, Me,
+                                                                ?DEFAULT_TIMEOUT),
+                        gen_fsm:send_event(FSM,{input, Inputs }),
+                        gen_fsm:send_event(FSM,input_done),
+                        {ok, RId};
+                   is_binary(Inputs) ->
+                        Client:mapred_bucket_stream(Inputs, Query, Me,
+                                                    ?DEFAULT_TIMEOUT)
+                end,
             RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
             {true, wrq:set_resp_body({stream, stream_mapred_results(RD1, ReqId)}, RD1), State};
         Param when Param =:= "false";
                    Param =:= undefined ->
-            case Client:mapred(Inputs, Query) of
+            Results = if is_list(Inputs) ->
+                              Client:mapred(Inputs, Query);
+                         is_binary(Inputs) ->
+                              Client:mapred_bucket(Inputs, Query)
+                      end,
+            case Results of
                 {ok, Result} ->
                     RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
                     {true, wrq:set_resp_body(mochijson2:encode(Result), RD1), State};
@@ -91,7 +110,7 @@ stream_mapred_results(RD, ReqId) ->
     end.
 
 verify_body(Body, State) ->
-    case mochijson2:decode(Body) of
+    case catch mochijson2:decode(Body) of
         {struct, MapReduceDesc} ->
             Inputs = proplists:get_value(?INPUTS_TOKEN, MapReduceDesc),
             Query = proplists:get_value(?QUERY_TOKEN, MapReduceDesc),
@@ -101,14 +120,38 @@ verify_body(Body, State) ->
                         {ok, ParsedInputs} ->
                             case riak_mapred_json:parse_query(Query) of
                                 {ok, ParsedQuery} ->
-                                    {true, State#state{inputs=ParsedInputs, mrquery=ParsedQuery}};
+                                    {true, [], State#state{inputs=ParsedInputs,
+                                                           mrquery=ParsedQuery}};
                                 error ->
-                                    {false, State}
+                                    {false,
+                                     "An error occurred parsing "
+                                     "the \"query\" field.\n",
+                                     State}
                             end;
                         error ->
-                            {false, State}
+                            {false,
+                             "An error occurred parsing the \"inputs\" field.\n",
+                             State}
                     end;
                 false ->
-                    {false, State}
-            end
+                    {false,
+                     "The post body was missing the "
+                     "\"inputs\" or \"query\" field.\n",
+                     State}
+            end;
+        {'EXIT', Message} ->
+            {false,
+             io_lib:format("The POST body was not valid JSON.~n"
+                           "The error from the parser was:~n~p~n",
+                           [Message]),
+             State};
+        _ ->
+            {false, "The POST body was not a JSON object.\n", State}
     end.
+
+usage() ->
+    "This resource accepts POSTs with bodies containing JSON of the form:\n"
+        "{\n"
+        " \"inputs\":[...list of inputs...],\n"
+        " \"query\":[...list of map/reduce phases...]\n"
+        "}\n".

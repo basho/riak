@@ -509,7 +509,7 @@ tokenize(B, S=#decoder{offset=O}) ->
 is_structable([]) ->
     false;
 is_structable([H|_]) ->
-    is_tuple(H) andalso size(H) == 2.
+    is_tuple(H) andalso size(H) == 2 andalso element(1,H) /= struct.
 
 %% testing constructs borrowed from the Yaws JSON implementation.
 

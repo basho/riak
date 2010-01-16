@@ -2,6 +2,8 @@
 
 -export([parse_inputs/1, parse_query/1]).
 
+parse_inputs(Bucket) when is_binary(Bucket) ->
+    {ok, Bucket};
 parse_inputs(Targets) ->
     parse_inputs(Targets, []).
 
@@ -38,7 +40,7 @@ parse_query([{struct, [{Type, {struct, StepDef}}]}|T], Accum)
                    <<"reduce">> -> reduce;
                    <<"link">> -> link
                end,
-    Keep = proplists:get_value(<<"keep">>, StepDef),
+    Keep = proplists:get_value(<<"keep">>, StepDef, T==[]),
     Step = case not(Keep =:= true orelse Keep =:= false) of
                true -> error;
                false ->
