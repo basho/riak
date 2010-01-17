@@ -27,7 +27,7 @@ deps_on_path() ->
                 end
         end,
     ordsets:from_list(lists:foldl(F, [], code:get_path())).
-    
+
 %% @spec new_siblings(Module) -> [Dir]
 %% @doc Find new siblings paths relative to Module that aren't already on the
 %%      code path.
@@ -38,11 +38,11 @@ new_siblings(Module) ->
                            ordsets:is_element(
                              filename:basename(filename:dirname(X)),
                              Existing) =:= false],
-    lists:filter(fun filelib:is_dir/1, 
+    lists:filter(fun filelib:is_dir/1,
                  lists:append([[filename:join([X, "ebin"]),
                                 filename:join([X, "include"])] ||
                                   X <- Siblings])).
-        
+
 
 %% @spec ensure(Module) -> ok
 %% @doc Ensure that all ebin and include paths for dependencies
@@ -82,3 +82,11 @@ local_path(Components, Module) ->
 %%      Equivalent to local_path(Components, ?MODULE).
 local_path(Components) ->
     local_path(Components, ?MODULE).
+
+
+%%
+%% Tests
+%%
+-include_lib("eunit/include/eunit.hrl").
+-ifdef(TEST).
+-endif.

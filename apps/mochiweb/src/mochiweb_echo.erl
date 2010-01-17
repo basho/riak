@@ -9,7 +9,7 @@
 
 stop() ->
     mochiweb_socket_server:stop(?MODULE).
-    
+
 start() ->
     mochiweb_socket_server:start([{name, ?MODULE},
                                   {port, 6789},
@@ -29,3 +29,10 @@ loop(Socket) ->
         _Other ->
             exit(normal)
     end.
+
+%%
+%% Tests
+%%
+-include_lib("eunit/include/eunit.hrl").
+-ifdef(TEST).
+-endif.

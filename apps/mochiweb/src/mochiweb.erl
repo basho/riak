@@ -9,7 +9,6 @@
 -export([start/0, stop/0]).
 -export([new_request/1, new_response/1]).
 -export([all_loaded/0, all_loaded/1, reload/0]).
--export([test/0]).
 
 %% @spec start() -> ok
 %% @doc Start the MochiWeb server.
@@ -23,21 +22,6 @@ stop() ->
     Res = application:stop(mochiweb),
     application:stop(crypto),
     Res.
-
-%% @spec test() -> ok
-%% @doc Run all of the tests for MochiWeb.
-test() ->
-    mochiweb_util:test(),
-    mochiweb_headers:test(),
-    mochiweb_cookies:test(),
-    mochihex:test(),
-    mochinum:test(),
-    mochijson:test(),
-    mochiweb_charref:test(),
-    mochiweb_html:test(),
-    mochifmt:test(),
-    test_request(),
-    ok.
 
 reload() ->
     [c:l(Module) || Module <- all_loaded()].
@@ -96,11 +80,6 @@ new_response({Request, Code, Headers}) ->
 
 %% Internal API
 
-test_request() ->
-    R = mochiweb_request:new(z, z, "/foo/bar/baz%20wibble+quux?qs=2", z, []),
-    "/foo/bar/baz wibble quux" = R:get(path),
-    ok.
-
 ensure_started(App) ->
     case application:start(App) of
         ok ->
@@ -108,3 +87,17 @@ ensure_started(App) ->
         {error, {already_started, App}} ->
             ok
     end.
+
+
+%%
+%% Tests
+%%
+-include_lib("eunit/include/eunit.hrl").
+-ifdef(TEST).
+
+request_test() ->
+    R = mochiweb_request:new(z, z, "/foo/bar/baz%20wibble+quux?qs=2", z, []),
+    "/foo/bar/baz wibble quux" = R:get(path),
+    ok.
+
+-endif.

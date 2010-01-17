@@ -55,7 +55,7 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query}=State) ->
     {ok, Client} = riak:local_client(),
     case wrq:get_qs_value("chunked", RD) of
         "true" ->
-            {ok, ReqId} = 
+            {ok, ReqId} =
                 if is_list(Inputs) ->
                         {ok, {RId, FSM}} = Client:mapred_stream(Query, Me,
                                                                 ?DEFAULT_TIMEOUT),

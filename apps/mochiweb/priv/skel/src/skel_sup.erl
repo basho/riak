@@ -41,7 +41,7 @@ upgrade() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->
-    Ip = case os:getenv("MOCHIWEB_IP") of false -> "0.0.0.0"; Any -> Any end,   
+    Ip = case os:getenv("MOCHIWEB_IP") of false -> "0.0.0.0"; Any -> Any end,
     WebConfig = [
          {ip, Ip},
                  {port, 8000},
@@ -52,3 +52,11 @@ init([]) ->
 
     Processes = [Web],
     {ok, {{one_for_one, 10, 10}, Processes}}.
+
+
+%%
+%% Tests
+%%
+-include_lib("eunit/include/eunit.hrl").
+-ifdef(TEST).
+-endif.
