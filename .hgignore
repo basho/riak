@@ -31,4 +31,5 @@ test\.log
 c_src/deps/(js|mozilla|nspr_release)/.*
 c_src/include/js/.*
 c_src/.*(\.o|\.a)$
-
+jquery-1.4.js
+.*\.html$
