@@ -86,18 +86,18 @@ exec_map(V, #jsenv{ctx=JsCtx, csums=CSums}=MapState, FunTerm, Arg, BKey, KeyData
     end.
 
 jsonify_object({error, notfound}) ->
-    [{<<"error">>, <<"notfound">>}];
+    {struct, [{<<"error">>, <<"notfound">>}]};
 jsonify_object(Obj) ->
     {_,Vclock} = raw_http_resource:vclock_header(Obj),
-    [{<<"bucket">>, riak_object:bucket(Obj)},
-     {<<"key">>, riak_object:key(Obj)},
-     {<<"vclock">>, list_to_binary(Vclock)},
-     {<<"values">>,
-      [
-       [{<<"metadata">>, jsonify_metadata(MD)},
-        {<<"data">>, V}]
-       || {MD, V} <- riak_object:get_contents(Obj)
-      ]}].
+    {struct, [{<<"bucket">>, riak_object:bucket(Obj)},
+              {<<"key">>, riak_object:key(Obj)},
+              {<<"vclock">>, list_to_binary(Vclock)},
+              {<<"values">>,
+               [{struct,
+                 [{<<"metadata">>, jsonify_metadata(MD)},
+                  {<<"data">>, V}]}
+                || {MD, V} <- riak_object:get_contents(Obj)
+                      ]}]}.
 
 jsonify_metadata(MD) ->
     MDJS = fun({LastMod, Now={_,_,_}}) ->
@@ -120,12 +120,12 @@ jsonify_metadata(MD) ->
               ({Name, Value}) ->
                    {Name, Value}
            end,
-    lists:map(MDJS, dict:to_list(MD)).
+    {struct, lists:map(MDJS, dict:to_list(MD))}.
 
 jsonify_arg({Bucket,Tag}) when (Bucket == '_' orelse is_binary(Bucket)),
                                (Tag == '_' orelse is_binary(Tag)) ->
     %% convert link match syntax
-    [{<<"bucket">>,Bucket},
-     {<<"tag">>,Tag}];
+    {struct, [{<<"bucket">>,Bucket},
+              {<<"tag">>,Tag}]};
 jsonify_arg(Other) ->
     Other.
