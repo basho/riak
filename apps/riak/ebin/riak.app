@@ -18,6 +18,7 @@
              jiak_resource,
              jiak_util,
              json_pp,
+             mapred_resource,
              merkerl,
              ping_http_resource,
              priority_queue,
@@ -27,7 +28,7 @@
              riak_app,
              riak_backup,
              riak_bucket,
-			 riak_cache_backend,
+             riak_cache_backend,
              riak_claim,
              riak_client,
              riak_connect,
@@ -40,16 +41,22 @@
              riak_fs_backend,
              riak_gb_trees_backend,
              riak_get_fsm,
+             riak_js,
              riak_keys_fsm,
              riak_local_logger,
              riak_map_executor,
              riak_map_localphase,
              riak_map_phase_fsm,
+             riak_mapper,
+             riak_mapred_json,
              riak_mapreduce,
              riak_mapreduce_fsm,
+             riak_mapreduce_sup,
              riak_multi_backend,
              riak_object,
              riak_osmos_backend,
+             riak_phase_proto,
+             riak_phase_sup,
              riak_put_fsm,
              riak_reduce_phase_fsm,
              riak_ring,
@@ -78,13 +85,13 @@
   {env, [
          %% Cluster name
          {cluster_name, "default"},
-         
+
          %% Default location of ringstate
          {ring_state_dir, "data/ring"},
-         
+
          %% Default ring creation size
          {ring_creation_size, 64},
-         
+
          %% Default gossip interval (milliseconds)
          {gossip_interval, 60000},
 
@@ -96,4 +103,3 @@
          {add_paths, []}
         ]}
  ]}.
-

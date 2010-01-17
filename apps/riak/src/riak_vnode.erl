@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 -module(riak_vnode).
 -behaviour(gen_fsm).
@@ -23,7 +23,7 @@
 
 -define(TIMEOUT, 60000).
 
--record(state, {idx,mapcache,mod,modstate,waiting_diffobjs}).
+-record(state, {idx,mapcache,mod,modstate,waiting_diffobjs,mapstate}).
 
 start_link(Idx) ->
     gen_fsm:start_link(?MODULE, [Idx], []).
@@ -32,7 +32,7 @@ init([VNodeIndex]) ->
     Mod = riak:get_app_env(storage_backend),
     Configuration = riak:get_app_env(),
     {ok, ModState} = Mod:start(VNodeIndex, Configuration),
-    StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState},
+    StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState,mapstate=riak_mapper:init_state()},
     {next_state, StateName, StateData, Timeout} = hometest(StateData0),
     {ok, StateName, StateData, Timeout}.
 
@@ -76,7 +76,7 @@ send_diff_objs(TargetNode,DiffList,
                StateData=#state{mod=Mod,modstate=ModState}) ->
     % send each obj (BKey) in difflist to targetnode
     % return a state with waiting_diffobjs populated
-    Sent = [K || K <- [send_diff_obj(TargetNode,BKey,Mod,ModState) 
+    Sent = [K || K <- [send_diff_obj(TargetNode,BKey,Mod,ModState)
                        || BKey <- DiffList], K /= nop],
     StateData#state{waiting_diffobjs=Sent}.
 send_diff_obj(TargetNode,BKey,Mod,ModState) ->
@@ -103,7 +103,7 @@ merk_waiting(merk_nodiff, StateData0=#state{waiting_diffobjs=WD,
     StateData = StateData0#state{waiting_diffobjs=[]},
     [Mod:delete(ModState, BKey) || BKey <- WD],
     case Mod:list(ModState) of
-        [] -> 
+        [] ->
             Mod:stop(ModState),
             {stop,normal,StateData};
         _ ->
@@ -114,10 +114,10 @@ merk_waiting({merk_diff,TargetVNode,DiffList}, StateData0) ->
     {next_state,waiting_diffobjs,StateData,?TIMEOUT};
 merk_waiting({diffobj,{_BKey,_BinObj,_RemNode}}, StateData) ->
     hometest(StateData);
-merk_waiting({map, ClientPid, QTerm, BKey, KeyData},
-             StateData=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
-    do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,self()),
-    {next_state,merk_waiting,StateData,?TIMEOUT};
+merk_waiting({map, ClientPid, QTerm, BKey, KeyData}, StateData) ->
+
+    NewState = do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
+    {next_state,merk_waiting,NewState,?TIMEOUT};
 merk_waiting({put, FSM_pid, _BKey, _RObj, ReqID, _FSMTime},
              StateData=#state{idx=Idx}) ->
     gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID}),
@@ -167,10 +167,9 @@ waiting_diffobjs({merk_diff,_TargetNode,_DiffList}, StateData) ->
     {next_state,active,StateData#state{waiting_diffobjs=[]},?TIMEOUT};
 waiting_diffobjs({diffobj,{_BKey,_BinObj,_RemNode}}, StateData) ->
     hometest(StateData);
-waiting_diffobjs({map, ClientPid, QTerm, BKey, KeyData},
-                 StateData=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
-    do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,self()),
-    {next_state,waiting_diffobjs,StateData,?TIMEOUT};
+waiting_diffobjs({map, ClientPid, QTerm, BKey, KeyData}, StateData) ->
+    NewState = do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
+    {next_state,waiting_diffobjs,NewState,?TIMEOUT};
 waiting_diffobjs({put, FSM_pid, _BKey, _RObj, ReqID, _FSMTime},
                  StateData=#state{idx=Idx}) ->
     gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID}),
@@ -207,10 +206,9 @@ active({diffobj,{BKey,BinObj,FromVN}}, StateData) ->
             error_logger:error_msg("Error storing handoff obj: ~p~n", [Err])
     end,
     {next_state,active,StateData,?TIMEOUT};
-active({map, ClientPid, QTerm, BKey, KeyData},
-       StateData=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
-    do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,self()),
-    {next_state,active,StateData,?TIMEOUT};
+active({map, ClientPid, QTerm, BKey, KeyData}, StateData) ->
+    NewState = do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
+    {next_state,active,NewState,?TIMEOUT};
 active({put, FSM_pid, BKey, RObj, ReqID, FSMTime},
        StateData=#state{idx=Idx,mapcache=Cache}) ->
     gen_fsm:send_event(FSM_pid, {w, Idx, ReqID}),
@@ -280,7 +278,7 @@ do_delete(Client, BKey, ReqID,
 
 %% @private
 % upon receipt of a handoff datum, there is no client FSM
-do_diffobj_put(BKey={Bucket,_}, DiffObj, 
+do_diffobj_put(BKey={Bucket,_}, DiffObj,
        _StateData=#state{mod=Mod,modstate=ModState}) ->
     ReqID = erlang:phash2(erlang:now()),
     case syntactic_put_merge(Mod, ModState, BKey, DiffObj, ReqID) of
@@ -298,13 +296,13 @@ do_diffobj_put(BKey={Bucket,_}, DiffObj,
 
 %% @private
 % upon receipt of a client-initiated put
-do_put(FSM_pid, BKey, RObj, ReqID, PruneTime, 
+do_put(FSM_pid, BKey, RObj, ReqID, PruneTime,
        _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
-    {ok,Ring} = riak_ring_manager:get_my_ring(),    
+    {ok,Ring} = riak_ring_manager:get_my_ring(),
     {Bucket,_Key} = BKey,
     BProps = riak_bucket:get_bucket(Bucket, Ring),
     case syntactic_put_merge(Mod, ModState, BKey, RObj, ReqID) of
-        oldobj -> 
+        oldobj ->
             gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
         {newobj, NewObj} ->
             VC = riak_object:vclock(NewObj),
@@ -348,54 +346,16 @@ select_newest_content(Mult) ->
          Mult)).
 
 %% @private
-do_map(ClientPid,{map,FunTerm,Arg,_Acc},
-       BKey,KeyData,Cache,Mod,ModState,VNode) ->
-    CacheVal = case FunTerm of
-        {qfun,_} -> not_cached; % live funs are not cached
-        {modfun,CMod,CFun} ->
-            case orddict:find(BKey, Cache) of
-                error -> not_cached;
-                {ok,CDict} ->
-                    case orddict:find({CMod,CFun,Arg,KeyData},CDict) of
-                        error -> not_cached;
-                        {ok,CVal} -> CVal
-                    end
-            end
-    end,
-    RetVal = case CacheVal of
-        not_cached ->
-             uncached_map(BKey,Mod,ModState,FunTerm,Arg,KeyData,VNode);
-        CV ->
-             {mapexec_reply, CV, self()}
-    end,
-    gen_fsm:send_event(ClientPid, RetVal).
-uncached_map(BKey,Mod,ModState,FunTerm,Arg,KeyData,VNode) ->
-    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm,Arg,BKey}),
-    case do_get_binary(BKey, Mod, ModState) of
-        {ok, Binary} ->
-            V = binary_to_term(Binary),
-            uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode);
-        {error, notfound} ->
-            uncached_map1({error, notfound},FunTerm,Arg,BKey,KeyData,VNode);
-        X -> {mapexec_error, self(), X}
-    end.
-uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode) ->
-    try
-        MapVal = case FunTerm of
-            {qfun,F} -> (F)(V,KeyData,Arg);
-            {modfun,M,F} ->
-                MF_Res = M:F(V,KeyData,Arg),
-                gen_fsm:send_event(VNode,
-                                   {mapcache, BKey,{M,F,Arg,KeyData},MF_Res}),
-                MF_Res
-        end,
-        {mapexec_reply, MapVal, self()}
-    catch C:R ->
-         Reason = {C, R, erlang:get_stacktrace()},
-         {mapexec_error, self(), Reason}
-    end.
+do_map(ClientPid, QTerm, BKey, KeyData, #state{mod=Mod, modstate=ModState, mapstate=MapState, mapcache=Cache}=State, VNode) ->
+    {Reply, NewState} = case riak_mapper:do_map(QTerm, BKey, Mod, ModState, KeyData, MapState, Cache, VNode) of
+                            {ok, Retval, NewMapState} ->
+                                {{mapexec_reply, Retval, self()}, State#state{mapstate=NewMapState}};
+                            {error, Error, NewMapState} ->
+                                {{mapexec_error, self(), Error}, State#state{mapstate=NewMapState}}
+                        end,
+    gen_fsm:send_event(ClientPid, Reply),
+    NewState.
 
-%% @private
 do_merkle(Me,RemoteVN,RemoteMerkle,ObjList,StateData) ->
     % given a RemoteMerkle over the ObjList from RemoteVN
     % determine which elements in ObjList we differ on
@@ -416,7 +376,7 @@ syntactic_put_merge(Mod, ModState, BKey, Obj1, ReqId) ->
             case riak_object:vclock(ResObj) =:= riak_object:vclock(Obj0) of
                 true -> oldobj;
                 false -> {newobj, ResObj}
-            end    
+            end
     end.
 
 %% @private
@@ -457,8 +417,9 @@ handle_sync_event(_Event, _From, _StateName, StateData) ->
 
 %% @private
 handle_info(vnode_shutdown, _StateName, StateData) ->
-    {stop,normal,StateData}.
-
+    {stop,normal,StateData};
+handle_info(ok, StateName, StateData) ->
+    {next_state, StateName, StateData}.
 %% @private
-terminate(_Reason, _StateName, _State) -> ok.
-
+terminate(_Reason, _StateName, #state{mapstate=MapState}) ->
+    riak_mapper:terminate(MapState).

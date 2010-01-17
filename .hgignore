@@ -9,7 +9,7 @@ www/README
 www/LICENSE
 www/TODO
 www/javadoc/*
-ebin/.*\.(beam|app)$
+ebin/.*\.(beam)$
 (^|/)erl_crash.dump$
 .*~$
 log/.*.log$

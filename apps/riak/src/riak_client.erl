@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 %% @doc The client object used for all access into the riak system.
 %% @type riak_client() = term()
@@ -65,10 +65,14 @@ mapred(Inputs,Query,Timeout)
   when is_list(Inputs), is_list(Query),
        (is_integer(Timeout) orelse Timeout =:= infinity) ->
     Me = self(),
-    {ok, {ReqId, MR_FSM}} = mapred_stream(Query,Me,Timeout),
-    gen_fsm:send_event(MR_FSM,{input,Inputs}),
-    gen_fsm:send_event(MR_FSM,input_done),
-    collect_mr_results(ReqId, Timeout, []).
+    case mapred_stream(Query,Me,Timeout) of
+        {ok, {ReqId, MR_FSM}} ->
+            gen_fsm:send_event(MR_FSM,{input,Inputs}),
+            gen_fsm:send_event(MR_FSM,input_done),
+            collect_mr_results(ReqId, Timeout, []);
+        Error ->
+            Error
+    end.
 
 %% @spec mapred_stream(Query :: [riak_mapreduce_fsm:mapred_queryterm()],
 %%                     ClientPid :: pid()) ->
@@ -92,9 +96,7 @@ mapred_stream(Query,ClientPid,Timeout)
   when is_list(Query), is_pid(ClientPid),
        (is_integer(Timeout) orelse Timeout =:= infinity) ->
     ReqId = mk_reqid(),
-    {ok, MR_FSM} = rpc:call(Node, riak_mapreduce_fsm, start,
-                            [ReqId,Query,Timeout,ClientPid]),
-    {ok, {ReqId, MR_FSM}}.
+    riak_mapreduce_sup:new_mapreduce_fsm(Node, ReqId, Query, Timeout, ClientPid).
 
 mapred_bucket_stream(Bucket, Query, ClientPid) ->
     mapred_bucket_stream(Bucket, Query, ClientPid, ?DEFAULT_TIMEOUT).
@@ -214,7 +216,7 @@ delete(Bucket,Key,RW,Timeout) ->
 %%      Key lists are updated asynchronously, so this may be slightly
 %%      out of date if called immediately after a put or delete.
 %% @equiv list_keys(Bucket, default_timeout()*8)
-list_keys(Bucket) -> 
+list_keys(Bucket) ->
     list_keys(Bucket, ?DEFAULT_TIMEOUT*8).
 
 %% @spec list_keys(riak_object:bucket(), TimeoutMillisecs :: integer()) ->
@@ -224,26 +226,26 @@ list_keys(Bucket) ->
 %% @doc List the keys known to be present in Bucket.
 %%      Key lists are updated asynchronously, so this may be slightly
 %%      out of date if called immediately after a put or delete.
-list_keys(Bucket, Timeout) -> 
+list_keys(Bucket, Timeout) ->
     list_keys(Bucket, Timeout, ?DEFAULT_ERRTOL).
-list_keys(Bucket, Timeout, ErrorTolerance) -> 
+list_keys(Bucket, Timeout, ErrorTolerance) ->
     Me = self(),
     ReqId = mk_reqid(),
     spawn(Node, riak_keys_fsm, start,
           [ReqId,Bucket,Timeout,plain,ErrorTolerance,Me]),
     wait_for_listkeys(ReqId, Timeout).
 
-stream_list_keys(Bucket) -> 
+stream_list_keys(Bucket) ->
     stream_list_keys(Bucket, ?DEFAULT_TIMEOUT).
 
-stream_list_keys(Bucket, Timeout) -> 
+stream_list_keys(Bucket, Timeout) ->
     stream_list_keys(Bucket, Timeout, ?DEFAULT_ERRTOL).
 
-stream_list_keys(Bucket, Timeout, ErrorTolerance) -> 
+stream_list_keys(Bucket, Timeout, ErrorTolerance) ->
     Me = self(),
     stream_list_keys(Bucket, Timeout, ErrorTolerance, Me).
 
-stream_list_keys(Bucket, Timeout, ErrorTolerance, Client) -> 
+stream_list_keys(Bucket, Timeout, ErrorTolerance, Client) ->
     stream_list_keys(Bucket, Timeout, ErrorTolerance, Client, plain).
 
 %% @spec stream_list_keys(riak_object:bucket(),
@@ -262,7 +264,7 @@ stream_list_keys(Bucket, Timeout, ErrorTolerance, Client) ->
 %%      keys in Bucket on any single vnode.
 %%      If ClientType is set to 'mapred' instead of 'plain', then the
 %%      messages will be sent in the form of a MR input stream.
-stream_list_keys(Bucket, Timeout, ErrorTolerance, Client, ClientType) -> 
+stream_list_keys(Bucket, Timeout, ErrorTolerance, Client, ClientType) ->
     ReqId = mk_reqid(),
     spawn(Node, riak_keys_fsm, start,
           [ReqId,Bucket,Timeout,ClientType,ErrorTolerance,Client]),
@@ -272,23 +274,23 @@ stream_list_keys(Bucket, Timeout, ErrorTolerance, Client, ClientType) ->
 %%       {ok, [Key :: riak_object:key()]} |
 %%       {error, timeout} |
 %%       {error, Err :: term()}
-%% @doc List the keys known to be present in Bucket, 
+%% @doc List the keys known to be present in Bucket,
 %%      filtered at the vnode according to Fun, via lists:filter.
 %%      Key lists are updated asynchronously, so this may be slightly
 %%      out of date if called immediately after a put or delete.
 %% @equiv filter_keys(Bucket, Fun, default_timeout()*8)
-filter_keys(Bucket, Fun) -> 
+filter_keys(Bucket, Fun) ->
     list_keys({filter, Bucket, Fun}, ?DEFAULT_TIMEOUT*8).
 
 %% @spec filter_keys(riak_object:bucket(), Fun :: function(), TimeoutMillisecs :: integer()) ->
 %%       {ok, [Key :: riak_object:key()]} |
 %%       {error, timeout} |
 %%       {error, Err :: term()}
-%% @doc List the keys known to be present in Bucket, 
+%% @doc List the keys known to be present in Bucket,
 %%      filtered at the vnode according to Fun, via lists:filter.
 %%      Key lists are updated asynchronously, so this may be slightly
 %%      out of date if called immediately after a put or delete.
-filter_keys(Bucket, Fun, Timeout) -> 
+filter_keys(Bucket, Fun, Timeout) ->
     list_keys({filter, Bucket, Fun}, Timeout).
 
 %% @spec list_buckets() ->
@@ -301,7 +303,7 @@ filter_keys(Bucket, Fun, Timeout) ->
 %%      either adds the first key or removes the last remaining key from
 %%      a bucket.
 %% @equiv list_buckets(default_timeout()*8)
-list_buckets() -> 
+list_buckets() ->
     list_buckets(?DEFAULT_TIMEOUT*8).
 
 %% @spec list_buckets(TimeoutMillisecs :: integer()) ->
@@ -313,7 +315,7 @@ list_buckets() ->
 %%      out of date if called immediately after any operation that
 %%      either adds the first key or removes the last remaining key from
 %%      a bucket.
-list_buckets(Timeout) -> 
+list_buckets(Timeout) ->
     list_keys('_', Timeout).
 
 %% @spec set_bucket(riak_object:bucket(), [BucketProp :: {atom(),term()}]) -> ok
@@ -346,25 +348,25 @@ send_event(EventName, EventDetail) ->
              [client_event, EventName, {ClientId, EventDetail}]).
 
 %% @equiv add_event_handler(Pid, Desc, {'_', '_', '_', '_'}, [])
-add_event_handler(Pid, Desc) -> 
+add_event_handler(Pid, Desc) ->
     add_event_handler(Pid, Desc, {'_', '_', '_', '_'}).
 
 %% @equiv add_event_handler(Pid, Desc, MatchHead, [])
-add_event_handler(Pid, Desc, MatchHead) -> 
+add_event_handler(Pid, Desc, MatchHead) ->
     add_event_handler(Pid, Desc, MatchHead, []).
-    
+
 %% @doc
-%% Register a process that will receive Riak events 
+%% Register a process that will receive Riak events
 %% generated by the cluster in the form of Erlang messages.
 %% See {@link riak_eventer:add_handler/4.} for more information.
 add_event_handler(Pid, Desc, MatchHead, MatchGuard) ->
-    rpc:call(Node, riak_eventer, add_handler, [Pid, Desc, MatchHead, MatchGuard]). 
+    rpc:call(Node, riak_eventer, add_handler, [Pid, Desc, MatchHead, MatchGuard]).
 
 %% @doc
 %% Remove an event handler added by {@link add_event_handler/4}, if it exists.
 %% See {@link riak_eventer:remove_handler/3.} for more information.
 remove_event_handler(Pid, MatchHead, MatchGuard) ->
-    rpc:call(Node, riak_eventer, remove_handler, [Pid, MatchHead, MatchGuard]). 
+    rpc:call(Node, riak_eventer, remove_handler, [Pid, MatchHead, MatchGuard]).
 
 get_stats(local) ->
     [{Node, rpc:call(Node, gen_server, call, [riak_stat, get_stats])}];
@@ -391,7 +393,8 @@ wait_for_reqid(ReqId, Timeout) ->
 collect_mr_results(ReqId, Timeout, Acc) ->
     receive
         {ReqId, done} -> {ok, Acc};
-        {ReqId,{mr_results,Res}} -> collect_mr_results(ReqId,Timeout,Acc++Res)
+        {ReqId,{mr_results,Res}} ->
+            collect_mr_results(ReqId,Timeout,Acc++Res)
     after Timeout ->
             {error, timeout}
     end.
@@ -407,4 +410,3 @@ wait_for_listkeys(ReqId,Timeout,Acc) ->
     after Timeout ->
             {error, timeout, Acc}
     end.
-

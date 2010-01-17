@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 %% @doc riak_mapreduce_fsm is the driver of a mapreduce query.
 %%
@@ -57,7 +57,7 @@
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
--export([wait/2]). 
+-export([wait/2]).
 
 -record(state, {client,reqid,fsms,starttime,timeout,ring,input_done}).
 
@@ -78,7 +78,7 @@ init([ReqId,Query,Timeout,Client]) ->
             riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done,
                                 {error, {bad_qterm, QTerm}}),
             Client ! {ReqId, {error, {bad_qterm, QTerm}}},
-            {stop,normal}
+            {stop, {bad_qterm, QTerm}}
     end.
 
 check_query_syntax([]) -> ok;
@@ -105,33 +105,42 @@ check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest])
                                 false -> {bad_qterm, QTerm};
                                 true -> check_query_syntax(Rest)
                             end;
+                        {jsanon, {Bucket, Key}} when is_binary(Bucket),
+                                                     is_binary(Key) ->
+                            check_query_syntax(Rest);
+                        {jsanon, JF_F} when is_binary(JF_F) ->
+                            check_query_syntax(Rest);
+                        {jsfun, JF_F} when is_binary(JF_F) ->
+                            check_query_syntax(Rest);
                         _ -> {bad_qterm, QTerm}
                     end
             end
     end;
 check_query_syntax([BadQTerm|_]) -> {bad_qterm,BadQTerm}.
 
-make_phase_fsms(Query, Ring) -> 
+make_phase_fsms(Query, Ring) ->
     make_phase_fsms(lists:reverse(Query),final,[], Ring).
 make_phase_fsms([], _NextFSM, FSMs, _Ring) -> FSMs;
-make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring) -> 
-    PhaseMod = case QTerm of
-        {reduce, _, _, _} -> riak_reduce_phase_fsm;
-        {map, _, _, _} -> riak_map_phase_fsm;
-        {link, _, _, _} -> riak_map_phase_fsm
-    end,
-    {ok, Pid} = PhaseMod:start_link(Ring, QTerm, NextFSM, self()),
+make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring) ->
+    {ok, Pid} = case QTerm of
+                    {reduce, _, _, _} ->
+                        riak_phase_sup:new_reduce_phase(Ring, QTerm, NextFSM, self());
+                    {map, _, _, _} ->
+                        riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self());
+                    {link, _, _, _} ->
+                        riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self())
+                end,
     make_phase_fsms(Rest,Pid,[Pid|FSMs], Ring).
 
 wait({input,Inputs},
      StateData=#state{reqid=ReqId,timeout=Timeout,fsms=FSMs}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_got_input,
                         {ReqId, length(Inputs)}),
-    gen_fsm:send_event(hd(FSMs), {input, Inputs}),
+    riak_phase_proto:send_inputs(hd(FSMs), Inputs),
     {next_state, wait, StateData, Timeout};
 wait(input_done, StateData=#state{reqid=ReqId,fsms=FSMs}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_done_input, {ReqId}),
-    gen_fsm:send_event(hd(FSMs), done),
+    riak_phase_proto:done(hd(FSMs)),
     maybe_finish(StateData#state{input_done=true});
 wait({done,FSM}, StateData=#state{fsms=FSMs0}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done_msg, {FSM,FSMs0}),
@@ -140,7 +149,7 @@ wait({done,FSM}, StateData=#state{fsms=FSMs0}) ->
 wait({error, ErrFSM, ErrMsg}, StateData=#state{client=Client,reqid=ReqId,
                                                fsms=FSMs0}) ->
     FSMs = lists:delete(ErrFSM,FSMs0),
-    [gen_fsm:send_event(FSM, die) || FSM <- FSMs],
+    riak_phase_proto:die_all(FSMs),
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done, {error, ReqId}),
     Client ! {ReqId, {error, ErrMsg}},
     {stop,normal,StateData};
@@ -193,4 +202,3 @@ terminate(Reason, _StateName, _State=#state{reqid=ReqId}) ->
 
 %% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
-
