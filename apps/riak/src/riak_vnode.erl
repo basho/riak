@@ -15,7 +15,7 @@
 -module(riak_vnode).
 -behaviour(gen_fsm).
 
--export([start/1]).
+-export([start_link/1]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 -export([active/2,merk_waiting/2,waiting_diffobjs/2]).
@@ -25,8 +25,9 @@
 
 -record(state, {idx,mapcache,mod,modstate,waiting_diffobjs}).
 
-start(Idx) ->
-    gen_fsm:start(?MODULE, [Idx], []).
+start_link(Idx) ->
+    gen_fsm:start_link(?MODULE, [Idx], []).
+
 init([VNodeIndex]) ->
     Mod = riak:get_app_env(storage_backend),
     Configuration = riak:get_app_env(),
@@ -199,8 +200,12 @@ active(list, _From, StateData=#state{mod=Mod,modstate=ModState}) ->
 active(timeout, StateData) ->
     hometest(StateData);
 active({diffobj,{BKey,BinObj,FromVN}}, StateData) ->
-    do_diffobj_put(BKey, binary_to_term(BinObj), StateData),
-    gen_fsm:send_event(FromVN,{resolved_diffobj,BKey}),
+    case do_diffobj_put(BKey, binary_to_term(BinObj), StateData) of
+        ok ->
+            gen_fsm:send_event(FromVN,{resolved_diffobj,BKey});
+        {error, Err} ->
+            error_logger:error_msg("Error storing handoff obj: ~p~n", [Err])
+    end,
     {next_state,active,StateData,?TIMEOUT};
 active({map, ClientPid, QTerm, BKey, KeyData},
        StateData=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
@@ -282,9 +287,13 @@ do_diffobj_put(BKey={Bucket,_}, DiffObj,
         {newobj, NewObj} ->
             AMObj = enforce_allow_mult(NewObj, riak_bucket:get_bucket(Bucket)),
             Val = term_to_binary(AMObj),
-            Mod:put(ModState, BKey, Val),
-            riak_stat:update(vnode_put);
-        _ -> nop
+            Res = Mod:put(ModState, BKey, Val),
+            case Res of
+                ok -> riak_stat:update(vnode_put);
+                _ -> nop
+            end,
+            Res;
+        _ -> ok
     end.
 
 %% @private

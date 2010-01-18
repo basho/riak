@@ -81,7 +81,8 @@ handle_info({'DOWN', MonRef, process, _P, _I}, State) ->
     {noreply, State}.
 
 %% @private
-terminate(_Reason, _State) -> ok.
+terminate(_Reason, _State) -> 
+    ok.
 
 %% @private
 code_change(_OldVsn, State, _Extra) ->  {ok, State}.
@@ -104,7 +105,7 @@ add_vnode_rec(I,  _State=#state{idxtab=T}) -> ets:insert(T,I).
 get_vnode(Idx, State) ->
     case idx2vnode(Idx, State) of
         no_match ->
-            {ok, Pid} = riak_vnode:start(Idx),
+            {ok, Pid} = riak_vnode_sup:start_vnode(Idx),
             MonRef = erlang:monitor(process, Pid),
             add_vnode_rec(#idxrec{idx=Idx,pid=Pid,monref=MonRef}, State),
             Pid;

@@ -47,7 +47,7 @@
              riak_map_phase_fsm,
              riak_mapreduce,
              riak_mapreduce_fsm,
-			 riak_multi_backend,
+             riak_multi_backend,
              riak_object,
              riak_osmos_backend,
              riak_put_fsm,
@@ -60,7 +60,9 @@
              riak_util,
              riak_vnode,
              riak_vnode_master,
+             riak_vnode_sup,
              riak_web,
+             riakserver_pb,
              slide,
              spiraltime,
              vclock
