@@ -1,19 +1,19 @@
 #+TITLE: Using Javascript with Riak Map/Reduce
 
-Riak supports writing map/reduce query functions in Javascript, and
-specifying query execution over HTTP.  This document will teach you
-how to use these features.
+Riak supports writing map/reduce query functions in Javascript, as
+well as specifying query execution over HTTP.  This document will
+teach you how to use these features.
 
 * Simple Example
 
-  Let's hit the ground running with a quick example to demonstrate
-  what HTTP/Javascript map/reduce looks like in Riak.  This example
-  will store several chunks of text in Riak, and then compute a word
-  counts on the set of documents.
+  This section hits the ground running with a quick example to
+  demonstrate what HTTP/Javascript map/reduce looks like in Riak.
+  This example will store several chunks of text in Riak, and then
+  compute a word counts on the set of documents.
 
 ** Load data
 
-   We'll use the "raw" HTTP interface to store the texts we want to
+   We will use the "raw" HTTP interface to store the texts we want to
    process:
 
 #+BEGIN_EXAMPLE
@@ -61,12 +61,13 @@ $ curl -X POST -H "content-type: application/json" http://localhost:8098/mapred 
 
    For more details about what each bit of syntax means, and other
    syntax options, read the following sections.  As a quick
-   explanation of how the example map/reduce query worked, though:
+   explanation of how this example map/reduce query worked, though:
 
    1. The objects named =p1=, =p2=, and =p5= from the =alice= bucket
       were given as inputs to the query.
 
-   2. The map function from the phase was run on each one.  The function:
+   2. The map function from the phase was run on each object.  The
+      function:
 
 #+BEGIN_SRC javascript
 function(v) {
@@ -125,7 +126,7 @@ function(v) {
 
 ** Inputs
 
-   The list of input object is given as a list of 2-element lists of
+   The list of input objects is given as a list of 2-element lists of
    the form =[Bucket,Key]= or 3-element lists of the form
    =[Bucket,Key,KeyData]=.
 
@@ -165,12 +166,12 @@ function(v) {
 
 :{"map":{"language":"javascript","source":"function(v) { return [v]; }","keep":true}}
 
-    Would run the Javascript function given in the spec, and include
+    would run the Javascript function given in the spec, and include
     the results in the final output of the m/r query.
 
 :{"map":{"language":"javascript","bucket":"myjs","key":"mymap","keep":false}}
 
-    Would run the Javascript function declared in the content of the
+    would run the Javascript function declared in the content of the
     Riak object under =mymap= in the =myjs= bucket, and the results of
     the funciton would not be included in the final output of the m/r
     query.
@@ -226,7 +227,7 @@ function(v) {
 }
 #+END_EXAMPLE
 
-    =object.values[0].data= is probably what you'll be interested in
+    =object.values[0].data= is probably what you will be interested in
     most of the time, but the rest of the details of the object are
     provided for your use.
 
@@ -254,14 +255,14 @@ function(v) {
     from the reduce spec in the query list.
 
     A reduce phase should produce a list of results.  You will see
-    errors if the output of your reduce function is not a list.
-    Return the empty list if your reduce function chooses not to
-    produce output.
+    errors if the output of your reduce function is not a list.  The
+    function should return an empty list, if it has no other output to
+    produce.
 
 *** Link functions
 
-    If you're storing data through the "raw" interface, and using the
-    =Link= HTTP header, you don't need to worry about writing a
+    If you are storing data through the "raw" interface, and using the
+    =Link= HTTP header, you do not need to worry about writing a
     link-extraction function.  Just use the predefined
     =raw_link_walker_resource:mapreduce_linkfun/3=.
 
