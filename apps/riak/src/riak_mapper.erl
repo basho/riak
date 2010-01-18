@@ -108,19 +108,35 @@ jsonify_metadata(MD) ->
               ({<<"Links">>, Links}) ->
                    {<<"Links">>, [ [B, K, T] || {{B, K}, T} <- Links ]};
               ({Name, List=[_|_]}) ->
-                   % convert strings to binaries
-                   case lists:all(fun(C) ->
-                                          is_integer(C) andalso
-                                              C >= 0 andalso C =< 256
-                                  end,
-                                  List) of
-                       true  -> {Name, list_to_binary(List)};
-                       false -> {Name, List}
-                   end;
+                   {Name, jsonify_metadata_list(List)};
               ({Name, Value}) ->
                    {Name, Value}
            end,
     {struct, lists:map(MDJS, dict:to_list(MD))}.
+
+%% @doc convert strings to binaries, and proplists to JSON objects
+jsonify_metadata_list([]) -> [];
+jsonify_metadata_list(List) ->
+    Classifier = fun({Key,_}, Type) when (is_binary(Key) orelse is_list(Key)),
+                                         Type /= array, Type /= string ->
+                         struct;
+                    (C, Type) when is_integer(C), C >= 0, C =< 256,
+                                   Type /= array, Type /= struct ->
+                         string;
+                    (_, _) ->
+                         array
+                 end,
+    case lists:foldl(Classifier, undefined, List) of
+        struct -> {struct, [ {if is_list(Key) -> list_to_binary(Key);
+                                 true         -> Key
+                              end,
+                              if is_list(Value) -> jsonify_metadata_list(Value);
+                                 true           -> Value
+                              end}
+                             || {Key, Value} <- List]};
+        string -> list_to_binary(List);
+        array -> List
+    end.
 
 jsonify_arg({Bucket,Tag}) when (Bucket == '_' orelse is_binary(Bucket)),
                                (Tag == '_' orelse is_binary(Tag)) ->
