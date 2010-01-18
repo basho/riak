@@ -25,7 +25,7 @@
 ** Source Releases
 *** Prerequisites
     
-    To build Riak from source, you'll need Erlang/OTP version R13B03
+    To build Riak from source, you will need Erlang/OTP version R13B03
     or later installed.  Erlang is available at [[http://erlang.org/]].
 
 *** Obtaining Riak Source
@@ -105,7 +105,7 @@
 *** Embedded Erlang Node
 
     If you downloaded a pre-built, binary release of Riak, or if
-    you've made it through building the release from source, you
+    you have made it through building the release from source, you
     should have an Erlang embedded node ready to run Riak in-place.
     No further installation is needed.
 
@@ -144,9 +144,13 @@
    
    Parameters for the Erlang node on which Riak runs are set in the
    =vm.args= file in the =etc= directory of the embedded Erlang node.
-   Most of these settings can be left at their defaults until you're
-   ready to tune performance.  Two settings you may be interested in
-   right away, though, are =-name= and =-setcookie=.
+   Most of these settings can be left at their defaults until you are
+   ready to tune performance.
+
+   Two settings you may be interested in right away, though, are
+   =-name= and =-setcookie=.  These control the Erlang node names
+   (possibly host-specific), and Erlang inter-node communication
+   access (cluster-specific), respectively.
 
    The format of the file is fairly loose: all lines that do not begin
    with the =#= character are concatentated, and passed to the =erl=
@@ -160,13 +164,13 @@
     + -name :: the name of the Erlang node (default: =riak@127.0.0.1=)
 
                The default value, =riak@127.0.0.1= will work for
-               running Riak locally, but for distributed use, the
-               value after the =@= should be changed to the IP address
-               of the machine on which the node is running.
+               running Riak locally, but for distributed (multi-node)
+               use, the value after the =@= should be changed to the
+               IP address of the machine on which the node is running.
 
                If you have properly-configured DNS, the short-form of
-               this name can be used, like =riak=.  The name of the
-               node will then be =riak@Host.Domain=.
+               this name can be used (for example: =riak=).  The name
+               of the node will then be =riak@Host.Domain=.
 
     + -setcookie :: the cookie of the Erlang node (default: =riak=)
 
@@ -222,10 +226,11 @@
     + =ring_state_dir= :: the directory on-disk in which to store the
          ring state (default: ="data/dets"=)
 
-         Riak's ring state is stored on-disk by each
-         node, such that that node may be restarted and
-         automatically know its place in the cluster
-         before it halted.
+         Riak's ring state is stored on-disk by each node, such that
+         each node may be restarted at any time (purposely, or via
+         automatic failover) and know what its place in the cluster
+         was before it terminated, without needing immediate access to
+         the rest of the cluster.
 
     + =ring_creation_size= :: the number of partitions to divide the
          hash space into (default: 64)
@@ -309,8 +314,8 @@
               Specify the backend to use for a bucket with
               =riak_bucket:set_bucket(BucketName, [{backend, BackendName}])=
 
-              * =multi_backend_default= :: default multi backend to
-                   use if none is specified for a bucket (one of the
+              * =multi_backend_default= :: default backend to use if
+                   none is specified for a bucket (one of the
                    =BackendName= atoms specified in the
                    =multi_backend= setting)
 
@@ -349,15 +354,17 @@
 
          Properties in this list will override the hardcoded defaults
          in riak_bucket:defaults/0.  This setting is the best way to
-         set the default N-value for Riak objects, as well as whether
-         or not siblings are allowed (allow_mult), and the function
-         for extracting links from objects (linkfun).
+         set things like:
+         
+         - the default N-value for Riak objects (=n_val=)
+         - whether or not siblings are allowed (=allow_mult=)
+         - the function for extracting links from objects (=linkfun=)
 
     + =riak_stat= :: enable the statistics-aggregator (default: false)
 
 ** Rebar Overlays
 
-   If you're going to be rebuilding Riak often, you will want to edit
+   If you are going to be rebuilding Riak often, you will want to edit
    the =vm.args= and =app.config= files in the =rel/overlays/etc=
    directory.  The copies of those files in the release (embedded
    node) directory will be overwritten by the files in the =overlays=
@@ -417,22 +424,22 @@
    + test :: writes and reads a Riak object, to test basic
              functionality
 
-             The code for the test is in =riak:client_test/1=, if
-             you'd like to evaluate it.
+             The code for the test is in =riak:client_test/1=, if you
+             would like to evaluate it.
 
    + join :: join a running Riak cluster
 
              This command requires one option: the node in the running
-             cluster to connect to.  Example:
+             cluster to which to connect.  Example:
 
              : $ bin/riak-admin join riak2@example.com
 
    + backup :: backup the data in the cluster to a file
 
                This command requires three options: the node in the
-               running cluster to connect to, the Erlang cookie for
-               that node, and the filename to store the backup under.
-               Example:
+               running cluster to which to connect , the Erlang cookie
+               for that node, and the filename to store the backup
+               under.  Example:
 
                : $ bin/riak-admin backup riak2@example.com riak backup.dets
 
@@ -443,7 +450,7 @@
    + logger :: attach the riak event logger to the cluster
 
                This command requires at least two options: the node in
-               the running cluster to connect to, and the Erlang
+               the running cluster to which to connect, and the Erlang
                cookie for that node.  With just these two parameters,
                the log will print on the console.  Adding a filename
                as a third parameter will cause the log to be written
