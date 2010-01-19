@@ -30,7 +30,7 @@
 run() ->
     application:start(erlang_js),
     {ok, Ctx} = js_driver:new(),
-    js:define(Ctx, "function add(x, y) { return x + y; }", []),
+    js:define(Ctx, <<"function add(x, y) { return x + y; }">>, []),
     Result = [time_calls(Ctx, Count) || Count <- ?COUNTS],
     js_driver:destroy(Ctx),
     Result.
