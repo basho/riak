@@ -24,7 +24,7 @@
 
 -export([fresh/0,fresh/1,fresh/2,preflist/2,
 	 owner_node/1,all_members/1,num_partitions/1,all_owners/1,
-         transfer_node/3,reconcile/2, my_indices/1,
+         transfer_node/3, rename_node/3, reconcile/2, my_indices/1,
 	 index_owner/2,diff_nodes/2,random_node/1, random_other_index/1,
          get_meta/2, update_meta/3, equal_rings/2]).	 
 
@@ -138,6 +138,22 @@ transfer_node(Idx, Node, MyState) ->
                     meta=MyState#chstate.meta}
     end.
 
+% @doc  Rename OldNode to NewNode in a Riak ring.
+% @spec transfer_node(Idx :: integer(), Node :: term(), MyState :: chstate()) ->
+%           chstate()
+rename_node(State=#chstate{chring=Ring, nodename=ThisNode}, OldNode, NewNode) 
+  when is_atom(OldNode), is_atom(NewNode)  ->
+    State#chstate{
+      chring=lists:foldl(
+               fun({Idx, Owner}, AccIn) ->
+                       case Owner of
+                           OldNode -> 
+                               chash:update(Idx, NewNode, AccIn);
+                           _ -> AccIn
+                       end
+               end, Ring, riak_ring:all_owners(State)),
+      nodename=case ThisNode of OldNode -> NewNode; _ -> ThisNode end}.
+
 ancestors(RingStates) ->
     Ancest = [[O2 || O2 <- RingStates,
      vclock:descends(O1#chstate.vclock,O2#chstate.vclock),
@@ -199,9 +215,9 @@ reconcile(MyNodeName, StateA, StateB) ->
     CHRing = chash:merge_rings(StateA#chstate.chring,StateB#chstate.chring),
     Meta = merge_meta(StateA#chstate.meta, StateB#chstate.meta),
     #chstate{nodename=MyNodeName,
-	    vclock=VClock,
-	    chring=CHRing,
-            meta=Meta}.
+             vclock=VClock,
+             chring=CHRing,
+             meta=Meta}.
 
 merge_meta(M1,M2) ->
     dict:merge(fun(_,D1,D2) -> pick_val(D1,D2) end, M1, M2).
