@@ -36,7 +36,7 @@
 start_link() ->
     gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
 
-%% @spec store(any(), any() -> ok
+%% @spec store(any(), any()) -> ok
 %% @doc Store a key/value pair
 store(Key, Value) ->
     gen_server:cast(?SERVER, {store, Key, Value}).

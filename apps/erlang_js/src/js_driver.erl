@@ -13,6 +13,11 @@
 %%    See the License for the specific language governing permissions and
 %%    limitations under the License.
 
+%% @doc This module manages all of the low-level details surrounding the
+%% linked-in driver. It is reponsible for loading and unloading the driver
+%% as needed. This module is also reponsible for creating and destroying
+%% instances of Javascript VMs.
+
 -module(js_driver).
 
 -export([load_driver/0, new/0, new/1, destroy/1, shutdown/1]).
@@ -21,6 +26,8 @@
 -define(SCRIPT_TIMEOUT, 5000).
 -define(DRIVER_NAME, "spidermonkey_drv").
 
+%% @spec load_driver() -> true | false
+%% @doc Attempt to load the Javascript driver
 load_driver() ->
     {ok, Drivers} = erl_ddll:loaded_drivers(),
     case lists:member(?DRIVER_NAME, Drivers) of
@@ -28,13 +35,17 @@ load_driver() ->
             case erl_ddll:load(priv_dir(), ?DRIVER_NAME) of
                 ok ->
                     true;
-                _ ->
+                {error, Error} ->
+                    error_logger:error_msg("Error loading ~p: ~p~n", [?DRIVER_NAME, erl_ddll:format_error(Error)]),
                     false
             end;
         true ->
             true
     end.
 
+%% @spec new() -> {ok, port()} | {error, atom()} | {error, any()}
+%% @doc Create a new Javascript VM instance and preload Douglas Crockford's
+%% json2 converter (http://www.json.org/js.html)
 new() ->
     {ok, Port} = new(no_json),
     %% Load json converter for use later
@@ -46,6 +57,10 @@ new() ->
             {error, Reason}
     end.
 
+%% @type init_fun() = function(port()).
+%% @spec new(no_json | init_fun() | {ModName::atom(), FunName::atom()}) -> {ok, port()} | {error, atom()} | {error, any()}
+%% @doc Create a new Javascript VM instance. The function arguments control how the VM instance is initialized.
+%% User supplied initializers must return true or false.
 new(no_json) ->
     {ok, open_port({spawn, ?DRIVER_NAME}, [binary])};
 new(Initializer) when is_function(Initializer) ->
@@ -54,6 +69,7 @@ new(Initializer) when is_function(Initializer) ->
         ok ->
             {ok, Port};
         {error, Error} ->
+            js_driver:destroy(Port),
             error_logger:error_report(Error),
             throw({error, init_failed})
     end;
@@ -63,20 +79,30 @@ new({InitMod, InitFun}) ->
         ok ->
             {ok, Port};
         {error, Error} ->
+            js_driver:destroy(Port),
             error_logger:error_report(Error),
             throw({error, init_failed})
     end.
 
+%% @spec destroy(port()) -> ok
+%% @doc Destroys a Javascript VM instance
 destroy(Ctx) ->
     port_close(Ctx).
 
+%% @spec shutdown(port()) -> ok
+%% @doc Destroys a Javascript VM instance and shuts down the underlying Javascript infrastructure.
+%% NOTE: No new VMs can be created after this call is made!
 shutdown(Ctx) ->
     call_driver(Ctx, "sd", [], 60000),
     port_close(Ctx).
 
+%% @spec define_js(port(), binary()) -> ok | {error, any()}
+%% @doc Define a Javascript expression:
+%% js_driver:define(Port, &lt;&lt;"var x = 100;"&gt;&gt;).
 define_js(Ctx, Js) ->
     define_js(Ctx, Js, ?SCRIPT_TIMEOUT).
 
+%% @private
 define_js(Ctx, {file, FileName}, Timeout) ->
     {ok, File} = file:read_file(FileName),
     define_js(Ctx, list_to_binary(FileName), File, Timeout);
@@ -93,9 +119,12 @@ define_js(Ctx, FileName, Js, Timeout) when is_binary(FileName),
             ok
     end.
 
+%% @spec eval_js(port(), binary()) -> {ok, any()} | {error, any()}
+%% @doc Evaluate a Javascript expression and return the result
 eval_js(Ctx, Js) ->
     eval_js(Ctx, Js, ?SCRIPT_TIMEOUT).
 
+%% @private
 eval_js(Ctx, {file, FileName}, Timeout) ->
     {ok, File} = file:read_file(FileName),
     eval_js(Ctx, File, Timeout);
@@ -115,6 +144,7 @@ eval_js(Ctx, Js, Timeout) when is_binary(Js) ->
     end.
 
 %% Internal functions
+%% @private
 jsonify(Code) when is_binary(Code) ->
     {Body, <<LastChar:8>>} = split_binary(Code, size(Code) - 1),
     C = case LastChar of
@@ -125,6 +155,7 @@ jsonify(Code) when is_binary(Code) ->
         end,
     list_to_binary([<<"var result; try { result = JSON.stringify(">>, C, <<"); } catch(e) { result = JSON.stringify(e)} result;">>]).
 
+%% @private
 priv_dir() ->
     %% Hacky workaround to handle running from a standard app directory
     %% and .ez package
@@ -135,6 +166,7 @@ priv_dir() ->
             Dir
     end.
 
+%% @private
 call_driver(Ctx, Command, Args, Timeout) ->
     CallToken = make_call_token(),
     Marshalled = js_drv_comm:pack(Command, [CallToken] ++ Args),
@@ -151,9 +183,11 @@ call_driver(Ctx, Command, Args, Timeout) ->
              end,
     Result.
 
+%% @private
 make_call_token() ->
     list_to_binary(integer_to_list(erlang:phash2(erlang:make_ref()))).
 
+%% @private
 json_converter() ->
     FileName = filename:join([priv_dir(), "json2.js"]),
     case js_cache:fetch(FileName) of

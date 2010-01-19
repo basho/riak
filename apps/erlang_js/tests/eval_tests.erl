@@ -32,6 +32,22 @@ function_test_() ->
                ?assertMatch({ok, <<"abc">>}, js:call(P, <<"get_first">>, [Data])),
                erlang:unlink(P) end]}].
 
+binding_test_() ->
+    [{setup, fun test_util:port_setup/0,
+      fun test_util:port_teardown/1,
+      [fun() ->
+               P = test_util:get_thing(),
+               ?assertMatch(ok, js:define(P, <<"var c = 100;function constant_mult(x) { return x * c; }">>)),
+               ?assertMatch({ok, 200}, js:call(P, <<"constant_mult">>, [2])),
+               ?assertMatch({ok, 1000}, js:call(P, <<"constant_mult">>, [2], [{<<"c">>, 500}])),
+               erlang:unlink(P) end,
+       fun() ->
+               P = test_util:get_thing(),
+               ?assertMatch(ok, js:define(P, <<"function constant_div(x) { return x / q; }">>, [{<<"q">>, 2}])),
+               ?assertMatch({ok, 5}, js:call(P, <<"constant_div">>, [10])),
+               ?assertMatch({ok, 3}, js:call(P, <<"constant_div">>, [9], [{<<"q">>, 3}])),
+               erlang:unlink(P) end]}].
+
 json_test_() ->
   [fun() ->
        Struct = {struct, [{<<"test">>, <<"1">>}]},

@@ -17,4 +17,4 @@ test: all
 
 docs: all
 	@mkdir -p docs
-	@ERL_LIBS=`cd ..;pwd`;erl -noshell -eval 'edoc:application(erlang_js, [{dir, "docs"}]), init:stop().'
+	@./build_docs.sh
