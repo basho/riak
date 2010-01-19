@@ -58,6 +58,40 @@ case "$1" in
         $NODETOOL rpc riak_console join $@
         ;;
 
+    status)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+        
+        $NODETOOL rpc riak_console status $@
+        ;;
+
+
+    reip)
+        ACTION=$1
+        shift
+        if [ $# -lt 2 ]; then
+            echo "Usage $SCRIPT $ACTION <old_nodename> <new_nodename>"
+            exit 1
+        fi
+        # Make sure the local node IS not running
+        RES=`$NODETOOL ping`
+        if [ "$RES" == "pong" ]; then
+            echo "Node must be down to re-ip."
+            exit 1
+        fi
+        OLDNODE=$1
+        NEWNODE=$2
+        $ERTS_PATH/erl -noshell \
+            -config $RUNNER_ETC_DIR/app.config \
+            -eval "riak_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
+            -s init stop
+        ;;
+
     backup | restore)
         ACTION=$1
         shift
@@ -111,7 +145,7 @@ case "$1" in
 
         ;;
     *)
-        echo "Usage: $SCRIPT { join | backup | restore | logger | test }"
+        echo "Usage: $SCRIPT { join | backup | restore | logger | test | status | reip }"
         exit 1
         ;;
 esac
