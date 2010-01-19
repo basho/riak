@@ -101,7 +101,7 @@ case "$1" in
     console)
         RES=`$NODETOOL ping`
         if [ "$RES" == "pong" ]; then
-            echo "Node is already running - use 'riak attach' instead"
+            echo "Node is already running - use '$SCRIPT attach' instead"
             exit 1
         fi
         # Setup beam-required vars
