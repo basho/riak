@@ -4,15 +4,21 @@
 
 parse_inputs(Bucket) when is_binary(Bucket) ->
     {ok, Bucket};
-parse_inputs(Targets) ->
-    parse_inputs(Targets, []).
+parse_inputs(Targets) when is_list(Targets) ->
+    parse_inputs(Targets, []);
+parse_inputs(Invalid) ->
+    {error, ["Unrecognized format of \"inputs\" field:",
+             "   ",mochijson2:encode(Invalid),
+             "\n\nValid formats are:\n"
+             "   - a bucket name, as a string\n"
+             "   - a list of bucket/key pairs\n"]}.
 
 parse_inputs([], Accum) ->
     if
         length(Accum) > 0 ->
             {ok, lists:reverse(Accum)};
         true ->
-            error
+            {error, "No inputs were given.\n"}
     end;
 parse_inputs([[Bucket, Key]|T], Accum) when is_binary(Bucket),
                                              is_binary(Key) ->
@@ -20,8 +26,13 @@ parse_inputs([[Bucket, Key]|T], Accum) when is_binary(Bucket),
 parse_inputs([[Bucket, Key, KeyData]|T], Accum) when is_binary(Bucket),
                                                       is_binary(Key) ->
     parse_inputs(T, [{{Bucket, Key}, KeyData}|Accum]);
-parse_inputs(_, _Accum) ->
-    error.
+parse_inputs([Input|_], _Accum) ->
+    {error, ["Unrecognized format of input element:\n"
+             "   ",mochijson2:encode(Input),
+             "\n\nValid formats are:\n"
+             "   [Bucket, Key]\n"
+             "   [Bucket, Key, KeyData]\n"
+             "where Bucket and Key are strings\n"]}.
 
 parse_query(Query) ->
     parse_query(Query, []).
@@ -31,7 +42,7 @@ parse_query([], Accum) ->
         length(Accum) > 0 ->
             {ok, lists:reverse(Accum)};
         true ->
-            error
+            {error, "No query phases were given\n"}
     end;
 parse_query([{struct, [{Type, {struct, StepDef}}]}|T], Accum)
   when Type =:= <<"map">>; Type =:= <<"reduce">>; Type =:= <<"link">> ->
@@ -42,7 +53,11 @@ parse_query([{struct, [{Type, {struct, StepDef}}]}|T], Accum)
                end,
     Keep = proplists:get_value(<<"keep">>, StepDef, T==[]),
     Step = case not(Keep =:= true orelse Keep =:= false) of
-               true -> error;
+               true ->
+                   {error, ["The \"keep\" field was not a boolean value in:\n"
+                            "   ",mochijson2:encode(
+                                    {struct,[{Type,{struct,StepDef}}]}),
+                            "\n"]};
                false ->
                    if StepType == link ->
                           case parse_link_step(StepDef) of
@@ -54,11 +69,11 @@ parse_query([{struct, [{Type, {struct, StepDef}}]}|T], Accum)
                       true -> % map or reduce
                            Lang = proplists:get_value(<<"language">>, StepDef),
                            case parse_step(Lang, StepDef) of
-                               error ->
-                                   error;
                                {ok, ParsedStep} ->
                                    Arg = proplists:get_value(<<"arg">>, StepDef, none),
-                                   {ok, {StepType, ParsedStep, Arg, Keep}}
+                                   {ok, {StepType, ParsedStep, Arg, Keep}};
+                               QError ->
+                                   QError
                            end
                    end
            end,
@@ -66,15 +81,26 @@ parse_query([{struct, [{Type, {struct, StepDef}}]}|T], Accum)
         {ok, S} -> parse_query(T, [S|Accum]);
         SError  -> SError
     end;
-parse_query(_, _Accum) ->
-    error.
+parse_query([Phase|_], _Accum) ->
+    {error, ["Unrecognized format of query phase:\n"
+             "   ",mochijson2:encode(Phase),
+             "\n\nValid formats are:\n"
+             "   {\"map\":{...spec...}}\n"
+             "   {\"reduce\":{...spec...}}\n"
+             "   {\"link\:{...spec}}\n"]};
+parse_query(Invalid, _Accum) ->
+    {error, ["The value of the \"query\" field was not a list:\n"
+             "   ",mochijson2:encode(Invalid),"\n"]}.
 
 parse_link_step(StepDef) ->
     Bucket = proplists:get_value(<<"bucket">>, StepDef, <<"_">>),
     Tag = proplists:get_value(<<"tag">>, StepDef, <<"_">>),
     case not(is_binary(Bucket) andalso is_binary(Tag)) of
         true ->
-            error;
+            {error, ["Invalid link step specification:\n"
+                     "   ",mochijson2:encode({struct,StepDef}),
+                     "\n\n \"bucket\" and \"tag\" fields"
+                     " must have string values.\n"]};
         false ->
             {ok, {if Bucket == <<"_">> -> '_';
                      true              -> Bucket
@@ -95,11 +121,26 @@ parse_step(<<"javascript">>, StepDef) ->
                 undefined ->
                     case Bucket of
                         undefined ->
-                            error;
+                            {error, ["No function specified in Javascript phase:\n"
+                                     "   ",mochijson2:encode({struct,StepDef}),
+                                     "\n\nFunctions may be specified by:\n"
+                                     "   - a \"source\" field, with source for"
+                                     " a Javascript function\n"
+                                     "   - a \"name\" field, naming a predefined"
+                                     " Javascript function\n"
+                                     "   - \"bucket\" and \"key\" fields,"
+                                     " specifying a Riak object containing"
+                                     " Javascript function source\n"]};
                         _ ->
                             case Key of
                                 undefined ->
-                                    error;
+                                    {error, ["Javascript phase was missing a"
+                                             " \"key\" field to match the \"bucket\""
+                                             " field, pointing to the function"
+                                             " to evaluate in:"
+                                             "   ",mochijson2:encode(
+                                                    {struct,StepDef}),
+                                             "\n"]};
                                 _ ->
                                     {ok, {jsanon, {Bucket, Key}}}
                             end
@@ -111,27 +152,33 @@ parse_step(<<"javascript">>, StepDef) ->
             {ok, {jsanon, Source}}
     end;
 parse_step(<<"erlang">>, StepDef) ->
-    Module = proplists:get_value(<<"module">>, StepDef),
-    Function = proplists:get_value(<<"function">>, StepDef),
-    bin_to_atom(Module, fun(A1) ->
-                                   bin_to_atom(Function, fun(A2) -> {modfun, A1, A2} end) end).
-
-bin_to_atom(Binary, Cont) ->
-    L = binary_to_list(Binary),
-    Result = try
-                 list_to_existing_atom(L)
-             catch
-                 error:badarg ->
-                     try
-                         list_to_atom(L)
-                     catch
-                         error:badarg ->
-                             error
-                     end
-             end,
-    case Result of
+    case bin_to_atom(proplists:get_value(<<"module">>, StepDef)) of
+        {ok, Module} ->
+            case bin_to_atom(proplists:get_value(<<"function">>, StepDef)) of
+                {ok, Function} ->
+                    {modfun, Module, Function};
+                error ->
+                    {error, ["Could not convert \"function\" field value"
+                             " to an atom in:"
+                             "   ",mochijson2:encode({struct, StepDef}),
+                             "\n"]}
+            end;
         error ->
-            error;
-        _ ->
-            Cont(Result)
+            {error, ["Could not convert \"module\" field value"
+                     " to an atom in:"
+                     "   ",mochijson2:encode({struct, StepDef}),"\n"]}
+    end;
+parse_step(undefined, StepDef) ->
+    {error, ["No \"language\" was specified for the phase:\n",
+             "   ",mochijson2:encode({struct,StepDef}),"\n"]};
+parse_step(Language,StepDef) ->
+    {error, ["Unknown language ",mochijson2:encode(Language)," in phase:\n",
+             "   ",mochijson2:encode({struct,StepDef}),"\n"]}.
+
+bin_to_atom(Binary) ->
+    L = binary_to_list(Binary),
+    try
+        {ok, list_to_atom(L)}
+    catch
+        error:badarg -> error
     end.
