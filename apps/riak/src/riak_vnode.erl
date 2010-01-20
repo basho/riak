@@ -18,15 +18,13 @@
 -export([start_link/1]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
--export([active/2,merk_waiting/2,waiting_diffobjs/2]).
--export([active/3,merk_waiting/3,waiting_diffobjs/3]).
+-export([active/2,active/3]).
 
 -define(TIMEOUT, 60000).
 
--record(state, {idx,mapcache,mod,modstate,waiting_diffobjs}).
+-record(state, {idx,mapcache,mod,modstate}).
 
-start_link(Idx) ->
-    gen_fsm:start_link(?MODULE, [Idx], []).
+start_link(Idx) -> gen_fsm:start_link(?MODULE, [Idx], []).
 
 init([VNodeIndex]) ->
     Mod = riak:get_app_env(storage_backend),
@@ -47,148 +45,17 @@ hometest(StateData0=#state{idx=Idx}) ->
         TargetNode ->
             case net_adm:ping(TargetNode) of
                 pang -> {next_state,active,StateData,?TIMEOUT};
-                pong -> build_and_send_merkle(TargetNode, StateData)
+                pong -> do_handoff(TargetNode, StateData)
             end
     end.
 
 %% @private
-build_and_send_merkle(TargetNode,
-                      StateData=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
-    ObjList = Mod:list(ModState),
-    Merk = make_merk(StateData, ObjList),
-    gen_server:cast({riak_vnode_master, TargetNode},
-                    {vnode_merkle, {self(),Idx,Merk,ObjList}}),
-    {next_state,merk_waiting,
-     StateData#state{waiting_diffobjs=ObjList},?TIMEOUT}.
+do_handoff(_TargetNode,
+           StateData=#state{idx=_Idx,mod=_Mod,modstate=_ModState}) ->
+    % RIGHT HERE
+    {next_state,active,
+     StateData#state{},?TIMEOUT}.
 
-%% @private
-make_merk(StateData,ObjList) ->
-    Merk = merkerl:build_tree([]),
-    make_merk(StateData,ObjList,Merk).
-make_merk(_StateData,[],Merk) -> Merk;
-make_merk(StateData=#state{mod=Mod,modstate=ModState},
-          [BKey|Objlist],Merk) ->
-    V = Mod:get(ModState,BKey), % normally, V = {ok,BinObj}
-    make_merk(StateData,Objlist,merkerl:insert({BKey,erlang:phash2(V)},Merk)).
-
-%% @private
-send_diff_objs(TargetNode,DiffList,
-               StateData=#state{mod=Mod,modstate=ModState}) ->
-    % send each obj (BKey) in difflist to targetnode
-    % return a state with waiting_diffobjs populated
-    Sent = [K || K <- [send_diff_obj(TargetNode,BKey,Mod,ModState) 
-                       || BKey <- DiffList], K /= nop],
-    StateData#state{waiting_diffobjs=Sent}.
-send_diff_obj(TargetNode,BKey,Mod,ModState) ->
-    case Mod:get(ModState,BKey) of
-        {ok,BinObj} ->
-            gen_fsm:send_event(TargetNode, {diffobj,{BKey,BinObj,self()}}),
-            BKey;
-        _ ->
-            nop
-    end.
-
-%%%%%%%%%% in merk_waiting state, we have sent a merkle tree to the
-%%%%%%%%%% home vnode, and are waiting for a list of different objects
-merk_waiting({get_binary,_BKey}, _From, StateData) ->
-    {reply,{error, wrong_state},active,StateData,?TIMEOUT};
-merk_waiting(list, _From, StateData) ->
-    {reply,{error, wrong_state},active,StateData,?TIMEOUT}.
-merk_waiting(timeout, StateData) ->
-    % didn't get a response to our merkle tree, switch back to active mode
-    {next_state,active,StateData#state{waiting_diffobjs=[]},?TIMEOUT};
-merk_waiting(merk_nodiff, StateData0=#state{waiting_diffobjs=WD,
-                                            mod=Mod,modstate=ModState}) ->
-    % the far side is home and has all of the objects, cleanup time
-    StateData = StateData0#state{waiting_diffobjs=[]},
-    [Mod:delete(ModState, BKey) || BKey <- WD],
-    case Mod:list(ModState) of
-        [] -> 
-            Mod:stop(ModState),
-            {stop,normal,StateData};
-        _ ->
-            hometest(StateData)
-    end;
-merk_waiting({merk_diff,TargetVNode,DiffList}, StateData0) ->
-    StateData = send_diff_objs(TargetVNode,DiffList,StateData0),
-    {next_state,waiting_diffobjs,StateData,?TIMEOUT};
-merk_waiting({diffobj,{_BKey,_BinObj,_RemNode}}, StateData) ->
-    hometest(StateData);
-merk_waiting({map, ClientPid, QTerm, BKey, KeyData},
-             StateData=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
-    do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,self()),
-    {next_state,merk_waiting,StateData,?TIMEOUT};
-merk_waiting({put, FSM_pid, _BKey, _RObj, ReqID, _FSMTime},
-             StateData=#state{idx=Idx}) ->
-    gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID}),
-    {next_state,merk_waiting,StateData,?TIMEOUT};
-merk_waiting({get, FSM_pid, BKey, ReqID}, StateData) ->
-    do_get(FSM_pid, BKey, ReqID, StateData),
-    {next_state,merk_waiting,StateData,?TIMEOUT};
-merk_waiting({vnode_merkle, {_RemoteVN,_Merkle,_ObjList}}, StateData) ->
-    hometest(StateData);
-merk_waiting({list_bucket, FSM_pid, Bucket, ReqID},
-             StateData=#state{mod=Mod,modstate=ModState,idx=Idx}) ->
-    do_list_bucket(FSM_pid,ReqID,Bucket,Mod,ModState,Idx),
-    {next_state,merk_waiting,StateData,?TIMEOUT};
-merk_waiting({delete, From, BKey, ReqID}, StateData=#state{mapcache=Cache}) ->
-    do_delete(From, BKey, ReqID, StateData),
-    {next_state,
-     merk_waiting,StateData#state{mapcache=orddict:erase(BKey,Cache)},?TIMEOUT};
-merk_waiting(_OtherMessage,StateData) ->
-    {next_state,merk_waiting,StateData,?TIMEOUT}.
-
-%%%%%%%%%% in waiting_diffobjs state, we have sent a list of diff objs to the
-%%%%%%%%%% home vnode, and are waiting to hear that they've been handled
-waiting_diffobjs({get_binary,_BKey}, _From, StateData) ->
-    {reply,{error, wrong_state},active,StateData,?TIMEOUT};
-waiting_diffobjs(list, _From, StateData) ->
-    {reply,{error, wrong_state},active,StateData,?TIMEOUT}.
-waiting_diffobjs(timeout, StateData) ->
-    {next_state,active,StateData#state{waiting_diffobjs=[]},?TIMEOUT};
-waiting_diffobjs({resolved_diffobj,K},
-         StateData0=#state{waiting_diffobjs=WD0,mod=Mod,modstate=ModState})->
-    WD = lists:delete(K,WD0),
-    Mod:delete(ModState, K),
-    StateData = StateData0#state{waiting_diffobjs=WD},
-    case WD of
-        [] -> % resolved all the intended diff objects
-            hometest(StateData);
-        _ -> % some left, keep waiting
-            {next_state,waiting_diffobjs,StateData,?TIMEOUT}
-    end;
-waiting_diffobjs(merk_nodiff, StateData) ->
-    % got merkle reply at a very strange time
-    % jump into active mode to handle some requests before trying again
-    {next_state,active,StateData#state{waiting_diffobjs=[]},?TIMEOUT};
-waiting_diffobjs({merk_diff,_TargetNode,_DiffList}, StateData) ->
-    % got merkle reply at a very strange time
-    % jump into active mode to handle some requests before trying again
-    {next_state,active,StateData#state{waiting_diffobjs=[]},?TIMEOUT};
-waiting_diffobjs({map, ClientPid, QTerm, BKey, KeyData},
-                 StateData=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
-    do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,self()),
-    {next_state,waiting_diffobjs,StateData,?TIMEOUT};
-waiting_diffobjs({put, FSM_pid, _BKey, _RObj, ReqID, _FSMTime},
-                 StateData=#state{idx=Idx}) ->
-    gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID}),
-    {next_state,waiting_diffobjs,StateData,?TIMEOUT};
-waiting_diffobjs({get, FSM_pid, BKey, ReqID}, StateData) ->
-    do_get(FSM_pid, BKey, ReqID, StateData),
-    {next_state,waiting_diffobjs,StateData,?TIMEOUT};
-waiting_diffobjs({vnode_merkle, {_RemoteVN,_Merkle,_ObjList}}, StateData) ->
-    hometest(StateData);
-waiting_diffobjs({list_bucket, FSM_pid, Bucket, ReqID},
-                 StateData=#state{mod=Mod,modstate=ModState,idx=Idx}) ->
-    do_list_bucket(FSM_pid,ReqID,Bucket,Mod,ModState,Idx),
-    {next_state,waiting_diffobjs,StateData,?TIMEOUT};
-waiting_diffobjs({delete, From, BKey, ReqID},
-                 StateData=#state{mapcache=Cache}) ->
-    do_delete(From, BKey, ReqID, StateData),
-    {next_state,waiting_diffobjs,
-     StateData#state{mapcache=orddict:erase(BKey,Cache)},?TIMEOUT};
-waiting_diffobjs(_OtherMessage,StateData) ->
-    {next_state,waiting_diffobjs,StateData,?TIMEOUT}.
 
 %%%%%%%%%% in active state, we process normal client requests
 active({get_binary,BKey}, _From, StateData=#state{mod=Mod,modstate=ModState}) ->
@@ -218,10 +85,6 @@ active({put, FSM_pid, BKey, RObj, ReqID, FSMTime},
 active({get, FSM_pid, BKey, ReqID}, StateData) ->
     do_get(FSM_pid, BKey, ReqID, StateData),
     {next_state,active,StateData,?TIMEOUT};
-active({vnode_merkle, {RemoteVN,Merkle,ObjList}}, StateData) ->
-    Me = self(),
-    spawn(fun() -> do_merkle(Me,RemoteVN,Merkle,ObjList,StateData) end),
-    {next_state,active,StateData,?TIMEOUT};
 active({list_bucket, FSM_pid, Bucket, ReqID},
        StateData=#state{mod=Mod,modstate=ModState,idx=Idx}) ->
     do_list_bucket(FSM_pid,ReqID,Bucket,Mod,ModState,Idx),
@@ -238,13 +101,7 @@ active({mapcache, BKey,{M,F,Arg,KeyData},MF_Res},
     end,
     KeyCache = orddict:store({M,F,Arg,KeyData},MF_Res,KeyCache0),
     {next_state,active,
-     StateData#state{mapcache=orddict:store(BKey,KeyCache,Cache)},?TIMEOUT};
-active(merk_nodiff, StateData) ->
-    hometest(StateData);
-active({merk_diff,_TargetNode,_DiffList}, StateData) ->
-    hometest(StateData);
-active({resolved_diffobj,_K}, StateData) ->
-    hometest(StateData).
+     StateData#state{mapcache=orddict:store(BKey,KeyCache,Cache)},?TIMEOUT}.
 
 %% @private
 do_get(FSM_pid, BKey, ReqID,
@@ -394,16 +251,6 @@ uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode) ->
     end.
 
 %% @private
-do_merkle(Me,RemoteVN,RemoteMerkle,ObjList,StateData) ->
-    % given a RemoteMerkle over the ObjList from RemoteVN
-    % determine which elements in ObjList we differ on
-    MyMerkle = make_merk(StateData,ObjList),
-    case merkerl:diff(MyMerkle,RemoteMerkle) of
-        [] -> gen_fsm:send_event(RemoteVN,merk_nodiff);
-        DiffList -> gen_fsm:send_event(RemoteVN,{merk_diff,Me,DiffList})
-    end.
-
-%% @private
 syntactic_put_merge(Mod, ModState, BKey, Obj1, ReqId) ->
     case Mod:get(ModState, BKey) of
         {error, notfound} -> {newobj, Obj1};
@@ -416,17 +263,6 @@ syntactic_put_merge(Mod, ModState, BKey, Obj1, ReqId) ->
                 false -> {newobj, ResObj}
             end    
     end.
-
-%% @private
-get_merkle(_State=#state{mod=Mod,modstate=ModState}) ->
-    KeyList = Mod:list(ModState),
-    Merk0 = merkerl:build_tree([]),
-    get_merk(Mod,ModState,KeyList,Merk0).
-%% @private
-get_merk(_Mod,_ModState,[],Merk) -> Merk;
-get_merk(Mod,ModState,[BKey|KeyList],Merk) ->
-    V = Mod:get(ModState,BKey), % normally, V = {ok,BinObj}
-    get_merk(Mod,ModState,KeyList,merkerl:insert({BKey,erlang:phash2(V)},Merk)).
 
 %% @private
 get_vclocks(KeyList,_State=#state{mod=Mod,modstate=ModState}) ->
@@ -446,9 +282,6 @@ do_fold(Fun, Acc0, _State=#state{mod=Mod, modstate=ModState}) ->
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
 %% @private
-handle_event({get_merkle, From}, StateName, State) ->
-    gen_server2:reply(From, get_merkle(State)),
-    {next_state, StateName, State, ?TIMEOUT};
 handle_event({get_vclocks, From, KeyList}, StateName, State) ->
     gen_server2:reply(From, get_vclocks(KeyList, State)),
     {next_state, StateName, State, ?TIMEOUT};
