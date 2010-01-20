@@ -54,6 +54,8 @@ handle_cast({vnode_list_bucket, {Partition,_Node},
     Pid = get_vnode(Partition, State),
     gen_fsm:send_event(Pid, {list_bucket, FSM_pid, Bucket, ReqID}),
     {noreply, State}.
+                  
+
 
 %% @private
 handle_call(all_possible_vnodes, _From, State) ->
@@ -73,8 +75,12 @@ handle_call({get_vclocks,Partition,KeyList},From,State) ->
     Pid = get_vnode(Partition, State),
     spawn(fun() -> gen_fsm:send_all_state_event(
                      Pid,{get_vclocks,From,KeyList}) end),
+    {noreply, State};
+handle_call({fold, {Partition, Fun, Acc0}}, From, State) ->
+    Pid = get_vnode(Partition, State),
+    spawn(
+      fun() -> gen_fsm:send_all_state_event(Pid, {fold, {Fun,Acc0,From}}) end),
     {noreply, State}.
-
 %% @private
 handle_info({'DOWN', MonRef, process, _P, _I}, State) ->
     delmon(MonRef, State),

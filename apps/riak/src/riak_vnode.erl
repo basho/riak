@@ -441,6 +441,10 @@ get_vclock(BKey,Mod,ModState) ->
     end.
 
 %% @private
+do_fold(Fun, Acc0, _State=#state{mod=Mod, modstate=ModState}) ->
+    Mod:fold(ModState, Fun, Acc0).
+
+%% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
 %% @private
@@ -449,6 +453,9 @@ handle_event({get_merkle, From}, StateName, State) ->
     {next_state, StateName, State, ?TIMEOUT};
 handle_event({get_vclocks, From, KeyList}, StateName, State) ->
     gen_server2:reply(From, get_vclocks(KeyList, State)),
+    {next_state, StateName, State, ?TIMEOUT};
+handle_event({fold, {Fun, Acc0, From}}, StateName, State) ->
+    gen_server2:reply(From, do_fold(Fun, Acc0, State)),
     {next_state, StateName, State, ?TIMEOUT}.
 
 %% @private
