@@ -17,7 +17,7 @@
 -module(riak_dets_backend).
 
 -include_lib("eunit/include/eunit.hrl").
--export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,fold/3]).
+-export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,fold/3, is_empty/1, drop/1]).
 
 % @type state() = term().
 -record(state, {table}).
@@ -94,6 +94,12 @@ list_bucket(#state{table=T}, Bucket) ->
 fold(#state{table=T}, Fun0, Acc) -> 
     Fun = fun({{B,K}, V}, AccIn) -> Fun0({B,K}, V, AccIn) end,
     dets:foldl(Fun, Acc, T).
+
+is_empty(#state{table=T}) ->
+    dets:info(T, size) =:= 0.
+
+drop(#state{table=T}) ->
+    ok = dets:delete_all_objects(T).
 
 
 %%
