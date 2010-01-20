@@ -35,7 +35,7 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 new_connection(Socket, State) ->
-    {ok, Pid} = riak_handoff_receiver:start(Socket),
+    {ok, Pid} = riak_handoff_receiver:start_link(Socket),
     gen_tcp:controlling_process(Socket, Pid),
     {ok, State}.
 
