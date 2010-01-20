@@ -35,11 +35,12 @@ process_message(1, MsgData, State=#state{vnode=VNode}) ->
     io:format("got a 1 ~p ~p~n",
               [RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key]),
     BKey = {RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key},
-    gen_fsm:send_event(VNode, {diffobj, {BKey, RO_PB#riakobject_pb.val}}),
+    ok = gen_fsm:sync_send_all_state_event(VNode, {diffobj, {BKey, RO_PB#riakobject_pb.val}}),
     State;
-process_message(2, _MsgData, State) ->
-    % header of 2 is a request for ack
-     io:format("got a 2~n"),
+process_message(2, _MsgData, State=#state{sock=Socket}) ->
+    io:format("got a 2~n"),
+    ok = gen_tcp:send(Socket, <<2:8,"sync">>),
+    io:format("sent sync~n"),
     State.
 
 handle_call(_Request, _From, State) -> {reply, ok, State}.

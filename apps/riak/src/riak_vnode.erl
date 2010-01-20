@@ -290,7 +290,15 @@ handle_event({fold, {Fun, Acc0, From}}, StateName, State) ->
     {next_state, StateName, State, ?TIMEOUT}.
 
 %% @private
-handle_sync_event(_Event, _From, _StateName, StateData) ->
+handle_sync_event({diffobj,{BKey,BinObj}}, _From, StateName, StateData) ->
+    case do_diffobj_put(BKey, binary_to_term(BinObj), StateData) of
+        ok ->
+            {reply, ok, StateName, StateData, ?TIMEOUT};
+        {error, Err} ->
+            error_logger:error_msg("Error storing handoff obj: ~p~n", [Err]),
+            {reply, {error, Err}, StateName, StateData, ?TIMEOUT}                   
+    end;
+handle_sync_event(_Even, _From, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
 %% @private
