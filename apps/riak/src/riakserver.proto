@@ -1,3 +1,6 @@
-message Helo {
-        required int32 version = 1;
+message RiakObject {
+        required bytes bucket = 1;
+        required bytes key = 2;
+        required bytes val = 3;
 }
+
