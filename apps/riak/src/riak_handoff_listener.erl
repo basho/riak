@@ -6,6 +6,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 -export([sock_opts/0, new_connection/2]).
+-record(state, {portnum}).
 
 start_link() ->
     PortNum = 
@@ -18,13 +19,16 @@ start_link() ->
             undefined -> "0.0.0.0";
             {ok, IP} -> IP
         end,
-    gen_nb_server:start_link(?MODULE, IpAddr, PortNum, []).
+    gen_nb_server:start_link(?MODULE, IpAddr, PortNum, [PortNum]).
 
-init([]) -> {ok, nostate}.
+init([PortNum]) -> 
+    register(?MODULE, self()),
+    {ok, #state{portnum=PortNum}}.
 
 sock_opts() -> [binary, {packet, 4}, {reuseaddr, true}].
 
-handle_call(_Request, _From, State) -> {reply, ok, State}.
+handle_call(handoff_port, _From, State=#state{portnum=P}) -> 
+    {reply, P, State}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
 
