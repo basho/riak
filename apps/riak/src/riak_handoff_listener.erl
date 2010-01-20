@@ -25,7 +25,7 @@ init([PortNum]) ->
     register(?MODULE, self()),
     {ok, #state{portnum=PortNum}}.
 
-sock_opts() -> [binary, {packet, 4}, {reuseaddr, true}].
+sock_opts() -> [binary, {packet, 4}, {reuseaddr, true}, {backlog, 64}].
 
 handle_call(handoff_port, _From, State=#state{portnum=P}) -> 
     {reply, {ok, P}, State}.

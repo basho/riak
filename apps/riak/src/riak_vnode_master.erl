@@ -80,7 +80,9 @@ handle_call({fold, {Partition, Fun, Acc0}}, From, State) ->
     Pid = get_vnode(Partition, State),
     spawn(
       fun() -> gen_fsm:send_all_state_event(Pid, {fold, {Fun,Acc0,From}}) end),
-    {noreply, State}.
+    {noreply, State};
+handle_call({get_vnode, Partition}, _From, State) ->
+    {reply, {ok, get_vnode(Partition, State)}, State}.
 %% @private
 handle_info({'DOWN', MonRef, process, _P, _I}, State) ->
     delmon(MonRef, State),

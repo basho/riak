@@ -7,7 +7,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {sock}).
+-record(state, {sock, partition, vnode}).
 
 start_link(Socket) ->
     gen_server2:start_link(?MODULE, [Socket], []).
@@ -18,21 +18,29 @@ init([Socket]) ->
 
 handle_info({tcp_closed, Socket}, State=#state{sock=Socket}) ->
     {stop, normal, State};
-handle_info({tcp, _Sock, Data},
-            State=#state{sock=Socket}) ->
+handle_info({tcp, _Sock, Data}, State=#state{sock=Socket}) ->
     [MsgType|MsgData] = Data,
-    process_message(MsgType,MsgData),
+    NewState = process_message(MsgType,MsgData,State),
     inet:setopts(Socket, [{active, once}]),
-    {noreply, State}.
+    {noreply, NewState}.
 
-process_message(1, MsgData) ->
+process_message(0, MsgData, State) ->
+    <<Partition:160/integer>> = MsgData,
+    {ok, VNode} = gen_server2:call(riak_vnode_master, {get_vnode, Partition}),  
+    io:format("got partition: ~p vnode=~p~n", [Partition, VNode]),
+    State#state{partition=Partition, vnode=VNode};
+process_message(1, MsgData, State=#state{vnode=VNode}) ->
     % header of 1 is a riakobject_pb
     RO_PB = riakserver_pb:decode_riakobject_pb(zlib:unzip(MsgData)),
     io:format("got a 1 ~p ~p~n",
-              [RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key]);
-process_message(2, _MsgData) ->
+              [RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key]),
+    BKey = {RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key},
+    gen_fsm:send_event(VNode, {diffobj, {BKey, RO_PB#riakobject_pb.val}}),
+    State;
+process_message(2, _MsgData, State) ->
     % header of 2 is a request for ack
-     io:format("got a 2~n").
+     io:format("got a 2~n"),
+    State.
 
 handle_call(_Request, _From, State) -> {reply, ok, State}.
 

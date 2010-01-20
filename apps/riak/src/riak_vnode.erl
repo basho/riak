@@ -165,8 +165,6 @@ waiting_diffobjs({merk_diff,_TargetNode,_DiffList}, StateData) ->
     % got merkle reply at a very strange time
     % jump into active mode to handle some requests before trying again
     {next_state,active,StateData#state{waiting_diffobjs=[]},?TIMEOUT};
-waiting_diffobjs({diffobj,{_BKey,_BinObj,_RemNode}}, StateData) ->
-    hometest(StateData);
 waiting_diffobjs({map, ClientPid, QTerm, BKey, KeyData},
                  StateData=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
     do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,self()),
@@ -199,10 +197,10 @@ active(list, _From, StateData=#state{mod=Mod,modstate=ModState}) ->
     {reply,{ok, Mod:list(ModState)},active,StateData,?TIMEOUT}.
 active(timeout, StateData) ->
     hometest(StateData);
-active({diffobj,{BKey,BinObj,FromVN}}, StateData) ->
+active({diffobj,{BKey,BinObj}}, StateData) ->
     case do_diffobj_put(BKey, binary_to_term(BinObj), StateData) of
         ok ->
-            gen_fsm:send_event(FromVN,{resolved_diffobj,BKey});
+            nop;
         {error, Err} ->
             error_logger:error_msg("Error storing handoff obj: ~p~n", [Err])
     end,

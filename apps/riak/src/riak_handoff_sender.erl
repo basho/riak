@@ -9,7 +9,10 @@ start_link(TargetNode, Partition, BKeyList) ->
 start_fold(TargetNode, Partition, _BKeyList, ParentPid) ->
     [_Name,Host] = string:tokens(atom_to_list(TargetNode), "@"),
     {ok, Port} = get_handoff_port(TargetNode),
-    {ok, Socket} = gen_tcp:connect(Host, Port, [binary,{packet, 4}, {header,1}], 15000),
+    {ok, Socket} = gen_tcp:connect(Host, Port, 
+                                   [binary, {packet, 4}, {header,1}, {active, once}], 15000),
+    M = <<0:8,Partition:160/integer>>,
+    ok = gen_tcp:send(Socket, M),
     gen_server2:call(riak_vnode_master, 
                      {fold, {Partition, fun folder/3, {Socket, ParentPid, []}}},
                      infinity).
@@ -25,7 +28,9 @@ visit_item({B,K}, V, {Socket, ParentPid, _Acc}) ->
     D = zlib:zip(riakserver_pb:encode_riakobject_pb(
                    #riakobject_pb{bucket=B, key=K, val=V})),
     M = <<1:8,D/binary>>,
+    io:format("about to send ~p bytes~n", [size(M)]),
     ok = gen_tcp:send(Socket, M),
+    io:format("sent ~p bytes~n", [size(M)]),
     {Socket, ParentPid, none}.
     
 
