@@ -50,10 +50,15 @@ hometest(StateData0=#state{idx=Idx}) ->
     end.
 
 %% @private
-do_handoff(TargetNode, StateData=#state{idx=Idx}) ->
-    riak_handoff_sender:start_link(TargetNode, Idx, all),
-    %% not just all
-    {next_state,active,StateData,?TIMEOUT}.
+do_handoff(TargetNode, StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
+    case Mod:is_empty(ModState) of
+        true ->
+            io:format("skipping handoff of empty partition ~p to ~p~n", [Idx, TargetNode]),
+            {next_state,active,StateData,?TIMEOUT};
+        false ->
+            riak_handoff_sender:start_link(TargetNode, Idx, all),
+            {next_state,active,StateData,?TIMEOUT}
+    end.
 
 %%%%%%%%%% in active state, we process normal client requests
 active({get_binary,BKey}, _From, StateData=#state{mod=Mod,modstate=ModState}) ->
