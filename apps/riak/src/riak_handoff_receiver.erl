@@ -9,23 +9,24 @@
 -record(state, {sock}).
 
 start_link(Socket) ->
-    gen_server2:start_link({local, ?MODULE}, ?MODULE, [Socket], []).
+    gen_server2:start_link(?MODULE, [Socket], []).
 
 init([Socket]) -> 
-    inet:setopts(Socket, [{active, once}, {packet, 4}]),
+    inet:setopts(Socket, [{active, once}, {packet, 4}, {header, 1}]),
     {ok, #state{sock=Socket}}.
 
 handle_info({tcp_closed, Socket}, State=#state{sock=Socket}) ->
     {stop, normal, State};
-handle_info({tcp, Socket, <<MsgType:1/bytes,MsgData/binary>>},
+handle_info({tcp, _Sock, Data},
             State=#state{sock=Socket}) ->
+    [MsgType|MsgData] = Data,
     process_message(MsgType,MsgData),
     inet:setopts(Socket, [{active, once}]),
     {noreply, State}.
 
-process_message(<<1:1/bytes>>, _MsgData) ->
+process_message(<<1:1>>, _MsgData) ->
     io:format("got a 1~n");
-process_message(<<2:1/bytes>>, _MsgData) ->
+process_message(<<2:1>>, _MsgData) ->
     io:format("got a 2~n").
 
 handle_call(_Request, _From, State) -> {reply, ok, State}.

@@ -17,7 +17,7 @@
 -module(riak_dets_backend).
 
 -include_lib("eunit/include/eunit.hrl").
--export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,fold/3]).
 
 % @type state() = term().
 -record(state, {table}).
@@ -90,6 +90,11 @@ list_bucket(#state{table=T}, Bucket) ->
     end,
     MList = dets:match(T,MatchSpec),
     list(MList,[]).
+
+fold(#state{table=T}, Fun0, Acc) -> 
+    Fun = fun({{B,K}, V}, AccIn) -> Fun0({B,K}, V, AccIn) end,
+    dets:foldl(Fun, Acc, T).
+
 
 %%
 %% Test

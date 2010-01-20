@@ -28,7 +28,7 @@ init([PortNum]) ->
 sock_opts() -> [binary, {packet, 4}, {reuseaddr, true}].
 
 handle_call(handoff_port, _From, State=#state{portnum=P}) -> 
-    {reply, P, State}.
+    {reply, {ok, P}, State}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
 
