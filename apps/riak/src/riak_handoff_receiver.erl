@@ -35,7 +35,7 @@ process_message(1, MsgData, State=#state{vnode=VNode}) ->
     io:format("got a 1 ~p ~p~n",
               [RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key]),
     BKey = {RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key},
-    ok = gen_fsm:sync_send_all_state_event(VNode, {diffobj, {BKey, RO_PB#riakobject_pb.val}}),
+    ok = gen_fsm:sync_send_all_state_event(VNode, {diffobj, {BKey, RO_PB#riakobject_pb.val}}, 60000),
     State;
 process_message(2, _MsgData, State=#state{sock=Socket}) ->
     io:format("got a 2~n"),
