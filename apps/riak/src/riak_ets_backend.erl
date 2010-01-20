@@ -54,7 +54,7 @@ srv_stop(State) ->
     true = ets:delete(State#state.t),
     ok.
 
-% get(state(), Key :: binary()) ->
+% get(state(), riak_object:bkey()) ->
 %   {ok, Val :: binary()} | {error, Reason :: term()}
 % key must be 160b
 get(SrvRef, BKey) -> gen_server:call(SrvRef,{get,BKey}).
@@ -73,7 +73,7 @@ srv_put(State,BKey,Val) ->
     true = ets:insert(State#state.t, {BKey,Val}),
     ok.
 
-% delete(state(), Key :: binary()) ->
+% delete(state(), riak_object:bkey()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
 delete(SrvRef, BKey) -> gen_server:call(SrvRef,{delete,BKey}).
@@ -81,7 +81,7 @@ srv_delete(State, BKey) ->
     true = ets:delete(State#state.t, BKey),
     ok.
 
-% list(state()) -> [Key :: binary()]
+% list(state()) -> [riak_object:bkey()]
 list(SrvRef) -> gen_server:call(SrvRef,list).
 srv_list(State) ->
     MList = ets:match(State#state.t,{'$1','_'}),

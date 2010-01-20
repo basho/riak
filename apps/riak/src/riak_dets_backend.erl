@@ -53,7 +53,7 @@ start(Partition, Config) ->
 % @spec stop(state()) -> ok | {error, Reason :: term()}
 stop(#state{table=T}) -> dets:close(T).
 
-% get(state(), Key :: binary()) ->
+% get(state(), riak_object:bkey()) ->
 %   {ok, Val :: binary()} | {error, Reason :: term()}
 % key must be 160b
 get(#state{table=T}, BKey) ->
@@ -63,17 +63,17 @@ get(#state{table=T}, BKey) ->
         {error, Err} -> {error, Err}
     end.
 
-% put(state(), Key :: binary(), Val :: binary()) ->
+% put(state(), riak_object:bkey(), Val :: binary()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
 put(#state{table=T},BKey,Val) -> dets:insert(T, {BKey,Val}).
 
-% delete(state(), Key :: binary()) ->
+% delete(state(), riak_object:bkey()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
 delete(#state{table=T}, BKey) -> dets:delete(T, BKey).
 
-% list(state()) -> [Key :: binary()]
+% list(state()) -> [riak_object:bkey()]
 list(#state{table=T}) ->
     MList = dets:match(T,{'$1','_'}),
     list(MList,[]).
