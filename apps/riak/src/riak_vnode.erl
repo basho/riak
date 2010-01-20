@@ -50,12 +50,10 @@ hometest(StateData0=#state{idx=Idx}) ->
     end.
 
 %% @private
-do_handoff(_TargetNode,
-           StateData=#state{idx=_Idx,mod=_Mod,modstate=_ModState}) ->
-    % RIGHT HERE
-    {next_state,active,
-     StateData#state{},?TIMEOUT}.
-
+do_handoff(TargetNode, StateData=#state{idx=Idx}) ->
+    riak_handoff_sender:start_link(TargetNode, Idx, all),
+    %% not just all
+    {next_state,active,StateData,?TIMEOUT}.
 
 %%%%%%%%%% in active state, we process normal client requests
 active({get_binary,BKey}, _From, StateData=#state{mod=Mod,modstate=ModState}) ->
