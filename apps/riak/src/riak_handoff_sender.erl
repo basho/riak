@@ -22,10 +22,9 @@ folder({B,K}, V, AccIn) ->
     visit_item({B,K}, V, AccIn).
 
 visit_item({B,K}, V, {Socket, ParentPid, _Acc}) ->
-    D = riakserver_pb:encode_riakobject_pb(
-          #riakobject_pb{bucket=B, key=K, val=V}),
+    D = zlib:zip(riakserver_pb:encode_riakobject_pb(
+                   #riakobject_pb{bucket=B, key=K, val=V})),
     M = <<1:8,D/binary>>,
-    io:format("sending: ~p~n", [size(M)]),
     ok = gen_tcp:send(Socket, M),
     {Socket, ParentPid, none}.
     
