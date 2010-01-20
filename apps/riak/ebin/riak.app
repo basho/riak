@@ -5,6 +5,7 @@
   {modules, [
              bloom,
              chash,
+             gen_nb_server,
              gen_server2,
              jaywalker_resource,
              jiak,
