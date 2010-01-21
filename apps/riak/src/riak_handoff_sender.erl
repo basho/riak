@@ -19,6 +19,7 @@ start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
                      {fold, {Partition, fun folder/3, {Socket, ParentPid, []}}},
                      infinity);
         _ ->
+            io:format("intermediate handoff:~n~p~n",[BKeyList]),
             inner_fold({Socket,ParentPid,[]},BKeyList)
     end,
     gen_fsm:send_event(ParentPid, handoff_complete).
