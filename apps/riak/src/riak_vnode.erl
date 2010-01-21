@@ -27,6 +27,7 @@
 start_link(Idx) -> gen_fsm:start_link(?MODULE, [Idx], []).
 
 init([VNodeIndex]) ->
+    io:format("~p init~n",[VNodeIndex]),
     Mod = riak:get_app_env(storage_backend),
     Configuration = riak:get_app_env(),
     {ok, ModState} = Mod:start(VNodeIndex, Configuration),
@@ -47,16 +48,21 @@ hometest(StateData0=#state{idx=Idx,handoff_q=HQ}) ->
     Me = node(),
     case riak_ring:index_owner(MyRing, Idx) of
         Me ->
+            io:format("~p hometest home~n",[Idx]),
             {next_state,active,StateData#state{handoff_q=not_in_handoff},
              ?TIMEOUT};
         TargetNode ->
             case net_adm:ping(TargetNode) of
-                pang -> {next_state,active,StateData,?TIMEOUT};
+                pang -> 
+                    io:format("~p hometest pang~n",[Idx]),
+                    {next_state,active,StateData,?TIMEOUT};
                 pong -> 
                     case HQ of
                         not_in_handoff ->
+                            io:format("~p hometest dh~n",[Idx]),
                             do_handoff(TargetNode, StateData);
                         _ ->
+                            io:format("~p hometest dLh~n",[Idx]),
                             do_list_handoff(TargetNode, HQ, StateData)
                     end
             end
@@ -66,8 +72,10 @@ hometest(StateData0=#state{idx=Idx,handoff_q=HQ}) ->
 do_handoff(TargetNode, StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
     case Mod:is_empty(ModState) of
         true ->
+            io:format("~p dh empty~n",[Idx]),
             delete_and_exit(StateData);
         false ->
+            io:format("~p dh nonempty~n",[Idx]),
             riak_handoff_sender:start_link(TargetNode, Idx, all),
             {next_state,active,StateData#state{handoff_q=[]},?TIMEOUT}
     end.
@@ -76,14 +84,17 @@ do_handoff(TargetNode, StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
 do_list_handoff(TargetNode, BKeyList, StateData=#state{idx=Idx}) ->
     case BKeyList of
         [] ->
+            io:format("~p dLh empty~n",[Idx]),
             delete_and_exit(StateData);
         _ ->
+            io:format("~p dLh nonempty~n",[Idx]),
             riak_handoff_sender:start_link(TargetNode, Idx, BKeyList),
             {next_state,active,StateData#state{handoff_q=[]},?TIMEOUT}
     end.
 
 %% @private
-delete_and_exit(StateData=#state{mod=Mod, modstate=ModState}) ->
+delete_and_exit(StateData=#state{idx=Idx,mod=Mod, modstate=ModState}) ->
+    io:format("~p del and exit~n",[Idx]),
     ok = Mod:drop(ModState),
     {stop, normal, StateData}.
 
@@ -312,7 +323,8 @@ get_vclock(BKey,Mod,ModState) ->
     end.
 
 %% @private
-do_fold(Fun, Acc0, _State=#state{mod=Mod, modstate=ModState}) ->
+do_fold(Fun, Acc0, _State=#state{idx=Idx,mod=Mod, modstate=ModState}) ->
+    io:format("~p do_fold~n",[Idx]),
     Mod:fold(ModState, Fun, Acc0).
 
 %% @private
