@@ -36,10 +36,12 @@ init([VNodeIndex]) ->
     case hometest(StateData0) of
         {next_state, StateName, StateData, Timeout} ->
             {ok, StateName, StateData, Timeout};
-        {stop,normal,_StateData} ->
-            {stop, normal}
-%            % always stick around for one timeout cycle
-%            {ok, active, StateData, ?TIMEOUT}
+        {stop,normal,StateData} ->
+%            {stop, normal}
+            % always stick around for one timeout cycle
+            % restart the backend as it may have deleted its data
+            {ok, ModState1} = Mod:start(VNodeIndex, Configuration),
+            {ok, active, StateData#state{mod=Mod, modstate=ModState1}, ?TIMEOUT}
     end.
 
 %% @private
