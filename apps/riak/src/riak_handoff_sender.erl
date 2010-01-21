@@ -39,9 +39,7 @@ visit_item({B,K}, V, {Socket, ParentPid, 100}) ->
     M = <<2:8,"sync">>,
     ok = gen_tcp:send(Socket, M),
     inet:setopts(Socket, [{active, false}]),
-    io:format("flow control start~n"),
     {ok,[2|<<"sync">>]} = gen_tcp:recv(Socket, 0),
-    io:format("flow control end~n"),
     inet:setopts(Socket, [{active, once}]),
     visit_item({B,K}, V, {Socket, ParentPid, 0});
 visit_item({B,K}, V, {Socket, ParentPid, Acc}) ->

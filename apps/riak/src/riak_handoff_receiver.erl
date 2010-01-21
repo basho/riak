@@ -27,20 +27,15 @@ handle_info({tcp, _Sock, Data}, State=#state{sock=Socket}) ->
 process_message(0, MsgData, State) ->
     <<Partition:160/integer>> = MsgData,
     {ok, VNode} = gen_server2:call(riak_vnode_master, {get_vnode, Partition}),  
-    io:format("got partition: ~p vnode=~p~n", [Partition, VNode]),
     State#state{partition=Partition, vnode=VNode};
 process_message(1, MsgData, State=#state{vnode=VNode}) ->
     % header of 1 is a riakobject_pb
     RO_PB = riakserver_pb:decode_riakobject_pb(zlib:unzip(MsgData)),
-    io:format("got a 1 ~p ~p~n",
-              [RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key]),
     BKey = {RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key},
     ok = gen_fsm:sync_send_all_state_event(VNode, {diffobj, {BKey, RO_PB#riakobject_pb.val}}, 60000),
     State;
 process_message(2, _MsgData, State=#state{sock=Socket}) ->
-    io:format("got a 2~n"),
     ok = gen_tcp:send(Socket, <<2:8,"sync">>),
-    io:format("sent sync~n"),
     State.
 
 handle_call(_Request, _From, State) -> {reply, ok, State}.

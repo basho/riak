@@ -64,10 +64,8 @@ hometest(StateData0=#state{idx=Idx,handoff_q=HQ}) ->
 do_handoff(TargetNode, StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
     case Mod:is_empty(ModState) of
         true ->
-            io:format("dh delete and exit~n"),
             delete_and_exit(StateData);
         false ->
-            io:format("dh go~n"),
             riak_handoff_sender:start_link(TargetNode, Idx, all),
             {next_state,active,StateData#state{handoff_q=[]},?TIMEOUT}
     end.
@@ -76,10 +74,8 @@ do_handoff(TargetNode, StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
 do_list_handoff(TargetNode, BKeyList, StateData=#state{idx=Idx}) ->
     case BKeyList of
         [] ->
-            io:format("dlh delete and exit~n"),
             delete_and_exit(StateData);
         _ ->
-            io:format("dlh go ~p~n",[BKeyList]),
             riak_handoff_sender:start_link(TargetNode, Idx, BKeyList),
             {next_state,active,StateData#state{handoff_q=[]},?TIMEOUT}
     end.
@@ -87,7 +83,6 @@ do_list_handoff(TargetNode, BKeyList, StateData=#state{idx=Idx}) ->
 %% @private
 delete_and_exit(StateData=#state{mod=Mod, modstate=ModState}) ->
     ok = Mod:drop(ModState),
-    io:format("deleted, exiting~n"),
     {stop, normal, StateData}.
 
 %%%%%%%%%% in active state, we process normal client requests
