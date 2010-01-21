@@ -32,8 +32,11 @@ init([VNodeIndex]) ->
     {ok, ModState} = Mod:start(VNodeIndex, Configuration),
     StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState,
                         handoff_q=not_in_handoff},
-    {next_state, StateName, StateData, Timeout} = hometest(StateData0),
-    {ok, StateName, StateData, Timeout}.
+    case hometest(StateData0) of
+        {next_state, StateName, StateData, Timeout} ->
+            {ok, StateName, StateData, Timeout};
+        {stop,normal,_StateData} -> ignore
+    end.
 
 %% @private
 hometest(StateData0=#state{idx=Idx,handoff_q=HQ}) ->
