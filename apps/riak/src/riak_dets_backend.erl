@@ -20,7 +20,7 @@
 -export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,fold/3, is_empty/1, drop/1]).
 
 % @type state() = term().
--record(state, {table}).
+-record(state, {table, path}).
 
 % @spec start(Partition :: integer(), Config :: proplist()) ->
 %                        {ok, state()} | {{error, Reason :: term()}, state()}
@@ -44,7 +44,7 @@ start(Partition, Config) ->
                                    {min_no_slots, 8192},
                                    {max_no_slots, 16777216}]) of
         {ok, DetsName} ->
-            {ok, #state{table=DetsName}};
+            {ok, #state{table=DetsName, path=TablePath}};
         {error, Reason}  ->
             riak:stop("dets:open_file failed"),
             {error, Reason}
@@ -98,9 +98,10 @@ fold(#state{table=T}, Fun0, Acc) ->
 is_empty(#state{table=T}) ->
     dets:info(T, size) =:= 0.
 
-drop(#state{table=T}) ->
-    ok = dets:delete_all_objects(T).
-
+drop(#state{table=T, path=P}) ->
+    ok = dets:delete_all_objects(T),
+    ok = dets:close(T),
+    ok = file:delete(P).
 
 %%
 %% Test
