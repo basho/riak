@@ -22,7 +22,7 @@
 
 -define(TIMEOUT, 60000).
 
--record(state, {idx,mapcache,mod,modstate}).
+-record(state, {idx,mapcache,mod,modstate,handoff_q}).
 
 start_link(Idx) -> gen_fsm:start_link(?MODULE, [Idx], []).
 
@@ -30,22 +30,30 @@ init([VNodeIndex]) ->
     Mod = riak:get_app_env(storage_backend),
     Configuration = riak:get_app_env(),
     {ok, ModState} = Mod:start(VNodeIndex, Configuration),
-    StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState},
+    StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState,
+                        handoff_q=not_in_handoff},
     {next_state, StateName, StateData, Timeout} = hometest(StateData0),
     {ok, StateName, StateData, Timeout}.
 
 %% @private
-hometest(StateData0=#state{idx=Idx}) ->
+hometest(StateData0=#state{idx=Idx,handoff_q=HQ}) ->
     StateData = StateData0#state{mapcache=orddict:new()},
     {ok, MyRing} = riak_ring_manager:get_my_ring(),
     Me = node(),
     case riak_ring:index_owner(MyRing, Idx) of
         Me ->
-            {next_state,active,StateData,?TIMEOUT};
+            {next_state,active,StateData#state{handoff_q=not_in_handoff},
+             ?TIMEOUT};
         TargetNode ->
             case net_adm:ping(TargetNode) of
                 pang -> {next_state,active,StateData,?TIMEOUT};
-                pong -> do_handoff(TargetNode, StateData)
+                pong -> 
+                    case HQ of
+                        not_in_handoff ->
+                            do_handoff(TargetNode, StateData);
+                        _ ->
+                            do_list_handoff(TargetNode, HQ, StateData)
+                    end
             end
     end.
 
@@ -53,12 +61,31 @@ hometest(StateData0=#state{idx=Idx}) ->
 do_handoff(TargetNode, StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
     case Mod:is_empty(ModState) of
         true ->
-            io:format("skipping handoff of empty partition ~p to ~p~n", [Idx, TargetNode]),
-            {next_state,active,StateData,?TIMEOUT};
+            io:format("dh delete and exit~n"),
+            delete_and_exit(StateData);
         false ->
+            io:format("dh go~n"),
             riak_handoff_sender:start_link(TargetNode, Idx, all),
-            {next_state,active,StateData,?TIMEOUT}
+            {next_state,active,StateData#state{handoff_q=[]},?TIMEOUT}
     end.
+
+%% @private
+do_list_handoff(TargetNode, BKeyList, StateData=#state{idx=Idx}) ->
+    case BKeyList of
+        [] ->
+            io:format("dlh delete and exit~n"),
+            delete_and_exit(StateData);
+        _ ->
+            io:format("dlh go ~p~n",[BKeyList]),
+            riak_handoff_sender:start_link(TargetNode, Idx, BKeyList),
+            {next_state,active,StateData#state{handoff_q=[]},?TIMEOUT}
+    end.
+
+%% @private
+delete_and_exit(StateData=#state{mod=Mod, modstate=ModState}) ->
+    ok = Mod:drop(ModState),
+    io:format("deleted, exiting~n"),
+    {stop, normal, StateData}.
 
 %%%%%%%%%% in active state, we process normal client requests
 active({get_binary,BKey}, _From, StateData=#state{mod=Mod,modstate=ModState}) ->
@@ -79,12 +106,19 @@ active({map, ClientPid, QTerm, BKey, KeyData},
        StateData=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
     do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,self()),
     {next_state,active,StateData,?TIMEOUT};
+active(handoff_complete, StateData) ->
+    hometest(StateData);
 active({put, FSM_pid, BKey, RObj, ReqID, FSMTime},
-       StateData=#state{idx=Idx,mapcache=Cache}) ->
+       StateData=#state{idx=Idx,mapcache=Cache,handoff_q=HQ0}) ->
+    HQ = case HQ0 of
+        not_in_handoff -> nop;
+        _ -> [BKey|HQ0]
+    end,
     gen_fsm:send_event(FSM_pid, {w, Idx, ReqID}),
     do_put(FSM_pid, BKey, RObj, ReqID, FSMTime, StateData),
     {next_state,
-     active,StateData#state{mapcache=orddict:erase(BKey,Cache)},?TIMEOUT};
+     active,StateData#state{mapcache=orddict:erase(BKey,Cache),
+                            handoff_q=HQ},?TIMEOUT};
 active({get, FSM_pid, BKey, ReqID}, StateData) ->
     do_get(FSM_pid, BKey, ReqID, StateData),
     {next_state,active,StateData,?TIMEOUT};

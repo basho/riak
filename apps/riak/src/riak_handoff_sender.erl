@@ -6,17 +6,28 @@ start_link(TargetNode, Partition, BKeyList) ->
     Self = self(),
     spawn_link(fun() -> start_fold(TargetNode, Partition, BKeyList, Self) end).
 
-start_fold(TargetNode, Partition, _BKeyList, ParentPid) ->
+start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
     [_Name,Host] = string:tokens(atom_to_list(TargetNode), "@"),
     {ok, Port} = get_handoff_port(TargetNode),
     {ok, Socket} = gen_tcp:connect(Host, Port, 
                                    [binary, {packet, 4}, {header,1}, {active, once}], 15000),
     M = <<0:8,Partition:160/integer>>,
     ok = gen_tcp:send(Socket, M),
-    gen_server2:call(riak_vnode_master, 
+    case BKeyList of
+        all ->
+            gen_server2:call(riak_vnode_master, 
                      {fold, {Partition, fun folder/3, {Socket, ParentPid, []}}},
-                     infinity).
+                     infinity);
+        _ ->
+            inner_fold({Socket,ParentPid,[]},BKeyList)
+    end,
+    gen_fsm:send_event(ParentPid, handoff_complete).
 
+inner_fold(_FoldArg,[]) -> ok;
+inner_fold(FoldArg,[{B,K}|Tail]) ->
+    {_Socket,ParentPid,_Count} = FoldArg,
+    {ok, V} = gen_fsm:sync_send_event(ParentPid, {get_binary, {B,K}}, infinity),
+    inner_fold(folder({B,K},V,FoldArg),Tail).
 
 folder({B,K}, V, {Socket, ParentPid, []}) ->
     gen_tcp:controlling_process(Socket, self()),
