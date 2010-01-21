@@ -48,9 +48,7 @@ visit_item({B,K}, V, {Socket, ParentPid, Acc}) ->
     D = zlib:zip(riakserver_pb:encode_riakobject_pb(
                    #riakobject_pb{bucket=B, key=K, val=V})),
     M = <<1:8,D/binary>>,
-    io:format("about to send ~p bytes~n", [size(M)]),
     ok = gen_tcp:send(Socket, M),
-    io:format("sent ~p bytes~n", [size(M)]),
     {Socket, ParentPid, Acc+1}.
     
 

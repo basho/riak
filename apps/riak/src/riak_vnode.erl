@@ -114,7 +114,7 @@ active(handoff_complete, StateData) ->
 active({put, FSM_pid, BKey, RObj, ReqID, FSMTime},
        StateData=#state{idx=Idx,mapcache=Cache,handoff_q=HQ0}) ->
     HQ = case HQ0 of
-        not_in_handoff -> nop;
+        not_in_handoff -> not_in_handoff;
         _ -> [BKey|HQ0]
     end,
     gen_fsm:send_event(FSM_pid, {w, Idx, ReqID}),
