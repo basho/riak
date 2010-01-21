@@ -525,28 +525,22 @@ produce_body(ReqData, Context=#ctx{key=container,module=Mod,bucket=Bucket}) ->
                  {"schema", "false"} -> [];
                  _ -> [{schema, {struct, full_schema(Mod)}}]
              end,
-    {Keys, Context1} = case proplists:lookup("keys", Qopts) of
-                           {"keys", "false"} -> {[], Context};
-                           {"keys", "stream"} -> {stream, Context};
-                           _ -> 
-                               {ok, {K, NewCtx}} = retrieve_keylist(Context),
-                               {[{keys, K}], NewCtx}
-                       end,
-    KeyList = case Keys of
-        [{keys,Ks}] -> Ks;
-        _ -> []
-    end,
-    NewReqData = lists:foldl(fun(K,RD) ->
-                                     add_link_head(Bucket,K,"contained",RD)
-                             end,
-                             ReqData, KeyList),
+    {Keys, Context1} = maybe_fetch_keylist(ReqData, Context),
     case Keys of
         stream ->
             JSONSpec = {struct, Schema},
             {{stream, {mochijson2:encode(JSONSpec), stream_keys(Context1)}},
-             NewReqData, Context1};
+             ReqData, Context1};
+        false ->
+            JSONSpec = {struct, Schema},
+            {mochijson2:encode(JSONSpec), ReqData, Context1};
         _ ->
-            JSONSpec = {struct, Schema ++ Keys},
+            NewReqData = lists:foldl(
+                           fun(K,RD) ->
+                                   add_link_head(Bucket,K,"contained",RD)
+                           end,
+                           ReqData, Keys),
+            JSONSpec = {struct, [{keys,Keys}|Schema]},
             {mochijson2:encode(JSONSpec), NewReqData, Context1}
     end;
 produce_body(ReqData, Context=#ctx{module=Module,bucket=Bucket}) ->
@@ -562,6 +556,26 @@ produce_body(ReqData, Context=#ctx{module=Module,bucket=Bucket}) ->
                          binary_to_list(jiak_object:vclock(JiakObject)),
                          NewReqData),
      Context1}.    
+
+%% @spec maybe_fetch_keylist(wrq(), context()) ->
+%%          {[binary()]|false|stream, context()}
+%% @doc Get the list of keys in this bucket.  This function
+%%      memoizes the keylist in the context so it can be
+%%      called multiple times without duplicating work.
+maybe_fetch_keylist(ReqData, Context=#ctx{bucket=Bucket,
+                                          jiak_client=JiakClient,
+                                          bucketkeys=undefined}) ->
+    case wrq:get_qs_value("keys", ReqData) of
+        "false" ->
+            {false, Context#ctx{bucketkeys=false}};
+        "stream" ->
+            {stream, Context#ctx{bucketkeys=stream}};
+        _ ->
+            {ok, Keys} = JiakClient:list_keys(Bucket),
+            {Keys, Context#ctx{bucketkeys=Keys}}
+    end;
+maybe_fetch_keylist(_ReqData, Context=#ctx{bucketkeys=Keys}) ->
+    {Keys, Context}.
 
 add_container_link(Bucket,ReqData) ->
     Val = io_lib:format("</~s/~s>; rel=\"up\"",
@@ -719,20 +733,12 @@ generate_etag(RD, Ctx=#ctx{etag=ETag}) -> {ETag, RD, Ctx}.
 %%          {string(), webmachine:wrq(), context()}
 %% @doc Generate the ETag for a bucket.
 make_bucket_etag(ReqData, Context) ->
-    {ok, {Keys, Context1}} = retrieve_keylist(Context),
-    ETag = mochihex:to_hex(crypto:sha(term_to_binary(Keys))),
+    {Keys, Context1} = maybe_fetch_keylist(ReqData, Context),
+    ETag = mochihex:to_hex(
+             crypto:sha(
+               term_to_binary(
+                 {Keys, catch full_schema(Context#ctx.module)}))),
     {ETag, ReqData, Context1#ctx{etag=ETag}}.
-
-%% @spec retrieve_keylist(context()) -> {ok, {[binary()], context()}}
-%% @doc Get the list of keys in this bucket.  This function
-%%      memoizes the keylist in the context so it can be
-%%      called multiple times without duplicating work.
-retrieve_keylist(Context=#ctx{bucket=Bucket,jiak_client=JiakClient,
-                              bucketkeys=undefined}) ->
-    {ok, Keys} = JiakClient:list_keys(Bucket),
-    {ok, {Keys, Context#ctx{bucketkeys=Keys}}};
-retrieve_keylist(Context=#ctx{bucketkeys=Keys}) ->
-    {ok, {Keys, Context}}.
 
 %% @spec make_object_etag(webmachine:wrq(), context()) ->
 %%          {string(), webmachine:wrq(), context()}
