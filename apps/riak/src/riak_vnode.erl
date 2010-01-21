@@ -36,9 +36,10 @@ init([VNodeIndex]) ->
     case hometest(StateData0) of
         {next_state, StateName, StateData, Timeout} ->
             {ok, StateName, StateData, Timeout};
-        {stop,normal,StateData} ->
-            % always stick around for one timeout cycle
-            {ok, active, StateData, ?TIMEOUT}
+        {stop,normal,_StateData} ->
+            {stop, normal}
+%            % always stick around for one timeout cycle
+%            {ok, active, StateData, ?TIMEOUT}
     end.
 
 %% @private
