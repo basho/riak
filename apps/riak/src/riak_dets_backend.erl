@@ -44,6 +44,8 @@ start(Partition, Config) ->
                                    {min_no_slots, 8192},
                                    {max_no_slots, 16777216}]) of
         {ok, DetsName} ->
+            io:format("~p~n", [dets:info(DetsName)]),
+            ok = dets:sync(DetsName),
             {ok, #state{table=DetsName, path=TablePath}};
         {error, Reason}  ->
             riak:stop("dets:open_file failed"),
@@ -96,6 +98,7 @@ fold(#state{table=T}, Fun0, Acc) ->
     dets:foldl(Fun, Acc, T).
 
 is_empty(#state{table=T}) ->
+    ok = dets:sync(T),
     dets:info(T, size) =:= 0.
 
 drop(#state{table=T, path=P}) ->
