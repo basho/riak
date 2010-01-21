@@ -19,7 +19,6 @@ start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
                      {fold, {Partition, fun folder/3, {Socket, ParentPid, []}}},
                      infinity);
         _ ->
-            io:format("intermediate handoff:~n~p~n",[BKeyList]),
             inner_fold({Socket,ParentPid,[]},BKeyList)
     end,
     gen_fsm:send_event(ParentPid, handoff_complete).
@@ -27,9 +26,13 @@ start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
 inner_fold(_FoldArg,[]) -> ok;
 inner_fold(FoldArg,[{B,K}|Tail]) ->
     {_Socket,ParentPid,_Count} = FoldArg,
-    {ok, V} = gen_fsm:sync_send_event(ParentPid, {get_binary, {B,K}}, infinity),
-    inner_fold(folder({B,K},V,FoldArg),Tail).
-
+    case gen_fsm:sync_send_event(ParentPid, {get_binary, {B,K}}, infinity) of
+        {ok, V} ->
+            inner_fold(folder({B,K},V,FoldArg),Tail);
+        _ ->
+            inner_fold(FoldArg,Tail)
+    end.
+            
 folder({B,K}, V, {Socket, ParentPid, []}) ->
     gen_tcp:controlling_process(Socket, self()),
     visit_item({B,K}, V, {Socket, ParentPid, 0});
