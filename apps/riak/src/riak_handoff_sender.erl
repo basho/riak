@@ -3,10 +3,19 @@
 -include("riakserver_pb.hrl").
 
 start_link(TargetNode, Partition, BKeyList) ->
-    Self = self(),
-    spawn_link(fun() -> start_fold(TargetNode, Partition, BKeyList, Self) end).
+    io:format("about to acquire lock~n"),
+    case global:set_lock({handoff_token, {node(), Partition}}, [node()], 0) of
+        true ->
+            Self = self(),
+            {ok, spawn_link(fun() -> start_fold(TargetNode, Partition, BKeyList, Self) end)};
+        false ->
+            io:format("failed to acquire handoff lock token~n"),
+            {error, locked}
+    end.
+            
 
 start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
+
     [_Name,Host] = string:tokens(atom_to_list(TargetNode), "@"),
     {ok, Port} = get_handoff_port(TargetNode),
     {ok, Socket} = gen_tcp:connect(Host, Port, 

@@ -44,7 +44,6 @@ start(Partition, Config) ->
                                    {min_no_slots, 8192},
                                    {max_no_slots, 16777216}]) of
         {ok, DetsName} ->
-            io:format("~p~n", [dets:info(DetsName)]),
             ok = dets:sync(DetsName),
             {ok, #state{table=DetsName, path=TablePath}};
         {error, Reason}  ->
