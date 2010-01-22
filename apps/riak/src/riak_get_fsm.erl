@@ -161,7 +161,7 @@ waiting_read_repair({r, {error, Err}, Idx, ReqId},
                   StateData=#state{req_id=ReqId,replied_fail=Replied0}) ->
     finalize(StateData#state{replied_fail=[{Err,Idx}|Replied0]});
 waiting_read_repair(timeout, StateData) ->
-    finalize(StateData).
+    really_finalize(StateData).
 
 finalize(StateData=#state{replied_r=R,replied_fail=F,replied_notfound=NF, n=N}) ->
     case (length(R) + length(F) + length(NF)) >= N of

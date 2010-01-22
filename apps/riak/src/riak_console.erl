@@ -19,7 +19,7 @@
 %% @copyright 2007-2009 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_console).
 
--export([join/1]).
+-export([join/1, status/1, reip/1]).
 
 join([NodeStr]) ->
     case riak:join(NodeStr) of
@@ -34,4 +34,36 @@ join(_) ->
     io:format("Join requires a node to join with.\n"),
     error.
 
+status([]) ->
+    case whereis(riak_stat) of
+        undefined ->
+            io:format("riak_stat is not enabled.~n");
+        _ ->
+            StatString =
+                format_stats(riak_stat:get_stats(), 
+                             ["-------------------------------------------\n",
+                              io_lib:format("1-minute stats for ~p~n",[node()])]),
+            io:format("~s~n", [StatString])
+    end.
 
+reip([OldNode, NewNode]) ->
+    application:load(riak),
+    RingStateDir = riak:get_app_env(ring_state_dir),
+    {ok, RingFile} = riak_ring_manager:find_latest_ringfile(),
+    BackupFN = filename:join([RingStateDir, filename:basename(RingFile)++".BAK"]),
+    {ok, _} = file:copy(RingFile, BackupFN),
+    io:format("Backed up existing ring file to ~p~n", [BackupFN]),
+    Ring = riak_ring_manager:read_ringfile(RingFile),
+    NewRing = riak_ring:rename_node(Ring, OldNode, NewNode),
+    riak_ring_manager:do_write_ringfile(NewRing),
+    io:format("New ring file written to ~p~n", 
+              [element(2, riak_ring_manager:find_latest_ringfile())]).
+
+
+format_stats([], Acc) ->
+    lists:reverse(Acc);
+format_stats([{vnode_gets, V}|T], Acc) ->
+    format_stats(T, [io_lib:format("vnode gets : ~p~n", [V])|Acc]);
+format_stats([{Stat, V}|T], Acc) ->
+    format_stats(T, [io_lib:format("~p : ~p~n", [Stat, V])|Acc]).
+    
