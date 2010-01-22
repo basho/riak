@@ -18,7 +18,7 @@ invoke_map(JsCtx, CSums, Args, undefined, FunName, F) ->
     MD5 = erlang:md5(F),
     {Continue, NewCSums} = case needs_defining(CSums, FunName, MD5) of
                                true ->
-                                   F1 = list_to_binary(["var ", FunName, "=", F]),
+                                   F1 = list_to_binary([<<"var ">>, FunName, <<"=">>, F]),
                                    case js:define(JsCtx, F1) of
                                        ok ->
                                            {ok, dict:store(FunName, MD5, CSums)};
