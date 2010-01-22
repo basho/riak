@@ -187,9 +187,12 @@ remove_from_cluster(ExitingNode) ->
         P <- AllIndices].    
 
 attempt_simple_transfer(Ring, Owners, ExitingNode) ->
+    TargetN = riak:get_app_env(target_n_val, 3),
     attempt_simple_transfer(Ring, Owners,
-                            riak:get_app_env(target_n_val, 3),
-                            ExitingNode, 0, []).
+                            TargetN,
+                            ExitingNode, 0,
+                            [{O,-TargetN} || O <- riak_ring:all_members(Ring),
+                                             O /= ExitingNode]).
 attempt_simple_transfer(Ring, [{P, Exit}|Rest], TargetN, Exit, Idx, Last) ->
     %% handoff
     case [ N || {N, I} <- Last, Idx-I >= TargetN ] of
@@ -204,7 +207,8 @@ attempt_simple_transfer(Ring, [{P, Exit}|Rest], TargetN, Exit, Idx, Last) ->
                           end,
             case lists:filter(fun(N) -> 
                                  Next = StepsToNext(N),
-                                 (Next >= TargetN) orelse (Next == length(Rest))
+                                 (Next+1 >= TargetN)
+                                          orelse (Next == length(Rest))
                               end,
                               Candidates) of
                 [] ->
