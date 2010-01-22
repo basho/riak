@@ -517,7 +517,9 @@ resource_exists(RD, Ctx0) ->
 %%      Includes the bucket props unless the "props=false" query param
 %%      is specified.
 %%      Includes the keys of the documents in the bucket unless the
-%%      "keys=false" query param is specified.
+%%      "keys=false" query param is specified. If "keys=stream" query param
+%%      is specified, keys will be streamed back to the client in JSON chunks
+%%      like so: {"keys":[Key1, Key2,...]}.
 %%      A Link header will also be added to the response by this function
 %%      if the keys are included in the JSON object.  The Link header
 %%      will include links to all keys in the bucket, with the property
@@ -534,6 +536,7 @@ produce_bucket_body(RD, Ctx=#ctx{bucket=B, client=C}) ->
     {KeyPart, KeyRD} =
         case wrq:get_qs_value(?Q_KEYS, RD) of
             ?Q_FALSE -> {[], RD};
+            ?Q_STREAM -> {stream, RD};
             _ ->
                 {ok, KeyList} = C:list_keys(B),
                 {[{?Q_KEYS, KeyList}],
@@ -543,7 +546,24 @@ produce_bucket_body(RD, Ctx=#ctx{bucket=B, client=C}) ->
                    end,
                    RD, KeyList)}
         end,
-    {mochijson2:encode({struct, SchemaPart++KeyPart}), KeyRD, Ctx}.
+    case KeyPart of
+        stream -> {{stream, {mochijson2:encode({struct, SchemaPart}),
+                             fun() ->
+                                     {ok, ReqId} = C:stream_list_keys(B),
+                                     stream_keys(ReqId)
+                             end}},
+                   KeyRD,
+                   Ctx};
+       _ ->
+            {mochijson2:encode({struct, SchemaPart++KeyPart}), KeyRD, Ctx}
+    end.
+
+stream_keys(ReqId) ->
+    receive
+        {ReqId, {keys, Keys}} ->
+            {mochijson2:encode({struct, [{<<"keys">>, Keys}]}), fun() -> stream_keys(ReqId) end};                                                                     
+        {ReqId, done} -> {mochijson2:encode({struct, [{<<"keys">>, []}]}), done}
+    end.
 
 %% @spec accept_bucket_body(reqdata(), context()) -> {true, reqdata(), context()}
 %% @doc Modify the bucket properties according to the body of the

@@ -102,27 +102,26 @@
 
 
 * Installation
-*** Embedded Erlang Node
+** Embedded Erlang Node
 
-    If you downloaded a pre-built, binary release of Riak, or if
-    you have made it through building the release from source, you
-    should have an Erlang embedded node ready to run Riak in-place.
-    No further installation is needed.
+   If you downloaded a pre-built, binary release of Riak, or if
+   you have made it through building the release from source, you
+   should have an Erlang embedded node ready to run Riak in-place.
+   No further installation is needed.
 
-    To run Riak on other machines, simply copy the entire embedded
-    node directory to those machines.  See the [[Configuration]] section
-    for details about altering configurations for each machine.
+   To run Riak on other machines, simply copy the entire embedded
+   node directory to those machines.  See the [[Configuration]] section
+   for details about altering configurations for each machine.
 
+** Installing to OTP Libary Path
 
-*** Installing to OTP Libary Path
+   You also have the option of installing Riak into the Erlang/OTP
+   library path.  This will make Riak modules available to all other
+   Erlang applications on your system without needing to muck about
+   with code paths.
 
-    You also have the option of installing Riak into the Erlang/OTP
-    library path.  This will make Riak modules available to all other
-    Erlang applications on your system without needing to muck about
-    with code paths.
-
-    To install, simply execute =rebar install= in the top-level Riak
-    directory.
+   To install, simply execute =rebar install= in the top-level Riak
+   directory.
 
 #+BEGIN_EXAMPLE
     $ sudo ./rebar install

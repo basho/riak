@@ -52,9 +52,12 @@
 %%            when GETting a bucket, set schema=false if you do not
 %%            want the schema included in the response
 %%</dd><dt> keys
-%%</dt><dd>   allowed values: true (default), false
+%%</dt><dd>   allowed values: true (default), false, stream
 %%            when GETting a bucket, set keys=false if you do not want
-%%            the keylist included in the response
+%%            the keylist included in the response. Set keys=stream if
+%%            you want the list of keys streamed in chunks.  The first
+%%            chunk will be the normal bucket schema (if requested), followed by JSON-encoded
+%%            chunks of this format: {"keys": [Key1, Key2, ...]}
 %%</dd><dt> returnbody
 %%</dt><dd>   allowed values: true, false (default)
 %%            when PUTting or POSTing an object, set returnbody=true
@@ -318,7 +321,7 @@ malformed_request(ReqData, Context=#ctx{key=schema}) ->
                             end;
                         undefined ->
                             {true,
-                             wrq:append_to_respons_body(
+                             wrq:append_to_response_body(
                                "JSON object must contain either"
                                " a 'schema' field or a 'bucket_mod' field",
                                ReqData),
@@ -522,22 +525,24 @@ produce_body(ReqData, Context=#ctx{key=container,module=Mod,bucket=Bucket}) ->
                  {"schema", "false"} -> [];
                  _ -> [{schema, {struct, full_schema(Mod)}}]
              end,
-    {Keys, Context1} = case proplists:lookup("keys", Qopts) of
-                           {"keys", "false"} -> {[], Context};
-                           _ -> 
-                               {ok, {K, NewCtx}} = retrieve_keylist(Context),
-                               {[{keys, K}], NewCtx}
-                       end,
-    KeyList = case Keys of
-        [{keys,Ks}] -> Ks;
-        _ -> []
-    end,
-    NewReqData = lists:foldl(fun(K,RD) ->
-                                     add_link_head(Bucket,K,"contained",RD)
-                             end,
-                             ReqData, KeyList),
-    JSONSpec = {struct, Schema ++ Keys},
-    {mochijson2:encode(JSONSpec), NewReqData, Context1};
+    {Keys, Context1} = maybe_fetch_keylist(ReqData, Context),
+    case Keys of
+        stream ->
+            JSONSpec = {struct, Schema},
+            {{stream, {mochijson2:encode(JSONSpec), stream_keys(Context1)}},
+             ReqData, Context1};
+        false ->
+            JSONSpec = {struct, Schema},
+            {mochijson2:encode(JSONSpec), ReqData, Context1};
+        _ ->
+            NewReqData = lists:foldl(
+                           fun(K,RD) ->
+                                   add_link_head(Bucket,K,"contained",RD)
+                           end,
+                           ReqData, Keys),
+            JSONSpec = {struct, [{keys,Keys}|Schema]},
+            {mochijson2:encode(JSONSpec), NewReqData, Context1}
+    end;
 produce_body(ReqData, Context=#ctx{module=Module,bucket=Bucket}) ->
     {ok, {JiakObject0, Context1}} = retrieve_object(ReqData, Context),
     JiakObject = apply_read_mask(Module, JiakObject0),
@@ -551,6 +556,26 @@ produce_body(ReqData, Context=#ctx{module=Module,bucket=Bucket}) ->
                          binary_to_list(jiak_object:vclock(JiakObject)),
                          NewReqData),
      Context1}.    
+
+%% @spec maybe_fetch_keylist(wrq(), context()) ->
+%%          {[binary()]|false|stream, context()}
+%% @doc Get the list of keys in this bucket.  This function
+%%      memoizes the keylist in the context so it can be
+%%      called multiple times without duplicating work.
+maybe_fetch_keylist(ReqData, Context=#ctx{bucket=Bucket,
+                                          jiak_client=JiakClient,
+                                          bucketkeys=undefined}) ->
+    case wrq:get_qs_value("keys", ReqData) of
+        "false" ->
+            {false, Context#ctx{bucketkeys=false}};
+        "stream" ->
+            {stream, Context#ctx{bucketkeys=stream}};
+        _ ->
+            {ok, Keys} = JiakClient:list_keys(Bucket),
+            {Keys, Context#ctx{bucketkeys=Keys}}
+    end;
+maybe_fetch_keylist(_ReqData, Context=#ctx{bucketkeys=Keys}) ->
+    {Keys, Context}.
 
 add_container_link(Bucket,ReqData) ->
     Val = io_lib:format("</~s/~s>; rel=\"up\"",
@@ -708,20 +733,12 @@ generate_etag(RD, Ctx=#ctx{etag=ETag}) -> {ETag, RD, Ctx}.
 %%          {string(), webmachine:wrq(), context()}
 %% @doc Generate the ETag for a bucket.
 make_bucket_etag(ReqData, Context) ->
-    {ok, {Keys, Context1}} = retrieve_keylist(Context),
-    ETag = mochihex:to_hex(crypto:sha(term_to_binary(Keys))),
+    {Keys, Context1} = maybe_fetch_keylist(ReqData, Context),
+    ETag = mochihex:to_hex(
+             crypto:sha(
+               term_to_binary(
+                 {Keys, catch full_schema(Context#ctx.module)}))),
     {ETag, ReqData, Context1#ctx{etag=ETag}}.
-
-%% @spec retrieve_keylist(context()) -> {ok, {[binary()], context()}}
-%% @doc Get the list of keys in this bucket.  This function
-%%      memoizes the keylist in the context so it can be
-%%      called multiple times without duplicating work.
-retrieve_keylist(Context=#ctx{bucket=Bucket,jiak_client=JiakClient,
-                              bucketkeys=undefined}) ->
-    {ok, Keys} = JiakClient:list_keys(Bucket),
-    {ok, {Keys, Context#ctx{bucketkeys=Keys}}};
-retrieve_keylist(Context=#ctx{bucketkeys=Keys}) ->
-    {ok, {Keys, Context}}.
 
 %% @spec make_object_etag(webmachine:wrq(), context()) ->
 %%          {string(), webmachine:wrq(), context()}
@@ -886,6 +903,20 @@ integer_query(ParamName, Default, ReqData) ->
     case wrq:get_qs_value(ParamName, ReqData) of
         undefined -> Default;
         String    -> list_to_integer(String)
+    end.
+
+%% @private
+stream_keys(Context=#ctx{bucket=Bucket,jiak_client=Client}) ->
+    RiakClient = Client:riak_client(),
+    {ok, ReqId} = RiakClient:stream_list_keys(Bucket),
+    fun() -> stream_keys(ReqId, Context) end.
+
+%% @private
+stream_keys(ReqId, Context) ->
+    receive
+        {ReqId, {keys, Keys}} ->
+            {mochijson2:encode({struct, [{<<"keys">>, Keys}]}), fun() -> stream_keys(ReqId, Context) end};                                                                     
+        {ReqId, done} -> {mochijson2:encode({struct, [{<<"keys">>, []}]}), done}
     end.
 
 %%
