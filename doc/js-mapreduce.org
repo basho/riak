@@ -300,7 +300,60 @@ function(v) {
     The link fun should return a list of the same form as the =inputs=
     list: 2-item bucket/key lists, or 3-item bucket/key/keydata lists.
 
-* TODO How M/R works on Riak
+* How Map/Reduce Queries Work
+
+** Map/Reduce Intro
+
+   The main goal of Map/Reduce is to spread the processing of a query
+   across many systems to take advantage of parallel processing power.
+   This is generally done by dividing the query into several steps,
+   dividing the dataset into several chunks, and then running those
+   step/chunk pairs in separate physical hosts.
+
+   One step type is called "map".  Map functions take one piece of
+   data as input, and produce zero or more results as output.  If
+   you're familiar with "mapping over a list" in functional
+   programming style, you're already familiar with "map" steps in a
+   map/reduce query.
+
+   Another step type is called "reduce".  The purpose of a "reduce"
+   step is to combine the output of many "map" step evaluations, into
+   one result.
+
+   The common example of a map/reduce query involves a "map" step that
+   takes a body of text as input, and produces a word count for that
+   body of text.  A reduce step then takes the word counts produced
+   from many bodies of text and either sums them to provide a word
+   count for the corpus, or filters them to produce a list of
+   documents containing only certain counts.
+
+** Riak-specific Map/Reduce
+
+*** How Riak Spreads Processing
+
+   Riak's map/reduce has an additional goal: increasing data-locality.
+   When processing a large dataset, it's often much more efficient to
+   take the computation to the data than it is to bring the data to
+   the computation.
+
+   It is Riak's solution to the data-locality problem that determines
+   how Riak spreads the processing across the cluster.  In the same
+   way that any Riak node can coordinate a read or write by sending
+   requests directly to the other nodes responsible for maintaining
+   that data, any Riak node can also coordinate a map/reduce query by
+   sending a map-step evaluation request directly to the node
+   responsible for maintaining the input data. Map-step results are
+   sent back to the coordinating node, where reduce-step processing
+   can produce a unified result.
+
+   Put more simply: Riak runs map-step functions right on the node
+   holding the input data for those functions, and it runs reduce-step
+   functions on the node coordinating the map/reduce query.
+
+*** How a Map Phase Works in Riak
+
+    
+
   I'm thinking of moving some content from basic-mapreduce.txt into
   this document, and then creating a small "Erlang companion".  This
   file (js-mapreduce) would become the Riak Map/Reduce Guide, the
