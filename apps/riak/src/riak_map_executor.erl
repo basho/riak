@@ -51,8 +51,8 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,PhasePid]) ->
             {stop,no_linkfun};
         _ ->
             QTerm = case QTerm0 of
-                        {map, _, _, _} -> QTerm0;
-                        {link, LB, LT, LAcc} -> {map, LinkFun, {LB, LT}, LAcc}
+                        {_, {map, _, _, _}} -> QTerm0;
+                        {Lang, {link, LB, LT, LAcc}} -> {Lang, {map, LinkFun, {LB, LT}, LAcc}}
                     end,
             N = proplists:get_value(n_val,BucketProps),
             Preflist = riak_ring:preflist(DocIdx, Ring),
@@ -90,6 +90,8 @@ wait({mapexec_error, VN, ErrMsg},StateData=
     {next_state, wait, StateData#state{
                          vnodes=try_vnode(QTerm, BKey, KeyData, VNodes)},
      1000};
+wait({mapexec_reply, executing, _}, StateData) ->
+    {next_state, wait, StateData, 1000};
 wait({mapexec_reply, RetVal, _VN}, StateData=#state{phase_pid=PhasePid}) ->
     riak_phase_proto:mapexec_result(PhasePid, RetVal),
     {stop,normal,StateData}.

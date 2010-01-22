@@ -21,44 +21,40 @@
 
 -export([wait/2]).
 
--record(state, {done,qterm,next_fsm,coord,acc,reduced,fresh_input, jsctx, csums=dict:new()}).
+-record(state, {done,qterm,next_fsm,coord,acc,reduced,fresh_input}).
 
 start_link(_Ring,QTerm,NextFSM,Coordinator) ->
     gen_fsm:start_link(?MODULE, [QTerm,NextFSM,Coordinator], []).
 %% @private
 init([QTerm,NextFSM,Coordinator]) ->
-    {_,_,_,Acc} = QTerm,
+    {_,{_,_,_,Acc}} = QTerm,
     riak_eventer:notify(riak_reduce_phase_fsm, reduce_start, start),
-    {ok, Ctx} = riak_js:new_context(),
     {ok,wait,#state{done=false,qterm=QTerm,next_fsm=NextFSM,fresh_input=false,
-                    coord=Coordinator,acc=Acc,reduced=[], jsctx=Ctx}}.
+                    coord=Coordinator,acc=Acc,reduced=[]}}.
 
 wait(timeout, StateData=#state{next_fsm=NextFSM,done=Done,
                                acc=Acc,fresh_input=Fresh,
-                               qterm={reduce,FunTerm,Arg,_Acc},
-                               coord=Coord,reduced=Reduced,
-                               jsctx=JsCtx, csums=CSums}) ->
+                               qterm={Lang,{reduce,FunTerm,Arg,_Acc}},
+                               coord=Coord,reduced=Reduced}) ->
     {Res,Red} = case Fresh of
         false ->
             {{next_state, wait, StateData#state{reduced=Reduced}},Reduced};
         true ->
             try
-                {NewReduced, NewCSums} = case FunTerm of
-                                             {qfun,F} -> {F(Reduced,Arg), CSums};
-                                             {modfun,M,F} -> {M:F(Reduced,Arg), CSums};
-                                             {jsanon, {Bucket, Key}} ->
-                                                 Source = riak_js:fetch_fun(Bucket, Key),
-                                                 riak_js:invoke_reduce(JsCtx, CSums, [Reduced, Arg], undefined,
-                                                                       <<"riakReducer">>, Source);
-                                             {jsanon, F} ->
-                                                 riak_js:invoke_reduce(JsCtx, CSums,
-                                                                       [Reduced, Arg], undefined, <<"riakReducer">>, F);
-                                             {jsfun, F} ->
-                                                 {Retval, _} = riak_js:invoke_reduce(JsCtx, CSums, [Reduced, Arg],
-                                                                                     <<"Riak">>, F, undefined),
-                                                 {Retval, CSums}
-                                             end,
-                {{next_state, wait, StateData#state{reduced=NewReduced, csums=NewCSums}}, NewReduced}
+                NewReduced = case {Lang, FunTerm} of
+                                 {erlang, {qfun,F}} ->
+                                     F(Reduced,Arg);
+                                 {erlang, {modfun,M,F}} ->
+                                     M:F(Reduced,Arg);
+                                 {javascript, {jsanon, _}=QTerm} ->
+                                     case riak_js_manager:blocking_dispatch({QTerm, Reduced, Arg}) of
+                                         {ok, ReturnValue} ->
+                                             ReturnValue;
+                                         Error ->
+                                             Error
+                                     end
+                             end,
+                {{next_state, wait, StateData#state{reduced=NewReduced}}, NewReduced}
             catch C:R ->
                     Reason = {C, R, erlang:get_stacktrace()},
                     case NextFSM of
@@ -107,9 +103,8 @@ handle_sync_event(_Event, _From, _StateName, StateData) ->
 handle_info(_Info, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 %% @private
-terminate(Reason, _StateName, State) ->
+terminate(Reason, _StateName, _State) ->
     riak_eventer:notify(riak_reduce_phase_fsm, phase_end, Reason),
-    js_driver:destroy(State#state.jsctx),
     Reason.
 
 %% @private

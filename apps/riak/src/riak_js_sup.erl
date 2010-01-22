@@ -11,31 +11,23 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
--module(riak_mapreduce_sup).
-
+-module(riak_js_sup).
 -behaviour(supervisor).
+-export([start_link/0, init/1, stop/1]).
+-export([start_js/1]).
 
-%% API
--export([start_link/0, new_mapreduce_fsm/5]).
-
-%% Supervisor callbacks
--export([init/1]).
-
-new_mapreduce_fsm(Node, ReqId, Query, Timeout, Requestor) ->
-    case supervisor:start_child({?MODULE, Node},  [riak_mapreduce_fsm, [ReqId, Query,
-                                                                        Timeout, Requestor], []]) of
-        {ok, Pid} ->
-            {ok, {ReqId, Pid}};
-        Error ->
-            Error
-    end.
+start_js(Manager) when is_pid(Manager) ->
+    supervisor:start_child(?MODULE, [Manager]).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
+stop(_S) -> ok.
+
+%% @private
 init([]) ->
-    SupFlags = {simple_one_for_one, 0, 1},
-    Process = {undefined,
-               {gen_fsm, start_link, []},
-               temporary, brutal_kill, worker, dynamic},
-    {ok, {SupFlags, [Process]}}.
+    {ok,
+     {{simple_one_for_one, 10, 10},
+      [{undefined,
+        {riak_js_vm, start_link, []},
+        temporary, 2000, worker, [riak_js_vm]}]}}.

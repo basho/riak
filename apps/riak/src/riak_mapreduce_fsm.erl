@@ -68,8 +68,8 @@ init([ReqId,Query,Timeout,Client]) ->
     {ok, Ring} = riak_ring_manager:get_my_ring(),
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_start, {ReqId, Query}),
     case check_query_syntax(Query) of
-        ok ->
-            FSMs = make_phase_fsms(Query, Ring), % Pid for each phase, in-order
+        {ok, Query1} ->
+            FSMs = make_phase_fsms(Query1, Ring), % Pid for each phase, in-order
             StateData = #state{client=Client,fsms=FSMs,reqid=ReqId,
                                starttime=riak_util:moment(),timeout=Timeout,
                                ring=Ring,input_done=false},
@@ -81,8 +81,12 @@ init([ReqId,Query,Timeout,Client]) ->
             {stop, {bad_qterm, QTerm}}
     end.
 
-check_query_syntax([]) -> ok;
-check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest])
+check_query_syntax(Query) ->
+    check_query_syntax(Query, []).
+
+check_query_syntax([], Accum) ->
+    {ok, lists:reverse(Accum)};
+check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest], Accum)
   when is_boolean(Acc) ->
     case lists:member(QTermType, [link,map,reduce]) of
         false -> {bad_qterm, QTerm};
@@ -98,36 +102,31 @@ check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest])
                         {modfun, MF_M, MF_F} ->
                             case is_atom(MF_M) andalso is_atom(MF_F) of
                                 false -> {bad_qterm, QTerm};
-                                true -> check_query_syntax(Rest)
+                                true -> check_query_syntax(Rest, [{erlang, QTerm}|Accum])
                             end;
                         {qfun, QF_F} ->
                             case is_function(QF_F) of
                                 false -> {bad_qterm, QTerm};
-                                true -> check_query_syntax(Rest)
+                                true -> check_query_syntax(Rest, [{erlang, QTerm}|Accum])
                             end;
-                        {jsanon, {Bucket, Key}} when is_binary(Bucket),
-                                                     is_binary(Key) ->
-                            check_query_syntax(Rest);
-                        {jsanon, JF_F} when is_binary(JF_F) ->
-                            check_query_syntax(Rest);
-                        {jsfun, JF_F} when is_binary(JF_F) ->
-                            check_query_syntax(Rest);
+                        {jsanon, JS} when is_binary(JS) ->
+                            check_query_syntax(Rest, [{javascript, QTerm}|Accum]);
                         _ -> {bad_qterm, QTerm}
                     end
             end
     end;
-check_query_syntax([BadQTerm|_]) -> {bad_qterm,BadQTerm}.
+check_query_syntax([BadQTerm|_], _) -> {bad_qterm,BadQTerm}.
 
 make_phase_fsms(Query, Ring) ->
     make_phase_fsms(lists:reverse(Query),final,[], Ring).
 make_phase_fsms([], _NextFSM, FSMs, _Ring) -> FSMs;
 make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring) ->
     {ok, Pid} = case QTerm of
-                    {reduce, _, _, _} ->
+                    {_, {reduce, _, _, _}} ->
                         riak_phase_sup:new_reduce_phase(Ring, QTerm, NextFSM, self());
-                    {map, _, _, _} ->
+                    {_, {map, _, _, _}} ->
                         riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self());
-                    {link, _, _, _} ->
+                    {_, {link, _, _, _}} ->
                         riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self())
                 end,
     make_phase_fsms(Rest,Pid,[Pid|FSMs], Ring).

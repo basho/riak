@@ -53,6 +53,12 @@ init([]) ->
     RiakStat = {riak_stat,
                 {riak_stat, start_link, []},
                 permanent, 5000, worker, [riak_stat]},
+    RiakJsMgr = {riak_js_manager,
+                 {riak_js_manager, start_link, [24]},
+                 permanent, 30000, worker, [riak_js_manager]},
+    RiakJsSup = {riak_js_sup,
+                 {riak_js_sup, start_link, []},
+                 permanent, infinity, supervisor, [riak_js_sup]},
     MapReduceFSMSup = {riak_mapreduce_sup,
                        {riak_mapreduce_sup, start_link, []},
                        permanent, infinity, supervisor, [riak_mapreduce_sup]},
@@ -66,8 +72,8 @@ init([]) ->
 
     % Build the process list...
     Processes = lists:flatten([
-        Eventer, 
-        VSup,                               
+        Eventer,
+        VSup,
         ?IF(HasStorageBackend, VMaster, []),
         RingMgr,
         Connect,
@@ -75,7 +81,9 @@ init([]) ->
         ?IF(IsWebConfigured, RiakWeb, []),
         ?IF(IsStatEnabled, RiakStat, []),
         MapReduceFSMSup,
-        PhaseFSMSup
+        PhaseFSMSup,
+        RiakJsSup,
+        RiakJsMgr
     ]),
 
     % Run the proesses...

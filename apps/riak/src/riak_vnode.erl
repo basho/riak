@@ -23,7 +23,7 @@
 
 -define(TIMEOUT, 60000).
 
--record(state, {idx,mapcache,mod,modstate,waiting_diffobjs,mapstate}).
+-record(state, {idx,mapcache,mod,modstate,waiting_diffobjs}).
 
 start_link(Idx) ->
     gen_fsm:start_link(?MODULE, [Idx], []).
@@ -32,7 +32,7 @@ init([VNodeIndex]) ->
     Mod = riak:get_app_env(storage_backend),
     Configuration = riak:get_app_env(),
     {ok, ModState} = Mod:start(VNodeIndex, Configuration),
-    StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState,mapstate=riak_mapper:init_state()},
+    StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState},
     {next_state, StateName, StateData, Timeout} = hometest(StateData0),
     {ok, StateName, StateData, Timeout}.
 
@@ -115,7 +115,6 @@ merk_waiting({merk_diff,TargetVNode,DiffList}, StateData0) ->
 merk_waiting({diffobj,{_BKey,_BinObj,_RemNode}}, StateData) ->
     hometest(StateData);
 merk_waiting({map, ClientPid, QTerm, BKey, KeyData}, StateData) ->
-
     NewState = do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
     {next_state,merk_waiting,NewState,?TIMEOUT};
 merk_waiting({put, FSM_pid, _BKey, _RObj, ReqID, _FSMTime},
@@ -346,12 +345,14 @@ select_newest_content(Mult) ->
          Mult)).
 
 %% @private
-do_map(ClientPid, QTerm, BKey, KeyData, #state{mod=Mod, modstate=ModState, mapstate=MapState, mapcache=Cache}=State, VNode) ->
-    {Reply, NewState} = case riak_mapper:do_map(QTerm, BKey, Mod, ModState, KeyData, MapState, Cache, VNode) of
-                            {ok, Retval, NewMapState} ->
-                                {{mapexec_reply, Retval, self()}, State#state{mapstate=NewMapState}};
-                            {error, Error, NewMapState} ->
-                                {{mapexec_error, self(), Error}, State#state{mapstate=NewMapState}}
+do_map(ClientPid, QTerm, BKey, KeyData, #state{mod=Mod, modstate=ModState, mapcache=Cache}=State, VNode) ->
+    {Reply, NewState} = case do_map(QTerm, BKey, Mod, ModState, KeyData, Cache, VNode, ClientPid) of
+                            executing ->
+                                {{mapexec_reply, executing, self()}, State};
+                            {ok, Retval} ->
+                                {{mapexec_reply, Retval, self()}, State};
+                            {error, Error} ->
+                                {{mapexec_error, self(), Error}, State}
                         end,
     gen_fsm:send_event(ClientPid, Reply),
     NewState.
@@ -421,5 +422,69 @@ handle_info(vnode_shutdown, _StateName, StateData) ->
 handle_info(ok, StateName, StateData) ->
     {next_state, StateName, StateData}.
 %% @private
-terminate(_Reason, _StateName, #state{mapstate=MapState}) ->
-    riak_mapper:terminate(MapState).
+terminate(_Reason, _StateName, _State) ->
+    ok.
+
+do_map({erlang, {map, FunTerm, Arg, _Acc}}, BKey, Mod, ModState, KeyData, Cache, VNode, _ClientPid) ->
+    CacheKey = build_key(FunTerm, Arg, KeyData),
+    CacheVal = cache_fetch(FunTerm, BKey, CacheKey, Cache),
+    case CacheVal of
+        not_cached ->
+            uncached_map(BKey, Mod, ModState, FunTerm, Arg, KeyData, VNode);
+        CV ->
+            {ok, CV}
+    end;
+do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData, _Cache, _VNode, ClientPid) ->
+    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
+    V = case Mod:get(ModState, BKey) of
+            {ok, Binary} ->
+                binary_to_term(Binary);
+            {error, notfound} ->
+                {error, notfound}
+        end,
+    riak_js_manager:dispatch({ClientPid, QTerm, V, KeyData}),
+    executing.
+
+build_key({modfun, CMod, CFun}, Arg, KeyData) ->
+    {CMod, CFun, Arg, KeyData};
+build_key(_, _, _) ->
+    no_key.
+
+cache_fetch({qfun, _}, _BKey, _CacheKey, _MapState) ->
+    not_cached;
+cache_fetch({modfun, _CMod, _CFun}, BKey, CacheKey, Cache) ->
+    case orddict:find(BKey, Cache) of
+        error -> not_cached;
+        {ok,CDict} ->
+            case orddict:find(CacheKey,CDict) of
+                error -> not_cached;
+                {ok,CVal} -> CVal
+            end
+    end.
+
+uncached_map(BKey, Mod, ModState, FunTerm, Arg, KeyData, VNode) ->
+    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
+    case Mod:get(ModState, BKey) of
+        {ok, Binary} ->
+            V = binary_to_term(Binary),
+            exec_map(V, FunTerm, Arg, BKey, KeyData, VNode);
+        {error, notfound} ->
+            exec_map({error, notfound}, FunTerm, Arg, BKey, KeyData, VNode);
+        X ->
+            {error, X}
+    end.
+
+exec_map(V, FunTerm, Arg, BKey, KeyData, VNode) ->
+    try
+        case FunTerm of
+            {qfun, F} -> {ok, (F)(V,KeyData,Arg)};
+            {modfun, M, F} ->
+                MF_Res = M:F(V,KeyData,Arg),
+                gen_fsm:send_event(VNode,
+                                   {mapcache, BKey,{M,F,Arg,KeyData},MF_Res}),
+                {ok, MF_Res}
+        end
+    catch C:R ->
+            Reason = {C, R, erlang:get_stacktrace()},
+            {error, Reason}
+    end.

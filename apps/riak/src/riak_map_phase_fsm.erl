@@ -27,7 +27,7 @@ start_link(Ring,QTerm,NextFSM,Coordinator) ->
     gen_fsm:start_link(?MODULE, [Ring,QTerm,NextFSM,Coordinator], []).
 %% @private
 init([Ring,QTerm,NextFSM,Coordinator]) ->
-    {_,_,_,Acc} = QTerm,
+    {_,{_,_,_,Acc}} = QTerm,
     riak_eventer:notify(riak_map_phase_fsm, map_start, start),
     {ok,wait,#state{done=false,qterm=QTerm,next_fsm=NextFSM,
                     coord=Coordinator,acc=Acc,map_fsms=[],ring=Ring}}.
@@ -37,7 +37,8 @@ wait({mapexec_reply,Reply,MapFSM}, StateData=
     FSMs = lists:delete(MapFSM,FSMs0),
     case NextFSM of
         final -> nop;
-        _ -> riak_phase_proto:send_inputs(NextFSM, Reply)
+        _ ->
+            riak_phase_proto:send_inputs(NextFSM, Reply)
     end,
     case Acc of
         false -> nop;
