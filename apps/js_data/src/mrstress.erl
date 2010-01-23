@@ -67,13 +67,13 @@ stress(_Lang, 0, _Client, Owner) ->
     Owner ! done,
     ok;
 stress(javascript, Count, Client, Owner) ->
-    M = <<"function(v, _, _) { var value = v[\"values\"][0][\"data\"]; return [parseInt(value)]; }">>,
+    %%M = <<"function(v, _, _) { var value = v[\"values\"][0][\"data\"]; return [parseInt(value)]; }">>,
     %R = <<"function(v, _) { var sum = 0; v.forEach(function(x) { sum = sum + x; }); return [sum]; }">>,
     %R1 = <<"function(v, _) { return v; }">>,
     %case Client:mapred(?INPUTS, [{map, {jsanon, M}, none, false},
     %                             {reduce, {jsanon, {<<"stress">>, <<"test10">>}}, none, false},
     %                             {reduce, {jsanon, R1}, none, true}]) of
-    case Client:mapred(?INPUTS, [{map, {jsanon, M}, none, false},
+    case Client:mapred(?INPUTS, [{map, {jsanon, {<<"stress">>, <<"map">>}}, none, false},
                                  {reduce, {jsfun, <<"Riak.reduceSum">>}, none, true}]) of
         {ok, [10]} ->
             stress(javascript, Count - 1, Client, Owner);

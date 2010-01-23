@@ -85,7 +85,7 @@ check_query_syntax(Query) ->
 
 check_query_syntax([], Accum) ->
     {ok, lists:reverse(Accum)};
-check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest], Accum)
+check_query_syntax([QTerm={QTermType,QT2,QT3,Acc}|Rest], Accum)
   when is_boolean(Acc) ->
     case lists:member(QTermType, [link,map,reduce]) of
         false -> {bad_qterm, QTerm};
@@ -114,7 +114,7 @@ check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest], Accum)
                                                      is_binary(Key) ->
                             case fetch_js(Bucket, Key) of
                                 {ok, JS} ->
-                                    check_query_syntax(Rest, [{javascript, {jsanon, JS}}|Accum]);
+                                    check_query_syntax(Rest, [{javascript, {map, {jsanon, JS}, QT3, Acc}}|Accum]);
                                 _ ->
                                     {bad_qterm, QTerm}
                             end;

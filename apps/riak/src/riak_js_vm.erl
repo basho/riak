@@ -154,6 +154,7 @@ define_anon_js(Name, JS, #state{ctx=Ctx, last_mapper=LastMapper, last_reducer=La
                             {ok, State#state{last_reducer=Hash}}
                     end;
                 Error ->
+                    error_logger:warning_msg("Error defining Javascript expression: ~p~n", [Error]),
                     {Error, State}
             end
     end.
