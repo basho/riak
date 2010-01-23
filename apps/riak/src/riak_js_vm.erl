@@ -39,7 +39,7 @@ blocking_dispatch(VMPid, JobId, JSCall) ->
 init([Manager]) ->
     pg2:create({node(), js_vm}),
     pg2:join({node(), js_vm}, self()),
-    io:format("(~p) Spidermonkey VM starting~n", [self()]),
+    error_logger:info_msg("Spidermonkey VM host starting (~p)~n", [self()]),
     case new_context() of
         {ok, Ctx} ->
             riak_js_manager:add_to_manager(),
@@ -52,22 +52,19 @@ init([Manager]) ->
 handle_call({dispatch, _JobId, {{jsanon, JS}, Reduced, Arg}}, _From, #state{ctx=Ctx}=State) ->
     {Result, NewState} = case define_anon_js(reduce, JS, State) of
                              {ok, State1} ->
-                                 JsonReduced = mochijson2:encode(Reduced),
-                                 JsonArg = mochijson2:encode(Arg),
-                                 {js:call(Ctx, <<"riakReducer">>, [JsonReduced, JsonArg]),
-                                  State1};
+                                 case invoke_js(Ctx, <<"riakReducer">>, [Reduced, Arg]) of
+                                     {ok, R} ->
+                                         {{ok, R}, State1};
+                                     Error ->
+                                         {Error, State}
+                                 end;
                              Error ->
-                                 Error
+                                 {Error, State}
                          end,
-    Reply = case Result of
-                {ok, {struct, JSError}} ->
-                    {error, JSError};
-                _ ->
-                    Result
-            end,
-    {reply, Reply, NewState};
+    {reply, Result, NewState};
+handle_call({dispatch, _JobId, {{jsfun, JS}, Reduced, Arg}}, _From, #state{ctx=Ctx}=State) ->
+    {reply, invoke_js(Ctx, JS, [Reduced, Arg]), State};
 handle_call(_Request, _From, State) ->
-    io:format("WTF: ~p~n", [_Request]),
     {reply, ignore, State}.
 
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc},
@@ -77,20 +74,34 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc
                              {ok, State1} ->
                                  JsonValue = jsonify_object(Value),
                                  JsonArg = jsonify_arg(Arg),
-                                 {js:call(Ctx, <<"riakMapper">>, [JsonValue, KeyData, JsonArg]),
-                                  State1};
+                                 case invoke_js(Ctx, <<"riakMapper">>, [JsonValue, KeyData, JsonArg]) of
+                                     {ok, R} ->
+                                         {{ok, R}, State1};
+                                     Error ->
+                                         {Error, State}
+                                 end;
                              Error ->
-                                 Error
+                                 {Error, State}
                          end,
     case Result of
-        {ok, {struct, JsError}} ->
-              gen_fsm:send_event(FsmPid, {mapexec_error, Requestor, JsError});
         {ok, ReturnValue} ->
             gen_fsm:send_event(FsmPid, {mapexec_reply, ReturnValue, Requestor});
         ErrorResult ->
             gen_fsm:send_event(FsmPid, {mapexec_error, Requestor, ErrorResult})
     end,
     {noreply, NewState};
+handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsfun, JS}, Arg, _Acc},
+                                            Value,
+                                            KeyData}}, #state{ctx=Ctx}=State) ->
+    JsonValue = jsonify_object(Value),
+    JsonArg = jsonify_arg(Arg),
+    case invoke_js(Ctx, JS, [JsonValue, KeyData, JsonArg]) of
+        {ok, R} ->
+            gen_fsm:send_event(FsmPid, {mapexec_reply, R, Requestor});
+        Error ->
+            gen_fsm:send_event(FsmPid, {mapexec_error, Requestor, Error})
+    end,
+    {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -107,6 +118,21 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 %% Internal functions
+invoke_js(Ctx, Js, Args) ->
+    case js:call(Ctx, Js, Args) of
+        {ok, {struct, R}} ->
+            case proplists:get_value(<<"lineno">>, R) of
+                undefined ->
+                    {ok, R};
+                _ ->
+                    error_logger:warning_msg("Javascript evaluation error: ~p, source: ~p, line: ~p~n", [proplists:get_value(<<"message">>, R),
+                                                                                                         proplists:get_value(<<"source">>, R),
+                                                                                                         proplists:get_value(<<"lineno">>, R)]),
+                    {error, R}
+            end;
+        R ->
+            R
+    end.
 define_anon_js(Name, JS, #state{ctx=Ctx, last_mapper=LastMapper, last_reducer=LastReducer}=State) ->
     Hash = erlang:phash2(JS),
     {OldHash, FunName} = if
@@ -164,8 +190,8 @@ load_init_source() ->
             {ok, Contents}
     end.
 
-jsonify_object({error, notfound}) ->
-    {struct, [{<<"error">>, <<"notfound">>}]};
+jsonify_object({error, notfound}=Obj) ->
+    {struct, [Obj]};
 jsonify_object(Obj) ->
     {_,Vclock} = raw_http_resource:vclock_header(Obj),
     {struct, [{<<"bucket">>, riak_object:bucket(Obj)},
@@ -222,5 +248,8 @@ jsonify_arg({Bucket,Tag}) when (Bucket == '_' orelse is_binary(Bucket)),
     %% convert link match syntax
     {struct, [{<<"bucket">>,Bucket},
               {<<"tag">>,Tag}]};
+jsonify_arg([H|_]=Other) when is_tuple(H);
+                              is_atom(H) ->
+    {struct, Other};
 jsonify_arg(Other) ->
-    mochijson2:encode(Other).
+    Other.

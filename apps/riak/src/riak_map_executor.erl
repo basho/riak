@@ -33,8 +33,10 @@
 % all map funs (and link funs) must return a list of values,
 % but that is not enforced at this layer
 
-start_link(Ring,Input,QTerm,PhasePid) ->
-    gen_fsm:start_link(?MODULE, [Ring,Input,QTerm,PhasePid], []).
+start_link(Ring,{{_, _}, _}=Input,QTerm,PhasePid) ->
+    gen_fsm:start_link(?MODULE, [Ring,Input,QTerm,PhasePid], []);
+start_link(_Ring, _BadInput, _QTerm, _PhasePid) ->
+    {error, bad_input}.
 %% @private
 init([Ring,{{Bucket,Key},KeyData},QTerm0,PhasePid]) ->
     riak_eventer:notify(riak_map_executor, mapexec_start, start),

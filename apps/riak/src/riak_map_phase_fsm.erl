@@ -68,11 +68,16 @@ wait(done, StateData=#state{map_fsms=FSMs}) ->
     end;
 wait({input,Inputs0}, StateData=#state{qterm=QTerm,map_fsms=FSMs0,ring=Ring}) ->
     Inputs = [convert_input(I) || I <- Inputs0],
-    NewFSMs = [FSM ||
-               {ok,FSM} <- [riak_map_executor:start_link(Ring,Input,QTerm,self()) ||
-                  Input <- Inputs]],
+    NewFSMs = start_executors(Ring, Inputs, QTerm),
     FSMs = NewFSMs ++ FSMs0,
-    {next_state, wait, StateData#state{map_fsms=FSMs}};
+    if
+        length(FSMs) == 0 ->
+            {next_state, wait, StateData#state{map_fsms=FSMs}, 100};
+        true ->
+            {next_state, wait, StateData#state{map_fsms=FSMs}}
+    end;
+wait(timeout, StateData) ->
+    finish(StateData);
 wait(die, StateData=#state{next_fsm=NextFSM}) ->
     % there is a very slight possibility of a 'die' message arriving
     %  at an unintended process, due to multiple die messages being sent.
@@ -87,7 +92,8 @@ wait(die, StateData=#state{next_fsm=NextFSM}) ->
 finish(StateData=#state{next_fsm=NextFSM,coord=Coord}) ->
     case NextFSM of
         final -> nop;
-        _ -> riak_phase_proto:done(NextFSM)
+        _ ->
+            riak_phase_proto:done(NextFSM)
     end,
     riak_phase_proto:phase_done(Coord),
     riak_eventer:notify(riak_map_phase_fsm, map_done, done),
@@ -118,4 +124,19 @@ convert_input(I={{_B,_K},_D})
 convert_input(I={_B,_K})
   when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> {I,undefined};
 convert_input([B,K]) when is_binary(B), is_binary(K) -> {{B,K},undefined};
-convert_input([B,K,D]) when is_binary(B), is_binary(K) -> {{B,K},D}.
+convert_input([B,K,D]) when is_binary(B), is_binary(K) -> {{B,K},D};
+convert_input(I) -> I.
+
+%% @private
+start_executors(Ring, Inputs, QTerm) ->
+    start_executors(Ring, Inputs, QTerm, []).
+start_executors(_Ring, [], _QTerm, Accum) ->
+    lists:reverse(Accum);
+start_executors(Ring, [H|T], QTerm, Accum) ->
+    case riak_map_executor:start_link(Ring, H, QTerm, self()) of
+        {ok, FSM} ->
+            start_executors(Ring, T, QTerm, [FSM|Accum]);
+        {error, bad_input} ->
+            error_logger:warning_msg("Skipping map phase for input ~p. Map phase input must be {Bucket, Key}.~n", [H]),
+            start_executors(Ring, T, QTerm, Accum)
+    end.

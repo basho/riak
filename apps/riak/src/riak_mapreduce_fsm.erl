@@ -77,7 +77,6 @@ init([ReqId,Query,Timeout,Client]) ->
         {bad_qterm, QTerm} ->
             riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done,
                                 {error, {bad_qterm, QTerm}}),
-            Client ! {ReqId, {error, {bad_qterm, QTerm}}},
             {stop, {bad_qterm, QTerm}}
     end.
 
@@ -110,6 +109,16 @@ check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest], Accum)
                                 true -> check_query_syntax(Rest, [{erlang, QTerm}|Accum])
                             end;
                         {jsanon, JS} when is_binary(JS) ->
+                            check_query_syntax(Rest, [{javascript, QTerm}|Accum]);
+                        {jsanon, {Bucket, Key}} when is_binary(Bucket),
+                                                     is_binary(Key) ->
+                            case fetch_js(Bucket, Key) of
+                                {ok, JS} ->
+                                    check_query_syntax(Rest, [{javascript, {jsanon, JS}}|Accum]);
+                                _ ->
+                                    {bad_qterm, QTerm}
+                            end;
+                        {jsfun, JS} when is_binary(JS) ->
                             check_query_syntax(Rest, [{javascript, QTerm}|Accum]);
                         _ -> {bad_qterm, QTerm}
                     end
@@ -201,3 +210,12 @@ terminate(Reason, _StateName, _State=#state{reqid=ReqId}) ->
 
 %% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
+
+fetch_js(Bucket, Key) ->
+    {ok, Client} = riak:local_client(),
+    case Client:get(Bucket, Key, 1) of
+        {ok, Obj} ->
+            {ok, riak_object:get_value(Obj)};
+        _ ->
+            {error, bad_fetch}
+    end.

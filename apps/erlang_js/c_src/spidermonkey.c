@@ -13,7 +13,9 @@
    See the License for the specific language governing permissions and
    limitations under the License. */
 
+#include <stdio.h>
 #include <string.h>
+#include <time.h>
 #include <erl_driver.h>
 
 #include "spidermonkey.h"
@@ -59,6 +61,42 @@ void on_error(JSContext *context, const char *message, JSErrorReport *report) {
   }
 }
 
+void write_timestamp(FILE *fd) {
+  struct tm *tmp;
+  time_t t;
+
+  t = time(NULL);
+  tmp = localtime(&t); /* or gmtime, if you want GMT^H^H^HUTC */
+  fprintf(fd, "%02d/%02d/%04d (%02d:%02d:%02d): ",
+	  tmp->tm_mon+1, tmp->tm_mday, tmp->tm_year+1900,
+	  tmp->tm_hour, tmp->tm_min, tmp->tm_sec);
+}
+
+JSBool js_log(JSContext *cx, uintN argc, jsval *vp) {
+  if (argc != 2) {
+    JS_SET_RVAL(cx, vp, JSVAL_FALSE);
+  }
+  else {
+    jsval *argv = JS_ARGV(cx, vp);
+    jsval jsfilename = argv[0];
+    jsval jsoutput = argv[1];
+    char *filename = JS_GetStringBytes(JS_ValueToString(cx, jsfilename));
+    char *output = JS_GetStringBytes(JS_ValueToString(cx, jsoutput));
+    FILE *fd = fopen(filename, "a+");
+    if (fd != NULL) {
+      write_timestamp(fd);
+      fwrite(output, 1, strlen(output), fd);
+      fwrite("\n", 1, strlen("\n"), fd);
+      fclose(fd);
+      JS_SET_RVAL(cx, vp, JSVAL_TRUE);
+    }
+    else {
+      JS_SET_RVAL(cx, vp, JSVAL_FALSE);
+    }
+  }
+  return JSVAL_TRUE;
+}
+
 spidermonkey_vm *sm_initialize() {
   spidermonkey_vm *vm = (spidermonkey_vm*) driver_alloc(sizeof(spidermonkey_vm));
   vm->runtime = JS_NewRuntime(MAX_GC_SIZE);
@@ -73,6 +111,9 @@ spidermonkey_vm *sm_initialize() {
   vm->global = JS_NewObject(vm->context, &global_class, NULL, NULL);
   JS_InitStandardClasses(vm->context, vm->global);
   JS_SetErrorReporter(vm->context, on_error);
+  JSNative *funptr = (JSNative *) *js_log;
+  JS_DefineFunction(vm->context, JS_GetGlobalObject(vm->context), "ejsLog", (JSNative *) funptr,
+		    0, JSFUN_FAST_NATIVE);
   end_request(vm);
   return vm;
 }

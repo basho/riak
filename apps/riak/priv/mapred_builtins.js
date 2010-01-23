@@ -1,22 +1,23 @@
 var Riak = function() {
 
   return {
-    mapIdentity: function(values, key_data, arg) { return values; },
-    mapSelectField: function(values, key_data, fieldName) { if (values instanceof Array) {
-	if (values.length == 1 && (values[0] instanceof Array && values[0].length > 0)) {
-	  values = values[0];
+    getClassName: function(obj) {
+      if (obj && obj.constructor && obj.constructor.toString) {
+        var arr = obj.constructor.toString().match(/function\s*(\w+)/);
+        if (arr && arr.length == 2) {
+	  return arr[1];
         }
-	return values.map(function(value) { value[fieldName]; });
       }
+      return undefined;
     },
-    reduceUnion: function(values, arg) {
-      var retval = [];
-      values.foreach(function(value) {
-	  if (retval.indexOf(value) == -1) {
-	    retval[retval.length] = value;
-	  } });
-      return [retval];
-    },
+    mapValues: function(value, key_data, arg) {
+      var data = value["values"][0]["data"];
+      if (Riak.getClassName(data) !== "Array") {
+	return [data];
+      }
+      else {
+	return data;
+      }},
     reduceSum: function(values, arg) {
       return [values.reduce(function(prev, curr, index, array) { return prev + curr; })];
     },
@@ -31,10 +32,6 @@ var Riak = function() {
     reduceAverage: function(values, arg) {
       var total = Riak.reduceSum(values, arg);
       return [total / values.length];
-    },
-    reduceRandom: function(values, arg) {
-      var index = Math.floor(Math.random() * values.length - 1);
-      return [values[index]];
     }
   }
 }();
