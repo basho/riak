@@ -22,6 +22,19 @@ if [ -z "$NAME_ARG" ]; then
     exit 1
 fi
 
+# Learn how to specify node name for connection from remote nodes
+if [[ "$NAME_ARG" =~ ^-sname ]]; then
+    NAME_PARAM="-sname"
+    NAME_HOST=""
+else
+    NAME_PARAM="-name"
+    if [[ "$NAME_ARG" =~ (@.*) ]]; then
+        NAME_HOST=${BASH_REMATCH[1]}
+    else
+        NAME_HOST=""
+    fi
+fi
+
 # Extract the target cookie
 COOKIE_ARG=`grep -e '-setcookie' $RUNNER_ETC_DIR/vm.args`
 if [ -z "$COOKIE_ARG" ]; then
@@ -105,7 +118,7 @@ case "$1" in
         COOKIE=$2
         FILENAME=$3
 
-        $ERTS_PATH/erl -noshell -name riak_backup -setcookie $COOKIE \
+        $ERTS_PATH/erl -noshell $NAME_PARAM riak_backup$NAME_HOST -setcookie $COOKIE \
                        -eval "riak_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
 
@@ -123,7 +136,7 @@ case "$1" in
         COOKIE=$2
         FILENAME=$3
 
-        $ERTS_PATH/erl -noshell -name riak_logger -setcookie $COOKIE \
+        $ERTS_PATH/erl -noshell $NAME_PARAM riak_logger$NAME_HOST -setcookie $COOKIE \
                        -eval "riak_event_logger:start('$NODE', \"$FILENAME\")."            
         ;;
 
@@ -140,7 +153,7 @@ case "$1" in
         # Parse out the node name to pass to the client
         NODE_NAME=${NAME_ARG#* }
 
-        $ERTS_PATH/erl -noshell -name riak_test $COOKIE_ARG \
+        $ERTS_PATH/erl -noshell $NAME_PARAM riak_test$NAME_HOST $COOKIE_ARG \
                        -eval "riak:client_test(\"$NODE_NAME\")" -s init stop
 
         ;;
