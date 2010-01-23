@@ -47,12 +47,7 @@ wait(timeout, StateData=#state{next_fsm=NextFSM,done=Done,
                                  {erlang, {modfun,M,F}} ->
                                      M:F(Reduced,Arg);
                                  {javascript, {jsanon, _}=QTerm} ->
-                                     case riak_js_manager:blocking_dispatch({QTerm, Reduced, Arg}) of
-                                         {ok, ReturnValue} ->
-                                             ReturnValue;
-                                         Error ->
-                                             Error
-                                     end
+                                     js_reduce(QTerm, Reduced, Arg)
                              end,
                 {{next_state, wait, StateData#state{reduced=NewReduced}}, NewReduced}
             catch C:R ->
@@ -93,6 +88,17 @@ wait(die, StateData=#state{next_fsm=NextFSM}) ->
         _ -> riak_phase_proto:die(NextFSM)
     end,
     {stop,normal,StateData}.
+
+js_reduce(QTerm, Reduced, Arg) ->
+    case riak_js_manager:blocking_dispatch({QTerm, Reduced, Arg}) of
+        {ok, ReturnValue} when is_list(ReturnValue) ->
+            ReturnValue;
+        {ok, ReturnValue} ->
+            [ReturnValue];
+        Error ->
+            Error
+    end.
+
 
 %% @private
 handle_event(_Event, _StateName, StateData) -> {stop,badmsg,StateData}.

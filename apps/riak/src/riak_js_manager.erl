@@ -96,6 +96,19 @@ select_random() ->
         Members ->
             {T1, T2, T3} = erlang:now(),
             random:seed(T1, T2, T3),
-            Pos = random:uniform(length(Members)),
+            Pos = pick_pos(erlang:get(?MODULE), length(Members)),
             lists:nth(Pos, Members)
+    end.
+
+pick_pos(undefined, Size) ->
+    Pos = random:uniform(Size),
+    erlang:put(?MODULE, Pos),
+    Pos;
+pick_pos(OldPos, Size) ->
+    case random:uniform(Size) of
+        OldPos ->
+            pick_pos(OldPos, Size);
+        Pos ->
+            erlang:put(?MODULE, Pos),
+            Pos
     end.
