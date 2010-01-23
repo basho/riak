@@ -122,15 +122,17 @@ verify_body(Body, State) ->
                                 {ok, ParsedQuery} ->
                                     {true, [], State#state{inputs=ParsedInputs,
                                                            mrquery=ParsedQuery}};
-                                error ->
+                                {error, Message} ->
                                     {false,
-                                     "An error occurred parsing "
-                                     "the \"query\" field.\n",
+                                     ["An error occurred parsing "
+                                      "the \"query\" field.\n",
+                                      Message],
                                      State}
                             end;
-                        error ->
+                        {error, Message} ->
                             {false,
-                             "An error occurred parsing the \"inputs\" field.\n",
+                             ["An error occurred parsing the \"inputs\" field.\n",
+                              Message],
                              State}
                     end;
                 false ->

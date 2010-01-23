@@ -22,7 +22,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 -export([get_my_ring/0,set_my_ring/1,write_ringfile/0,prune_ringfiles/0,
-        read_ringfile/1,find_latest_ringfile/0]).
+        read_ringfile/1,find_latest_ringfile/0,do_write_ringfile/1]).
 
 start_link() -> gen_server2:start_link({local, ?MODULE}, ?MODULE, [], []).
 start_link(test) -> % when started this way, run a mock server (no disk, etc)

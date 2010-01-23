@@ -40,12 +40,16 @@ backup(EntryNode, Filename) ->
 
     % Make sure all nodes in the cluster agree on the ring...
     ensure_synchronized(Ring, Members),
-    
+
     % Backup the data...
-    {ok, ?TABLE} = dets:open_file(?TABLE, [{file, Filename}]),
+    {ok, ?TABLE} = disk_log:open([{name, ?TABLE},
+                                  {file, Filename},
+                                  {mode, read_write},
+                                  {type, halt}]),
+
     [backup_node(Node) || Node <- Members],
-    ok = dets:sync(?TABLE),
-    ok = dets:close(?TABLE),
+    ok = disk_log:sync(?TABLE),
+    ok = disk_log:close(?TABLE),
     
     % Make sure the nodes are still synchronized...
     ensure_synchronized(Ring, Members),
@@ -56,12 +60,12 @@ backup_node(Node) ->
     [backup_vnode(VNode) ||  VNode <- VNodes].
     
 backup_vnode(_VNode = {_Index, VNodePid}) ->
-    {ok, List} = gen_fsm:sync_send_event(VNodePid, list),
+    {ok, List} = gen_fsm:sync_send_event(VNodePid, list, infinity),
     [backup_key(VNodePid, Bucket, Key) || {Bucket, Key} <- List].
 
 backup_key(VNodePid, Bucket, Key) ->
-    {ok, B} = gen_fsm:sync_send_event(VNodePid, {get_binary, {Bucket, Key}}),
-    ok = dets:insert(?TABLE, [{{Bucket,Key}, B}]).
+    {ok, B} = gen_fsm:sync_send_event(VNodePid, {get_binary, {Bucket, Key}}, infinity),
+    ok = disk_log:log(?TABLE, B).
 
 
 %%% RESTORE %%%
@@ -76,16 +80,29 @@ restore(EntryNode, Filename) ->
     {ok, Client} = riak:client_connect(EntryNode),
     
     % Open the table, write it out, close the table...
-    {ok, ?TABLE} = dets:open_file(?TABLE, [{file, Filename}]),
-    Results = dets:traverse(?TABLE, fun(Entry) -> read_and_restore_function(Client, Entry) end),
-    ok = dets:close(?TABLE),
-
-    io:format("Restored ~p records.~n", [length(Results)]),
+    {ok, ?TABLE} = disk_log:open([{name, ?TABLE},
+                                  {file, Filename},
+                                  {mode, read_only},
+                                   {type, halt}]),
+    Count = traverse_backup(
+                disk_log:chunk(?TABLE, start), 
+                fun(Entry) -> read_and_restore_function(Client, Entry) end, 0),
+    ok = disk_log:close(?TABLE),
+    io:format("Restored ~p records.~n", [Count]),
     ok.
 
-read_and_restore_function(Client, {{Bucket, Key}, Value}) ->
-    Obj = binary_to_term(Value),
+traverse_backup(eof, _VisitorFun, Count) ->
+    Count;
+traverse_backup({Cont, Terms}, VisitorFun, Count) when is_list(Terms) ->
+    [VisitorFun(T) || T <- Terms],
+    traverse_backup(disk_log:chunk(?TABLE, Cont), 
+                    VisitorFun, Count+length(Terms)).
+    
 
+read_and_restore_function(Client, BinTerm) ->
+    Obj = binary_to_term(BinTerm),
+    Bucket = riak_object:bucket(Obj),
+    Key = riak_object:key(Obj),
     % Data Cleaning...
     Obj1 = make_binary_bucket(Bucket, Key, Obj),
 
@@ -96,7 +113,7 @@ read_and_restore_function(Client, {{Bucket, Key}, Value}) ->
     Obj2 = riak_object:update_metadata(Obj1, MetaData1),
     
     % Store the object...
-    Response = Client:put(Obj2,1,1,900000),
+    Response = Client:put(Obj2,1,1,1200000),
     {continue, Response}.
    
 %%% DATA CLEANING %%% 
