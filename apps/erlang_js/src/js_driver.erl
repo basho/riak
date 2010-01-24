@@ -21,7 +21,7 @@
 -module(js_driver).
 
 -export([load_driver/0, new/0, new/1, destroy/1, shutdown/1]).
--export([define_js/2, define_js/3, eval_js/2, eval_js/3]).
+-export([define_js/2, define_js/3, define_js/4, eval_js/2, eval_js/3]).
 
 -define(SCRIPT_TIMEOUT, 5000).
 -define(DRIVER_NAME, "spidermonkey_drv").
@@ -109,6 +109,10 @@ define_js(Ctx, {file, FileName}, Timeout) ->
 define_js(Ctx, Js, Timeout) when is_binary(Js) ->
     define_js(Ctx, <<"unnamed">>, Js, Timeout).
 
+%% @spec define_js(port(), binary(), binary(), integer()) -> {ok, binary()} | {error, any()}
+%% @doc Define a Javascript expression:
+%% js_driver:define(Port, &lt;&lt;var blah = new Wubba();"&gt;&gt;).
+%% Note: Filename is used only as a label for error reporting.
 define_js(Ctx, FileName, Js, Timeout) when is_binary(FileName),
                                            is_binary(Js) ->
     case call_driver(Ctx, "dj", [FileName, Js], Timeout) of

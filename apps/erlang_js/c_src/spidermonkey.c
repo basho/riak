@@ -112,7 +112,7 @@ spidermonkey_vm *sm_initialize() {
   JS_InitStandardClasses(vm->context, vm->global);
   JS_SetErrorReporter(vm->context, on_error);
   JSNative *funptr = (JSNative *) *js_log;
-  JS_DefineFunction(vm->context, JS_GetGlobalObject(vm->context), "ejsLog", (JSNative *) funptr,
+  JS_DefineFunction(vm->context, JS_GetGlobalObject(vm->context), "ejsLog", funptr,
 		    0, JSFUN_FAST_NATIVE);
   end_request(vm);
   return vm;

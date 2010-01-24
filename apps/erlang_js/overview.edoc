@@ -42,3 +42,11 @@ js:call(Port, &lt;&lt;"constant_mult"&gt;&gt;, [5]).
 js:call(Port, &lt;&lt;"constant_mult"&gt;&gt;, [5], [{&lt;&lt;"my_constant"&gt;&gt;, 200}]).
 {ok, 1000}
 </pre>
+<h4>Using ejsLog to debug</h4>
+<pre>
+JS = &lt;&lt;"function my_add(x, y) { ejsLog(\"/tmp/foo.txt\", \"Hello, world!\"); return x + y; }"&gt;&gt;.
+ok = js:define(Port, JS).
+%% Logging output is automatically timestamped and written to /tmp/foo.txt
+%% when the function runs
+{ok, 84} = js:call(Port, &lt;&lt;"my_add"&gt;&gt;, [42, 42]).
+</pre>
