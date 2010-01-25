@@ -91,8 +91,9 @@ do_list_handoff(TargetNode, BKeyList, StateData=#state{idx=Idx}) ->
     end.
 
 %% @private
-delete_and_exit(StateData=#state{mod=Mod, modstate=ModState}) ->
+delete_and_exit(StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
     ok = Mod:drop(ModState),
+    gen_server:cast(riak_vnode_master, {add_exclusion, Idx}),
     {stop, normal, StateData}.
 
 %%%%%%%%%% in active state, we process normal client requests
@@ -322,7 +323,6 @@ get_vclock(BKey,Mod,ModState) ->
 
 %% @private
 do_fold(Fun, Acc0, _State=#state{idx=Idx,mod=Mod, modstate=ModState}) ->
-    io:format("~p do_fold~n",[Idx]),
     Mod:fold(ModState, Fun, Acc0).
 
 %% @private

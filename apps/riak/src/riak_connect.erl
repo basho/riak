@@ -138,13 +138,32 @@ claim_until_balanced(Ring) ->
     end.
 
 ensure_vnodes_started(Ring) ->
-    VNodes2Start = case length(riak_ring:all_members(Ring)) of
-       1 -> riak_ring:my_indices(Ring);
-       _ -> [riak_ring:random_other_index(Ring)| riak_ring:my_indices(Ring)]
-    end,
-    [begin
-        gen_server:cast({riak_vnode_master, node()}, {start_vnode, I}) 
-    end|| I <- VNodes2Start].
+    AllMembers = riak_ring:all_members(Ring),
+    VNodes2Start = 
+        case {length(AllMembers), hd(AllMembers) =:= node()} of
+            {1, true} -> riak_ring:my_indices(Ring);
+            _ -> 
+                {ok, Excl} = gen_server:call(riak_vnode_master, get_exclusions),
+                case riak_ring:random_other_index(Ring, Excl) of
+                    no_indices ->
+                        case length(Excl) =:= riak_ring:num_partitions(Ring) of
+                            true ->
+                                exit;
+                            false ->
+                                riak_ring:my_indices(Ring)
+                        end;
+                    RO ->
+                        [RO | riak_ring:my_indices(Ring)]
+                end
+        end,
+    case VNodes2Start of
+        exit ->
+            riak:stop("node removal completed, exiting.");
+        _ ->
+            [begin
+                 gen_server:cast({riak_vnode_master, node()}, {start_vnode, I}) 
+             end|| I <- VNodes2Start]
+    end.
 
 remove_from_cluster(ExitingNode) ->
     % Set the remote node to stop claiming.

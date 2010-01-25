@@ -19,17 +19,18 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 -record(idxrec, {idx, pid, monref}).
--record(state, {idxtab}).
+-record(state, {idxtab, excl=ordsets:new()}).
 
 start_link() -> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @private
 init([]) -> {ok, #state{idxtab=ets:new(riak_vnode_idx,[{keypos,2}])}}.
 
+
 %% @private
-handle_cast({start_vnode, Partition}, State) ->
+handle_cast({start_vnode, Partition}, State=#state{excl=Excl}) ->
     _Pid = get_vnode(Partition, State),
-    {noreply, State};
+    {noreply, State#state{excl=ordsets:del_element(Partition, Excl)}};
 handle_cast({vnode_map, {Partition,_Node},
              {ClientPid,QTerm,BKey,KeyData}}, State) ->
     Pid = get_vnode(Partition, State),
@@ -53,9 +54,9 @@ handle_cast({vnode_list_bucket, {Partition,_Node},
             {FSM_pid, Bucket, ReqID}}, State) ->
     Pid = get_vnode(Partition, State),
     gen_fsm:send_event(Pid, {list_bucket, FSM_pid, Bucket, ReqID}),
-    {noreply, State}.
-                  
-
+    {noreply, State};
+handle_cast({add_exclusion, Partition}, State=#state{excl=Excl}) ->
+    {noreply, State#state{excl=ordsets:add_element(Partition, Excl)}}.
 
 %% @private
 handle_call(all_possible_vnodes, _From, State) ->
@@ -82,7 +83,9 @@ handle_call({fold, {Partition, Fun, Acc0}}, From, State) ->
       fun() -> gen_fsm:send_all_state_event(Pid, {fold, {Fun,Acc0,From}}) end),
     {noreply, State};
 handle_call({get_vnode, Partition}, _From, State) ->
-    {reply, {ok, get_vnode(Partition, State)}, State}.
+    {reply, {ok, get_vnode(Partition, State)}, State};
+handle_call(get_exclusions, _From, State=#state{excl=Excl}) ->
+    {reply, {ok, ordsets:to_list(Excl)}, State}.
 %% @private
 handle_info({'DOWN', MonRef, process, _P, _I}, State) ->
     delmon(MonRef, State),

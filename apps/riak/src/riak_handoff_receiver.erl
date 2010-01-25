@@ -26,7 +26,7 @@ handle_info({tcp, _Sock, Data}, State=#state{sock=Socket}) ->
 
 process_message(0, MsgData, State) ->
     <<Partition:160/integer>> = MsgData,
-    {ok, VNode} = gen_server2:call(riak_vnode_master, {get_vnode, Partition}),  
+    {ok, VNode} = gen_server2:call(riak_vnode_master, {get_vnode, Partition}, 60000),  
     State#state{partition=Partition, vnode=VNode};
 process_message(1, MsgData, State=#state{vnode=VNode}) ->
     % header of 1 is a riakobject_pb
