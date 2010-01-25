@@ -9,14 +9,15 @@
          terminate/3, 
          code_change/4]).
 -export([wait_peerinfo/2,
-         merkle_exchange/2,
+         merkle_send/2,
+         merkle_wait_ack/2,
          connected/2]).
 -record(state, 
         {
           socket,
           client,
           my_pi,
-          update_q=[]
+          partitions=[]
          }
        ).
 
@@ -24,61 +25,52 @@ start(Socket) ->
     gen_fsm:start(?MODULE, [Socket], []).
 
 init([Socket]) ->
-    io:format("~p starting, sock=~p~n", [?MODULE, Socket]),
+    %%io:format("~p starting, sock=~p~n", [?MODULE, Socket]),
     inet:setopts(Socket, [{active, once}, {packet, 4}]),
     riak_repl_eventer:subscribe(self()),
     {ok, Client} = riak:local_client(),
     MyPeerInfo = riak_repl_util:make_peer_info(),
+    Partitions = riak_repl_util:get_partitions(MyPeerInfo),
     ok = send(Socket, {peerinfo, MyPeerInfo}),
     {ok, wait_peerinfo, #state{socket=Socket,
                                client=Client,
+                               partitions=Partitions,
                                my_pi=MyPeerInfo}}.
 
 wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, socket=_Socket}) ->
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
         true ->
-            io:format("peer info ok!~n"),
-            {next_state, merkle_exchange, State};
+            %%io:format("peer info ok!~n"),
+            {next_state, merkle_send, State, 0};
         false ->
             {stop, normal, State}
     end.
 
-merkle_exchange({req_merkle, Partition}, State=#state{socket=Socket}) ->
-    io:format("got merk exchange request for partition ~p~n", [Partition]),
+merkle_send(timeout, State=#state{socket=_Socket, partitions=[]}) ->
+    %%io:format("sent last merkle~n"),
+    {next_state, connected, State};
+merkle_send(timeout, State=#state{socket=Socket, partitions=[Partition|T]}) ->
     case get_merkle(State, Partition) of
         {error, Reason} ->
             io:format("get_merkle error ~p for partition ~p~n", [Reason, Partition]),
-            nop;
+            {next_state, merkle_send, State, 0};
         {ok, MerkleTree} ->
-            io:format("sending merkle tree for partition ~p~n", [Partition]),
-            ok = send(Socket, {merkle, Partition, MerkleTree})
-    end,
-    {next_state, merkle_exchange, State};
-merkle_exchange({diff_vclocks, Partition, DiffVClocks}, 
-                State=#state{client=Client, socket=Socket}) ->
+            %%io:format("sending merkle tree for partition ~p~n", [Partition]),
+            ok = send(Socket, {merkle, Partition, MerkleTree}),
+            {next_state, merkle_wait_ack, State#state{partitions=T}}
+    end.
+
+merkle_wait_ack({ack, _Partition, []}, State) ->
+    {next_state, merkle_send, State, 0};
+merkle_wait_ack({ack, Partition, DiffVClocks}, State=#state{client=Client, socket=Socket}) ->
     Actions = vclock_diff(Partition, DiffVClocks, State),
-    {GetMsg, SendMsg} = vclock_diff_response(Actions, Client, [], []),
-    io:format("sending ~p get reqs and ~p send reqs~n", [length(element(2, GetMsg)),
-                                                         length(element(2, SendMsg))]),
-    ok = send(Socket, {diff_response, Partition, GetMsg, SendMsg}),
-    {next_state, merkle_exchange, State};
-merkle_exchange(event_subscribe, State) ->
-    io:format("entering event_subscribe state~n"),
-    {next_state, connected, State};
-merkle_exchange({remote_update, Obj}, State) ->
-    io:format("got remote update in merkle exchange for object ~p/~p~n", [riak_object:key(Obj), riak_object:bucket(Obj)]),
-    NewState = enqueue_update(State, Obj),
-    {next_state, merkle_exchange, write_next(NewState)}.
+    {_GetMsg, SendMsg} = vclock_diff_response(Actions, Client, [], []),
+    %%io:format("sending ~p get reqs and ~p send reqs~n", [length(element(2, _GetMsg)),
+    %%                                                     length(element(2, SendMsg))]), 
+    ok = send(Socket, {diff_response, Partition, SendMsg}),
+    {next_state, merkle_wait_ack, State}.
 
-
-connected({updates, ObjList}, State=#state{update_q=Q}) ->
-    {next_state, connected, State#state{update_q=lists:append(ObjList, Q)}};
-connected({remote_update, Obj}, State) ->
-    io:format("got remote update in while connected for object ~p/~p~n", [riak_object:key(Obj), riak_object:bucket(Obj)]),
-    NewState = enqueue_update(State, Obj),
-    {next_state, connected, write_next(NewState)};
 connected(_E, State) ->
-    io:format("ignoring event ~p~n", [_E]),
     {next_state, connected, State}.
 
 handle_event(_Event, StateName, State) ->
@@ -89,42 +81,40 @@ handle_sync_event(_Event, _From, StateName, State) ->
     {reply, Reply, StateName, State}.
 
 handle_info({tcp_closed, Socket}, _StateName, State=#state{socket=Socket}) ->
-    io:format("tcp socket closed ~p~n", [Socket]),
+    %%io:format("tcp socket closed ~p~n", [Socket]),
     {stop, normal, State};
 handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
-    R = ?MODULE:StateName(binary_to_term(Data), State),
-    inet:setopts(Socket, [{active, once}]),
-    R;
+    case binary_to_term(zlib:unzip(Data)) of
+        {remote_update, Obj} ->
+            riak_repl_util:do_repl_put(Obj),
+            inet:setopts(Socket, [{active, once}]), 
+            %%io:format("wrote remote update~n"), 
+            {next_state, StateName, State};
+        Msg ->
+            R = ?MODULE:StateName(Msg, State),
+            inet:setopts(Socket, [{active, once}]),            
+            R
+    end;
 handle_info({local_update, Obj}, StateName, State=#state{socket=Socket}) ->
+    %%io:format("got local update~n"),
     ok = send(Socket, {remote_update, Obj}),
-    {next_state, StateName, State};
-handle_info({_ReqId, _Status}, StateName, State) ->
-    %io:format("repl fsm ~p finished: ~p~n", [_ReqId, _Status]),
-    {next_state, StateName, write_next(State)}.
+    {next_state, StateName, State}.
 
 terminate(_Reason, _StateName, _State) ->
+    riak_repl_eventer:unsubscribe(self()),
     ok.
 
-code_change(_OldVsn, StateName, State, _Extra) ->
-    {ok, StateName, State}.
-
-enqueue_update(State=#state{update_q=Q}, Obj) -> State#state{update_q=[Obj|Q]}.
-
-write_next(State=#state{update_q=[]}) -> State;
-write_next(State=#state{update_q=[H|T]}) ->
-    riak_repl_fsm:start(erlang:phash2(erlang:now()), H, 1, 1, ?REPL_FSM_TIMEOUT, self()),
-    State#state{update_q=T}.
-
+code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
 send(Socket, Data) -> 
-    ok = gen_tcp:send(Socket, term_to_binary(Data, [compressed])).
-
+    ok = gen_tcp:send(Socket, zlib:zip(term_to_binary(Data))).
+    
 get_merkle(#state{my_pi=#peer_info{ring=Ring}}, Partition) ->
     OwnerNode = riak_ring:index_owner(Ring, Partition),
     case riak_repl_util:vnode_master_call(OwnerNode, {get_merkle, Partition}) of
         {error, Reason} ->
-            io:format("~p:error getting merkle tree for ~p from ~p: ~p~n",
-                      [?MODULE, Partition, OwnerNode, Reason]),
+            %%io:format("~p:error getting merkle tree for ~p from ~p: ~p~n",
+            %%          [?MODULE, Partition, OwnerNode, Reason]),
             {error, Reason};
         MerkleTree -> {ok, MerkleTree}
     end.
@@ -136,9 +126,9 @@ vclock_diff(Partition, DiffVClocks, #state{my_pi=#peer_info{ring=Ring}}) ->
     OwnerNode = riak_ring:index_owner(Ring, Partition),
     Keys = [K || {K, _V} <- DiffVClocks],
     case riak_repl_util:vnode_master_call(OwnerNode, {get_vclocks, Partition, Keys}) of
-        {error, Reason} ->
-            io:format("~p:error getting vclocks for ~p from ~p: ~p~n",
-                      [?MODULE, Partition, OwnerNode, Reason]),
+        {error, _Reason} ->
+            %%io:format("~p:error getting vclocks for ~p from ~p: ~p~n",
+            %%          [?MODULE, Partition, OwnerNode, Reason]),
             [];
         OurVClocks ->
             vclock_diff1(DiffVClocks, OurVClocks, [])

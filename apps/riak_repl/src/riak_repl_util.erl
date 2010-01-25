@@ -4,7 +4,8 @@
          vnode_master_call/2,
          validate_peer_info/2,
          get_partitions/1,
-         wait_for_riak/1]).
+         wait_for_riak/1,
+         do_repl_put/1]).
 
 make_peer_info() ->
     {ok, Ring} = riak_ring_manager:get_my_ring(),
@@ -32,4 +33,12 @@ wait_for_riak(PPid) ->
             timer:sleep(1000),
             wait_for_riak(PPid);
         _ -> PPid ! riak_up
+    end.
+
+do_repl_put(Object) ->
+    ReqId = erlang:phash2(erlang:now()),
+    riak_repl_fsm:start(ReqId, Object, 1, 1, ?REPL_FSM_TIMEOUT, self()),
+    receive
+        {ReqId, _} ->
+            ok
     end.
