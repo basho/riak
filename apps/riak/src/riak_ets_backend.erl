@@ -118,7 +118,7 @@ is_empty(SrvRef) -> gen_server:call(SrvRef, is_empty).
 
 drop(SrvRef) -> gen_server:call(SrvRef, drop).
     
-fold(SrvRef, Fun, Acc0) -> gen_server:call(SrvRef, {fold, Fun, Acc0}).
+fold(SrvRef, Fun, Acc0) -> gen_server:call(SrvRef, {fold, Fun, Acc0}, infinity).
 
 %% @private
 handle_info(_Msg, State) -> {noreply, State}.
