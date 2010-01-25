@@ -322,7 +322,7 @@ get_vclock(BKey,Mod,ModState) ->
     end.
 
 %% @private
-do_fold(Fun, Acc0, _State=#state{idx=Idx,mod=Mod, modstate=ModState}) ->
+do_fold(Fun, Acc0, _State=#state{mod=Mod, modstate=ModState}) ->
     Mod:fold(ModState, Fun, Acc0).
 
 %% @private
