@@ -32,6 +32,9 @@ init([]) ->
     Eventer = {riak_eventer,
                {riak_eventer, start_link, []},
                permanent, 5000, worker, [riak_eventer]},
+    VSup = {riak_vnode_sup,
+            {riak_vnode_sup, start_link, []},
+            permanent, infinity, supervisor, [riak_vnode_sup]},
     VMaster = {riak_vnode_master,
                {riak_vnode_master, start_link, []},
                permanent, 5000, worker, [riak_vnode_master]},
@@ -58,7 +61,8 @@ init([]) ->
     
     % Build the process list...
     Processes = lists:flatten([
-        Eventer,
+        Eventer, 
+        VSup,                               
         ?IF(HasStorageBackend, VMaster, []),
         RingMgr, 
         Connect, 
