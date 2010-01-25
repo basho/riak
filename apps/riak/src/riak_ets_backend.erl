@@ -18,7 +18,8 @@
 -behaviour(gen_server).
 
 -include_lib("eunit/include/eunit.hrl").
--export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,
+         is_empty/1, drop/1, fold/3]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -46,7 +47,17 @@ handle_call({put,BKey,Val},_From,State) ->
 handle_call({delete,BKey},_From,State) -> {reply, srv_delete(State,BKey),State};
 handle_call(list,_From,State) -> {reply, srv_list(State), State};
 handle_call({list_bucket,Bucket},_From,State) ->
-    {reply, srv_list_bucket(State, Bucket), State}.
+    {reply, srv_list_bucket(State, Bucket), State};
+handle_call(is_empty, _From, State) ->
+    {reply, ets:info(State#state.t) =:= 0, State};
+handle_call(drop, _From, State) -> 
+    ets:delete(State#state.t),
+    {reply, ok, State};
+handle_call({fold, Fun0, Acc}, _From, State) ->
+    Fun = fun({{B,K}, V}, AccIn) -> Fun0({B,K}, V, AccIn) end,
+    ets:foldl(Fun, Acc, State#state.t),
+    {reply, ok, State}.
+
 
 % @spec stop(state()) -> ok | {error, Reason :: term()}
 stop(SrvRef) -> gen_server:call(SrvRef,stop).
@@ -102,6 +113,12 @@ srv_list_bucket(State, Bucket) ->
     end,
     MList = ets:match(State#state.t,MatchSpec),
     list(MList,[]).
+
+is_empty(SrvRef) -> gen_server:call(SrvRef, is_empty).
+
+drop(SrvRef) -> gen_server:call(SrvRef, drop).
+    
+fold(SrvRef, Fun, Acc0) -> gen_server:call(SrvRef, {fold, Fun, Acc0}).
 
 %% @private
 handle_info(_Msg, State) -> {noreply, State}.
