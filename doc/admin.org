@@ -456,12 +456,95 @@
                to that file.
 
 ** Simple startup
-*** TODO simple example startup of one node
-** Cluster startup
-*** TODO example of forming a cluster of two nodes
-** Verifying your Installation
-*** TODO show what happens with riak-admin test?
 
+   To start a Riak node, simply install riak (by either copying the
+   rel/riak directory from an existing build, or compiling with =make
+   rel= on the new machine), and then run =bin/riak start=.
+
+   The node will start in the background.  To attach to the running
+   node's Erlang console, run =bin/riak attach=.  Use Control-D to
+   exit the console, but leave the node running.
+
+** Cluster startup
+
+   A single node is its own cluster.  To add new nodes to a cluster,
+   first start a new node, just as you would for solitary operation:
+   =bin/riak start=.
+
+   Once the new node is up, ask it to connect to the existing cluster
+   by running =bin/riak-admin join NODE@HOST=, where =NODE@HOST= is
+   the name of a node in the existing cluster (from the =-name=
+   argument in vm.args).  You should see a message of the form "Sent
+   join request to NODE@HOST" (see [[Startup Errors]] if you don't).
+
+   After the node has joined the cluster, you can verify that it has
+   claimed partitions by attaching to a console in the cluster and
+   requesting a copy of the claim ring:
+
+: 1> {ok, R} = riak_ring_manager:get_my_ring().
+: {ok,{chstate,...
+: 2> riak_ring:all_members(R).
+: ['riak@10.0.0.1','riak@10.0.0.2','riak@10.0.0.3']
+
+   You should see the names of all the nodes in your cluster in the
+   list returned from that command.
+
+   Re-starting a node, after it has been shut down is even easier.  As
+   long as you haven't removed the on-disk ringfile, you should only
+   need to run =bin/riak start=.  The startup will read the ringfile,
+   and automatically connect to the cluster it was part of when it
+   shut down.
+
+** Verifying your Installation
+
+   A simple way to verify a running Riak installation is with
+   =bin/riak-admin test=:
+
+: $ bin/riak-admin test
+:
+: =INFO REPORT==== 25-Jan-2010::14:09:08 ===
+: Successfully completed 1 read/write cycle to 'riak@127.0.0.1'
+
+   The script attempts to write a value, and then read it back.  If
+   all goes well, you should see output similar to the example above.
+   See [[Client Errors]] for help with error messages from this script.
+
+** Shutting down a node
+   
+   Stopping a Riak node can be done at any time, simply by running
+   =bin/riak stop=:
+
+: $ dev/dev3/bin/riak stop
+: ok
+
+   This halts the Riak node, but it does not change any claims on the
+   ring.  That is, the rest of the cluster still believes that the
+   node that just shut down is still responsible for storing some
+   slice of the cluster's data.
+
+   To change ring ownership, such that a node is no longer responsible
+   for storing any data, first get a riak client, then use
+   =remove_from_cluster/1= to move that node's claims to other nodes:
+
+: $ bin/riak attach
+: Attaching to ... (^D to exit)
+:
+: (riak@10.0.0.1)1> {ok, C} = riak:local_client().
+: {ok,{riak_client,'riak@10.0.0.1',<<0,166,141,137>>}}
+: (riak@10.0.0.1)2> C:remove_from_cluster('riak@10.0.0.3').
+: [ok,ok,ok,ok|...]
+
+   If the node that is leaving is alive and connected to the cluster,
+   it will start transfering data to the nodes that have claimed the
+   partitions it just owned.  If the node is down, no data transfer
+   happens.
+
+   Read and write requests immediately start hitting the nodes that
+   have claimed the partitions that the exiting node just gave up.
+   This means that some reads where R=N will fail for a time, until
+   data exists everywhere.  Data will exist everywhere it is supposed
+   to after handoff finishes, after a successful read repair, or after
+   a write to all partitions responsible for a value.
 
 * Client Interaction
 ** TODO Client Libraries
@@ -506,7 +589,9 @@
       =rel/reltool.config= files
 
 ** TODO Startup Errors
+*** TODO riak-admin join errors
 ** TODO Client Errors
+*** TODO riak-admin test errors
 
 * TODO FAQ
 
