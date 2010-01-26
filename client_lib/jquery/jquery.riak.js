@@ -1,5 +1,13 @@
 (function($) {
-  var riakSuccessHandler = function(data, status) { };
+
+  $.riakGetBucketProps = function(bucket, options) {
+    var settings = $.extend({contentType: "application/json",
+	  success: riakSuccessHandler}),
+    settings["url"] = "/raw/" + bucket;
+    settings["type"] = "GET";
+    $.ajax(settings);
+  }
+
   $.riakGetResource = function(bucket, key, options) {
     var settings = $.extend({ifModified: true,
 	  cache: true,
@@ -38,6 +46,8 @@
     $.ajax(settings);
   };
 
+  var riakSuccessHandler = function(data, status) { };
+
   function buildQuery(phases) {
     return phases.map(function(phase) { return buildPhase(phase); }, phases);
   }
@@ -51,6 +61,9 @@
     }
     else if (phase["reduce"] !== undefined) {
       return {reduce: {language: "javascript", source: phase["reduce"].toString(), keep: keepResults}};
+    }
+    else if (phase["link"] !== undefined) {
+      return {link: {language: "javascript", source: phase["reduce"].toString(), keep: keepResults}};
     }
     else {
       throw("Illegal phase definition");

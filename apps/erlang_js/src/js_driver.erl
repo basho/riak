@@ -138,9 +138,7 @@ eval_js(Ctx, Js, Timeout) when is_binary(Js) ->
             {ok, js_mochijson2:decode(Result)};
         {error, ErrorJson} when is_binary(ErrorJson) ->
             case js_mochijson2:decode(ErrorJson) of
-                {struct, [{<<"error">>, {struct, Error}}]} ->
-                    {error, Error};
-                {struct, [{<<"error">>, Error}]} ->
+                {struct, Error = [{<<"error">>, _}|_]} ->
                     {error, Error}
             end;
         {error, Error} ->

@@ -54,7 +54,9 @@ call(Ctx, FunctionName, Args) ->
 call(Ctx, FunctionName, Args, Bindings) ->
     JsBindings = list_to_binary(build_bindings(Bindings, [])),
     ArgList = build_arg_list(Args, []),
-    Js = iolist_to_binary([<<"function() {">>, JsBindings, <<"return ">>, FunctionName, <<"(">>, ArgList, <<");">>, <<"}();">>]),
+    Js = iolist_to_binary([<<"function() {">>, JsBindings, <<" if (">>, FunctionName, <<" === undefined) { throw(\"">>,
+                           FunctionName, <<" not defined\"); } ">>,
+                           <<"return ">>, FunctionName, <<"(">>, ArgList, <<");">>, <<"}();">>]),
     js_driver:eval_js(Ctx, Js).
 
 %% Internal functions

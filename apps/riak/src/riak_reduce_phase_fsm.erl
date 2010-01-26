@@ -47,7 +47,13 @@ wait(timeout, StateData=#state{next_fsm=NextFSM,done=Done,
                                  {erlang, {modfun,M,F}} ->
                                      M:F(Reduced,Arg);
                                  {javascript, QTerm} ->
-                                     js_reduce(QTerm, Reduced, Arg)
+                                     case js_reduce(QTerm, Reduced, Arg) of
+                                         {ok, Result} ->
+                                             Result;
+                                         {error, Error} ->
+                                             error_logger:error_msg("Javascript reduce error: ~p~n", [Error]),
+                                             Reduced
+                                     end
                              end,
                 {{next_state, wait, StateData#state{reduced=NewReduced}}, NewReduced}
             catch C:R ->

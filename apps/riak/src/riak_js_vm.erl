@@ -85,11 +85,12 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc
                          end,
     case Result of
         {ok, ReturnValue} ->
-            gen_fsm:send_event(FsmPid, {mapexec_reply, ReturnValue, Requestor});
-        ErrorResult ->
-            gen_fsm:send_event(FsmPid, {mapexec_error, Requestor, ErrorResult})
-    end,
-    {noreply, NewState};
+            gen_fsm:send_event(FsmPid, {mapexec_reply, ReturnValue, Requestor}),
+            {noreply, NewState};
+        {error, ErrorResult} ->
+            gen_fsm:send_event(FsmPid, {mapexec_error_noretry, Requestor, ErrorResult}),
+            {noreply, State}
+    end;
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsfun, JS}, Arg, _Acc},
                                             Value,
                                             KeyData}}, #state{ctx=Ctx}=State) ->
@@ -98,8 +99,8 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsfun, JS}, Arg, _Acc}
     case invoke_js(Ctx, JS, [JsonValue, KeyData, JsonArg]) of
         {ok, R} ->
             gen_fsm:send_event(FsmPid, {mapexec_reply, R, Requestor});
-        Error ->
-            gen_fsm:send_event(FsmPid, {mapexec_error, Requestor, Error})
+        {error, Error} ->
+            gen_fsm:send_event(FsmPid, {mapexec_error_noretry, Requestor, Error})
     end,
     {noreply, State};
 handle_cast(_Msg, State) ->

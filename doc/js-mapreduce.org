@@ -350,12 +350,80 @@ function(v) {
    holding the input data for those functions, and it runs reduce-step
    functions on the node coordinating the map/reduce query.
 
+*** How Riak's Map/Reduce Queries Are Specified
+
+    Map/Reduce queries in Riak have two components: a list of inputs
+    and a list of "steps", or "phases".
+
+    Each element of the input list is a bucket-key pair.  This
+    bucket-key pair may also be annotated with "key-data", which will
+    be passed as an argument to a map function, when evaluated on the
+    object stored under that bucket-key pair.
+
+    Each element of the phases list is a description of a map
+    function, a reduce function, or a link function.  The description
+    includes where to find the code for the phase function (for map
+    and reduce phases), static data passed to the function every time
+    it is executed during that phase, and a flag indicating whether or
+    not to include the results of that phase in the final output of
+    the query.
+
+    The phase list describes the chain of operations each input will
+    flow through.  That is, the initial inputs will be fed to the
+    first phase in the list, and the output of that phase will be fed
+    as input to the next phase in the list.  This stream will continue
+    through the final phase.
+
 *** How a Map Phase Works in Riak
 
-    
+    The input list to a map phase must be a list of (possibly
+    annotated) bucket-key pairs.  For each pair, Riak will send the
+    request to evaluate the map function to the partition that is
+    responsible for storing the data for that bucket-key.  The vnode
+    hosting that partition will lookup the object stored under that
+    bucket-key, and evaluation the map function with the object as an
+    argument.  The other arguments to the function will be the
+    annotation, if any is included, with the bucket-key, and the
+    static data for the phase, as specified in the query.
 
-  I'm thinking of moving some content from basic-mapreduce.txt into
-  this document, and then creating a small "Erlang companion".  This
-  file (js-mapreduce) would become the Riak Map/Reduce Guide, the
-  primary reference, while the Erlang companion would be basically
-  just "how to do the same stuff in Erlang."
+*** How a Reduce Phase Works in Riak
+
+    Reduce phases accept any list of data as input, and produce any
+    list of data as output.  They also receive a phase-static value,
+    specified in the query definition.
+
+    The important thing to understand is that the function defining
+    the reduce phase may be evaluated multiple times, and the input of
+    later evaluations will include the input of earlier evaluations.
+
+    For example, a reduce phase may implement the "set-union"
+    function.  In that case, the first set of inputs might be
+    =[1,2,2,3]=, and the output would be =[1,2,3]=.  When the phase
+    receives more inputs, say =[3,4,5]=, the function will be called
+    with the concatentation of the two lists: =[1,2,3,3,4,5]=.
+
+    Other systems refer to the second application of the reduce
+    function as a "re-reduce".  There are at least a couple of
+    reduce-query implementation strategies that work with Riak's model.
+
+    One strategy is to implement the phase preceeding the reduce
+    phase, such that its output is "the same shape" as the output of
+    the reduce phase.  This is how the examples in this document are
+    written, and the way that we have found produces cleaner code.
+
+    An alternate strategy is to make the output of a reduce phase
+    recognizable, such that it can be extracted from the input list on
+    subsequent applications.  For example, if inputs from the
+    preceeding phase are numbers, outputs from the reduce phase could
+    be objects or strings.  This would allow the function to find the
+    previous result, and apply new inputs to it.
+
+*** How a Link Phase Works in Riak
+
+    Link phases find links matching patterns specified in the query
+    definition.  The patterns specify which buckets and tags links
+    must have.
+
+    "Following a link" means adding it to the output list of this
+    phase.  The output of this phase is often most useful as input to
+    a map phase, or another reduce phase.

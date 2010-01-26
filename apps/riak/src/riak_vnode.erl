@@ -347,7 +347,7 @@ select_newest_content(Mult) ->
 %% @private
 do_map(ClientPid, QTerm, BKey, KeyData, #state{mod=Mod, modstate=ModState, mapcache=Cache}=State, VNode) ->
     {Reply, NewState} = case do_map(QTerm, BKey, Mod, ModState, KeyData, Cache, VNode, ClientPid) of
-                            executing ->
+                            map_executing ->
                                 {{mapexec_reply, executing, self()}, State};
                             {ok, Retval} ->
                                 {{mapexec_reply, Retval, self()}, State};
@@ -443,7 +443,7 @@ do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData,
                 {error, notfound}
         end,
     riak_js_manager:dispatch({ClientPid, QTerm, V, KeyData}),
-    executing.
+    map_executing.
 
 build_key({modfun, CMod, CFun}, Arg, KeyData) ->
     {CMod, CFun, Arg, KeyData};

@@ -54,9 +54,19 @@ inline void end_request(spidermonkey_vm *vm) {
 void on_error(JSContext *context, const char *message, JSErrorReport *report) {
   if (report->flags & JSREPORT_EXCEPTION) {
     spidermonkey_error *sm_error = (spidermonkey_error *) driver_alloc(sizeof(spidermonkey_error));
-    sm_error->msg = copy_string(message);
+    if (message != NULL) {
+      sm_error->msg = copy_string(message);
+    }
+    else {
+      sm_error->msg = copy_string("undefined error");
+    }
     sm_error->lineno = report->lineno;
-    sm_error->offending_source = copy_string(report->linebuf);
+    if (report->linebuf != NULL) {
+      sm_error->offending_source = copy_string(report->linebuf);
+    }
+    else {
+      sm_error->offending_source = copy_string("unknown");
+    }
     JS_SetContextPrivate(context, sm_error);
   }
 }
@@ -163,8 +173,12 @@ char *sm_eval(spidermonkey_vm *vm, const char *filename, const char *code, int h
 	JSString *str = JS_ValueToString(vm->context, result);
 	retval = copy_jsstring(str);
       }
+      else if(strcmp(JS_GetStringBytes(JS_ValueToString(vm->context, result)), "undefined") == 0) {
+	retval = copy_string("{\"error\": \"Expression returned undefined\", \"lineno\": 0, \"source\": \"unknown\"}");
+      }
       else {
-	retval = copy_string("{\"error\": \"non-JSON return value\"}");
+
+	retval = copy_string("{\"error\": \"non-JSON return value\", \"lineno\": 0, \"source\": \"unknown\"}");
       }
     }
     JS_DestroyScript(vm->context, script);

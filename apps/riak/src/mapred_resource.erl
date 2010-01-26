@@ -92,10 +92,12 @@ send_error(Error, RD)  ->
     wrq:set_resp_body(format_error(Error), RD).
 
 format_error({error, Message}=Error) when is_atom(Message);
-                                    is_binary(Message),
-                                    is_list(Message) ->
+                                          is_binary(Message) ->
     mochijson2:encode({struct, [Error]});
+format_error({error, Error}) when is_list(Error) ->
+    mochijson2:encode({struct, Error});
 format_error(_Error) ->
+    io:format("_Error: ~p~n", [_Error]),
     mochijson2:encode({struct, [{error, map_reduce_error}]}).
 
 stream_mapred_results(RD, ReqId, State) ->

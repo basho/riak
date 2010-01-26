@@ -86,6 +86,10 @@ wait({mapexec_error, VN, ErrMsg},
     riak_eventer:notify(riak_map_executor, mapexec_vnode_err, {VN,ErrMsg}),
     riak_phase_proto:mapexec_error(PhasePid, "all nodes failed"),
     {stop,normal,StateData};
+wait({mapexec_error_noretry, VN, ErrMsg}, #state{phase_pid=PhasePid}=StateData) ->
+    riak_eventer:notify(riak_map_executor, mapexec_vnode_err_noretry, {VN, ErrMsg}),
+    riak_phase_proto:mapexec_error(PhasePid, ErrMsg),
+    {stop, normal, StateData};
 wait({mapexec_error, VN, ErrMsg},StateData=
      #state{vnodes=VNodes,qterm=QTerm,bkey=BKey,keydata=KeyData}) ->
     riak_eventer:notify(riak_map_executor, mapexec_vnode_err, {VN,ErrMsg}),
