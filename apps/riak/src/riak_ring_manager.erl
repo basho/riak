@@ -128,23 +128,30 @@ prune_ringfiles() ->
                     Timestamps = [TS || {"riak_ring", C1, TS} <- 
                      [list_to_tuple(string:tokens(FN, ".")) || FN <- Filenames],
                                         C1 =:= Cluster],
-                    TSPat = [io_lib:fread("~4d~2d~2d~2d~2d~2d",TS) ||
-                                TS <- Timestamps],
-                    TSL = lists:reverse(lists:sort([TS ||
-                                                       {ok,TS,[]} <- TSPat])),
-                    Keep = prune_list(TSL),
-                    KeepTSs = [lists:flatten(
-                         io_lib:format(
-                           "~B~2.10.0B~2.10.0B~2.10.0B~2.10.0B~2.10.0B",K))
-                               || K <- Keep],
-                    DelFNs = [Dir ++ "/" ++ FN || FN <- Filenames, 
-                                                  lists:all(fun(TS) -> 
-                                                      string:str(FN,TS)=:=0
-                                                            end, KeepTSs)],
-                    riak_eventer:notify(riak_ring_manager, prune_ringfiles,
-                                        {length(DelFNs),length(Timestamps)}),
-                    [file:delete(DelFN) || DelFN <- DelFNs],
-                    ok
+                    if Timestamps /= [] ->
+                            %% there are existing ring files
+                            TSPat = [io_lib:fread("~4d~2d~2d~2d~2d~2d",TS) ||
+                                        TS <- Timestamps],
+                            TSL = lists:reverse(lists:sort([TS ||
+                                                               {ok,TS,[]} <- TSPat])),
+                            Keep = prune_list(TSL),
+                            KeepTSs = [lists:flatten(
+                                         io_lib:format(
+                                           "~B~2.10.0B~2.10.0B~2.10.0B~2.10.0B~2.10.0B",K))
+                                       || K <- Keep],
+                            DelFNs = [Dir ++ "/" ++ FN || FN <- Filenames, 
+                                                          lists:all(fun(TS) -> 
+                                                                            string:str(FN,TS)=:=0
+                                                                    end, KeepTSs)],
+                            riak_eventer:notify(riak_ring_manager, prune_ringfiles,
+                                                {length(DelFNs),length(Timestamps)}),
+                            [file:delete(DelFN) || DelFN <- DelFNs],
+                            ok;
+                       true ->
+                            %% directory wasn't empty, but there are no ring
+                            %% files in it
+                            ok
+                    end
             end
     end.
 
