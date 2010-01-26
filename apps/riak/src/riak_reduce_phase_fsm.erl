@@ -35,7 +35,7 @@ init([QTerm,NextFSM,Coordinator]) ->
 wait(timeout, StateData=#state{next_fsm=NextFSM, done=Done, acc=Acc, coord=Coord}) ->
     case perform_reduce(StateData) of
         {HasUpdates, NewStateData} when HasUpdates =:= true;
-                                    HasUpdates =:= false ->
+                                        HasUpdates =:= false ->
             case Done of
                 false ->
                     {next_state, wait, NewStateData};
@@ -52,6 +52,7 @@ wait(timeout, StateData=#state{next_fsm=NextFSM, done=Done, acc=Acc, coord=Coord
                             nop;
                         true ->
                             riak_phase_proto:phase_results(Coord, NewStateData#state.reduced),
+                            riak_phase_proto:phase_done(Coord),
                             {stop, normal, NewStateData}
                     end
             end;
@@ -99,7 +100,7 @@ perform_reduce(#state{reduced=Reduced,
 js_reduce(QTerm, Reduced, Arg) ->
     case riak_js_manager:blocking_dispatch({QTerm, Reduced, Arg}) of
         {ok, Result} ->
-            Result;
+            {ok, Result};
         Error ->
             Error
     end.

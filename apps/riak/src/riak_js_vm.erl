@@ -58,8 +58,8 @@ handle_call({dispatch, _JobId, {{jsanon, JS}, Reduced, Arg}}, _From, #state{ctx=
                                      Error ->
                                          {Error, State}
                                  end;
-                             Error ->
-                                 {Error, State}
+                             {Error, State1} ->
+                                 {Error, State1}
                          end,
     {reply, Result, NewState};
 handle_call({dispatch, _JobId, {{jsfun, JS}, Reduced, Arg}}, _From, #state{ctx=Ctx}=State) ->
@@ -80,8 +80,8 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc
                                      Error ->
                                          {Error, State}
                                  end;
-                             Error ->
-                                 {Error, State}
+                             {_, _}=Error->
+                                 Error
                          end,
     case Result of
         {ok, ReturnValue} ->
@@ -126,9 +126,6 @@ invoke_js(Ctx, Js, Args) ->
                 undefined ->
                     {ok, R};
                 _ ->
-                    error_logger:warning_msg("Javascript evaluation error: ~p, source: ~p, line: ~p~n", [proplists:get_value(<<"message">>, R),
-                                                                                                         proplists:get_value(<<"source">>, R),
-                                                                                                         proplists:get_value(<<"lineno">>, R)]),
                     {error, R}
             end;
         R ->
@@ -154,7 +151,7 @@ define_anon_js(Name, JS, #state{ctx=Ctx, last_mapper=LastMapper, last_reducer=La
                         true ->
                             {ok, State#state{last_reducer=Hash}}
                     end;
-                Error ->
+                {error, _}=Error ->
                     error_logger:warning_msg("Error defining Javascript expression: ~p~n", [Error]),
                     {Error, State}
             end

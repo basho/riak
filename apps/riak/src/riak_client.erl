@@ -393,6 +393,8 @@ wait_for_reqid(ReqId, Timeout) ->
 collect_mr_results(ReqId, Timeout, Acc) ->
     receive
         {ReqId, done} -> {ok, Acc};
+        {ReqId, {error, _}=Error} ->
+            Error;
         {ReqId,{mr_results,Res}} ->
             collect_mr_results(ReqId,Timeout,Acc++Res)
     after Timeout ->
