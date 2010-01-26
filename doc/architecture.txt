@@ -138,11 +138,8 @@ Four backends are packaged with Riak:
  2. riak_ets_backend, which stores data in ETS tables (which makes it
     volatile storage, but great for debugging)
  3. riak_dets_backend, which stores data on-disk in DETS tables
- 4. riak_osmos_backend, which stores data in Osmos tables[5]
-
 
 [1] http://s3.amazonaws.com/AllThingsDistributed/sosp/amazon-dynamo-sosp2007.pdf
 [2] http://portal.acm.org/citation.cfm?doid=564585.564601
 [3] http://portal.acm.org/citation.cfm?id=359563
 [4] http://portal.acm.org/citation.cfm?id=704751
-[5] http://code.google.com/p/osmos/
