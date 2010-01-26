@@ -105,7 +105,7 @@ case "$1" in
             -s init stop
         ;;
 
-    backup | restore)
+    restore)
         ACTION=$1
         shift
 
@@ -120,6 +120,24 @@ case "$1" in
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_backup$NAME_HOST -setcookie $COOKIE \
                        -eval "riak_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
+        ;;        
+
+    backup)
+        ACTION=$1
+        shift
+
+        if [ $# -lt 4 ]; then
+            echo "Usage: $SCRIPT $ACTION <node> <cookie> <filename> [node|all]"
+            exit 1
+        fi
+
+        NODE=$1
+        COOKIE=$2
+        FILENAME=$3
+        TYPE=$4
+
+        $ERTS_PATH/erl -noshell $NAME_PARAM riak_backup$NAME_HOST -setcookie $COOKIE \
+                       -eval "riak_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
         ;;
 
     logger)
