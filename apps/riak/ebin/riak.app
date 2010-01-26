@@ -53,7 +53,6 @@
              riak_mapreduce_fsm,
              riak_multi_backend,
              riak_object,
-             riak_osmos_backend,
              riak_put_fsm,
              riak_reduce_phase_fsm,
              riak_ring,
