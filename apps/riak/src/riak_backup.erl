@@ -18,7 +18,7 @@
 %%      restore will reconcile values with the existing data.
 
 -module(riak_backup).
--export ([backup/2, restore/2]).
+-export ([backup/3, restore/2]).
 -define (TABLE, riak_backup_table).
 
 %%% BACKUP %%%
@@ -26,7 +26,7 @@
 %% @doc 
 %% Connect to the cluster of which EntryNode is a member, 
 %% read data from the cluster, and save the data in the specified file.
-backup(EntryNode, Filename) -> 
+backup(EntryNode, BaseFilename, Mode) -> 
     % Make sure we can reach the node...
     ensure_connected(EntryNode),
 
@@ -34,20 +34,34 @@ backup(EntryNode, Filename) ->
     {ok, Ring} = rpc:call(EntryNode, riak_ring_manager, get_my_ring, []),
     Members = riak_ring:all_members(Ring),
 
-    % Print status...
-    io:format("Backing up to '~s'.~n", [Filename]),
-    io:format("...from ~p~n", [Members]),
+    FileName = 
+        case Mode of
+            "all" ->
+                io:format("Backing up (all nodes) to '~s'.~n", [BaseFilename]),
+                io:format("...from ~p~n", [Members]),
+                BaseFilename;
+            "node" ->
+                io:format("Backing up (node ~p) to '~s'.~n", [EntryNode, 
+                                                              BaseFilename++"-"++atom_to_list(EntryNode)]),
+                BaseFilename ++ "-" ++ EntryNode
+        end,
 
     % Make sure all nodes in the cluster agree on the ring...
     ensure_synchronized(Ring, Members),
 
     % Backup the data...
     {ok, ?TABLE} = disk_log:open([{name, ?TABLE},
-                                  {file, Filename},
+                                  {file, FileName},
                                   {mode, read_write},
                                   {type, halt}]),
 
-    [backup_node(Node) || Node <- Members],
+
+    case Mode of
+        "all" ->
+            [backup_node(Node) || Node <- Members];
+        "node" ->
+            backup_node(EntryNode)
+    end,
     ok = disk_log:sync(?TABLE),
     ok = disk_log:close(?TABLE),
     

@@ -297,16 +297,6 @@
               * =riak_fs_backend_root= :: root directory where files
                    are stored
 
-         - =riak_osmos_backend= :: data is stored in osmos tables
-
-              Osmos must be installed separately.  It is available at
-              [[http://code.google.com/p/osmos/]].  More details are
-              available at
-              [[http://dukesoferl.blogspot.com/2009/07/osmos.html]].
-
-              * =riak_osmos_backend_root= :: root directory where
-                   osmos files are stored
-
          - =riak_multi_backend= :: enables storing data for different
               buckets in different backends
 

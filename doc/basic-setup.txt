@@ -95,7 +95,7 @@ storage_backend: atom
 
   Name of the module that implements the storage for a vnode.  The
   four backends that ship with Riak are riak_fs_backend,
-  riak_ets_backend, riak_dets_backend, and riak_osmos_backend. Some
+  riak_ets_backend, and riak_dets_backend. Some
   backends have their own set of configuration parameters.
 
   riak_fs_backend:
@@ -114,17 +114,6 @@ storage_backend: atom
 
     riak_dets_backend_root: string
       The directory under which this backend will store its files.
-
-  riak_osmos_backend:
-    A backend that uses Osmos to store its data.
-    http://code.google.com/p/osmos/
-
-    riak_osmos_backend_root: string
-      The directory under which this backend will store its files.
-
-    riak_osmos_backend_block_size: integer
-      The "block size" configuration parameter for Osmos.
-      Defaults to 2048.
 
 
 Single-node Configuration
