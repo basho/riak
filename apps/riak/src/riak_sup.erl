@@ -54,7 +54,7 @@ init([]) ->
                 {riak_stat, start_link, []},
                 permanent, 5000, worker, [riak_stat]},
     RiakJsMgr = {riak_js_manager,
-                 {riak_js_manager, start_link, [16]},
+                 {riak_js_manager, start_link, [riak:get_app_env(jsvm_count, 0)]},
                  permanent, 30000, worker, [riak_js_manager]},
     RiakJsSup = {riak_js_sup,
                  {riak_js_sup, start_link, []},
