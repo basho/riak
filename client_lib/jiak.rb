@@ -48,7 +48,7 @@ module Riak
     # and 'write_mask'
     def set_bucket_schema(bucket, schema)
       schema['required_fields'] ||= []
-      schema['read_mask']       ||= schema['required_fields']
+      schema['read_mask']       ||= schema['allowed_fields']
       schema['write_mask']      ||= schema['read_mask']
 
       do_req(set_data(Net::HTTP::Put.new(path(bucket)),
