@@ -15,7 +15,7 @@
 %% @doc riak_gb_trees_backend is a Riak storage backend using Erlang gb_trees.
 
 -module (riak_multi_backend).
--export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,is_empty/1,drop/1,fold/3]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -125,7 +125,26 @@ list_bucket(State, {filter, Bucket, FilterFun}) ->
 list_bucket(State, Bucket) ->
     {_Name, Module, SubState} = get_backend(Bucket, State),
     Module:list_bucket(SubState, Bucket).
-    
+
+is_empty(State) ->
+    F = fun({_, Module, SubState}, Acc) ->
+                [Module:is_empty(SubState)|Acc]
+        end,
+    lists:all(fun(I) -> I end, lists:foldl(F, [], State#state.backends)).
+
+drop(State) ->
+    F = fun({_, Module, SubState}, Acc) ->
+                [Module:drop(SubState)|Acc]
+        end,
+    lists:foldl(F, [], State#state.backends),
+    ok.
+
+fold(State, Fun0, Acc) ->    
+    F = fun({_, Module, SubState}, AccIn) ->
+                [Module:fold(SubState, Fun0, AccIn)|AccIn]
+        end,
+    lists:flatten(lists:foldl(F, Acc, State#state.backends)).
+
 
 % Given a Bucket name and the State, return the
 % backend definition. (ie: {Name, Module, SubState})

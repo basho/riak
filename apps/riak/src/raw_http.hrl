@@ -43,5 +43,7 @@
 -define(Q_PROPS, "props").
 -define(Q_KEYS,  "keys").
 -define(Q_FALSE, "false").
+-define(Q_TRUE, "true").
 -define(Q_STREAM, "stream").
 -define(Q_VTAG,  "vtag").
+-define(Q_RETURNBODY, "returnbody").
