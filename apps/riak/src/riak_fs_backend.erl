@@ -16,7 +16,7 @@
 
 -module(riak_fs_backend).
 -export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
--export([fold/3, drop/1, is_empty/1]).
+%-export([fold/3, drop/1, is_empty/1]).
 
 -include_lib("eunit/include/eunit.hrl").
 % @type state() = term().
@@ -94,8 +94,6 @@ list(State) ->
     [location_to_bkey(X) || X <- filelib:wildcard("*/*/*/*/*",
                                                   State#state.dir)].
 
-is_empty(State) ->
-    
 
 %% @spec list_bucket(state(), riak_object:bucket()) ->
 %%           [riak_object:key()]

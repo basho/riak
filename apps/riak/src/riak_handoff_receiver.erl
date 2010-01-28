@@ -45,7 +45,7 @@ process_message(1, MsgData, State=#state{vnode=VNode}) ->
     % header of 1 is a riakobject_pb
     RO_PB = riakserver_pb:decode_riakobject_pb(zlib:unzip(MsgData)),
     BKey = {RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key},
-    Msg = {diffobj, {BKey, RO_PB#riakobject_pb.val}}
+    Msg = {diffobj, {BKey, RO_PB#riakobject_pb.val}},
     ok = gen_fsm:sync_send_all_state_event(VNode, Msg, 60000),
     State;
 process_message(2, _MsgData, State=#state{sock=Socket}) ->
