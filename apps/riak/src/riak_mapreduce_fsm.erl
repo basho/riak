@@ -94,7 +94,7 @@ check_query_syntax([QTerm={QTermType,QT2,QT3,Acc}|Rest], Accum)
                 link ->
                     case (is_binary(QT2) orelse QT2 == '_') of
                         false -> {bad_qterm, QTerm};
-                        true -> check_query_syntax(Rest)
+                        true -> check_query_syntax(Rest, [{erlang, QTerm}|Accum])
                     end;
                 _ -> % (map or reduce)
                     case QT2 of

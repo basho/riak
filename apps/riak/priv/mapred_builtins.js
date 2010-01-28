@@ -18,6 +18,9 @@ var Riak = function() {
       else {
 	return data;
       }},
+     mapValuesJson: function(value, key_data, arg) {
+      return [JSON.parse(value)];
+    },
     reduceSum: function(values, arg) {
       return [values.reduce(function(prev, curr, index, array) { return prev + curr; })];
     },
@@ -29,9 +32,30 @@ var Riak = function() {
       values.sort().reverse();
       return [values[0]];
     },
-    reduceAverage: function(values, arg) {
-      var total = Riak.reduceSum(values, arg);
-      return [total / values.length];
+    reduceSort: function(value, arg) {
+      var c = null;
+      if (arg) {
+	c = eval(arg);
+      }
+      if(c) {
+	return value.sort(c);
+      }
+      else {
+	return value.sort();
+      }
+    },
+    reduceLimit: function(value, arg) {
+      return value.slice(0, arg - 1);
+    },
+    reduceSlice: function(value, arg) {
+      var start = arg[0];
+      var end = arg[1];
+      if (end > value.length) {
+	return value;
+      }
+      else {
+	return value.slice(start, end);
+      }
     }
   }
 }();

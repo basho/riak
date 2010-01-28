@@ -2,19 +2,25 @@
 
 -compile([export_all]).
 
-s(InputSize) ->
-    populate(InputSize),
-    mrstress:stress(config(javascript, 1, 1, InputSize)).
-
-v(InputSize) ->
-    populate(InputSize),
-    mrstress:stress(config(javascript, 200, 250, InputSize)).
-
 populate(InputSize) ->
     {ok, Client} = riak:client_connect('riak@127.0.0.1'),
-    lists:foreach(fun({Bucket, Key}) ->
-                          Obj = riak_object:new(Bucket, Key, <<"1">>),
-                          ok = Client:put(Obj, 1) end, generate_inputs(<<"stress">>, InputSize)).
+    create_entries(Client, generate_inputs(<<"stress">>, InputSize)).
+
+create_entries(_Client, []) ->
+    ok;
+create_entries(Client, [{Bucket, Key}|T]) ->
+    Obj = riak_object:new(Bucket, Key, <<"1">>),
+    FinalObj = case T of
+                   [] ->
+                       Obj;
+                   _ ->
+                       Next = hd(T),
+                       Md = dict:store(<<"Links">>, [{Next, <<"next">>}], dict:new()),
+                       Md1 = dict:store(<<"content-type">>, "text/plain", Md),
+                       riak_object:update_metadata(Obj, Md1)
+               end,
+    ok = Client:put(FinalObj, 1),
+    create_entries(Client, T).
 
 config(Lang, Clients, Count, KeyCount) ->
     [{lang, Lang}, {clients, Clients}, {count, Count}, {keys, KeyCount}].
@@ -24,25 +30,19 @@ stress(Config) ->
     Count = proplists:get_value(count, Config, 100),
     Clients = proplists:get_value(clients, Config, 1),
     KeyCount = proplists:get_value(keys, Config, 10),
-    Start = erlang:now(),
+    populate(KeyCount),
+    LogFile = proplists:get_value(log_file, Config, "/tmp/stress.log"),
+    stress_collector:start(LogFile),
     start_test(Lang, Count, Clients, KeyCount),
-    case wait_for_end(Clients) of
-        ok ->
-            End = erlang:now(),
-            Elapsed = timer:now_diff(End, Start),
-            {Elapsed, (Elapsed / Clients) / Count};
-        Error ->
-            Error
-    end.
+    wait_for_end(Clients).
 
 wait_for_end(0) ->
-    ok;
+    timer:sleep(1000),
+    stress_collector:test_complete();
 wait_for_end(Clients) ->
     receive
         done ->
             wait_for_end(Clients - 1)
-    after 300000 ->
-            {error, run_timeout}
     end.
 
 start_test(_Lang, _Count, 0, _) ->
@@ -58,20 +58,19 @@ stress(_Lang, 0, _Client, Owner, _) ->
     ok;
 stress(javascript, Count, Client, Owner, KeyCount) ->
     M = <<"function(v, _, _) { var value = v[\"values\"][0][\"data\"]; return [parseInt(value)]; }">>,
-    %R = <<"function(v, _) { var sum = 0; v.forEach(function(x) { sum = sum + x; }); return [sum]; }">>,
-    %R1 = <<"function(v, _) { return v; }">>,
-    %case Client:mapred(?INPUTS, [{map, {jsanon, M}, none, false},
-    %                             {reduce, {jsanon, {<<"stress">>, <<"test10">>}}, none, false},
-    %                             {reduce, {jsanon, R1}, none, true}]) of
-    case Client:mapred(generate_inputs(<<"stress">>, KeyCount), [{map, {jsanon, M}, none, false},
-                                 {reduce, {jsfun, <<"Riak.reduceSum">>}, none, true}]) of
-        {ok, [10]} ->
+    R = <<"function(v, _) { var sum = 0; v.forEach(function(x) { sum = sum + x; }); return [sum]; }">>,
+    Inputs = generate_inputs(<<"stress">>, KeyCount),
+    Correct = length(Inputs),
+    Start = erlang:now(),
+    case Client:mapred(Inputs, [{map, {jsanon, M}, none, false},
+                                {reduce, {jsanon, R}, none, true}]) of
+        {ok, [Correct]} ->
+            End = erlang:now(),
+            stress_collector:log(erlang:trunc(timer:now_diff(End, Start) / 1000), 0),
             stress(javascript, Count - 1, Client, Owner, KeyCount);
-        {ok, WTF} ->
-            io:format("Bailing!!!! WTF: ~p~n", WTF),
-            stress(javascript, 0, Client, Owner, KeyCount);
-        Error ->
-            io:format("(~p): ~p~n", [self(), Error]),
+        _Error ->
+            End = erlang:now(),
+            stress_collector:log(0, erlang:trunc(timer:now_diff(End, Start) / 1000)),
             stress(javascript, 0, Client, Owner, KeyCount)
     end;
 
@@ -79,13 +78,20 @@ stress(erlang, Count, Client, Owner, KeyCount) ->
     M = fun(Obj, _, _) ->
                 Value = riak_object:get_value(Obj),
                 [list_to_integer(binary_to_list(Value))] end,
-    R = fun(Values, _) -> lists:sum(Values) / length(Values) end,
-    case Client:mapred(generate_inputs(<<"stress">>, KeyCount), [{map, {qfun, M}, none, false},
-                                                                 {reduce, {qfun, R}, none, true}]) of
-        {ok, _Result} ->
+    R = fun(Values, _) -> [lists:sum(Values)] end,
+    Inputs = generate_inputs(<<"stress">>, KeyCount),
+    Correct = length(Inputs),
+    Start = erlang:now(),
+    case Client:mapred(Inputs, [{map, {qfun, M}, none, false},
+                                {reduce, {qfun, R}, none, true}]) of
+        {ok, [Correct]} ->
+            End = erlang:now(),
+            stress_collector:log(erlang:trunc(timer:now_diff(End, Start) / 1000), 0),
             stress(erlang, Count - 1, Client, Owner, KeyCount);
-        Error ->
-            io:format("(~p): ~p~n", [self(), Error]),
+        _Error ->
+            io:format("Error: ~p~n", [_Error]),
+            End = erlang:now(),
+            stress_collector:log(0, erlang:trunc(timer:now_diff(End, Start) / 1000)),
             stress(erlang, Count, Client, Owner, KeyCount)
     end.
 

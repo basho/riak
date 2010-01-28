@@ -48,8 +48,9 @@ wait(timeout, StateData=#state{next_fsm=NextFSM, done=Done, acc=Acc, coord=Coord
                             riak_phase_proto:done(NextFSM)
                     end,
                     case Acc of
-                        false ->
-                            nop;
+                      false ->
+                            riak_phase_proto:phase_done(Coord),
+                            {stop, normal, NewStateData};
                         true ->
                             riak_phase_proto:phase_results(Coord, NewStateData#state.reduced),
                             riak_phase_proto:phase_done(Coord),

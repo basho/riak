@@ -43,8 +43,8 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,PhasePid]) ->
     DocIdx = riak_util:chash_key({Bucket,Key}),
     BucketProps = riak_bucket:get_bucket(Bucket, Ring),
     LinkFun = case QTerm0 of
-        {link,_,_,_} -> proplists:get_value(linkfun, BucketProps);
-        _ -> nop
+                  {erlang, {link,_,_,_}} -> proplists:get_value(linkfun, BucketProps);
+                  _ -> nop
     end,
     case LinkFun of
         linkfun_unset ->
