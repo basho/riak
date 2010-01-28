@@ -101,7 +101,6 @@ is_empty(#state{table=T}) ->
     dets:info(T, size) =:= 0.
 
 drop(#state{table=T, path=P}) ->
-    %ok = dets:delete_all_objects(T),
     ok = dets:close(T),
     ok = file:delete(P).
 

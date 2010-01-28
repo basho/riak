@@ -16,7 +16,7 @@
 
 -module(riak_fs_backend).
 -export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
-%-export([fold/3, drop/1, is_empty/1]).
+-export([fold/3, drop/1, is_empty/1]).
 
 -include_lib("eunit/include/eunit.hrl").
 % @type state() = term().
@@ -120,6 +120,25 @@ list_bucket(State, Bucket) ->
                                        filename:join([State#state.dir,
                                                       B64,"*/*/*/*"])) ]]
     end.
+
+is_empty(State) -> ?MODULE:list(State) =:= [].
+
+fold(State, Fun0, Acc) ->
+    Fun = fun(BKey, AccIn) -> 
+                  case ?MODULE:get(State, BKey) of
+                      {ok, Bin} ->
+                          Fun0(BKey, Bin, AccIn);
+                      _ ->
+                          AccIn
+                  end
+          end,
+    lists:foldl(Fun, Acc, ?MODULE:list(State)).
+
+drop(State) ->
+    [file:delete(location(State, BK)) || BK <- ?MODULE:list(State)],
+    Cmd = io_lib:format("rm -Rf ~s", [State#state.dir]),
+    os:cmd(Cmd),
+    ok.
 
 %% @spec location(state(), {riak_object:bucket(), riak_object:key()})
 %%          -> string()
