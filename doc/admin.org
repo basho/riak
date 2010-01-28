@@ -578,8 +578,43 @@
     + change the application version in the =.app= and
       =rel/reltool.config= files
 
-** TODO Startup Errors
+** Startup Errors
+
+*** Node is not running! / Node 'XXX' not responding to pings.
+
+    If the =bin/riak= or =bin/riak= refuse to connect to a node, one
+    of several things may be going awry:
+
+    - The node may not be running.  Use =ps= to check for running
+      instances of =beam=, the Erlang virtual machine.  The arguments
+      to that VM should include paths to your Riak installation.
+
+    - If =etc/vm.args= is using the short-form of Erlang node names
+      (without =...@IP-OR-HOSTNAME=), then DNS on the machine may be
+      configured incorrectly.  The easiest fix is to explicitly set
+      the hostname using the long form =-name NODE@IP-OR-HOSTNAME= in
+      =etc/vm.args=.
+
+    - Erlang distribution cookies may not match.  If you started the
+      Riak node with =bin/riak console=, or you are able to open a
+      console with =bin/riak attach=, check the node's cookie with
+      =erlang:get_cookie/0=:
+
+: (riak@127.0.0.1)1> erlang:get_cookie().
+: riak
+      
+      That cookie should match the cookie in =etc/vm.args=.  The
+      =bin/riak= and =bin/riak-admin= scripts should be using the same
+      cookie.
+
+      The startup or admin scripts may be tricked into using different
+      cookies by specifying an =ERL_FLAGS= environment variable.  If
+      you have specified such a variable in your shell, unset it, and
+      move those settings to =etc/vm.args=.
+
 *** TODO riak-admin join errors
+
+
 ** TODO Client Errors
 *** TODO riak-admin test errors
 

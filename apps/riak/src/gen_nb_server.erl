@@ -156,7 +156,7 @@ listen_on(CallbackModule, IpAddr, Port) ->
   end.
  
 %% @hidden
-%% @spec convert_addr(Addr) -> Result
+%% @spec convert(Addr) -> Result
 %% Addr = string()
 %% Result = {integer(), integer(), integer(), integer()}
 %% @doc Converts text IP addresses "0.0.0.0" to tuples {0, 0, 0, 0}

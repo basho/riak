@@ -149,7 +149,7 @@ transfer_node(Idx, Node, MyState) ->
     end.
 
 % @doc  Rename OldNode to NewNode in a Riak ring.
-% @spec transfer_node(Idx :: integer(), Node :: term(), MyState :: chstate()) ->
+% @spec rename_node(State :: chstate(), OldNode :: atom(), NewNode :: atom()) ->
 %           chstate()
 rename_node(State=#chstate{chring=Ring, nodename=ThisNode}, OldNode, NewNode) 
   when is_atom(OldNode), is_atom(NewNode)  ->
