@@ -1,0 +1,49 @@
+------------------------
+Riak 0.7.1 Release Notes
+------------------------
+
+Core:
+
+  -  The handoff mechanism has been rewritten, yielding faster handoff with less CPU/Memory 
+     utilization.
+
+  -  riak_vnode's are now managed by an OTP supervisor.
+
+Backends:
+
+  -  riak_multi_backend is a "bucket-multiplexing" backend that allows different buckets
+     to use different backend modules. 
+
+  -  riak_cache_backend is a memory-only caching backend with configurable maximum size
+     and object TTL.
+
+  -  Three new functions were added to the Storage Backend API:
+
+       -  drop/1 :     Drops the underlying store.
+       -  is_empty/1:  Returns true if the underlying store contains no data items
+       -  fold/3:      Performs the equivalent of a lists:foldl/3 over the store.
+
+  -  The riak_osmos_backend has been removed.
+
+Administration:
+
+   -  The 'riak attach' command now works with multiple riak nodes running on the same
+      physical machine.
+
+   -  The 'riak-admin backup' command now allows backups of either a single node or
+      the entire cluster.
+
+HTTP Interfaces:
+
+   - Upgraded to webmachine-1.5.2
+
+   - The raw HTTP resource now accepts the "returnbody=true" query parameter.
+
+   - Both the Jiak and Raw HTTP resources allow streaming of keys
+
+   - Added a "ping" resource on "/ping", intended for use with HTTP load balancers.
+
+Miscellaneous:
+
+   - Various bugfixes to the Ruby client.
+   - Documentation improvements.
