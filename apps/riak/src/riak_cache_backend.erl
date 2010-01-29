@@ -30,6 +30,7 @@
 
 -module (riak_cache_backend).
 -export([start/2, stop/1, get/2, put/3, list/1, list_bucket/2, delete/2]).
+-export([drop/1, is_empty/1, fold/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -define(PRINT(Var), error_logger:info_msg("DEBUG: ~p:~p - ~p: ~p~n", [?MODULE, ?LINE, ??Var, Var])).
@@ -68,6 +69,15 @@ list_bucket(State, Bucket) ->
 
 delete(State, BKey) -> 
     gen_server:call(State, {delete, BKey}).
+
+drop(State) ->
+    gen_server:call(State, drop).
+
+is_empty(State) ->
+    gen_server:call(State, is_empty).
+
+fold(State, Fun0, Acc) ->
+    gen_server:call(State, {fold, Fun0, Acc}).
 
 stop(State) -> 
     gen_server:call(State, stop).
@@ -170,9 +180,9 @@ handle_call({eject_from_cache, {Bucket, Key}, UniqueRef}, _From, State) ->
 handle_call(list, _From, State) ->
     % Fold through the gb_trees, gathering keys...
     F = fun(Bucket, Tree, Acc) ->
-        io:format("Bucket: ~p~n", [Bucket]),
-        io:format("Tree: ~p~n", [Tree]),
-        io:format("Acc: ~p~n", [Acc]),
+        %io:format("Bucket: ~p~n", [Bucket]),
+        %io:format("Tree: ~p~n", [Tree]),
+        %io:format("Acc: ~p~n", [Acc]),
 
         Keys = [{Bucket, Key} || Key <- gb_trees:keys(Tree)],
         Acc ++ Keys        
@@ -205,7 +215,23 @@ handle_call({list_bucket, Bucket}, _From, State) ->
         none -> 
             {reply, [], State}
     end;
-
+handle_call(drop, _From, State=#state{time_tree=TT}) ->
+    [timer:cancel(E#entry.tref) || {_, E} <- gb_trees:to_list(TT)],
+    {reply, ok, State#state{obj_tree=gb_trees:empty(), 
+                            time_tree=gb_trees:empty(),
+                            used_memory=0}};
+handle_call(is_empty, _From, State) ->
+    {reply, AllKeys, State} = handle_call(list, _From, State),
+    case AllKeys of
+        [] ->
+            {reply, true, State};
+        _ ->
+            {reply, false, State}
+    end;
+handle_call({fold, Fun0, Acc}, _From, State) ->
+    {reply, Keys, _} = handle_call(list, _From, State),
+    Reply = do_fold(State, Keys, Fun0, Acc),
+    {reply, Reply, State};
 handle_call(stop, _From, State) -> 
     {reply, ok, State}.
 
@@ -225,6 +251,13 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %% Private Functions
 %%
 
+do_fold(State=#state{obj_tree=_OT}, Keys, Fun0, Acc) ->
+    Objs = [element(2, obj_find(B, K, State)) || {B,K} <- Keys],
+    Fun = fun(E, AccIn) ->
+                  Fun0({E#entry.bucket, E#entry.key}, E#entry.value, AccIn)
+          end,
+    lists:foldl(Fun, Acc, Objs).
+    
 % Lookup the #entry record specified by Bucket/Key.    
 % Returns {value, Entry} or none.
 obj_find(Bucket, Key, State) -> 

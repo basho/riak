@@ -1,7 +1,7 @@
 % -*- mode: erlang -*-
 {application, riak,
  [{description, "riak"},
-  {vsn, "0.8"},
+  {vsn, "0.7.1"},
   {modules, [
              bloom,
              chash,

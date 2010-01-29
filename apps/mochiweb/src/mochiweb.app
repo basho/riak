@@ -1,6 +1,6 @@
 {application, mochiweb,
  [{description, "MochiMedia Web Server"},
-  {vsn, "0.8"},
+  {vsn, "0.1"},
   {modules, [
         mochihex,
         mochijson,
