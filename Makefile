@@ -9,6 +9,7 @@ clean:
 	./rebar clean
 
 distclean: clean devclean relclean
+	@cd apps/erlang_js;make realclean
 
 test: 
 	./rebar eunit

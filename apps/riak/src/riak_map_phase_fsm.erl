@@ -15,25 +15,25 @@
 -module(riak_map_phase_fsm).
 -behaviour(gen_fsm).
 
--export([start_link/4]).
+-export([start_link/5]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
 -export([wait/2]).
 
--record(state, {done,qterm,next_fsm,coord,acc,map_fsms,ring}).
+-record(state, {done,qterm,next_fsm,coord,acc,map_fsms,ring,timeout}).
 
-start_link(Ring,QTerm,NextFSM,Coordinator) ->
-    gen_fsm:start_link(?MODULE, [Ring,QTerm,NextFSM,Coordinator], []).
+start_link(Ring, QTerm, NextFSM, Coordinator, PhaseTimeout) ->
+    gen_fsm:start_link(?MODULE, [Ring, QTerm, NextFSM, Coordinator, PhaseTimeout], []).
 %% @private
-init([Ring,QTerm,NextFSM,Coordinator]) ->
+init([Ring, QTerm, NextFSM, Coordinator, PhaseTimeout]) ->
     {_,{_,_,_,Acc}} = QTerm,
     riak_eventer:notify(riak_map_phase_fsm, map_start, start),
     {ok,wait,#state{done=false,qterm=QTerm,next_fsm=NextFSM,
-                    coord=Coordinator,acc=Acc,map_fsms=[],ring=Ring}}.
+                    coord=Coordinator,acc=Acc,map_fsms=[],ring=Ring,timeout=PhaseTimeout}}.
 
 wait({mapexec_reply,Reply,MapFSM}, StateData=
-     #state{done=Done,next_fsm=NextFSM,coord=Coord,acc=Acc,map_fsms=FSMs0}) ->
+     #state{done=Done,next_fsm=NextFSM,coord=Coord,acc=Acc,map_fsms=FSMs0,timeout=Timeout}) ->
     FSMs = lists:delete(MapFSM,FSMs0),
     case NextFSM of
         final -> nop;
@@ -48,7 +48,7 @@ wait({mapexec_reply,Reply,MapFSM}, StateData=
         true ->
             finish(StateData);
         false ->
-            {next_state, wait, StateData#state{map_fsms=FSMs}}
+            {next_state, wait, StateData#state{map_fsms=FSMs}, Timeout}
     end;
 
 wait({mapexec_error, _ErrFSM, ErrMsg}, StateData=
@@ -60,21 +60,21 @@ wait({mapexec_error, _ErrFSM, ErrMsg}, StateData=
         _ -> riak_phase_proto:die(NextFSM)
     end,
     {stop,normal,StateData};
-wait(done, StateData=#state{map_fsms=FSMs}) ->
+wait(done, StateData=#state{map_fsms=FSMs, timeout=Timeout}) ->
     riak_eventer:notify(riak_map_phase_fsm, done_inputs, done_inputs),
     case FSMs of
         [] -> finish(StateData);
-        _ -> {next_state, wait, StateData#state{done=true}}
+        _ -> {next_state, wait, StateData#state{done=true}, Timeout}
     end;
-wait({input,Inputs0}, StateData=#state{qterm=QTerm,map_fsms=FSMs0,ring=Ring}) ->
+wait({input,Inputs0}, StateData=#state{qterm=QTerm,map_fsms=FSMs0,ring=Ring,timeout=Timeout}) ->
     Inputs = [convert_input(I) || I <- Inputs0],
-    NewFSMs = start_executors(Ring, Inputs, QTerm),
+    NewFSMs = start_executors(Ring, Inputs, QTerm, Timeout),
     FSMs = NewFSMs ++ FSMs0,
     if
         length(FSMs) == 0 ->
-            {next_state, wait, StateData#state{map_fsms=FSMs}, 100};
+            {next_state, wait, StateData#state{map_fsms=FSMs}, Timeout};
         true ->
-            {next_state, wait, StateData#state{map_fsms=FSMs}}
+            {next_state, wait, StateData#state{map_fsms=FSMs}, Timeout}
     end;
 wait(timeout, StateData) ->
     finish(StateData);
@@ -128,15 +128,15 @@ convert_input([B,K,D]) when is_binary(B), is_binary(K) -> {{B,K},D};
 convert_input(I) -> I.
 
 %% @private
-start_executors(Ring, Inputs, QTerm) ->
-    start_executors(Ring, Inputs, QTerm, []).
-start_executors(_Ring, [], _QTerm, Accum) ->
+start_executors(Ring, Inputs, QTerm, Timeout) ->
+    start_executors(Ring, Inputs, QTerm, Timeout, []).
+start_executors(_Ring, [], _QTerm, _Timeout, Accum) ->
     lists:reverse(Accum);
-start_executors(Ring, [H|T], QTerm, Accum) ->
-    case riak_map_executor:start_link(Ring, H, QTerm, self()) of
+start_executors(Ring, [H|T], QTerm, Timeout, Accum) ->
+    case riak_map_executor:start_link(Ring, H, QTerm, Timeout, self()) of
         {ok, FSM} ->
-            start_executors(Ring, T, QTerm, [FSM|Accum]);
+            start_executors(Ring, T, QTerm, Timeout, [FSM|Accum]);
         {error, bad_input} ->
             error_logger:warning_msg("Skipping map phase for input ~p. Map phase input must be {Bucket, Key}.~n", [H]),
-            start_executors(Ring, T, QTerm, Accum)
+            start_executors(Ring, T, QTerm, Timeout, Accum)
     end.

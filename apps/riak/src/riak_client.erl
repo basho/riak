@@ -37,8 +37,8 @@
 -export ([add_event_handler/2, add_event_handler/3, add_event_handler/4]).
 -export ([remove_event_handler/3]).
 -export([get_stats/1]).
-%% @type default_timeout() = 15000
--define(DEFAULT_TIMEOUT, 15000).
+%% @type default_timeout() = 60000
+-define(DEFAULT_TIMEOUT, 60000).
 -define(DEFAULT_ERRTOL, 0.00003).
 
 %% @spec mapred(Inputs :: list(),

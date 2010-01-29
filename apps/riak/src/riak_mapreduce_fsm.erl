@@ -65,13 +65,15 @@ start(ReqId,Query,Timeout,Client) ->
     gen_fsm:start(?MODULE, [ReqId,Query,Timeout,Client], []).
 %% @private
 init([ReqId,Query,Timeout,Client]) ->
+    EffectiveTimeout = erlang:trunc(Timeout  * 1.5),
+    PerPhaseTimeout = erlang:trunc(EffectiveTimeout / length(Query)),
     {ok, Ring} = riak_ring_manager:get_my_ring(),
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_start, {ReqId, Query}),
     case check_query_syntax(Query) of
         {ok, Query1} ->
-            FSMs = make_phase_fsms(Query1, Ring), % Pid for each phase, in-order
+            FSMs = make_phase_fsms(Query1, Ring, PerPhaseTimeout), % Pid for each phase, in-order
             StateData = #state{client=Client,fsms=FSMs,reqid=ReqId,
-                               starttime=riak_util:moment(),timeout=Timeout,
+                               starttime=riak_util:moment(),timeout=EffectiveTimeout,
                                ring=Ring,input_done=false},
             {ok,wait,StateData,Timeout};
         {bad_qterm, QTerm} ->
@@ -126,19 +128,19 @@ check_query_syntax([QTerm={QTermType,QT2,QT3,Acc}|Rest], Accum)
     end;
 check_query_syntax([BadQTerm|_], _) -> {bad_qterm,BadQTerm}.
 
-make_phase_fsms(Query, Ring) ->
-    make_phase_fsms(lists:reverse(Query),final,[], Ring).
-make_phase_fsms([], _NextFSM, FSMs, _Ring) -> FSMs;
-make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring) ->
+make_phase_fsms(Query, Ring, PerPhaseTimeout) ->
+    make_phase_fsms(lists:reverse(Query),final,[], Ring, PerPhaseTimeout).
+make_phase_fsms([], _NextFSM, FSMs, _Ring, _PerPhaseTimeout) -> FSMs;
+make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring, PerPhaseTimeout) ->
     {ok, Pid} = case QTerm of
                     {_, {reduce, _, _, _}} ->
-                        riak_phase_sup:new_reduce_phase(Ring, QTerm, NextFSM, self());
+                        riak_phase_sup:new_reduce_phase(Ring, QTerm, NextFSM, self(), PerPhaseTimeout);
                     {_, {map, _, _, _}} ->
-                        riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self());
+                        riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self(), PerPhaseTimeout);
                     {_, {link, _, _, _}} ->
-                        riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self())
+                        riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self(), PerPhaseTimeout)
                 end,
-    make_phase_fsms(Rest,Pid,[Pid|FSMs], Ring).
+    make_phase_fsms(Rest,Pid,[Pid|FSMs], Ring, PerPhaseTimeout).
 
 wait({input,Inputs},
      StateData=#state{reqid=ReqId,timeout=Timeout,fsms=FSMs}) ->

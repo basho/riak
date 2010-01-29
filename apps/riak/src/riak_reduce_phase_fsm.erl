@@ -15,22 +15,22 @@
 -module(riak_reduce_phase_fsm).
 -behaviour(gen_fsm).
 
--export([start_link/4]).
+-export([start_link/5]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
 -export([wait/2]).
 
--record(state, {done,qterm,next_fsm,coord,acc,reduced,fresh_input}).
+-record(state, {done,qterm,next_fsm,coord,acc,reduced,fresh_input,timeout}).
 
-start_link(_Ring,QTerm,NextFSM,Coordinator) ->
-    gen_fsm:start_link(?MODULE, [QTerm,NextFSM,Coordinator], []).
+start_link(_Ring,QTerm,NextFSM,Coordinator,Timeout) ->
+    gen_fsm:start_link(?MODULE, [QTerm,NextFSM,Coordinator,Timeout], []).
 %% @private
-init([QTerm,NextFSM,Coordinator]) ->
+init([QTerm,NextFSM,Coordinator,Timeout]) ->
     {_,{_,_,_,Acc}} = QTerm,
     riak_eventer:notify(riak_reduce_phase_fsm, reduce_start, start),
     {ok,wait,#state{done=false,qterm=QTerm,next_fsm=NextFSM,fresh_input=false,
-                    coord=Coordinator,acc=Acc,reduced=[]}}.
+                    coord=Coordinator,acc=Acc,reduced=[],timeout=Timeout}}.
 
 wait(timeout, StateData=#state{next_fsm=NextFSM, done=Done, acc=Acc, coord=Coord}) ->
     case perform_reduce(StateData) of
@@ -64,9 +64,9 @@ wait(timeout, StateData=#state{next_fsm=NextFSM, done=Done, acc=Acc, coord=Coord
     end;
 wait(done, StateData) ->
     {next_state, wait, StateData#state{done=true}, 1};
-wait({input,Inputs}, StateData=#state{reduced=Reduced}) ->
+wait({input,Inputs}, StateData=#state{reduced=Reduced, timeout=Timeout}) ->
     {next_state, wait,
-     StateData#state{reduced=Inputs ++ Reduced, fresh_input=true}, 100};
+     StateData#state{reduced=Inputs ++ Reduced, fresh_input=true}, Timeout};
 wait(die, StateData=#state{next_fsm=NextFSM}) ->
     riak_eventer:notify(riak_reduce_phase_fsm, die, die),
     case NextFSM of
