@@ -130,7 +130,7 @@ example, if you issued the following:
 
    $ curl -X PUT -H "content-type: application/json" \
      http://127.0.0.1:8098/raw/example \
-     --data "{\"props\":{\"allow_mult\":true}}
+     --data "{\"props\":{\"allow_mult\":true}}"
    $ curl -X PUT -H "content-type: text/plain" \
      http://127.0.0.1:8098/raw/example/sib --data "one thing"
    $ curl -X PUT -H "content-type: text/plain" \
@@ -167,7 +167,7 @@ If you'd rather see all of the siblings at once, set your Accept
 header to multipart/mixed.  Riak will hand back each of the versions
 as a separate part of a multipart/mixed document:
 
-   $ curl -i -H "accept: multipart/mixed" http://127.0.0.1:8098/raw/sib/one
+   $ curl -i -H "accept: multipart/mixed" http://127.0.0.1:8098/raw/example/sib
    HTTP/1.1 300 Multiple Choices
    X-Riak-Vclock: a85hYGBgz2DKBVJszUlMCj+kMpgSGfNYGVy/xR/hg0iwMPg9FYMK2yELvzwvhEU1yyfGjVDh4hUIYXbJhmaocB5CGGgps/qNZEz1QAm2fc6lyNZmAQA=
    Vary: Accept, Accept-Encoding
@@ -178,18 +178,18 @@ as a separate part of a multipart/mixed document:
    
    --IASZJsIrb8ykNEc1fuue9LitToc
    Content-Type: text/plain
-   Link: </raw/sib>; rel="up"
+   Link: </raw/example>; rel="up"
    Etag: 6YUKo8vXvtBAXD0Hjy8crv
    Last-Modified: Fri, 30 Oct 2009 18:12:03 GMT
    
-   goodbye
+   one thing
    --IASZJsIrb8ykNEc1fuue9LitToc
    Content-Type: text/plain
-   Link: </raw/sib>; rel="up"
+   Link: </raw/example>; rel="up"
    Etag: 4XcBgFOm0Ab517wWjNXeWc
    Last-Modified: Fri, 30 Oct 2009 18:11:58 GMT
    
-   hello
+   another
    --IASZJsIrb8ykNEc1fuue9LitToc--
 
 To resolve the conflict, just issue another PUT, with the body you
