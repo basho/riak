@@ -17,7 +17,7 @@
 -module(riak_gb_trees_backend).
 
 -include_lib("eunit/include/eunit.hrl").
--export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,is_empty/1,fold/3,drop/1]).
 
 % @type state() = term().
 -record(state, {pid}).
@@ -70,6 +70,21 @@ list_bucket(#state { pid=Pid }, Bucket) ->
     Ref = make_ref(),
     Pid ! {list_bucket, Bucket, self(), Ref},
     receive {list_bucket_response, Result, Ref} -> Result end.
+
+is_empty(#state { pid=Pid }) ->
+    Ref = make_ref(),
+    Pid ! {is_empty, self(), Ref},
+    receive {is_empty_response, Result, Ref} -> Result end.
+
+fold(#state{ pid=Pid }, Fun0, Acc) ->
+    Ref = make_ref(),
+    Pid ! {fold, Fun0, Acc, self(), Ref},
+    receive {fold_response, Result, Ref} -> Result end.
+
+drop(#state{ pid=Pid }) ->
+    Ref = make_ref(),
+    Pid ! {drop, self(), Ref},
+    receive {drop_response, Result, Ref} -> Result end.
     
 tree_loop(Tree) ->
     receive
@@ -106,6 +121,19 @@ tree_loop(Tree) ->
                    srv_list_bucket(Tree, Bucket), Ref},
             tree_loop(Tree);
 
+        {is_empty, Pid, Ref} ->
+            Pid ! {is_empty_response, gb_trees:is_empty(Tree), Ref},
+            tree_loop(Tree);
+
+        {drop, Pid, Ref} ->
+            Pid ! {drop_response, ok, Ref},
+            tree_loop(gb_trees:empty());
+
+        {fold, Fun0, Acc, Pid, Ref} ->
+            Pid ! {fold_response,
+                   srv_fold(Tree, Fun0, Acc), Ref},
+            tree_loop(Tree);
+
         {stop, Pid, Ref} ->
             Pid ! {stop_response, ok, Ref}
     end.
@@ -121,6 +149,15 @@ srv_list_bucket(Tree, '_') ->
          [ Bucket || {Bucket, _} <- gb_trees:keys(Tree) ]));
 srv_list_bucket(Tree, Bucket) ->
     [ Key || {B, Key} <- gb_trees:keys(Tree), B == Bucket ].
+
+srv_fold(Tree, Fun0, Acc) ->
+    Iter0 = gb_trees:iterator(Tree),
+    srv_fold1(gb_trees:next(Iter0), Fun0, Acc).
+
+srv_fold1(none, _Fun0, Acc) ->
+    Acc;
+srv_fold1({K,V,Iter}, Fun0, Acc) ->
+    srv_fold1(gb_trees:next(Iter), Fun0, Fun0(K,V,Acc)).
 
 
 %%

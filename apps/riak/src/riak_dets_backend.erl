@@ -17,10 +17,10 @@
 -module(riak_dets_backend).
 
 -include_lib("eunit/include/eunit.hrl").
--export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
+-export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,fold/3, is_empty/1, drop/1]).
 
 % @type state() = term().
--record(state, {table}).
+-record(state, {table, path}).
 
 % @spec start(Partition :: integer(), Config :: proplist()) ->
 %                        {ok, state()} | {{error, Reason :: term()}, state()}
@@ -44,7 +44,8 @@ start(Partition, Config) ->
                                    {min_no_slots, 8192},
                                    {max_no_slots, 16777216}]) of
         {ok, DetsName} ->
-            {ok, #state{table=DetsName}};
+            ok = dets:sync(DetsName),
+            {ok, #state{table=DetsName, path=TablePath}};
         {error, Reason}  ->
             riak:stop("dets:open_file failed"),
             {error, Reason}
@@ -53,7 +54,7 @@ start(Partition, Config) ->
 % @spec stop(state()) -> ok | {error, Reason :: term()}
 stop(#state{table=T}) -> dets:close(T).
 
-% get(state(), Key :: binary()) ->
+% get(state(), riak_object:bkey()) ->
 %   {ok, Val :: binary()} | {error, Reason :: term()}
 % key must be 160b
 get(#state{table=T}, BKey) ->
@@ -63,17 +64,17 @@ get(#state{table=T}, BKey) ->
         {error, Err} -> {error, Err}
     end.
 
-% put(state(), Key :: binary(), Val :: binary()) ->
+% put(state(), riak_object:bkey(), Val :: binary()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
 put(#state{table=T},BKey,Val) -> dets:insert(T, {BKey,Val}).
 
-% delete(state(), Key :: binary()) ->
+% delete(state(), riak_object:bkey()) ->
 %   ok | {error, Reason :: term()}
 % key must be 160b
 delete(#state{table=T}, BKey) -> dets:delete(T, BKey).
 
-% list(state()) -> [Key :: binary()]
+% list(state()) -> [riak_object:bkey()]
 list(#state{table=T}) ->
     MList = dets:match(T,{'$1','_'}),
     list(MList,[]).
@@ -90,6 +91,18 @@ list_bucket(#state{table=T}, Bucket) ->
     end,
     MList = dets:match(T,MatchSpec),
     list(MList,[]).
+
+fold(#state{table=T}, Fun0, Acc) -> 
+    Fun = fun({{B,K}, V}, AccIn) -> Fun0({B,K}, V, AccIn) end,
+    dets:foldl(Fun, Acc, T).
+
+is_empty(#state{table=T}) ->
+    ok = dets:sync(T),
+    dets:info(T, size) =:= 0.
+
+drop(#state{table=T, path=P}) ->
+    ok = dets:close(T),
+    ok = file:delete(P).
 
 %%
 %% Test

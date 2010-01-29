@@ -703,7 +703,16 @@ accept_doc_body(RD, Ctx=#ctx{bucket=B, key=K, client=C, links=L}) ->
     MDDoc = riak_object:update_metadata(VclockDoc, UserMetaMD),
     Doc = riak_object:update_value(MDDoc, wrq:req_body(RD)),
     ok = C:put(Doc, Ctx#ctx.w, Ctx#ctx.dw),
-    {true, RD, Ctx#ctx{doc={ok, Doc}}}.
+    {RD2, Ctx2} = case wrq:get_qs_value(?Q_RETURNBODY, RD) of
+                      ?Q_TRUE ->
+                          R = Ctx#ctx.r,
+                          DocCtx = Ctx#ctx{doc=C:get(B, K, R)},
+                          {Body, DocRD, DocCtx2} = produce_doc_body(RD, DocCtx),
+                          {wrq:append_to_response_body(Body, DocRD), DocCtx2};
+                      _ ->
+                          {RD, Ctx#ctx{doc={ok, Doc}}}
+                  end,
+    {true, RD2, Ctx2}.
 
 %% @spec extract_content_type(reqdata()) ->
 %%          {ContentType::string(), Charset::string()|undefined}
