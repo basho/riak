@@ -93,7 +93,7 @@ filter_forms(_, [], _, Acc) -> lists:reverse(Acc).
 expand_encode_function(Msgs, Line, Clause) ->
     {function,Line,encode,2,[filter_encode_clause(Msg, Clause) || Msg <- Msgs]}.
     
-filter_encode_clause({MsgName, Fields}, {clause,L,_Args,Guards,_Content}) ->
+filter_encode_clause({MsgName, _Fields}, {clause,L,_Args,Guards,_Content}) ->
     ToBin = {call,L,{atom,L,iolist_to_binary},[{call,L,
                                                 {atom,L,iolist},
                                                 [{atom,L,atomize(MsgName)},{var,L,'Record'}]}]},
