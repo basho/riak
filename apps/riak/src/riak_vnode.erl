@@ -52,9 +52,9 @@ hometest(StateData0=#state{idx=Idx,handoff_q=HQ}) ->
              ?TIMEOUT};
         TargetNode ->
             case net_adm:ping(TargetNode) of
-                pang -> 
+                pang ->
                     {next_state,active,StateData,?TIMEOUT};
-                pong -> 
+                pong ->
                     case HQ of
                         not_in_handoff ->
                             do_handoff(TargetNode, StateData);
@@ -139,6 +139,15 @@ active({delete, From, BKey, ReqID}, StateData=#state{mapcache=Cache}) ->
     do_delete(From, BKey, ReqID, StateData),
     {next_state,
      active,StateData#state{mapcache=orddict:erase(BKey,Cache)},?TIMEOUT};
+active({mapcache, BKey,{FunName,Arg,KeyData},MF_Res},
+       StateData=#state{mapcache=Cache}) ->
+    KeyCache0 = case orddict:find(BKey, Cache) of
+        error -> orddict:new();
+        {ok,CDict} -> CDict
+    end,
+    KeyCache = orddict:store({FunName,Arg,KeyData},MF_Res,KeyCache0),
+    {next_state,active,
+     StateData#state{mapcache=orddict:store(BKey,KeyCache,Cache)},?TIMEOUT};
 active({mapcache, BKey,{M,F,Arg,KeyData},MF_Res},
        StateData=#state{mapcache=Cache}) ->
     KeyCache0 = case orddict:find(BKey, Cache) of
@@ -321,7 +330,7 @@ handle_sync_event({diffobj,{BKey,BinObj}}, _From, StateName, StateData) ->
             {reply, ok, StateName, StateData, ?TIMEOUT};
         {error, Err} ->
             error_logger:error_msg("Error storing handoff obj: ~p~n", [Err]),
-            {reply, {error, Err}, StateName, StateData, ?TIMEOUT}                   
+            {reply, {error, Err}, StateName, StateData, ?TIMEOUT}
     end;
 handle_sync_event(_Even, _From, _StateName, StateData) ->
     {stop,badmsg,StateData}.
@@ -337,32 +346,41 @@ terminate(_Reason, _StateName, _State) ->
 
 do_map({erlang, {map, FunTerm, Arg, _Acc}}, BKey, Mod, ModState, KeyData, Cache, VNode, _ClientPid) ->
     CacheKey = build_key(FunTerm, Arg, KeyData),
-    CacheVal = cache_fetch(FunTerm, BKey, CacheKey, Cache),
+    CacheVal = cache_fetch(BKey, CacheKey, Cache),
     case CacheVal of
         not_cached ->
             uncached_map(BKey, Mod, ModState, FunTerm, Arg, KeyData, VNode);
         CV ->
             {ok, CV}
     end;
-do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData, _Cache, _VNode, ClientPid) ->
+do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData, Cache, _VNode, ClientPid) ->
     riak_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
-    V = case Mod:get(ModState, BKey) of
-            {ok, Binary} ->
-                binary_to_term(Binary);
-            {error, notfound} ->
-                {error, notfound}
-        end,
-    riak_js_manager:dispatch({ClientPid, QTerm, V, KeyData}),
-    map_executing.
+    CacheKey = build_key(FunTerm, Arg, KeyData),
+    CacheVal = cache_fetch(BKey, CacheKey, Cache),
+    case CacheVal of
+        not_cached ->
+            V = case Mod:get(ModState, BKey) of
+                    {ok, Binary} ->
+                        binary_to_term(Binary);
+                    {error, notfound} ->
+                        {error, notfound}
+                end,
+            riak_js_manager:dispatch({ClientPid, QTerm, V, KeyData, BKey}),
+            map_executing;
+        CV ->
+            {ok, CV}
+    end.
 
 build_key({modfun, CMod, CFun}, Arg, KeyData) ->
     {CMod, CFun, Arg, KeyData};
+build_key({jsfun, FunName}, Arg, KeyData) ->
+    {FunName, Arg, KeyData};
 build_key(_, _, _) ->
     no_key.
 
-cache_fetch({qfun, _}, _BKey, _CacheKey, _MapState) ->
+cache_fetch(_BKey, no_key, _Cache) ->
     not_cached;
-cache_fetch({modfun, _CMod, _CFun}, BKey, CacheKey, Cache) ->
+cache_fetch(BKey, CacheKey, Cache) ->
     case orddict:find(BKey, Cache) of
         error -> not_cached;
         {ok,CDict} ->

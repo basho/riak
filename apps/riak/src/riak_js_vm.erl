@@ -75,7 +75,7 @@ handle_cast(stop, State) ->
 
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc},
                                             Value,
-                                            KeyData}}, #state{ctx=Ctx}=State) ->
+                                            KeyData, _BKey}}, #state{ctx=Ctx}=State) ->
     {Result, NewState} = case define_anon_js(map, JS, State) of
                              {ok, State1} ->
                                  JsonValue = jsonify_object(Value),
@@ -99,11 +99,13 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc
     end;
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsfun, JS}, Arg, _Acc},
                                             Value,
-                                            KeyData}}, #state{ctx=Ctx}=State) ->
+                                            KeyData, BKey}}, #state{ctx=Ctx}=State) ->
     JsonValue = jsonify_object(Value),
     JsonArg = jsonify_arg(Arg),
     case invoke_js(Ctx, JS, [JsonValue, KeyData, JsonArg]) of
         {ok, R} ->
+            %% Requestor should be the dispatching vnode
+            gen_fsm:send_event(Requestor, {mapcache, BKey, {JS, Arg, KeyData}, R}),
             gen_fsm:send_event(FsmPid, {mapexec_reply, R, Requestor});
         {error, Error} ->
             gen_fsm:send_event(FsmPid, {mapexec_error_noretry, Requestor, Error})
