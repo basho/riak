@@ -1,4 +1,4 @@
 #!/bin/bash
-
+./rebar compile;
 erl -name 'client@127.0.0.1' -setcookie riak -pa ../riak/ebin -pa ebin
 

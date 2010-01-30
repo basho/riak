@@ -17,7 +17,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, dispatch/1, blocking_dispatch/1, add_to_manager/0]).
+-export([start_link/1, dispatch/1, blocking_dispatch/1, add_to_manager/0, reload/1, reload/0]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -44,6 +44,13 @@ blocking_dispatch(JSCall) ->
             riak_js_vm:blocking_dispatch(Target, JobId, JSCall)
     end.
 
+%% Hack to allow riak-admin to trigger a reload
+reload([]) ->
+    reload().
+
+reload() ->
+    gen_server:call(?MODULE, reload_all_vm).
+
 add_to_manager() ->
     gen_server:cast(?MODULE, {add_child, self()}).
 
@@ -53,6 +60,10 @@ start_link(ChildCount) ->
 init([ChildCount]) ->
     start_children(ChildCount),
     {ok, #state{}}.
+
+handle_call(reload_all_vm, _From, #state{children=Children}=State) ->
+    lists:foreach(fun(Child) -> riak_js_vm:stop(Child) end, Children),
+    {reply, ok, State};
 
 handle_call(_Request, _From, State) ->
     {reply, ignore, State}.

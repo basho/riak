@@ -79,10 +79,20 @@ case "$1" in
             exit 1
         fi
         shift
-        
+
         $NODETOOL rpc riak_console status $@
         ;;
 
+    js_reload)
+	# Reload all Javascript VMs
+	RES=`$NODETOOL ping`
+	if [ "$RES" != "pong" ]; then
+	    echo "Node is not running!"
+	    exit 1
+	fi
+
+	$NODETOOL rpc riak_js_manager reload
+	;;
 
     reip)
         ACTION=$1
@@ -120,7 +130,7 @@ case "$1" in
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_backup$NAME_HOST -setcookie $COOKIE \
                        -eval "riak_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
-        ;;        
+        ;;
 
     backup)
         ACTION=$1
@@ -145,8 +155,8 @@ case "$1" in
 
         if [ $# -lt 2 ]; then
             echo "Usage:"
-            echo "    Log to console: $SCRIPT logger <node> <cookie>"  
-            echo "    Log to file:    $SCRIPT logger <node> <cookie> <filename>"  
+            echo "    Log to console: $SCRIPT logger <node> <cookie>"
+            echo "    Log to file:    $SCRIPT logger <node> <cookie> <filename>"
             exit 1
         fi
 
@@ -155,7 +165,7 @@ case "$1" in
         FILENAME=$3
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_logger$NAME_HOST -setcookie $COOKIE \
-                       -eval "riak_event_logger:start('$NODE', \"$FILENAME\")."            
+                       -eval "riak_event_logger:start('$NODE', \"$FILENAME\")."
         ;;
 
     test)
@@ -180,4 +190,3 @@ case "$1" in
         exit 1
         ;;
 esac
-

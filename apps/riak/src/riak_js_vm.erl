@@ -17,7 +17,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, dispatch/4, blocking_dispatch/3]).
+-export([start_link/1, dispatch/4, blocking_dispatch/3, stop/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -35,6 +35,9 @@ dispatch(VMPid, Requestor, JobId, JSCall) ->
 
 blocking_dispatch(VMPid, JobId, JSCall) ->
     gen_server:call(VMPid, {dispatch, JobId, JSCall}, 10000).
+
+stop(VMPid) ->
+    gen_server:cast(VMPid, stop).
 
 init([Manager]) ->
     pg2:create({node(), js_vm}),
@@ -66,6 +69,9 @@ handle_call({dispatch, _JobId, {{jsfun, JS}, Reduced, Arg}}, _From, #state{ctx=C
     {reply, invoke_js(Ctx, JS, [Reduced, Arg]), State};
 handle_call(_Request, _From, State) ->
     {reply, ignore, State}.
+
+handle_cast(stop, State) ->
+    {stop, normal, State};
 
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc},
                                             Value,
@@ -113,6 +119,7 @@ handle_info(_Info, State) ->
 
 terminate(_Reason, #state{ctx=Ctx}) ->
     js_driver:destroy(Ctx),
+    error_logger:info_msg("Spidermonkey VM host stopping (~p)~n", [self()]),
     ok.
 
 code_change(_OldVsn, State, _Extra) ->
