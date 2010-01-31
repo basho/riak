@@ -171,12 +171,8 @@ new_context() ->
     js_driver:new(InitFun).
 
 init_context(Ctx) ->
-    case load_init_source() of
-        {ok, Source} ->
-            js:define(Ctx, Source);
-        {error, Error} ->
-            {error, Error}
-    end.
+    load_user_builtins(Ctx),
+    load_mapred_builtins(Ctx).
 
 priv_dir() ->
     %% Hacky workaround to handle running from a standard app directory
@@ -188,15 +184,20 @@ priv_dir() ->
             Dir
     end.
 
-load_init_source() ->
-    case js_cache:fetch("mapred_builtins") of
-        none ->
-            {ok, Contents} = file:read_file(filename:join([priv_dir(), "mapred_builtins.js"])),
-            js_cache:store("mapred_builtins", Contents),
-            {ok, Contents};
-        Contents ->
-            {ok, Contents}
+load_user_builtins(Ctx) ->
+    case riak:get_app_env(js_source_dir, undefined) of
+        undefined ->
+            ok;
+        Path ->
+            Files = filelib:wildcard("*.js", Path),
+            lists:foreach(fun(File) ->
+                                  {ok, Contents} = file:read_file(filename:join([Path, File])),
+                                  js:define(Ctx, Contents) end, Files)
     end.
+
+load_mapred_builtins(Ctx) ->
+    {ok, Contents} = file:read_file(filename:join([priv_dir(), "mapred_builtins.js"])),
+    js:define(Ctx, Contents).
 
 jsonify_object({error, notfound}=Obj) ->
     {struct, [Obj]};
