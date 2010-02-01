@@ -15,6 +15,7 @@
 -module(riak_handoff_sender).
 -export([start_link/3]).
 -include("riakserver_pb.hrl").
+-define(ACK_COUNT, 1000).
 
 start_link(TargetNode, Partition, BKeyList) ->
     case global:set_lock({handoff_token, {node(), Partition}}, [node()], 0) of
@@ -62,7 +63,7 @@ folder({B,K}, V, {Socket, ParentPid, []}) ->
 folder({B,K}, V, AccIn) ->
     visit_item({B,K}, V, AccIn).
 
-visit_item({B,K}, V, {Socket, ParentPid, 100}) ->
+visit_item({B,K}, V, {Socket, ParentPid, ?ACK_COUNT}) ->
     M = <<2:8,"sync">>,
     ok = gen_tcp:send(Socket, M),
     inet:setopts(Socket, [{active, false}]),
