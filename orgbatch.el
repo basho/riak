@@ -22,9 +22,12 @@
 ;; command-line --eval functions
 (defun riak-export-doc-file (filename format)
   (find-file filename)
-  (cond ((eq format 'ascii) (org-export-as-ascii 3))
-        ((eq format 'html) (org-export-as-html 3))
-        (message "Unknown export format")))
+  (cond ((eq format 'ascii) (org-export-as-ascii 3)
+         (kill-this-buffer))
+        ((eq format 'html) (org-export-as-html 3)
+         (kill-this-buffer))
+        (message "Unknown export format"))
+  (kill-this-buffer))
 
 (defun riak-export-doc-dir (directory format)
   (mapcar
