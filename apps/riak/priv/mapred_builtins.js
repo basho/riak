@@ -10,7 +10,7 @@ var Riak = function() {
       }
       return undefined;
     },
-    mapValues: function(value, key_data, arg) {
+    mapValues: function(value, keyData, arg) {
       var data = value["values"][0]["data"];
       if (Riak.getClassName(data) !== "Array") {
 	return [data];
@@ -18,8 +18,9 @@ var Riak = function() {
       else {
 	return data;
       }},
-     mapValuesJson: function(value, key_data, arg) {
-      return [JSON.parse(value)];
+     mapValuesJson: function(value, keyData, arg) {
+      var newValues = Riak.mapValues(value, keyData, arg);
+      return newValues.map(function(nv) { return JSON.parse(nv); });
     },
     reduceSum: function(values, arg) {
       return [values.reduce(function(prev, curr, index, array) { return prev + curr; })];

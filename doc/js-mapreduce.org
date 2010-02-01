@@ -119,7 +119,7 @@ function(v) {
       the documents.
 
 * Query Syntax
-  
+
   Map/Reduce queries are issued over HTTP via a POST to the /mapred
   resource.  The body should be =application/json= of the form
   ={"inputs":[...inputs...],"query":[...query...]}=.
@@ -241,7 +241,6 @@ function(v) {
     A map phase should produce a list of results.  You will see errors
     if the output of your map function is not a list.  Return the
     empty list if your map function chooses not to produce output.
-    
 *** Reduce functions
 
     Reduce functions are passed two parameters: a list of inputs to
@@ -427,3 +426,87 @@ function(v) {
     "Following a link" means adding it to the output list of this
     phase.  The output of this phase is often most useful as input to
     a map phase, or another reduce phase.
+*** Using Named Functions
+    Riak can also use pre-defined named functions for map and reduce phase
+    processing. Named functions are invoked with the following form:
+
+#+BEGIN_EXAMPLE
+{"map": {"language": "javascript", "name": "Riak.mapValues", "keep": true}}
+
+{"reduce": {"language": "javascript", "name": "Riak.reduceSort", "keep": true}}
+#+END_EXAMPLE
+
+    The key =name= in both examples points to the name of the function to
+    be used. Riak expects the function to be defined prior to the execution
+    of the phase using it.
+**** Defining Named Functions
+     Defining a named function for Riak is a simple process.
+
+     1. Create a Javascript source file containing the definitions for
+	all the funcitons you'd like Riak to pre-define.
+     2. Edit the =app.config= of your Riak nodes and add the line
+	={js_source_dir, <path_to_source_dir>}= to
+	the =riak= configuration block. =<path_to_source_dir>= should point to
+	the directory where the file created in step #1 was saved.
+     3. Start using the functions in your map/reduce jobs.
+
+     When =js_source_dir= is enabled, Riak scans the directory for files
+     ending in =.js=. These files are then loaded into each Javascript VM
+     when it is created.
+
+     NOTE: Named functions must be available on all nodes in a cluster for
+     proper map/reduce results.
+**** Why Use Named Functions?
+     Named functions can be better than anonymous functions in certain
+     situations. Since named functions live in a file they can be
+     managed using source code control and deployed automatically using
+     tools such as Chef or Puppet. This can be a significant advantage
+     when administering large Riak clusters.
+
+     More important, though, is the fact named functions execute much
+     faster than the equivalent anonymous functions. Invoking anonymous
+     functions requires Riak to insure the anonymous function is defined
+     before invoking it. Named functions allow Riak to skip the definition
+     check and execute the function call immediately.
+
+     Also, since named functions do not change between invocations, Riak
+     is able to cache named function call results and short circuit the
+     call entirely. Currently, Riak performs this optimization on named
+     functions executed during map phases only.
+
+     In general, anonymous functions should be during development and
+     named functions should be used for production deployments where
+     possible. This combination provides the maximum flexibility and
+     performance.
+**** Riak Supplied Functions
+     Riak supplies several named functions out of the box. These functions
+     are defined on a global Javascript object named =Riak= and should not
+     be modified or overridden. These functions, along with descripts and
+     notes on their use are described in the next two sections.
+***** Named Map Functions
+      + =Riak.mapValues(values, keyData, arg)=
+	Extracts and returns only the values contained in a bucket and key.
+
+      + =Riak.mapValuesJson(values, keyData, arg)=
+	Same as =mapValues= except the values are passed through a JSON
+	decoder first.
+***** Named Reduce Functions
+      + =Riak.reduceSum(values, arg)=
+	Returns the sum of =values=
+
+      + =Riak.reduceMin(values, arg)=
+	Returns the minimum value from =values=
+
+      + =Riak.reduceMax(values, arg)=
+	Returns the maximum value from =values=
+
+      + =Riak.reduceSort(values, arg)=
+	Returns the sorted version of =values=. If =arg= is the source to a Javascript
+	function, it will be eval'd and used to control the sort via =Array.sort=.
+
+      + =Riak.reduceLimit(values, arg)=
+	Returns the leftmost n members of values where =arg= is used as n.
+
+      + =Riak.reduceSlice(values, arg)=
+	Returns a slice of the values array. =arg= must be a two element array
+	containing the starting and ending positions for the slice.

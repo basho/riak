@@ -60,11 +60,15 @@ stress(javascript, Count, Client, Owner, Inputs, InputSize) ->
     %M = <<"function(v, _, _) { var value = v[\"values\"][0][\"data\"]; return [parseInt(value)]; }">>,
     R = <<"function(v, _) { var sum = 0; v.forEach(function(x) { sum = sum + x; }); return [sum]; }">>,
     R1 = <<"function(values, _) { return values.map(function(v) { return parseInt(v); }); }">>,
-    Selected = select_inputs(Inputs, InputSize, []),
+    %Selected = select_inputs(Inputs, InputSize, []),
+    Selected = <<"stress">>,
     Start = erlang:now(),
-    case Client:mapred(Selected, [{map, {jsfun, <<"Riak.mapValues">>}, none, false},
-                                  {reduce, {jsanon, R1}, none, false},
-                                  {reduce, {jsanon, R}, none, true}]) of
+    case Client:mapred_bucket_stream(Selected, [{map, {jsfun, <<"Riak.mapValues">>}, none, false},
+                                                {reduce, {jsanon, R1}, none, false},
+                                                {reduce, {jsanon, R}, none, true}]) of
+%%     case Client:mapred(Selected, [{map, {jsfun, <<"Riak.mapValues">>}, none, false},
+%%                                   {reduce, {jsanon, R1}, none, false},
+%%                                   {reduce, {jsanon, R}, none, true}]) of
         {ok, [InputSize]} ->
             End = erlang:now(),
             stress_collector:log(timer:now_diff(End, Start), 0),
