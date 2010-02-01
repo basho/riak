@@ -18,14 +18,25 @@
 -define(ACK_COUNT, 1000).
 
 start_link(TargetNode, Partition, BKeyList) ->
-    case global:set_lock({handoff_token, {node(), Partition}}, [node()], 0) of
-        true ->
+    TokenCount = riak:get_app_env(handoff_concurrency, 4),
+    case get_handoff_lock(Partition, TokenCount) of
+        {ok, HandoffToken} ->
             Self = self(),
-            {ok, spawn_link(fun()->start_fold(TargetNode, Partition, BKeyList, Self) end)};
-        false ->
+            Pid = spawn_link(fun()->start_fold(TargetNode, Partition, BKeyList, Self) end),
+            {ok, Pid, HandoffToken};
+        {error, max_concurrency} ->
             {error, locked}
     end.
-            
+
+get_handoff_lock(_Partition, 0) ->
+    {error, max_concurrency};
+get_handoff_lock(Partition, Count) ->
+    case global:set_lock({{handoff_token, Count}, {node(), Partition}}, [node()], 0) of
+        true ->
+            {ok, {handoff_token, Count}};
+        false ->
+            get_handoff_lock(Partition, Count-1)
+    end.
 
 start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
     [_Name,Host] = string:tokens(atom_to_list(TargetNode), "@"),
