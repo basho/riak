@@ -23,7 +23,7 @@
 -define(TIMEOUT, 60000).
 -define(LOCK_RETRY_TIMEOUT, 10000).
 
--record(state, {idx,mapcache,mod,modstate,handoff_q}).
+-record(state, {idx,mapcache,mod,modstate,handoff_q,handoff_token}).
 
 start_link(Idx) -> gen_fsm:start_link(?MODULE, [Idx], []).
 
@@ -70,11 +70,11 @@ do_handoff(TargetNode, StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
         true ->
             delete_and_exit(StateData);
         false ->
-            {HQ,TO} = case riak_handoff_sender:start_link(TargetNode, Idx, all) of
-                {ok, _Pid} -> {[], ?TIMEOUT};
-                {error, locked} -> {not_in_handoff, ?LOCK_RETRY_TIMEOUT}
+            {HQ,TO,HT} = case riak_handoff_sender:start_link(TargetNode, Idx, all) of
+                {ok, _Pid, HandoffToken} -> {[], ?TIMEOUT, HandoffToken};
+                {error, locked} -> {not_in_handoff, ?LOCK_RETRY_TIMEOUT, undefined}
             end,
-            {next_state,active,StateData#state{handoff_q=HQ},TO}
+            {next_state,active,StateData#state{handoff_q=HQ,handoff_token=HT},TO}
     end.
 
 %% @private
@@ -115,8 +115,8 @@ active({map, ClientPid, QTerm, BKey, KeyData},
        StateData=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
     do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,self()),
     {next_state,active,StateData,?TIMEOUT};
-active(handoff_complete, StateData=#state{idx=Idx}) ->
-    global:del_lock({handoff_token, {node(), Idx}}),
+active(handoff_complete, StateData=#state{idx=Idx,handoff_token=HT}) ->
+    global:del_lock({HT, {node(), Idx}}),
     hometest(StateData);
 active({put, FSM_pid, BKey, RObj, ReqID, FSMTime},
        StateData=#state{idx=Idx,mapcache=Cache,handoff_q=HQ0}) ->
