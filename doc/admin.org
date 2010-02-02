@@ -349,7 +349,18 @@
          - whether or not siblings are allowed (=allow_mult=)
          - the function for extracting links from objects (=linkfun=)
 
-    + =riak_stat= :: enable the statistics-aggregator (default: false)
+    + =riak_stat= ::
+      enable the statistics-aggregator (default: false)
+
+    + =riak_handoff_port= :: 
+         TCP port number for the handoff listener (default: 8099)
+                     
+    + =handoff_concurrency= :: 
+         Number of vnode, per physical node, allowed to perform handoff at once.
+
+
+
+
 
     + =js_vm_count= :: how many Javascript virtual machines to start (default: 8)
 
