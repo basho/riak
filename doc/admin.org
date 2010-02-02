@@ -449,6 +449,13 @@
                as a third parameter will cause the log to be written
                to that file.
 
+   + js_reload :: reload all Javascript virtual machines
+
+               This command will reload the Javascript virtual machines on the node
+               where the command is executed.
+
+               : $ bin/riak-admin js_reload
+
 ** Simple startup
 
    To start a Riak node, simply install riak (by either copying the
