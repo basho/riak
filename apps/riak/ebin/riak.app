@@ -103,6 +103,9 @@
          {wants_claim_fun, {riak_claim, default_wants_claim}},
          {choose_claim_fun, {riak_claim, default_choose_claim}},
 
+         %% Number of VNodes allowed to do handoff concurrently.
+         {handoff_concurrency, 4},
+
          %% Secondary code paths
          {add_paths, []}
         ]}
