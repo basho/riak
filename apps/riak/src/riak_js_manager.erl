@@ -62,7 +62,9 @@ init([ChildCount]) ->
     {ok, #state{}}.
 
 handle_call(reload_all_vm, _From, #state{children=Children}=State) ->
-    lists:foreach(fun(Child) -> riak_js_vm:stop(Child) end, Children),
+    lists:foreach(fun(Child) -> riak_js_vm:reload(Child) end, Children),
+    VNodes = gen_server2:call(riak_vnode_master, all_vnodes),
+    lists:foreach(fun(VNode) -> gen_fsm:send_event(VNode, purge_mapcache) end, VNodes),
     {reply, ok, State};
 
 handle_call(_Request, _From, State) ->

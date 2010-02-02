@@ -17,7 +17,7 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/1, dispatch/4, blocking_dispatch/3, stop/1]).
+-export([start_link/1, dispatch/4, blocking_dispatch/3, reload/1]).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -36,8 +36,8 @@ dispatch(VMPid, Requestor, JobId, JSCall) ->
 blocking_dispatch(VMPid, JobId, JSCall) ->
     gen_server:call(VMPid, {dispatch, JobId, JSCall}, 10000).
 
-stop(VMPid) ->
-    gen_server:cast(VMPid, stop).
+reload(VMPid) ->
+    gen_server:cast(VMPid, reload).
 
 init([Manager]) ->
     pg2:create({node(), js_vm}),
@@ -70,8 +70,10 @@ handle_call({dispatch, _JobId, {{jsfun, JS}, Reduced, Arg}}, _From, #state{ctx=C
 handle_call(_Request, _From, State) ->
     {reply, ignore, State}.
 
-handle_cast(stop, State) ->
-    {stop, normal, State};
+handle_cast(reload, #state{ctx=Ctx}=State) ->
+    init_context(Ctx),
+    error_logger:info_msg("Spidermonkey VM host reloaded (~p)~n", [self()]),
+    {noreply, State};
 
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc},
                                             Value,

@@ -148,6 +148,8 @@ active({mapcache, BKey,{FunName,Arg,KeyData},MF_Res},
     KeyCache = orddict:store({FunName,Arg,KeyData},MF_Res,KeyCache0),
     {next_state,active,
      StateData#state{mapcache=orddict:store(BKey,KeyCache,Cache)},?TIMEOUT};
+active(purge_mapcache, StateData) ->
+    {next_state, active, StateData#state{mapcache=orddict:new()}};
 active({mapcache, BKey,{M,F,Arg,KeyData},MF_Res},
        StateData=#state{mapcache=Cache}) ->
     KeyCache0 = case orddict:find(BKey, Cache) of
