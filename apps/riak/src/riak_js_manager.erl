@@ -105,7 +105,7 @@ select_random() ->
         [] ->
             no_vms;
         {error, _} ->
-            novms;
+            no_vms;
         Members ->
             {T1, T2, T3} = erlang:now(),
             random:seed(T1, T2, T3),
