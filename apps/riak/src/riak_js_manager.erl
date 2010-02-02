@@ -23,7 +23,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {children=[]}).
+-record(state, {tid}).
 
 dispatch(JSCall) ->
     case select_random() of
@@ -58,11 +58,14 @@ start_link(ChildCount) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [ChildCount], []).
 
 init([ChildCount]) ->
+    Tid = ets:new(?MODULE, [named_table]),
     start_children(ChildCount),
-    {ok, #state{}}.
+    {ok, #state{tid=Tid}}.
 
-handle_call(reload_all_vm, _From, #state{children=Children}=State) ->
-    lists:foreach(fun(Child) -> riak_js_vm:reload(Child) end, Children),
+handle_call(reload_all_vm, _From, #state{tid=Tid}=State) ->
+    ets:safe_fixtable(Tid, true),
+    reload_children(ets:first(Tid), Tid),
+    ets:safe_fixtable(Tid, false),
     VNodes = gen_server2:call(riak_vnode_master, all_vnodes),
     lists:foreach(fun(VNode) -> gen_fsm:send_event(VNode, purge_mapcache) end, VNodes),
     {reply, ok, State};
@@ -70,18 +73,20 @@ handle_call(reload_all_vm, _From, #state{children=Children}=State) ->
 handle_call(_Request, _From, State) ->
     {reply, ignore, State}.
 
-handle_cast({add_child, ChildPid}, #state{children=Children}=State) ->
+handle_cast({add_child, ChildPid}, #state{tid=Tid}=State) ->
     erlang:monitor(process, ChildPid),
-    {noreply, State#state{children=Children ++ [ChildPid]}};
+    ets:insert_new(Tid, {ChildPid}),
+    {noreply, State};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
-handle_info({'DOWN', _MRef, _Type, Pid, _Info}, #state{children=Children}=State) ->
-    case lists:member(Pid, Children) of
-        true ->
+handle_info({'DOWN', _MRef, _Type, Pid, _Info}, #state{tid=Tid}=State) ->
+    case ets:lookup(Tid, Pid) of
+        [] ->
+            {noreply, State};
+        [{Pid}] ->
+            ets:delete(?MODULE, Pid),
             riak_js_sup:start_js(self()),
-            {noreply, State#state{children=lists:delete(Pid, Children)}};
-        false ->
             {noreply, State}
     end;
 handle_info(_Info, State) ->
@@ -101,16 +106,15 @@ start_children(Count) ->
     start_children(Count - 1).
 
 select_random() ->
-    case pg2:get_members({node(), js_vm}) of
+    case ets:match(?MODULE, {'$1'}) of
         [] ->
-            no_vms;
-        {error, _} ->
             no_vms;
         Members ->
             {T1, T2, T3} = erlang:now(),
             random:seed(T1, T2, T3),
             Pos = pick_pos(erlang:get(?MODULE), length(Members)),
-            lists:nth(Pos, Members)
+            [Member] = lists:nth(Pos, Members),
+            Member
     end.
 
 pick_pos(undefined, Size) ->
@@ -125,3 +129,9 @@ pick_pos(OldPos, Size) ->
             erlang:put(?MODULE, Pos),
             Pos
     end.
+
+reload_children('$end_of_table', _Tid) ->
+    ok;
+reload_children(Current, Tid) ->
+    riak_js_vm:reload(Current),
+    reload_children(ets:next(Tid, Current), Tid).
