@@ -1,3 +1,4 @@
+#+SETUPFILE: "basho-doc-style.iorg"
 #+TITLE: Using Javascript with Riak Map/Reduce
 
 Riak supports writing map/reduce query functions in Javascript, as

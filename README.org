@@ -1,4 +1,4 @@
-#+OPTIONS: author:nil timestamp:nil
+#+SETUPFILE: "doc/basho-doc-style.iorg"
 
 Welcome to Riak.
 
