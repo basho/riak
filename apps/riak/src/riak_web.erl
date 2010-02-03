@@ -50,6 +50,7 @@ dispatch_table() ->
     JiakProps = jiak_props(),
     RawProps = raw_props(),
     MapredProps = mapred_props(),
+    StatsProps = stats_props(),
 
     [{[proplists:get_value(jiak_name, JiakProps),bucket],
       jiak_resource,
@@ -69,6 +70,9 @@ dispatch_table() ->
 
      {[proplists:get_value(prefix, MapredProps)],
       mapred_resource, MapredProps},
+     
+     {[proplists:get_value(prefix, StatsProps)],
+      stats_http_resource, StatsProps},
 
      {["ping"], ping_http_resource, []}].
 
@@ -83,3 +87,6 @@ raw_props() ->
 
 mapred_props() ->
     [{prefix, riak:get_app_env(mapred_name, "mapred")}].
+
+stats_props() ->
+    [{prefix, riak:get_app_env(stats_urlpath, "stats")}].
