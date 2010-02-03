@@ -66,14 +66,26 @@ error_test_() ->
                ?assertMatch(ok, js:define(P, <<"function foo(x, y) { return true; };">>)),
                {error, ErrorDesc} = js:eval(P, <<"foo(100, 200,);">>),
                ?assert(verify_error(ErrorDesc)),
+               erlang:unlink(P) end,
+       fun() ->
+               P = test_util:get_thing(),
+               {error, ErrorDesc} = js:define(P, <<"functoin foo() { return \"oops\"; };">>),
+               ?assert(verify_error(ErrorDesc)),
+               erlang:unlink(P) end,
+       fun() ->
+               P = test_util:get_thing(),
+               {error, ErrorDesc} = js:eval(P, <<"blah(\"wubba\");">>),
+               ?assert(verify_error(ErrorDesc)),
                erlang:unlink(P) end]}].
+
 
 %% Internal functions
 verify_error([{<<"lineno">>, LineNo},
               {<<"message">>, Msg},
               {<<"source">>, Source}]) when is_number(LineNo),
-                                            is_binary(Msg),
-                                            is_binary(Source) ->
+                                                          is_binary(Msg),
+                                                          is_binary(Source) ->
     true;
-verify_error(_) ->
+verify_error(Error) ->
+    ?debugFmt("Error: ~p~n", [Error]),
     false.

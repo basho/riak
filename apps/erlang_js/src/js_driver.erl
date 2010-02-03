@@ -137,10 +137,8 @@ eval_js(Ctx, Js, Timeout) when is_binary(Js) ->
         {ok, Result} ->
             {ok, js_mochijson2:decode(Result)};
         {error, ErrorJson} when is_binary(ErrorJson) ->
-            case js_mochijson2:decode(ErrorJson) of
-                {struct, Error = [{<<"error">>, _}|_]} ->
-                    {error, Error}
-            end;
+            {struct, [{<<"error">>, {struct, Error}}]} = js_mochijson2:decode(ErrorJson),
+            {error, Error};
         {error, Error} ->
             {error, Error}
     end.
@@ -155,7 +153,7 @@ jsonify(Code) when is_binary(Code) ->
             _ ->
                 Code
         end,
-    list_to_binary([<<"var result; try { result = JSON.stringify(">>, C, <<"); } catch(e) { result = JSON.stringify(e)} result;">>]).
+    list_to_binary([<<"JSON.stringify(">>, C, <<");">>]).
 
 %% @private
 priv_dir() ->

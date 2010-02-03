@@ -139,12 +139,50 @@ void sm_shutdown() {
   JS_ShutDown();
 }
 
+char *escape_quotes(char *text) {
+  int bufsize = strlen(text) * 2;
+  char *buf = (char *) driver_alloc(bufsize);
+  memset(buf, 0, bufsize);
+  int i = 0;
+  int x = 0;
+  int escaped = 0;
+  for (i = 0; i < strlen(text); i++) {
+    if (text[i] == '"') {
+      if(!escaped) {
+	memcpy(&buf[x], (char *) "\\\"", 2);
+	x += 2;
+      }
+      else {
+	memcpy(&buf[x], &text[i], 1);
+	x++;
+      }
+    }
+    else {
+      if(text[i] =='\\') {
+	escaped = 1;
+      }
+      else {
+	escaped = 0;
+      }
+      memcpy(&buf[x], &text[i], 1);
+      x++;
+    }
+  }
+  char *retval = (char *) driver_alloc(strlen(buf) + 1);
+  memset(retval, 0, strlen(buf) + 1);
+  strncpy(retval, buf, strlen(buf));
+  driver_free(buf);
+  return retval;
+}
+
 char *error_to_json(const spidermonkey_error *error) {
   /* Allocate 1K to build error (hopefully that's enough!) */
   int size = sizeof(char) * 1024;
   char *retval = (char *) driver_alloc(size);
+  char *escaped_source = escape_quotes(error->offending_source);
   snprintf(retval, size, "{\"error\": {\"lineno\": %d, \"message\": \"%s\", \"source\": \"%s\"}}", error->lineno,
-	   error->msg, error->offending_source);
+	   error->msg, escaped_source);
+  driver_free(escaped_source);
   return retval;
 }
 
@@ -168,20 +206,27 @@ char *sm_eval(spidermonkey_vm *vm, const char *filename, const char *code, int h
   if (error == NULL) {
     JS_ClearPendingException(vm->context);
     JS_ExecuteScript(vm->context, vm->global, script, &result);
-    if (handle_retval) {
-      if (JSVAL_IS_STRING(result)) {
-	JSString *str = JS_ValueToString(vm->context, result);
-	retval = copy_jsstring(str);
+    error = (spidermonkey_error *) JS_GetContextPrivate(vm->context);
+    if (error == NULL) {
+      if (handle_retval) {
+	if (JSVAL_IS_STRING(result)) {
+	  JSString *str = JS_ValueToString(vm->context, result);
+	  retval = copy_jsstring(str);
+	}
+	else if(strcmp(JS_GetStringBytes(JS_ValueToString(vm->context, result)), "undefined") == 0) {
+	  retval = copy_string("{\"error\": \"Expression returned undefined\", \"lineno\": 0, \"source\": \"unknown\"}");
+	}
+	else {
+	  retval = copy_string("{\"error\": \"non-JSON return value\", \"lineno\": 0, \"source\": \"unknown\"}");
+	}
       }
-      else if(strcmp(JS_GetStringBytes(JS_ValueToString(vm->context, result)), "undefined") == 0) {
-	retval = copy_string("{\"error\": \"Expression returned undefined\", \"lineno\": 0, \"source\": \"unknown\"}");
-      }
-      else {
-
-	retval = copy_string("{\"error\": \"non-JSON return value\", \"lineno\": 0, \"source\": \"unknown\"}");
-      }
+      JS_DestroyScript(vm->context, script);
     }
-    JS_DestroyScript(vm->context, script);
+    else {
+      retval = error_to_json(error);
+      free_error(error);
+      JS_SetContextPrivate(vm->context, NULL);
+    }
   }
   else {
     retval = error_to_json(error);
