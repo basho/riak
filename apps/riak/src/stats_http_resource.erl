@@ -79,4 +79,6 @@ pretty_print(RD1, C1=#ctx{}) ->
     {json_pp:print(binary_to_list(list_to_binary(Json))), RD2, C2}.
 
 get_stats() ->
-    proplists:delete(disk, [{vm_processes, length(processes())}|riak_stat:get_stats()]).
+    proplists:delete(disk, riak_stat:get_stats()).
+
+

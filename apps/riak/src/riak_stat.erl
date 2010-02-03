@@ -231,7 +231,11 @@ produce_stats(State) ->
        node_stats(Moment, State),
        cpu_stats(),
        mem_stats(),
-       disk_stats()]).
+       disk_stats(),
+       system_stats(),
+       ring_stats(),
+       config_stats()
+      ]).
 
 %% @spec spiral_minute(integer(), integer(), state()) -> integer()
 %% @doc Get the count of events in the last minute from the spiraltime
@@ -306,3 +310,39 @@ mem_stats() ->
 %%      of the os_mon application.
 disk_stats() ->
     [{disk, disksup:get_disk_data()}].
+
+system_stats() ->
+    [{nodename, node()},
+     {connected_nodes, nodes()},
+     {sys_driver_version, list_to_binary(erlang:system_info(driver_version))},
+     {sys_global_heaps_size, erlang:system_info(global_heaps_size)},
+     {sys_heap_type, erlang:system_info(heap_type)},
+     {sys_logical_processors, erlang:system_info(logical_processors)},
+     {sys_otp_release, list_to_binary(erlang:system_info(otp_release))},
+     {sys_process_count, erlang:system_info(process_count)},
+     {sys_smp_support, erlang:system_info(smp_support)},
+     {sys_system_version, list_to_binary(erlang:system_info(system_version))},
+     {sys_system_architecture, list_to_binary(erlang:system_info(system_architecture))},
+     {sys_threads_enabled, erlang:system_info(threads)},
+     {sys_thread_pool_size, erlang:system_info(thread_pool_size)},
+     {sys_wordsize, erlang:system_info(wordsize)}].
+
+ring_stats() ->
+    {ok, R} = riak_ring_manager:get_my_ring(),
+    [{ring_members, riak_ring:all_members(R)},
+     {ring_num_partitions, riak_ring:num_partitions(R)},
+     {ring_ownership, list_to_binary(lists:flatten(io_lib:format("~p", [dict:to_list(
+                        lists:foldl(fun({_P, N}, Acc) -> 
+                                            case dict:find(N, Acc) of 
+                                                {ok, V} ->
+                                                    dict:store(N, V+1, Acc);
+                                                error ->
+                                                    dict:store(N, 1, Acc)
+                                            end
+                                    end, dict:new(), riak_ring:all_owners(R)))])))}].
+                                          
+
+config_stats() ->
+    [{ring_creation_size, riak:get_app_env(ring_creation_size)},
+     {storage_backend, riak:get_app_env(storage_backend)}].
+
