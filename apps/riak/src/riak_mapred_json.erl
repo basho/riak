@@ -156,7 +156,7 @@ parse_step(<<"erlang">>, StepDef) ->
         {ok, Module} ->
             case bin_to_atom(proplists:get_value(<<"function">>, StepDef)) of
                 {ok, Function} ->
-                    {modfun, Module, Function};
+                    {ok, {modfun, Module, Function}};
                 error ->
                     {error, ["Could not convert \"function\" field value"
                              " to an atom in:"
