@@ -1,0 +1,14 @@
+#+COMMENT: -*- mode: org -*-
+#+COMMENT: Standard definitions for org-mode documents.
+#+COMMENT: Include this file with
+#+COMMENT:   #+SETUPFILE: "basho-doc-style.iorg"
+#+COMMENT: at the top of your org-mode file
+
+#+COMMENT: the extension of this filename is ".iorg" instead of just
+#+COMMENT: ".org" to prevent the make orgs target from attempting to
+#+COMMENT: compile this file to basho-doc-style.html
+
+#+OPTIONS: author:nil creator:nil
+
+#+COMMENT: HTML style
+#+STYLE: <link rel="stylesheet" type="text/css" href="doc-style.css" />

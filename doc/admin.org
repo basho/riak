@@ -1,5 +1,5 @@
+#+SETUPFILE: "basho-doc-style.iorg"
 #+TITLE: Riak Administration Guide
-#+STYLE: <link rel="stylesheet" type="text/css" href="doc-style.css" />
 
 * Overview
 
@@ -460,7 +460,7 @@
                as a third parameter will cause the log to be written
                to that file.
 
-   + js_reload :: reload all Javascript virtual machines
+   + js\_reload :: reload all Javascript virtual machines
 
                This command will reload the Javascript virtual machines on the node
                where the command is executed.
