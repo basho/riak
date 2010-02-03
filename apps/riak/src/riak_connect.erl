@@ -143,7 +143,7 @@ ensure_vnodes_started(Ring) ->
         case {length(AllMembers), hd(AllMembers) =:= node()} of
             {1, true} -> riak_ring:my_indices(Ring);
             _ -> 
-                {ok, Excl} = gen_server:call(riak_vnode_master, get_exclusions),
+                {ok, Excl} = gen_server:call(riak_vnode_master, get_exclusions, 15000),
                 case riak_ring:random_other_index(Ring, Excl) of
                     no_indices ->
                         case length(Excl) =:= riak_ring:num_partitions(Ring) of
