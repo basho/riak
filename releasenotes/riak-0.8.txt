@@ -1,0 +1,25 @@
+----------------------
+Riak 0.8 Release Notes
+----------------------
+
+Riak 0.8 is the first release of Riak with full support for map/reduce
+processing exposed entirely via an HTTP/JavaScript interface.  In summary:
+
+- exposed javascript as a first class map/reduce query language
+- map/reduce queries can be submitted via HTTP/JSON (default endpoint
+   is "/mapred")
+- numerous fixes and tweaks to map/reduce query performance and
+   timeout behavior
+
+Riak 0.8 also includes a number of minor improvements such as:
+
+- improved handoff/rebalancing performance.
+- added configuration parameter 'handoff_concurrency', which controls
+    how many vnodes per host can engage in handoff at once.
+- added client_lib/riak.py, a python client for the 'raw' riak http
+    interface (based on jiak.py by Jay Baird).
+- statistics about node performance, VM state, and Riak cluster status
+   are now exposed over HTTP/JSON (default endpoint is "/stats")
+- general stability improvements such as improved supervision for vnodes
+   and map/reduce processes
+
