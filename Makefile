@@ -40,6 +40,8 @@ dev1 dev2 dev3: dev
 	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
 	perl -pi -e 's/riak_web_port, \d+/riak_web_port, 809$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
+	perl -pi -e 's/riak_handoff_port, \d+/riak_handoff_port, 810$(subst dev,,$@)/g' \
+                    dev/$@/etc/app.config
 
 devclean: clean
 	rm -rf dev
