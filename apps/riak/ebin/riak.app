@@ -68,6 +68,7 @@
              riakserver_pb,
              slide,
              spiraltime,
+             stats_http_resource,
              vclock
             ]},
   {applications, [
@@ -97,6 +98,9 @@
 
          %% Number of VNodes allowed to do handoff concurrently.
          {handoff_concurrency, 4},
+
+         %% Endpoint for system stats HTTP provider
+         {stats_urlpath, "stats"},
 
          %% Secondary code paths
          {add_paths, []}
