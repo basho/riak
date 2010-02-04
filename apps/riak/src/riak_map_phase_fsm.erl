@@ -15,63 +15,69 @@
 -module(riak_map_phase_fsm).
 -behaviour(gen_fsm).
 
--export([start_link/4]).
+-export([start_link/5]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
 -export([wait/2]).
 
--record(state, {done,qterm,next_fsm,coord,acc,map_fsms,ring}).
+-record(state, {done,qterm,next_fsm,coord,acc,map_fsms,ring,timeout}).
 
-start_link(Ring,QTerm,NextFSM,Coordinator) ->
-    gen_fsm:start_link(?MODULE, [Ring,QTerm,NextFSM,Coordinator], []).
+start_link(Ring, QTerm, NextFSM, Coordinator, PhaseTimeout) ->
+    gen_fsm:start_link(?MODULE, [Ring, QTerm, NextFSM, Coordinator, PhaseTimeout], []).
 %% @private
-init([Ring,QTerm,NextFSM,Coordinator]) ->
-    {_,_,_,Acc} = QTerm,
+init([Ring, QTerm, NextFSM, Coordinator, PhaseTimeout]) ->
+    {_,{_,_,_,Acc}} = QTerm,
     riak_eventer:notify(riak_map_phase_fsm, map_start, start),
     {ok,wait,#state{done=false,qterm=QTerm,next_fsm=NextFSM,
-                    coord=Coordinator,acc=Acc,map_fsms=[],ring=Ring}}.
+                    coord=Coordinator,acc=Acc,map_fsms=[],ring=Ring,timeout=PhaseTimeout}}.
 
 wait({mapexec_reply,Reply,MapFSM}, StateData=
-     #state{done=Done,next_fsm=NextFSM,coord=Coord,acc=Acc,map_fsms=FSMs0}) ->
+     #state{done=Done,next_fsm=NextFSM,coord=Coord,acc=Acc,map_fsms=FSMs0,timeout=Timeout}) ->
     FSMs = lists:delete(MapFSM,FSMs0),
     case NextFSM of
         final -> nop;
-        _ -> gen_fsm:send_event(NextFSM, {input, Reply})
+        _ ->
+            riak_phase_proto:send_inputs(NextFSM, Reply)
     end,
     case Acc of
         false -> nop;
-        true -> gen_fsm:send_event(Coord, {acc, {list, Reply}})
+        true -> riak_phase_proto:phase_results(Coord, Reply)
     end,
     case FSMs =:= [] andalso Done =:= true of
         true ->
             finish(StateData);
         false ->
-            {next_state, wait, StateData#state{map_fsms=FSMs}}
+            {next_state, wait, StateData#state{map_fsms=FSMs}, Timeout}
     end;
 
 wait({mapexec_error, _ErrFSM, ErrMsg}, StateData=
      #state{next_fsm=NextFSM,coord=Coord}) ->
     riak_eventer:notify(riak_map_phase_fsm, error, ErrMsg),
-    gen_fsm:send_event(Coord, {error, self(), ErrMsg}),
+    riak_phase_proto:error(Coord, ErrMsg),
     case NextFSM of
         final -> nop;
-        _ -> gen_fsm:send_event(NextFSM, die)
+        _ -> riak_phase_proto:die(NextFSM)
     end,
     {stop,normal,StateData};
-wait(done, StateData=#state{map_fsms=FSMs}) ->
+wait(done, StateData=#state{map_fsms=FSMs, timeout=Timeout}) ->
     riak_eventer:notify(riak_map_phase_fsm, done_inputs, done_inputs),
     case FSMs of
         [] -> finish(StateData);
-        _ -> {next_state, wait, StateData#state{done=true}}
+        _ -> {next_state, wait, StateData#state{done=true}, Timeout}
     end;
-wait({input,Inputs0}, StateData=#state{qterm=QTerm,map_fsms=FSMs0,ring=Ring}) ->
+wait({input,Inputs0}, StateData=#state{qterm=QTerm,map_fsms=FSMs0,ring=Ring,timeout=Timeout}) ->
     Inputs = [convert_input(I) || I <- Inputs0],
-    NewFSMs = [FSM ||
-               {ok,FSM} <- [riak_map_executor:start_link(Ring,Input,QTerm,self()) ||
-                  Input <- Inputs]],
+    NewFSMs = start_executors(Ring, Inputs, QTerm, Timeout),
     FSMs = NewFSMs ++ FSMs0,
-    {next_state, wait, StateData#state{map_fsms=FSMs}};
+    if
+        length(FSMs) == 0 ->
+            {next_state, wait, StateData#state{map_fsms=FSMs}, Timeout};
+        true ->
+            {next_state, wait, StateData#state{map_fsms=FSMs}, Timeout}
+    end;
+wait(timeout, StateData) ->
+    finish(StateData);
 wait(die, StateData=#state{next_fsm=NextFSM}) ->
     % there is a very slight possibility of a 'die' message arriving
     %  at an unintended process, due to multiple die messages being sent.
@@ -79,16 +85,17 @@ wait(die, StateData=#state{next_fsm=NextFSM}) ->
     riak_eventer:notify(riak_map_phase_fsm, map_die, die),
     case NextFSM of
         final -> nop;
-        _ -> gen_fsm:send_event(NextFSM, die)
+        _ -> riak_phase_proto:die(NextFSM)
     end,
     {stop,normal,StateData}.
 
 finish(StateData=#state{next_fsm=NextFSM,coord=Coord}) ->
     case NextFSM of
         final -> nop;
-        _ -> gen_fsm:send_event(NextFSM, done)
+        _ ->
+            riak_phase_proto:done(NextFSM)
     end,
-    gen_fsm:send_event(Coord, {done, self()}),
+    riak_phase_proto:phase_done(Coord),
     riak_eventer:notify(riak_map_phase_fsm, map_done, done),
     {stop,normal,StateData}.
 
@@ -115,4 +122,21 @@ code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 convert_input(I={{_B,_K},_D})
   when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> I;
 convert_input(I={_B,_K})
-  when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> {I,undefined}.
+  when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> {I,undefined};
+convert_input([B,K]) when is_binary(B), is_binary(K) -> {{B,K},undefined};
+convert_input([B,K,D]) when is_binary(B), is_binary(K) -> {{B,K},D};
+convert_input(I) -> I.
+
+%% @private
+start_executors(Ring, Inputs, QTerm, Timeout) ->
+    start_executors(Ring, Inputs, QTerm, Timeout, []).
+start_executors(_Ring, [], _QTerm, _Timeout, Accum) ->
+    lists:reverse(Accum);
+start_executors(Ring, [H|T], QTerm, Timeout, Accum) ->
+    case riak_map_executor:start_link(Ring, H, QTerm, Timeout, self()) of
+        {ok, FSM} ->
+            start_executors(Ring, T, QTerm, Timeout, [FSM|Accum]);
+        {error, bad_input} ->
+            error_logger:warning_msg("Skipping map phase for input ~p. Map phase input must be {Bucket, Key}.~n", [H]),
+            start_executors(Ring, T, QTerm, Timeout, Accum)
+    end.

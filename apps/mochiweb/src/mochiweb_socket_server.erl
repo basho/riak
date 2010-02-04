@@ -22,7 +22,7 @@
          ip=any,
          listen=null,
          acceptor=null,
-         backlog=30}).
+         backlog=128}).
 
 start(State=#mochiweb_socket_server{}) ->
     start_server(State);
@@ -106,7 +106,7 @@ ipv6_supported() ->
 
 init(State=#mochiweb_socket_server{ip=Ip, port=Port, backlog=Backlog}) ->
     process_flag(trap_exit, true),
-    BaseOpts = [binary, 
+    BaseOpts = [binary,
                 {reuseaddr, true},
                 {packet, 0},
                 {backlog, Backlog},
@@ -116,7 +116,7 @@ init(State=#mochiweb_socket_server{ip=Ip, port=Port, backlog=Backlog}) ->
     Opts = case Ip of
         any ->
             case ipv6_supported() of % IPv4, and IPv6 if supported
-                true -> [inet, inet6 | BaseOpts];
+                true -> [inet6 | BaseOpts];
                 _ -> BaseOpts
             end;
         {_, _, _, _} -> % IPv4
@@ -126,7 +126,7 @@ init(State=#mochiweb_socket_server{ip=Ip, port=Port, backlog=Backlog}) ->
     end,
     case gen_tcp_listen(Port, Opts, State) of
         {stop, eacces} ->
-            case Port < 1024 of 
+            case Port < 1024 of
                 true ->
                     case fdsrv:start() of
                         {ok, _} ->
@@ -150,7 +150,7 @@ gen_tcp_listen(Port, Opts, State) ->
     case gen_tcp:listen(Port, Opts) of
         {ok, Listen} ->
             {ok, ListenPort} = inet:port(Listen),
-            {ok, new_acceptor(State#mochiweb_socket_server{listen=Listen, 
+            {ok, new_acceptor(State#mochiweb_socket_server{listen=Listen,
                                                            port=ListenPort})};
         {error, Reason} ->
             {stop, Reason}
@@ -175,7 +175,7 @@ acceptor_loop({Server, Listen, Loop}) ->
             gen_server:cast(Server, {accepted, self()}),
             call_loop(Loop, Socket);
         {error, closed} ->
-            exit({error, closed});
+            exit(normal);
         Other ->
             error_logger:error_report(
               [{application, mochiweb},
@@ -183,11 +183,11 @@ acceptor_loop({Server, Listen, Loop}) ->
                lists:flatten(io_lib:format("~p", [Other]))]),
             exit({error, accept_failed})
     end.
-            
+
 
 do_get(port, #mochiweb_socket_server{port=Port}) ->
     Port.
-    
+
 handle_call({get, Property}, _From, State) ->
     Res = do_get(Property, State),
     {reply, Res, State};
@@ -205,7 +205,7 @@ handle_cast(stop, State) ->
 
 terminate(_Reason, #mochiweb_socket_server{listen=Listen, port=Port}) ->
     gen_tcp:close(Listen),
-    case Port < 1024 of 
+    case Port < 1024 of
         true ->
             catch fdsrv:stop(),
             ok;
@@ -228,7 +228,7 @@ handle_info({'EXIT', Pid, Reason},
     {noreply, new_acceptor(State)};
 handle_info({'EXIT', _LoopPid, Reason},
             State=#mochiweb_socket_server{acceptor=Pid, max=Max}) ->
-    case Reason of 
+    case Reason of
         normal ->
             ok;
         _ ->
@@ -246,3 +246,11 @@ handle_info({'EXIT', _LoopPid, Reason},
 handle_info(Info, State) ->
     error_logger:info_report([{'INFO', Info}, {'State', State}]),
     {noreply, State}.
+
+
+%%
+%% Tests
+%%
+-include_lib("eunit/include/eunit.hrl").
+-ifdef(TEST).
+-endif.

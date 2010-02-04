@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 %% @doc Functions for manipulating bucket properties.
 %% @type riak_bucketprops() = [{Propkey :: atom(), Propval :: term()}]
@@ -36,7 +36,7 @@ set_bucket(Name, BucketProps) ->
     RandomNode = riak_ring:random_node(R1),
     riak_connect:send_ring(RandomNode),
     ok.
-    
+
 %% @spec get_bucket(riak_object:bucket()) ->
 %%         {ok, BucketProps :: riak_bucketprops()}
 %% @doc Return the complete current list of properties for Bucket.
@@ -46,7 +46,7 @@ set_bucket(Name, BucketProps) ->
 %% allow_mult: can objects in this bucket have siblings? (default: false)
 %% linkfun: a function returning a m/r FunTerm for link extraction
 %% </pre>
-%% 
+%%
 get_bucket(Name) ->
     {ok, Ring} = riak_ring_manager:get_my_ring(),
     get_bucket(Name, Ring).
@@ -66,7 +66,7 @@ get_bucket(Name, Ring) ->
 defaults() ->
     [{n_val,3},
      {allow_mult,false},
-     {linkfun,{modfun, jiak_object, mapreduce_linkfun}},
+     {linkfun,{modfun, raw_link_walker_resource, mapreduce_linkfun}},
      {chash_keyfun, {riak_util, chash_std_keyfun}},
      {old_vclock, 86400},
      {young_vclock, 20},

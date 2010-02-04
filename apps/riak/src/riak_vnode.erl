@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 -module(riak_vnode).
 -behaviour(gen_fsm).
@@ -52,9 +52,9 @@ hometest(StateData0=#state{idx=Idx,handoff_q=HQ}) ->
              ?TIMEOUT};
         TargetNode ->
             case net_adm:ping(TargetNode) of
-                pang -> 
+                pang ->
                     {next_state,active,StateData,?TIMEOUT};
-                pong -> 
+                pong ->
                     case HQ of
                         not_in_handoff ->
                             do_handoff(TargetNode, StateData);
@@ -111,10 +111,9 @@ active({diffobj,{BKey,BinObj}}, StateData) ->
             error_logger:error_msg("Error storing handoff obj: ~p~n", [Err])
     end,
     {next_state,active,StateData,?TIMEOUT};
-active({map, ClientPid, QTerm, BKey, KeyData},
-       StateData=#state{mapcache=Cache,mod=Mod,modstate=ModState}) ->
-    do_map(ClientPid,QTerm,BKey,KeyData,Cache,Mod,ModState,self()),
-    {next_state,active,StateData,?TIMEOUT};
+active({map, ClientPid, QTerm, BKey, KeyData}, StateData) ->
+    NewState = do_map(ClientPid,QTerm,BKey,KeyData,StateData,self()),
+    {next_state,active,NewState,?TIMEOUT};
 active(handoff_complete, StateData=#state{idx=Idx,handoff_token=HT}) ->
     global:del_lock({HT, {node(), Idx}}),
     hometest(StateData);
@@ -140,6 +139,17 @@ active({delete, From, BKey, ReqID}, StateData=#state{mapcache=Cache}) ->
     do_delete(From, BKey, ReqID, StateData),
     {next_state,
      active,StateData#state{mapcache=orddict:erase(BKey,Cache)},?TIMEOUT};
+active({mapcache, BKey,{FunName,Arg,KeyData},MF_Res},
+       StateData=#state{mapcache=Cache}) ->
+    KeyCache0 = case orddict:find(BKey, Cache) of
+        error -> orddict:new();
+        {ok,CDict} -> CDict
+    end,
+    KeyCache = orddict:store({FunName,Arg,KeyData},MF_Res,KeyCache0),
+    {next_state,active,
+     StateData#state{mapcache=orddict:store(BKey,KeyCache,Cache)},?TIMEOUT};
+active(purge_mapcache, StateData) ->
+    {next_state, active, StateData#state{mapcache=orddict:new()}};
 active({mapcache, BKey,{M,F,Arg,KeyData},MF_Res},
        StateData=#state{mapcache=Cache}) ->
     KeyCache0 = case orddict:find(BKey, Cache) of
@@ -182,7 +192,7 @@ do_delete(Client, BKey, ReqID,
 
 %% @private
 % upon receipt of a handoff datum, there is no client FSM
-do_diffobj_put(BKey={Bucket,_}, DiffObj, 
+do_diffobj_put(BKey={Bucket,_}, DiffObj,
        _StateData=#state{mod=Mod,modstate=ModState}) ->
     ReqID = erlang:phash2(erlang:now()),
     case syntactic_put_merge(Mod, ModState, BKey, DiffObj, ReqID) of
@@ -200,13 +210,13 @@ do_diffobj_put(BKey={Bucket,_}, DiffObj,
 
 %% @private
 % upon receipt of a client-initiated put
-do_put(FSM_pid, BKey, RObj, ReqID, PruneTime, 
+do_put(FSM_pid, BKey, RObj, ReqID, PruneTime,
        _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
-    {ok,Ring} = riak_ring_manager:get_my_ring(),    
+    {ok,Ring} = riak_ring_manager:get_my_ring(),
     {Bucket,_Key} = BKey,
     BProps = riak_bucket:get_bucket(Bucket, Ring),
     case syntactic_put_merge(Mod, ModState, BKey, RObj, ReqID) of
-        oldobj -> 
+        oldobj ->
             gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
         {newobj, NewObj} ->
             VC = riak_object:vclock(NewObj),
@@ -250,52 +260,17 @@ select_newest_content(Mult) ->
          Mult)).
 
 %% @private
-do_map(ClientPid,{map,FunTerm,Arg,_Acc},
-       BKey,KeyData,Cache,Mod,ModState,VNode) ->
-    CacheVal = case FunTerm of
-        {qfun,_} -> not_cached; % live funs are not cached
-        {modfun,CMod,CFun} ->
-            case orddict:find(BKey, Cache) of
-                error -> not_cached;
-                {ok,CDict} ->
-                    case orddict:find({CMod,CFun,Arg,KeyData},CDict) of
-                        error -> not_cached;
-                        {ok,CVal} -> CVal
-                    end
-            end
-    end,
-    RetVal = case CacheVal of
-        not_cached ->
-             uncached_map(BKey,Mod,ModState,FunTerm,Arg,KeyData,VNode);
-        CV ->
-             {mapexec_reply, CV, self()}
-    end,
-    gen_fsm:send_event(ClientPid, RetVal).
-uncached_map(BKey,Mod,ModState,FunTerm,Arg,KeyData,VNode) ->
-    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm,Arg,BKey}),
-    case do_get_binary(BKey, Mod, ModState) of
-        {ok, Binary} ->
-            V = binary_to_term(Binary),
-            uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode);
-        {error, notfound} ->
-            uncached_map1({error, notfound},FunTerm,Arg,BKey,KeyData,VNode);
-        X -> {mapexec_error, self(), X}
-    end.
-uncached_map1(V,FunTerm,Arg,BKey,KeyData,VNode) ->
-    try
-        MapVal = case FunTerm of
-            {qfun,F} -> (F)(V,KeyData,Arg);
-            {modfun,M,F} ->
-                MF_Res = M:F(V,KeyData,Arg),
-                gen_fsm:send_event(VNode,
-                                   {mapcache, BKey,{M,F,Arg,KeyData},MF_Res}),
-                MF_Res
-        end,
-        {mapexec_reply, MapVal, self()}
-    catch C:R ->
-         Reason = {C, R, erlang:get_stacktrace()},
-         {mapexec_error, self(), Reason}
-    end.
+do_map(ClientPid, QTerm, BKey, KeyData, #state{mod=Mod, modstate=ModState, mapcache=Cache}=State, VNode) ->
+    {Reply, NewState} = case do_map(QTerm, BKey, Mod, ModState, KeyData, Cache, VNode, ClientPid) of
+                            map_executing ->
+                                {{mapexec_reply, executing, self()}, State};
+                            {ok, Retval} ->
+                                {{mapexec_reply, Retval, self()}, State};
+                            {error, Error} ->
+                                {{mapexec_error, self(), Error}, State}
+                        end,
+    gen_fsm:send_event(ClientPid, Reply),
+    NewState.
 
 %% @private
 syntactic_put_merge(Mod, ModState, BKey, Obj1, ReqId) ->
@@ -308,7 +283,7 @@ syntactic_put_merge(Mod, ModState, BKey, Obj1, ReqId) ->
             case riak_object:vclock(ResObj) =:= riak_object:vclock(Obj0) of
                 true -> oldobj;
                 false -> {newobj, ResObj}
-            end    
+            end
     end.
 
 %% @private
@@ -357,15 +332,89 @@ handle_sync_event({diffobj,{BKey,BinObj}}, _From, StateName, StateData) ->
             {reply, ok, StateName, StateData, ?TIMEOUT};
         {error, Err} ->
             error_logger:error_msg("Error storing handoff obj: ~p~n", [Err]),
-            {reply, {error, Err}, StateName, StateData, ?TIMEOUT}                   
+            {reply, {error, Err}, StateName, StateData, ?TIMEOUT}
     end;
 handle_sync_event(_Even, _From, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
 %% @private
 handle_info(vnode_shutdown, _StateName, StateData) ->
-    {stop,normal,StateData}.
-
+    {stop,normal,StateData};
+handle_info(ok, StateName, StateData) ->
+    {next_state, StateName, StateData}.
 %% @private
-terminate(_Reason, _StateName, _State) -> ok.
+terminate(_Reason, _StateName, _State) ->
+    ok.
 
+do_map({erlang, {map, FunTerm, Arg, _Acc}}, BKey, Mod, ModState, KeyData, Cache, VNode, _ClientPid) ->
+    CacheKey = build_key(FunTerm, Arg, KeyData),
+    CacheVal = cache_fetch(BKey, CacheKey, Cache),
+    case CacheVal of
+        not_cached ->
+            uncached_map(BKey, Mod, ModState, FunTerm, Arg, KeyData, VNode);
+        CV ->
+            {ok, CV}
+    end;
+do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData, Cache, _VNode, ClientPid) ->
+    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
+    CacheKey = build_key(FunTerm, Arg, KeyData),
+    CacheVal = cache_fetch(BKey, CacheKey, Cache),
+    case CacheVal of
+        not_cached ->
+            V = case Mod:get(ModState, BKey) of
+                    {ok, Binary} ->
+                        binary_to_term(Binary);
+                    {error, notfound} ->
+                        {error, notfound}
+                end,
+            riak_js_manager:dispatch({ClientPid, QTerm, V, KeyData, BKey}),
+            map_executing;
+        CV ->
+            {ok, CV}
+    end.
+
+build_key({modfun, CMod, CFun}, Arg, KeyData) ->
+    {CMod, CFun, Arg, KeyData};
+build_key({jsfun, FunName}, Arg, KeyData) ->
+    {FunName, Arg, KeyData};
+build_key(_, _, _) ->
+    no_key.
+
+cache_fetch(_BKey, no_key, _Cache) ->
+    not_cached;
+cache_fetch(BKey, CacheKey, Cache) ->
+    case orddict:find(BKey, Cache) of
+        error -> not_cached;
+        {ok,CDict} ->
+            case orddict:find(CacheKey,CDict) of
+                error -> not_cached;
+                {ok,CVal} -> CVal
+            end
+    end.
+
+uncached_map(BKey, Mod, ModState, FunTerm, Arg, KeyData, VNode) ->
+    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
+    case Mod:get(ModState, BKey) of
+        {ok, Binary} ->
+            V = binary_to_term(Binary),
+            exec_map(V, FunTerm, Arg, BKey, KeyData, VNode);
+        {error, notfound} ->
+            exec_map({error, notfound}, FunTerm, Arg, BKey, KeyData, VNode);
+        X ->
+            {error, X}
+    end.
+
+exec_map(V, FunTerm, Arg, BKey, KeyData, VNode) ->
+    try
+        case FunTerm of
+            {qfun, F} -> {ok, (F)(V,KeyData,Arg)};
+            {modfun, M, F} ->
+                MF_Res = M:F(V,KeyData,Arg),
+                gen_fsm:send_event(VNode,
+                                   {mapcache, BKey,{M,F,Arg,KeyData},MF_Res}),
+                {ok, MF_Res}
+        end
+    catch C:R ->
+            Reason = {C, R, erlang:get_stacktrace()},
+            {error, Reason}
+    end.

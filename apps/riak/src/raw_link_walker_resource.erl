@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 %% @doc Raw link walker resource provides an interface to riak object
 %%      linkwalking over HTTP.  The interface exposed is:
@@ -209,7 +209,7 @@ service_available(RD, Ctx=#ctx{riak=RiakProps}) ->
                io_lib:format("Unable to connect to Riak: ~p~n", [Error]),
                wrq:set_resp_header(?HEAD_CTYPE, "text/plain", RD)),
              Ctx}
-    end.    
+    end.
 
 %% @spec get_riak_client(local|{node(),Cookie::atom()}) ->
 %%          {ok, riak_client()} | error()
@@ -367,7 +367,7 @@ multipart_encode_body(RiakObject, #ctx{prefix=Prefix}) ->
     [{MD, V}|Rest] = riak_object:get_contents(RiakObject),
     {VHead, Vclock} = raw_http_resource:vclock_header(RiakObject),
     [VHead,": ",Vclock,"\n",
-     
+
      "Location: /",Prefix,"/",
      mochiweb_util:quote_plus(riak_object:bucket(RiakObject)),"/",
      mochiweb_util:quote_plus(riak_object:key(RiakObject)),
@@ -377,7 +377,7 @@ multipart_encode_body(RiakObject, #ctx{prefix=Prefix}) ->
              []
      end,
      "\n",
-     
+
      if Rest /= [] ->
              ["X-Riak-Sibling-VTags: ",
               dict:fetch(?MD_VTAG, element(1, hd(Rest))),

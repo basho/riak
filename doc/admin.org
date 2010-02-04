@@ -1,8 +1,8 @@
+#+SETUPFILE: "basho-doc-style.iorg"
 #+TITLE: Riak Administration Guide
-#+STYLE: <link rel="stylesheet" type="text/css" href="doc-style.css" />
 
 * Overview
-  
+
   This document is a guide for people who want to run Riak.  It
   discusses [[Downloading%20Riak][downloading]], [[Installation][installing]], [[Configuration][configuring]], and [[Running%20Riak][running]] Riak, as
   well as basic [[Client%20Interaction][client interaction]].
@@ -13,7 +13,7 @@
 
 
 * Downloading Riak
-  
+
   Riak can be downloaded as a pre-built, binary release for many
   popular platforms, or as source code, ready to build on most
   platforms supporting [[http://erlang.org/][Erlang]] releases R13B03 and later.
@@ -24,7 +24,7 @@
 
 ** Source Releases
 *** Prerequisites
-    
+
     To build Riak from source, you will need Erlang/OTP version R13B03
     or later installed.  Erlang is available at [[http://erlang.org/]].
 
@@ -67,7 +67,7 @@
     Compiled src/slide.erl
     $
 #+END_EXAMPLE
-    
+
     (The =...snipped...= lines represent several lines of similar
     output, removed for display in this document.)
 
@@ -76,7 +76,7 @@
     errors.
 
 *** Creating the Release
-    
+
     Riak's command line scripts expect the object files and their
     dependencies to be packaged into an Erlang release.  To create
     this release, simply run =make rel= in the top-level source
@@ -84,7 +84,7 @@
 
 #+BEGIN_EXAMPLE
     $ make rel
-    ./rebar compile generate 
+    ./rebar compile generate
     ==> mochiweb (compile)
     ==> webmachine (compile)
     ==> riak (compile)
@@ -140,7 +140,7 @@
 ** TODO Capacity Planning
 ** TODO OS Configuration  (noatime, separate disks, max fds, ...)
 ** vm.args
-   
+
    Parameters for the Erlang node on which Riak runs are set in the
    =vm.args= file in the =etc= directory of the embedded Erlang node.
    Most of these settings can be left at their defaults until you are
@@ -220,7 +220,7 @@
 
 *** List of Riak Configuration Variables
 
-#+COMMENT TODO figure out verbatim escaping: ="blah"= 
+#+COMMENT TODO figure out verbatim escaping: ="blah"=
 
     + =ring_state_dir= :: the directory on-disk in which to store the
          ring state (default: ="data/dets"=)
@@ -344,7 +344,7 @@
          Properties in this list will override the hardcoded defaults
          in riak_bucket:defaults/0.  This setting is the best way to
          set things like:
-         
+
          - the default N-value for Riak objects (=n_val=)
          - whether or not siblings are allowed (=allow_mult=)
          - the function for extracting links from objects (=linkfun=)
@@ -361,6 +361,10 @@
 
 
 
+
+    + =js_vm_count= :: how many Javascript virtual machines to start (default: 8)
+
+    + =js_source_dir= :: where to load user-defined built in Javascript functions (default: unset)
 
 ** Rebar Overlays
 
@@ -456,6 +460,13 @@
                as a third parameter will cause the log to be written
                to that file.
 
+   + js\_reload :: reload all Javascript virtual machines
+
+               This command will reload the Javascript virtual machines on the node
+               where the command is executed.
+
+               : $ bin/riak-admin js_reload
+
 ** Simple startup
 
    To start a Riak node, simply install riak (by either copying the
@@ -511,7 +522,7 @@
    See [[Client Errors]] for help with error messages from this script.
 
 ** Shutting down a node
-   
+
    Stopping a Riak node can be done at any time, simply by running
    =bin/riak stop=:
 
@@ -613,7 +624,7 @@
 
 : (riak@127.0.0.1)1> erlang:get_cookie().
 : riak
-      
+
       That cookie should match the cookie in =etc/vm.args=.  The
       =bin/riak= and =bin/riak-admin= scripts should be using the same
       cookie.
@@ -630,6 +641,3 @@
 *** TODO riak-admin test errors
 
 * TODO FAQ
-
-
-

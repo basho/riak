@@ -1,6 +1,6 @@
 {application, skel,
  [{description, "skel"},
-  {vsn, "0.1"},
+  {vsn, "0.9"},
   {modules, [
     skel,
     skel_app,

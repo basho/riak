@@ -7,7 +7,7 @@
 
 skelcopy(DestDir, Name) ->
     ok = ensuredir(DestDir),
-    LDst = case length(filename:dirname(DestDir)) of 
+    LDst = case length(filename:dirname(DestDir)) of
                1 -> %% handle case when dirname returns "/"
                    0;
                N ->
@@ -17,7 +17,6 @@ skelcopy(DestDir, Name) ->
     ok = file:make_symlink(
         filename:join(filename:dirname(code:which(?MODULE)), ".."),
         filename:join([DestDir, Name, "deps", "mochiweb-src"])).
-    
 
 %% Internal API
 
@@ -37,17 +36,22 @@ skelcopy(Src, DestDir, Name, LDst) ->
             EDst = lists:nthtail(LDst, Dir),
             ok = ensuredir(Dir),
             ok = file:write_file_info(Dir, #file_info{mode=Mode}),
-            {ok, Files} = file:list_dir(Src),
-            io:format("~s/~n", [EDst]),
-            lists:foreach(fun ("." ++ _) -> ok;
-                              (F) ->
-                                  skelcopy(filename:join(Src, F), 
-                                           Dir,
-                                           Name,
-                                           LDst)
-                          end,
-                          Files),
-            ok;
+            case filename:basename(Src) of
+                "ebin" ->
+                    ok;
+                _ ->
+                    {ok, Files} = file:list_dir(Src),
+                    io:format("~s/~n", [EDst]),
+                    lists:foreach(fun ("." ++ _) -> ok;
+                                      (F) ->
+                                          skelcopy(filename:join(Src, F),
+                                                   Dir,
+                                                   Name,
+                                                   LDst)
+                                  end,
+                                  Files),
+                        ok
+            end;
         {ok, #file_info{type=regular, mode=Mode}} ->
             OutFile = filename:join(DestDir, Dest),
             {ok, B} = file:read_file(Src),
@@ -71,3 +75,10 @@ ensuredir(Dir) ->
         E ->
             E
     end.
+
+%%
+%% Tests
+%%
+-include_lib("eunit/include/eunit.hrl").
+-ifdef(TEST).
+-endif.

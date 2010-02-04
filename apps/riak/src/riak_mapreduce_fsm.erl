@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 %% @doc riak_mapreduce_fsm is the driver of a mapreduce query.
 %%
@@ -57,7 +57,7 @@
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
--export([wait/2]). 
+-export([wait/2]).
 
 -record(state, {client,reqid,fsms,starttime,timeout,ring,input_done}).
 
@@ -65,24 +65,29 @@ start(ReqId,Query,Timeout,Client) ->
     gen_fsm:start(?MODULE, [ReqId,Query,Timeout,Client], []).
 %% @private
 init([ReqId,Query,Timeout,Client]) ->
+    EffectiveTimeout = erlang:trunc(Timeout  * 1.5),
+    PerPhaseTimeout = erlang:trunc(EffectiveTimeout / length(Query)),
     {ok, Ring} = riak_ring_manager:get_my_ring(),
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_start, {ReqId, Query}),
     case check_query_syntax(Query) of
-        ok ->
-            FSMs = make_phase_fsms(Query, Ring), % Pid for each phase, in-order
+        {ok, Query1} ->
+            FSMs = make_phase_fsms(Query1, Ring, PerPhaseTimeout), % Pid for each phase, in-order
             StateData = #state{client=Client,fsms=FSMs,reqid=ReqId,
-                               starttime=riak_util:moment(),timeout=Timeout,
+                               starttime=riak_util:moment(),timeout=EffectiveTimeout,
                                ring=Ring,input_done=false},
             {ok,wait,StateData,Timeout};
         {bad_qterm, QTerm} ->
             riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done,
                                 {error, {bad_qterm, QTerm}}),
-            Client ! {ReqId, {error, {bad_qterm, QTerm}}},
-            {stop,normal}
+            {stop, {bad_qterm, QTerm}}
     end.
 
-check_query_syntax([]) -> ok;
-check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest])
+check_query_syntax(Query) ->
+    check_query_syntax(Query, []).
+
+check_query_syntax([], Accum) ->
+    {ok, lists:reverse(Accum)};
+check_query_syntax([QTerm={QTermType,QT2,QT3,Acc}|Rest], Accum)
   when is_boolean(Acc) ->
     case lists:member(QTermType, [link,map,reduce]) of
         false -> {bad_qterm, QTerm};
@@ -91,47 +96,61 @@ check_query_syntax([QTerm={QTermType,QT2,_QT3,Acc}|Rest])
                 link ->
                     case (is_binary(QT2) orelse QT2 == '_') of
                         false -> {bad_qterm, QTerm};
-                        true -> check_query_syntax(Rest)
+                        true -> check_query_syntax(Rest, [{erlang, QTerm}|Accum])
                     end;
                 _ -> % (map or reduce)
                     case QT2 of
                         {modfun, MF_M, MF_F} ->
                             case is_atom(MF_M) andalso is_atom(MF_F) of
                                 false -> {bad_qterm, QTerm};
-                                true -> check_query_syntax(Rest)
+                                true -> check_query_syntax(Rest, [{erlang, QTerm}|Accum])
                             end;
                         {qfun, QF_F} ->
                             case is_function(QF_F) of
                                 false -> {bad_qterm, QTerm};
-                                true -> check_query_syntax(Rest)
+                                true -> check_query_syntax(Rest, [{erlang, QTerm}|Accum])
                             end;
+                        {jsanon, JS} when is_binary(JS) ->
+                            check_query_syntax(Rest, [{javascript, QTerm}|Accum]);
+                        {jsanon, {Bucket, Key}} when is_binary(Bucket),
+                                                     is_binary(Key) ->
+                            case fetch_js(Bucket, Key) of
+                                {ok, JS} ->
+                                    check_query_syntax(Rest, [{javascript, {map, {jsanon, JS}, QT3, Acc}}|Accum]);
+                                _ ->
+                                    {bad_qterm, QTerm}
+                            end;
+                        {jsfun, JS} when is_binary(JS) ->
+                            check_query_syntax(Rest, [{javascript, QTerm}|Accum]);
                         _ -> {bad_qterm, QTerm}
                     end
             end
     end;
-check_query_syntax([BadQTerm|_]) -> {bad_qterm,BadQTerm}.
+check_query_syntax([BadQTerm|_], _) -> {bad_qterm,BadQTerm}.
 
-make_phase_fsms(Query, Ring) -> 
-    make_phase_fsms(lists:reverse(Query),final,[], Ring).
-make_phase_fsms([], _NextFSM, FSMs, _Ring) -> FSMs;
-make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring) -> 
-    PhaseMod = case QTerm of
-        {reduce, _, _, _} -> riak_reduce_phase_fsm;
-        {map, _, _, _} -> riak_map_phase_fsm;
-        {link, _, _, _} -> riak_map_phase_fsm
-    end,
-    {ok, Pid} = PhaseMod:start_link(Ring, QTerm, NextFSM, self()),
-    make_phase_fsms(Rest,Pid,[Pid|FSMs], Ring).
+make_phase_fsms(Query, Ring, PerPhaseTimeout) ->
+    make_phase_fsms(lists:reverse(Query),final,[], Ring, PerPhaseTimeout).
+make_phase_fsms([], _NextFSM, FSMs, _Ring, _PerPhaseTimeout) -> FSMs;
+make_phase_fsms([QTerm|Rest], NextFSM, FSMs, Ring, PerPhaseTimeout) ->
+    {ok, Pid} = case QTerm of
+                    {_, {reduce, _, _, _}} ->
+                        riak_phase_sup:new_reduce_phase(Ring, QTerm, NextFSM, self(), PerPhaseTimeout);
+                    {_, {map, _, _, _}} ->
+                        riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self(), PerPhaseTimeout);
+                    {_, {link, _, _, _}} ->
+                        riak_phase_sup:new_map_phase(Ring, QTerm, NextFSM, self(), PerPhaseTimeout)
+                end,
+    make_phase_fsms(Rest,Pid,[Pid|FSMs], Ring, PerPhaseTimeout).
 
 wait({input,Inputs},
      StateData=#state{reqid=ReqId,timeout=Timeout,fsms=FSMs}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_got_input,
                         {ReqId, length(Inputs)}),
-    gen_fsm:send_event(hd(FSMs), {input, Inputs}),
+    riak_phase_proto:send_inputs(hd(FSMs), Inputs),
     {next_state, wait, StateData, Timeout};
 wait(input_done, StateData=#state{reqid=ReqId,fsms=FSMs}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_done_input, {ReqId}),
-    gen_fsm:send_event(hd(FSMs), done),
+    riak_phase_proto:done(hd(FSMs)),
     maybe_finish(StateData#state{input_done=true});
 wait({done,FSM}, StateData=#state{fsms=FSMs0}) ->
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done_msg, {FSM,FSMs0}),
@@ -140,7 +159,7 @@ wait({done,FSM}, StateData=#state{fsms=FSMs0}) ->
 wait({error, ErrFSM, ErrMsg}, StateData=#state{client=Client,reqid=ReqId,
                                                fsms=FSMs0}) ->
     FSMs = lists:delete(ErrFSM,FSMs0),
-    [gen_fsm:send_event(FSM, die) || FSM <- FSMs],
+    riak_phase_proto:die_all(FSMs),
     riak_eventer:notify(riak_mapreduce_fsm, mr_fsm_done, {error, ReqId}),
     Client ! {ReqId, {error, ErrMsg}},
     {stop,normal,StateData};
@@ -194,3 +213,11 @@ terminate(Reason, _StateName, _State=#state{reqid=ReqId}) ->
 %% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
+fetch_js(Bucket, Key) ->
+    {ok, Client} = riak:local_client(),
+    case Client:get(Bucket, Key, 1) of
+        {ok, Obj} ->
+            {ok, riak_object:get_value(Obj)};
+        _ ->
+            {error, bad_fetch}
+    end.

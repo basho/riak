@@ -51,9 +51,9 @@ Table of Contents
    Assuming you have a working Erlang (R13B03 or later) installation,
    building Riak should be as simple as:
 
+
   $ cd $RIAK
   $ make all rel
-
 
 2.2 Starting Riak 
 ==================
@@ -61,9 +61,9 @@ Table of Contents
    Once you have successfully built Riak, you can start the server with the
    following commands:
 
+
   $ cd $RIAK/rel/riak
   $ bin/riak start
-
 
    Now, verify that the server started up cleanly and is working:
 
@@ -79,28 +79,29 @@ Table of Contents
    Now that you have a functional server, let's try storing some data in
    it. First, start up a erlang node using our embedded version of erlang:
 
+
   $ erts-<vsn>/bin/erl -name riaktest -setcookie riak
   
   Eshell V5.7.4  (abort with ^G)
   (riaktest@example.com)1>
 
-
    Now construct the node name of Riak server and make sure we can talk to it:
+
 
   (riaktest@example.com)4> RiakNode = riak_util:str_to_node(riak).
   
   (riaktest@example.com)2> net_adm:ping(RiakNode).
   pong
   (riaktest@example.com)2>
-
    
    We are now ready to start the Riak client:
+
 
   (riaktest@example.com)2> {ok, C} = riak:client_connect(RiakNode).
   {ok,{riak_client,'riak@example.com',<<4,136,81,151>>}}
 
-
    Let's create a shopping list for bread at /groceries/mine:
+
 
   (riaktest@example.com)6> O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
   O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
@@ -116,9 +117,9 @@ Table of Contents
          undefined}
   
    (riaktest@example.com)3> C:put(O0, 1).
-
     
     Now, read the list back from the Riak server and extract the value
+
 
   (riaktest@example.com)4> {ok, O1} = C:get(<<"groceries">>, <<"mine">>, 1).
   {ok,{r_object,<<"groceries">>,<<"mine">>,
@@ -139,8 +140,8 @@ Table of Contents
    (riaktest@example.com)5> V = riak_object:get_value(O1).
    ["bread"]
 
-
      Add milk to our list of groceries and write the new value to Riak:
+
 
   (riaktest@example.com)6> %% add milk to the list
   (riaktest@example.com)6> O2 = riak_object:update_value(O1, ["milk" | V]).
@@ -162,12 +163,11 @@ Table of Contents
   (riaktest@example.com)7> C:put(O2, 1).
   ok
 
-
      Finally, see what other keys are available in groceries bucket:
+
 
   (riaktest@example.com)8> C:list_keys(<<"groceries">>).
   {ok,[<<"mine">>]}
-
 
 
 3 Server Management 
@@ -229,9 +229,9 @@ Table of Contents
 
     To join a new Riak node to an existing cluster:
 
+
   $ bin/riak start # If a local server is not already running
   $ bin/riak-admin join <node in cluster>
-
 
     (Note that you must have a local node already running for this to work)
     

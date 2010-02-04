@@ -1,0 +1,10 @@
+erlang_js has only been tested on Unix-based platforms (Linux, OS X, and Solaris). Please do not try
+to compile and/or use erlang_js on Windows. It will not work.
+
+We've tried to keep the compile process simple and fast. You will need the CVS command-line client
+installed in order for the compile to work. To compile erlang_js issue the command 'make' in a
+terminal. The build will download and build nspr and SpiderMonkey. It will also build the
+linked-in driver, spidermonkey_drv, and the Erlang source.
+
+You can test the freshly build code via 'make test' which should report all tests passed if the
+build was successful.
