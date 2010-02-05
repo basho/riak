@@ -732,7 +732,7 @@ extract_user_meta(RD) ->
     lists:filter(fun({K,_V}) ->
                     lists:prefix(
                         ?HEAD_USERMETA_PREFIX,
-                        any_to_list(K))
+                        string:to_lower(any_to_list(K)))
                 end,
                 mochiweb_headers:to_list(wrq:req_headers(RD))).
 
