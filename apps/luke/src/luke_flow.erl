@@ -45,7 +45,12 @@ start_link(Client, FlowId, FlowDesc, Timeout) when is_list(FlowDesc),
     gen_fsm:start_link(?MODULE, [Client, FlowId, FlowDesc, Timeout], []).
 
 init([Client, FlowId, FlowDesc, Timeout0]) ->
-    Timeout = erlang:trunc(Timeout0 * 1.1),
+    Timeout = case Timeout0 of
+                  infinity ->
+                      Timeout0;
+                  _ ->
+                      erlang:trunc(Timeout0 * 1.1)
+              end,
     case start_phases(FlowDesc, Timeout) of
         {ok, FSMs} ->
             {ok, executing, #state{fsms=FSMs, flow_id=FlowId, timeout=Timeout, client=Client}, Timeout};
@@ -102,7 +107,12 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 %% Internal functions
 start_phases(FlowDesc, Timeout) ->
-    PerPhaseTimeout = erlang:trunc(Timeout / length(FlowDesc)),
+    PerPhaseTimeout = case Timeout of
+                          infinity ->
+                              Timeout;
+                          _ ->
+                              erlang:trunc(Timeout / length(FlowDesc))
+                      end,
     start_phases(lists:reverse(FlowDesc), PerPhaseTimeout, []).
 
 start_phases([], _Timeout, Accum) ->
