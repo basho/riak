@@ -26,6 +26,13 @@ setup_teardown_test_() ->
              timer:sleep(10),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
+             %% Startup/teardown, infinity timeout, no input
+             {ok, Pid} = luke:new_flow(self(), make_ref(), ?TWO_PHASE_FLOW, infinity),
+             Phases = test_util:verify_phases(Pid, 2),
+             exit(Pid, shutdown),
+             timer:sleep(10),
+             test_util:assertDead([Pid|Phases]) end,
+     fun() ->
              %% Startup/teardown, input w/no end
              {ok, Pid} = luke:new_flow(make_ref(), ?TWO_PHASE_FLOW),
              Phases = test_util:verify_phases(Pid, 2),
