@@ -12,12 +12,16 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--define(TWO_PHASE_FLOW, [{simple_phase, false, []},
-                         {simple_phase, true, []}]).
+-define(TWO_PHASE_FLOW, [{simple_phase, none, []},
+                         {simple_phase, accumulate, []}]).
 
--define(TWO_ASYNC_FLOW, [{async_phase, false, []},
-                         {async_phase, true, []}]).
+-define(TWO_ASYNC_FLOW, [{async_phase, none, []},
+                         {async_phase, accumulate, []}]).
 
--define(MAP_FLOW, [{map_phase, true, []}]).
--define(MAP_DBL_FLOW, [{map_phase, true, []},
-                       {map_phase, true, []}]).
+-define(MAP_FLOW, [{map_phase, accumulate, []}]).
+-define(MAP_DBL_FLOW, [{map_phase, accumulate, []},
+                       {map_phase, accumulate, []}]).
+-define(MAPRED_FLOW, [{map_phase, none, []},
+                      {reduce_phase, {converge, 3}, []}]).
+-define(MAPRED_FLOW1, [{map_phase, none, []},
+                       {reduce_phase, {converge, 1}, []}]).

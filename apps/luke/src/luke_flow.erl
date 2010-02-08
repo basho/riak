@@ -117,14 +117,13 @@ start_phases(FlowDesc, Timeout) ->
 
 start_phases([], _Timeout, Accum) ->
     {ok, Accum};
-start_phases([{PhaseMod, Accumulates, Args}|T], Timeout, Accum) ->
-    NextFSM = if
-                  length(Accum) == 0 ->
-                      undefined;
-                  true ->
-                      hd(Accum)
-              end,
-    case luke_phase_sup:new_phase(PhaseMod, Accumulates, NextFSM, self(), Timeout, Args) of
+start_phases([{PhaseMod, {converge, InstanceCount}, Args}|T], Timeout, Accum) ->
+    NextFSM = next_fsm(Accum),
+    Pids = start_converging_phases(PhaseMod, NextFSM, self(), Timeout, Args, InstanceCount),
+    start_phases(T, Timeout, [Pids|Accum]);
+start_phases([{PhaseMod, Behavior, Args}|T], Timeout, Accum) ->
+    NextFSM = next_fsm(Accum),
+    case luke_phase_sup:new_phase(PhaseMod, Behavior, NextFSM, self(), Timeout, Args) of
         {ok, Pid} ->
             erlang:monitor(process, Pid),
             start_phases(T, Timeout, [Pid|Accum]);
@@ -145,4 +144,33 @@ collect_output(FlowId, Timeout, Accum) ->
                 true ->
                     {ok, lists:flatten(lists:reverse(Accum))}
             end
+    end.
+
+next_fsm(Accum) ->
+ if
+     length(Accum) == 0 ->
+         undefined;
+     true ->
+         case hd(Accum) of
+             P when is_pid(P) ->
+                 [P];
+             P ->
+                 P
+         end
+ end.
+
+start_converging_phases(PhaseMod, NextFSM, Flow, Timeout, Args, Count) ->
+    Pids = start_converging_phases(PhaseMod, NextFSM, Flow, Timeout, Args, Count, []),
+    [Leader|_] = Pids,
+    lists:foreach(fun(P) -> luke_phase:partners(P, Leader, Pids) end, Pids),
+    Pids.
+
+start_converging_phases(_PhaseMod, _NextFSM, _Flow, _Timeout, _Args, 0, Accum) ->
+    Accum;
+start_converging_phases(PhaseMod, NextFSM, Flow, Timeout, Args, Count, Accum) ->
+    case luke_phase_sup:new_phase(PhaseMod, converge, NextFSM, Flow, Timeout, Args) of
+        {ok, Pid} ->
+            start_converging_phases(PhaseMod, NextFSM, Flow, Timeout, Args, Count - 1, [Pid|Accum]);
+        Error ->
+            throw(Error)
     end.

@@ -57,6 +57,9 @@ assertDead(Pids)->
 
 assertDead0([]) ->
     ok;
-assertDead0([H|T]) ->
+assertDead0([H|T]) when is_list(H) ->
+    ok = assertDead0(H),
+    assertDead0(T);
+assertDead0([H|T]) when is_pid(H) ->
     ?assertMatch(false, erlang:is_process_alive(H)),
     assertDead0(T).

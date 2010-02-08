@@ -17,10 +17,16 @@
 -export([send_inputs/2, send_inputs_done/1, send_flow_complete/1]).
 -export([send_phase_complete/1, send_flow_results/2]).
 
-send_inputs(PhasePid, Inputs) ->
+send_inputs(PhasePids, Inputs) when is_list(PhasePids) ->
+    [H|T] = PhasePids,
+    send_inputs(H, Inputs),
+    T ++ [H];
+send_inputs(PhasePid, Inputs) when is_pid(PhasePid) ->
     gen_fsm:send_event(PhasePid, {inputs, Inputs}).
 
-send_inputs_done(PhasePid) ->
+send_inputs_done(PhasePids) when is_list(PhasePids) ->
+    lists:foreach(fun(Pid) -> send_inputs_done(Pid) end, PhasePids);
+send_inputs_done(PhasePid) when is_pid(PhasePid) ->
     gen_fsm:send_event(PhasePid, inputs_done).
 
 send_phase_complete(PhasePid) ->

@@ -17,7 +17,7 @@
 -behaviour(gen_fsm).
 
 %% API
--export([start_link/6, complete/0]).
+-export([start_link/6, complete/0, partners/3]).
 
 %% Behaviour
 -export([behaviour_info/1]).
@@ -29,7 +29,8 @@
 -export([init/1, handle_event/3,
          handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
--record(state, {mod, modstate, accumulates, next_phase, flow, timeout, cb_timeout=false}).
+-record(state, {mod, modstate, behavior, lead_partner, partners, next_phases,
+                done_count=1, flow, timeout, cb_timeout=false}).
 
 behaviour_info(callbacks) ->
   [{init, 1},
@@ -42,28 +43,56 @@ behaviour_info(callbacks) ->
 behaviour_info(_) ->
     undefined.
 
-start_link(PhaseMod, Accumulates, NextPhase, Flow, Timeout, PhaseArgs) ->
-    gen_fsm:start_link(?MODULE, [PhaseMod, Accumulates, NextPhase, Flow, Timeout, PhaseArgs], []).
+start_link(PhaseMod, Behavior, NextPhases, Flow, Timeout, PhaseArgs) ->
+    gen_fsm:start_link(?MODULE, [PhaseMod, Behavior, NextPhases, Flow, Timeout, PhaseArgs], []).
 
 complete() ->
     gen_fsm:send_event(self(), complete).
 
-init([PhaseMod, Accumulates, NextPhase, Flow, Timeout, PhaseArgs]) ->
+partners(PhasePid, Leader, Partners) ->
+    gen_fsm:send_event(PhasePid, {partners, Leader, Partners}).
+
+init([PhaseMod, Behavior, NextPhases, Flow, Timeout, PhaseArgs]) ->
     case PhaseMod:init(PhaseArgs) of
         {ok, ModState} ->
             erlang:monitor(process, Flow),
-            {ok, executing, #state{mod=PhaseMod, modstate=ModState, next_phase=NextPhase,
-                                   flow=Flow, accumulates=Accumulates, timeout=Timeout}, Timeout};
+            {ok, executing, #state{mod=PhaseMod, modstate=ModState, next_phases=NextPhases,
+                                   flow=Flow, behavior=Behavior, timeout=Timeout}, Timeout};
         {stop, Reason} ->
             {stop, Reason}
     end.
 
-
+executing({partners, Lead0, Partners0}, #state{behavior=converge, timeout=Timeout}=State) when is_list(Partners0) ->
+    Me = self(),
+    Lead = case Lead0 of
+               Me ->
+                   undefined;
+               _ ->
+                   Lead0
+           end,
+    Partners = lists:delete(self(), Partners0),
+    DoneCount = if
+                    Lead =:= undefined ->
+                        length(Partners) + 1;
+                    true ->
+                        1
+                end,
+    {next_state, executing, State#state{lead_partner=Lead, partners=Partners, done_count=DoneCount}, Timeout};
+executing({partners, _, _}, State) ->
+    {stop, {error, no_convergence}, State};
 executing({inputs, Input}, #state{mod=PhaseMod, modstate=ModState, timeout=Timeout}=State) ->
     handle_callback(PhaseMod:handle_input(Input, ModState, Timeout), State);
-executing(inputs_done, #state{mod=PhaseMod, modstate=ModState}=State) ->
-    handle_callback(PhaseMod:handle_input_done(ModState), State);
-executing(complete, #state{flow=Flow, next_phase=Next}=State) ->
+executing(inputs_done, #state{mod=PhaseMod, modstate=ModState, done_count=DoneCount0}=State) ->
+    case DoneCount0 - 1 of
+        0 ->
+            handle_callback(PhaseMod:handle_input_done(ModState), State#state{done_count=0});
+        DoneCount ->
+            {next_state, executing, State#state{done_count=DoneCount}}
+    end;
+executing(complete, #state{lead_partner=Leader}=State) when is_pid(Leader) ->
+    luke_phases:send_inputs_done(Leader),
+    {stop, normal, State};
+executing(complete, #state{flow=Flow, next_phases=Next}=State) ->
     case Next of
         undefined ->
             luke_phases:send_flow_complete(Flow);
@@ -106,28 +135,34 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 handle_callback({no_output, NewModState}, #state{timeout=Timeout}=State) ->
     {next_state, executing, State#state{modstate=NewModState}, Timeout};
 handle_callback({no_output, NewModState, TempTimeout}, #state{timeout=Timeout}=State) when TempTimeout < Timeout ->
-    io:format("TempTimeout: ~p~n", [TempTimeout]),
     {next_state, executing, State#state{modstate=NewModState, cb_timeout=true}, TempTimeout};
 handle_callback({output, Output, NewModState}, #state{timeout=Timeout}=State) ->
-    route_output(Output, State),
-    {next_state, executing, State#state{modstate=NewModState}, Timeout};
+    State1 = route_output(Output, State),
+    {next_state, executing, State1#state{modstate=NewModState}, Timeout};
 handle_callback({output, Output, NewModState, TempTimeout}, #state{timeout=Timeout}=State) when TempTimeout < Timeout ->
-    io:format("TempTimeout: ~p~n", [TempTimeout]),
-    route_output(Output, State),
-    {next_state, executing, State#state{modstate=NewModState, cb_timeout=true}, TempTimeout};
+    State1 = route_output(Output, State),
+    {next_state, executing, State1#state{modstate=NewModState, cb_timeout=true}, TempTimeout};
 handle_callback({stop, Reason, NewModState}, State) ->
     {stop, Reason, State#state{modstate=NewModState}}.
 
-route_output(Output, #state{next_phase=Next, flow=Flow, accumulates=Accumulates}) ->
-    propagate_inputs(Next, Output),
-    if
-        Accumulates =:= true ->
-            luke_phases:send_flow_results(Flow, Output);
-        true ->
-            ok
-    end.
+route_output(Output, #state{behavior=accumulate, next_phases=Next, flow=Flow}=State) ->
+    RotatedNext = propagate_inputs(Next, Output),
+    luke_phases:send_flow_results(Flow, Output),
+    State#state{next_phases=RotatedNext};
+route_output(Output, #state{behavior=none, next_phases=Next}=State) ->
+    RotatedNext = propagate_inputs(Next, Output),
+    State#state{next_phases=RotatedNext};
+route_output(Output, #state{behavior=converge, lead_partner=undefined, next_phases=undefined, flow=Flow}=State) ->
+    luke_phases:send_flow_results(Flow, Output),
+    State;
+route_output(Output, #state{behavior=converge, lead_partner=undefined, next_phases=Next}=State) ->
+    RotatedNext = propagate_inputs(Next, Output),
+    State#state{next_phases=RotatedNext};
+route_output(Output, #state{behavior=converge, lead_partner=Lead}=State) ->
+    propagate_inputs([Lead], Output),
+    State.
 
 propagate_inputs(undefined, _Results) ->
-    ok;
+    undefined;
 propagate_inputs(Next, Results) ->
     luke_phases:send_inputs(Next, Results).

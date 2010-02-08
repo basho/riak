@@ -22,9 +22,9 @@
 %% Supervisor callbacks
 -export([init/1]).
 
-new_phase(PhaseMod, Accumulates, NextPhase, Flow, Timeout, PhaseArgs) when is_atom(PhaseMod),
-                                                                           is_list(PhaseArgs) ->
-    start_child(PhaseMod, [Accumulates, NextPhase, Flow, Timeout, PhaseArgs]).
+new_phase(PhaseMod, Behavior, NextPhases, Flow, Timeout, PhaseArgs) when is_atom(PhaseMod),
+                                                                        is_list(PhaseArgs) ->
+    start_child(PhaseMod, [Behavior, NextPhases, Flow, Timeout, PhaseArgs]).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
