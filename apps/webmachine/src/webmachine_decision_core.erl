@@ -26,6 +26,7 @@
 -include("webmachine_logger.hrl").
 
 handle_request(Resource, ReqState) ->
+    [erase(X) || X <- [decision, code, req_body, bytes_written, tmp_reqstate]],
     put(resource, Resource),
     put(reqstate, ReqState),
     try
