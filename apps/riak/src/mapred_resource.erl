@@ -59,8 +59,8 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query}=State) ->
                 if is_list(Inputs) ->
                         {ok, {RId, FSM}} = Client:mapred_stream(Query, Me,
                                                                 ?DEFAULT_TIMEOUT),
-                        gen_fsm:send_event(FSM,{input, Inputs }),
-                        gen_fsm:send_event(FSM,input_done),
+                        luke_flow:add_inputs(FSM, Inputs),
+                        luke_flow:finish_inputs(FSM),
                         {ok, RId};
                    is_binary(Inputs) ->
                         Client:mapred_bucket_stream(Inputs, Query, Me,
@@ -78,12 +78,12 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query}=State) ->
                               Client:mapred_bucket(Inputs, Query)
                       end,
             RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
+            io:format("Results: ~p~n", [Results]),
             case Results of
+                {error, _} ->
+                    {{halt, 500}, send_error(Results, RD1), State};
                 {ok, Result} ->
-                    {true, wrq:set_resp_body(mochijson2:encode(Result), RD1), State};
-                Error ->
-                    error_logger:error_report(Error),
-                    {{halt, 500}, send_error(Error, RD1), State}
+                    {true, wrq:set_resp_body(mochijson2:encode(Result), RD1), State}
             end
     end.
 
@@ -101,15 +101,17 @@ format_error(_Error) ->
 
 stream_mapred_results(RD, ReqId, State) ->
     receive
-        {ReqId, done} -> {iolist_to_binary(["\n--", State#state.boundary, "--\n"]), done};
-        {ReqId, {mr_results, Res}} ->
+        {flow_results, ReqId, done} -> {iolist_to_binary(["\n--", State#state.boundary, "--\n"]), done};
+        {flow_results, ReqId, {error, Error}} ->
+            {format_error(Error), done};
+        {flow_error, ReqId, Error} ->
+            {format_error({error, Error}), done};
+        {flow_results, ReqId, Res} ->
             Data = mochijson2:encode(Res),
             Body = ["\n--", State#state.boundary, "\n",
                     "Content-Type: application/json\n\n",
                     Data],
-            {iolist_to_binary(Body), fun() -> stream_mapred_results(RD, ReqId, State) end};
-        {ReqId, {error, _}=Error} ->
-            {format_error(Error), done}
+            {iolist_to_binary(Body), fun() -> stream_mapred_results(RD, ReqId, State) end}
     after ?DEFAULT_TIMEOUT ->
             {format_error({error, timeout}), done}
     end.

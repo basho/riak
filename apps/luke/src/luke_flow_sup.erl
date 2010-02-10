@@ -17,13 +17,17 @@
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, new_flow/4]).
+-export([start_link/0, new_flow/4, new_flow/5]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
 new_flow(Client, FlowId, FlowDesc, Timeout) ->
     start_child(Client, FlowId, FlowDesc, Timeout).
+
+new_flow(Node, Client, FlowId, FlowDesc, Timeout) ->
+    start_child(Node, Client, FlowId, FlowDesc, Timeout).
+
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
@@ -37,4 +41,6 @@ init([]) ->
 
 %% Internal functions
 start_child(Client, FlowId, FlowDesc, Timeout) ->
-  supervisor:start_child(?MODULE, [Client, FlowId, FlowDesc, Timeout]).
+    supervisor:start_child(?MODULE, [Client, FlowId, FlowDesc, Timeout]).
+start_child(Node, Client, FlowId, FlowDesc, Timeout) ->
+    supervisor:start_child({?MODULE, Node}, [Client, FlowId, FlowDesc, Timeout]).

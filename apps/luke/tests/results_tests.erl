@@ -84,7 +84,7 @@ all_test_() ->
      fun() ->
              FlowId = make_ref(),
              {ok, Pid} = luke:new_flow(FlowId, ?MAPRED_FLOW),
-             Phases = test_util:verify_phases(Pid, 2),
+             Phases = test_util:verify_phases(Pid, 3),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:finish_inputs(Pid),
@@ -99,5 +99,15 @@ all_test_() ->
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:finish_inputs(Pid),
              ?assertMatch({ok, [20]}, luke_flow:collect_output(FlowId, 100)),
+             test_util:verify_results(FlowId, none),
+             test_util:assertDead([Pid|Phases]) end,
+     fun() ->
+             FlowId = make_ref(),
+             {ok, Pid} = luke:new_flow(FlowId, ?MAPRED_EMPTY),
+             Phases = test_util:verify_phases(Pid, 2),
+             luke_flow:add_inputs(Pid, [a,b]),
+             luke_flow:add_inputs(Pid, [a,b]),
+             luke_flow:finish_inputs(Pid),
+             ?assertMatch({ok, []}, luke_flow:collect_output(FlowId, 100)),
              test_util:verify_results(FlowId, none),
              test_util:assertDead([Pid|Phases]) end].

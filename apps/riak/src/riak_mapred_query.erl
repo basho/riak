@@ -1,0 +1,132 @@
+%% This file is provided to you under the Apache License,
+%% Version 2.0 (the "License"); you may not use this file
+%% except in compliance with the License.  You may obtain
+%% a copy of the License at
+
+%%   http://www.apache.org/licenses/LICENSE-2.0
+
+%% Unless required by applicable law or agreed to in writing,
+%% software distributed under the License is distributed on an
+%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+%% KIND, either express or implied.  See the License for the
+%% specific language governing permissions and limitations
+%% under the License.
+
+%% @doc riak_mapreduce_fsm is the driver of a mapreduce query.
+%%
+%%      Map phases are expected to have inputs of the form
+%%      [{Bucket,Key}] or [{{Bucket,Key},KeyData}] (the first form is
+%%      equivalent to [{{Bucket,Key},undefined}]) and will execute
+%%      with locality to each key and must return a list that is valid
+%%      input to the next phase
+%%
+%%      Reduce phases take any list, but the function must be
+%%      commutative and associative, and the next phase will block
+%%      until the reduce phase is entirely done, and the reduce fun
+%%      must return a list that is valid input to the next phase
+%%
+%%      Valid terms for Query:
+%%<ul>
+%%<li>  {link, Bucket, Tag, Acc}</li>
+%%<li>  {map, FunTerm, Arg, Acc}</li>
+%%<li>  {reduce, FunTerm, Arg, Acc}</li>
+%%</ul>
+%%      where FunTerm is one of:
+%% <ul>
+%%<li>  {modfun, Mod, Fun} : Mod and Fun both atoms ->
+%%         Mod:Fun(Object,KeyData,Arg)</li>
+%%<li>  {qfun, Fun} : Fun is an actual fun ->
+%%         Fun(Object,KeyData,Arg)</li>
+%%</ul>
+%% @type mapred_queryterm() =
+%%         {map, mapred_funterm(), Arg :: term(),
+%%          Accumulate :: boolean()} |
+%%         {reduce, mapred_funterm(), Arg :: term(),
+%%          Accumulate :: boolean()} |
+%%         {link, Bucket :: riak_object:bucket(), Tag :: term(),
+%%          Accumulate :: boolean()}
+%% @type mapred_funterm() =
+%%         {modfun, Module :: atom(), Function :: atom()}|
+%%         {qfun, function()}
+%% @type mapred_result() = [term()]
+
+-module(riak_mapred_query).
+
+-export([start/5]).
+
+start(Node, Client, ReqId, Query0, Timeout) ->
+    EffectiveTimeout = erlang:trunc(Timeout  * 1.1),
+    case check_query_syntax(Query0) of
+        {ok, Query} ->
+            luke:new_flow(Node, Client, ReqId, Query, EffectiveTimeout);
+        {bad_qterm, QTerm} ->
+            {stop, {bad_qterm, QTerm}}
+    end.
+
+check_query_syntax(Query) ->
+    check_query_syntax(lists:reverse(Query), []).
+
+check_query_syntax([], Accum) ->
+    {ok, Accum};
+check_query_syntax([QTerm={QTermType, QueryFun, Misc, Acc}|Rest], Accum) when is_boolean(Acc) ->
+    case QTermType of
+        link ->
+            {phase_mod(link), phase_behavior(link, Acc), [{erlang, QTerm}|Accum]};
+        T when T =:= map,
+               T =:= reduce->
+            PhaseDef = case QueryFun of
+                           {modfun, Mod, Fun} when is_atom(Mod),
+                                                   is_atom(Fun) ->
+                               {phase_mod(T), phase_behavior(T, Acc), [{erlang, QTerm}]};
+                           {qfun, Fun} when is_function(Fun) ->
+                               {phase_mod(T), phase_behavior(T, Acc), [{erlang, QTerm}]};
+                           {jsanon, JS} when is_binary(JS) ->
+                               {phase_mod(T), phase_behavior(T, Acc), [{javascript, QTerm}]};
+                           {jsanon, {Bucket, Key}} when is_binary(Bucket),
+                                                        is_binary(Key) ->
+                               case fetch_js(Bucket, Key) of
+                                   {ok, JS} ->
+                                       {phase_mod(T), phase_behavior(T, Acc), [{javascript,
+                                                                                {T, {jsanon, JS}, Misc, Acc}}]};
+                                   _ ->
+                                       {bad_qterm, QTerm}
+                               end;
+                           {jsfun, JS} when is_binary(JS) ->
+                               {phase_mod(T), phase_behavior(T, Acc), [{javascript, QTerm}]};
+                           _ ->
+                               {bad_qterm, QTerm}
+                       end,
+            case PhaseDef of
+                {bad_qterm, _} ->
+                    PhaseDef;
+                _ ->
+                    check_query_syntax(Rest, [PhaseDef|Accum])
+            end
+    end.
+
+phase_mod(link) ->
+    phase_mod(map);
+phase_mod(map) ->
+    riak_map_phase;
+phase_mod(reduce) ->
+    riak_reduce_phase.
+
+phase_behavior(link, Acc) ->
+    phase_behavior(map, Acc);
+phase_behavior(map, true) ->
+    [accumulate];
+phase_behavior(map, false) ->
+    [];
+phase_behavior(reduce, true) ->
+    [{converge, 2}, accumulate];
+phase_behavior(reduce, false) ->
+    [{converge, 2}].
+
+fetch_js(Bucket, Key) ->
+    {ok, Client} = riak:local_client(),
+    case Client:get(Bucket, Key, 1) of
+        {ok, Obj} ->
+            {ok, riak_object:get_value(Obj)};
+        _ ->
+            {error, bad_fetch}
+    end.

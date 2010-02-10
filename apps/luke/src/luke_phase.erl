@@ -29,7 +29,7 @@
 -export([init/1, handle_event/3,
          handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
 
--record(state, {mod, modstate, behavior, lead_partner, partners, next_phases,
+-record(state, {mod, modstate, converge=false, accumulate=false, lead_partner, partners, next_phases,
                 done_count=1, flow, timeout, cb_timeout=false}).
 
 behaviour_info(callbacks) ->
@@ -43,8 +43,8 @@ behaviour_info(callbacks) ->
 behaviour_info(_) ->
     undefined.
 
-start_link(PhaseMod, Behavior, NextPhases, Flow, Timeout, PhaseArgs) ->
-    gen_fsm:start_link(?MODULE, [PhaseMod, Behavior, NextPhases, Flow, Timeout, PhaseArgs], []).
+start_link(PhaseMod, Behaviors, NextPhases, Flow, Timeout, PhaseArgs) ->
+    gen_fsm:start_link(?MODULE, [PhaseMod, Behaviors, NextPhases, Flow, Timeout, PhaseArgs], []).
 
 complete() ->
     gen_fsm:send_event(self(), complete).
@@ -52,17 +52,19 @@ complete() ->
 partners(PhasePid, Leader, Partners) ->
     gen_fsm:send_event(PhasePid, {partners, Leader, Partners}).
 
-init([PhaseMod, Behavior, NextPhases, Flow, Timeout, PhaseArgs]) ->
+init([PhaseMod, Behaviors, NextPhases, Flow, Timeout, PhaseArgs]) ->
     case PhaseMod:init(PhaseArgs) of
         {ok, ModState} ->
             erlang:monitor(process, Flow),
+            Accumulate = lists:member(accumulate, Behaviors),
+            Converge = lists:member(converge, Behaviors),
             {ok, executing, #state{mod=PhaseMod, modstate=ModState, next_phases=NextPhases,
-                                   flow=Flow, behavior=Behavior, timeout=Timeout}, Timeout};
+                                   flow=Flow, accumulate=Accumulate, converge=Converge, timeout=Timeout}, Timeout};
         {stop, Reason} ->
             {stop, Reason}
     end.
 
-executing({partners, Lead0, Partners0}, #state{behavior=converge, timeout=Timeout}=State) when is_list(Partners0) ->
+executing({partners, Lead0, Partners0}, #state{converge=true, timeout=Timeout}=State) when is_list(Partners0) ->
     Me = self(),
     Lead = case Lead0 of
                Me ->
@@ -145,22 +147,28 @@ handle_callback({output, Output, NewModState, TempTimeout}, #state{timeout=Timeo
 handle_callback({stop, Reason, NewModState}, State) ->
     {stop, Reason, State#state{modstate=NewModState}}.
 
-route_output(Output, #state{behavior=accumulate, next_phases=Next, flow=Flow}=State) ->
-    RotatedNext = propagate_inputs(Next, Output),
-    luke_phases:send_flow_results(Flow, Output),
-    State#state{next_phases=RotatedNext};
-route_output(Output, #state{behavior=none, next_phases=Next}=State) ->
-    RotatedNext = propagate_inputs(Next, Output),
-    State#state{next_phases=RotatedNext};
-route_output(Output, #state{behavior=converge, lead_partner=undefined, next_phases=undefined, flow=Flow}=State) ->
-    luke_phases:send_flow_results(Flow, Output),
-    State;
-route_output(Output, #state{behavior=converge, lead_partner=undefined, next_phases=Next}=State) ->
-    RotatedNext = propagate_inputs(Next, Output),
-    State#state{next_phases=RotatedNext};
-route_output(Output, #state{behavior=converge, lead_partner=Lead}=State) ->
+route_output(Output, #state{converge=true, lead_partner=Lead}=State) when is_pid(Lead) ->
     propagate_inputs([Lead], Output),
-    State.
+    State;
+route_output(Output, #state{converge=true, accumulate=Accumulate, lead_partner=undefined,
+                            flow=Flow, next_phases=Next}=State) ->
+    if
+        Accumulate =:= true ->
+            luke_phases:send_flow_results(Flow, Output);
+        true ->
+            ok
+    end,
+    RotatedNext = propagate_inputs(Next, Output),
+    State#state{next_phases=RotatedNext};
+route_output(Output, #state{converge=false, accumulate=Accumulate, flow=Flow, next_phases=Next} = State) ->
+    if
+        Accumulate =:= true ->
+            luke_phases:send_flow_results(Flow, Output);
+        true ->
+            ok
+    end,
+    RotatedNext = propagate_inputs(Next, Output),
+    State#state{next_phases=RotatedNext}.
 
 propagate_inputs(undefined, _Results) ->
     undefined;

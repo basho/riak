@@ -12,16 +12,19 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--define(TWO_PHASE_FLOW, [{simple_phase, none, []},
-                         {simple_phase, accumulate, []}]).
+-define(TWO_PHASE_FLOW, [{simple_phase, [], []},
+                         {simple_phase, [accumulate], []}]).
 
--define(TWO_ASYNC_FLOW, [{async_phase, none, []},
-                         {async_phase, accumulate, []}]).
+-define(TWO_ASYNC_FLOW, [{async_phase, [], []},
+                         {async_phase, [accumulate], []}]).
 
--define(MAP_FLOW, [{map_phase, accumulate, []}]).
--define(MAP_DBL_FLOW, [{map_phase, accumulate, []},
-                       {map_phase, accumulate, []}]).
--define(MAPRED_FLOW, [{map_phase, none, []},
-                      {reduce_phase, {converge, 3}, []}]).
--define(MAPRED_FLOW1, [{map_phase, none, []},
-                       {reduce_phase, {converge, 1}, []}]).
+-define(MAP_FLOW, [{map_phase, [accumulate], []}]).
+-define(MAP_DBL_FLOW, [{map_phase, [accumulate], []},
+                       {map_phase, [accumulate], []}]).
+-define(MAPRED_FLOW, [{map_phase, [], []},
+                      {reduce_phase, [{converge, 3}], []},
+                      {reduce_phase, [accumulate], []}]).
+-define(MAPRED_FLOW1, [{map_phase, [], []},
+                       {reduce_phase, [{converge, 1}, accumulate], []}]).
+-define(MAPRED_EMPTY, [{map_phase, [], []},
+                       {reduce_phase, [{converge, 1}], []}]).
