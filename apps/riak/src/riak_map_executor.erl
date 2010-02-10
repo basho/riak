@@ -39,7 +39,6 @@ start_link(_Ring, _BadInput, _QTerm, _Timeout, _PhasePid) ->
     {error, bad_input}.
 %% @private
 init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
-    riak_eventer:notify(riak_map_executor, mapexec_start, start),
     DocIdx = riak_util:chash_key({Bucket,Key}),
     BucketProps = riak_bucket:get_bucket(Bucket, Ring),
     LinkFun = case QTerm0 of
@@ -67,7 +66,6 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
     end.
 
 try_vnode(QTerm, BKey, KeyData, [{P,VN}|VNs]) ->
-    riak_eventer:notify(riak_map_executor, try_vnode, {QTerm,BKey,P,VN}),
     gen_server:cast({riak_vnode_master, VN},
                     {vnode_map, {P,node()},
                      {self(),QTerm,BKey,KeyData}}),
@@ -81,18 +79,15 @@ wait(timeout, StateData=
     {next_state, wait, StateData#state{
                          vnodes=try_vnode(QTerm, BKey, KeyData, VNodes)},
      Timeout};
-wait({mapexec_error, VN, ErrMsg},
+wait({mapexec_error, _VN, _ErrMsg},
      StateData=#state{phase_pid=PhasePid,vnodes=[]}) ->
-    riak_eventer:notify(riak_map_executor, mapexec_vnode_err, {VN,ErrMsg}),
     riak_phase_proto:mapexec_error(PhasePid, "all nodes failed"),
     {stop,normal,StateData};
-wait({mapexec_error_noretry, VN, ErrMsg}, #state{phase_pid=PhasePid}=StateData) ->
-    riak_eventer:notify(riak_map_executor, mapexec_vnode_err_noretry, {VN, ErrMsg}),
+wait({mapexec_error_noretry, _VN, ErrMsg}, #state{phase_pid=PhasePid}=StateData) ->
     riak_phase_proto:mapexec_error(PhasePid, ErrMsg),
     {stop, normal, StateData};
-wait({mapexec_error, VN, ErrMsg},StateData=
+wait({mapexec_error, _VN, _ErrMsg},StateData=
      #state{vnodes=VNodes,qterm=QTerm,bkey=BKey,keydata=KeyData,timeout=Timeout}) ->
-    riak_eventer:notify(riak_map_executor, mapexec_vnode_err, {VN,ErrMsg}),
     {next_state, wait, StateData#state{
                          vnodes=try_vnode(QTerm, BKey, KeyData, VNodes)},
      Timeout};

@@ -70,6 +70,7 @@ executing({partners, Lead0, Partners0}, #state{converge=true, timeout=Timeout}=S
                Me ->
                    undefined;
                _ ->
+                   erlang:link(Lead0),
                    Lead0
            end,
     Partners = lists:delete(self(), Partners0),

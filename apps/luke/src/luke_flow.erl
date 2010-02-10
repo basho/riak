@@ -131,6 +131,7 @@ start_phases([{PhaseMod, Behaviors, Args}|T], Timeout, Accum) ->
             end;
         InstanceCount ->
             Pids = start_converging_phases(PhaseMod, Behaviors, NextFSM, self(), Timeout, Args, InstanceCount),
+            erlang:monitor(process, hd(Pids)),
             start_phases(T, Timeout, [Pids|Accum])
     end.
 
