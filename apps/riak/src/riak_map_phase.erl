@@ -22,7 +22,6 @@
 -record(state, {done=false, qterm, acc=[], ring, fsms=[]}).
 
 init([QTerm]) ->
-    io:format("map phase running on: ~p~n", [node()]),
     {ok, Ring} = riak_ring_manager:get_my_ring(),
     {ok, #state{ring=Ring, qterm=QTerm}}.
 

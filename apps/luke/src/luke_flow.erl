@@ -45,7 +45,6 @@ start_link(Client, FlowId, FlowDesc, Timeout) when is_list(FlowDesc),
     gen_fsm:start_link(?MODULE, [Client, FlowId, FlowDesc, Timeout], []).
 
 init([Client, FlowId, FlowDesc, Timeout0]) ->
-    io:format("Flow running on: ~p~n", [node()]),
     Timeout = case Timeout0 of
                   infinity ->
                       Timeout0;

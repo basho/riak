@@ -69,12 +69,11 @@ check_query_syntax(Query) ->
 check_query_syntax([], Accum) ->
     {ok, Accum};
 check_query_syntax([QTerm={QTermType, QueryFun, Misc, Acc}|Rest], Accum) when is_boolean(Acc) ->
-    case QTermType of
-        link ->
-            {phase_mod(link), phase_behavior(link, Acc), [{erlang, QTerm}|Accum]};
-        T when T =:= map,
-               T =:= reduce->
-            PhaseDef = case QueryFun of
+    PhaseDef = case QTermType of
+                   link ->
+                       {phase_mod(link), phase_behavior(link, Acc), [{erlang, QTerm}]};
+                   T when T =:= map orelse T=:= reduce ->
+                       case QueryFun of
                            {modfun, Mod, Fun} when is_atom(Mod),
                                                    is_atom(Fun) ->
                                {phase_mod(T), phase_behavior(T, Acc), [{erlang, QTerm}]};
@@ -95,24 +94,26 @@ check_query_syntax([QTerm={QTermType, QueryFun, Misc, Acc}|Rest], Accum) when is
                                {phase_mod(T), phase_behavior(T, Acc), [{javascript, QTerm}]};
                            _ ->
                                {bad_qterm, QTerm}
-                       end,
-            case PhaseDef of
-                {bad_qterm, _} ->
-                    PhaseDef;
-                _ ->
-                    check_query_syntax(Rest, [PhaseDef|Accum])
-            end
+                       end
+               end,
+    case PhaseDef of
+        {bad_qterm, _} ->
+            PhaseDef;
+        _ ->
+            check_query_syntax(Rest, [PhaseDef|Accum])
     end.
 
 phase_mod(link) ->
-    phase_mod(map);
+    riak_map_phase;
 phase_mod(map) ->
     riak_map_phase;
 phase_mod(reduce) ->
     riak_reduce_phase.
 
-phase_behavior(link, Acc) ->
-    phase_behavior(map, Acc);
+phase_behavior(link, true) ->
+    [accumulate];
+phase_behavior(link, false) ->
+    [];
 phase_behavior(map, true) ->
     [accumulate];
 phase_behavior(map, false) ->

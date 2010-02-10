@@ -23,7 +23,6 @@
 
 %% @private
 init([QTerm]) ->
-    io:format("map phase running on: ~p~n", [node()]),
     riak_eventer:notify(riak_reduce_phase_fsm, reduce_start, start),
     {ok, #state{qterm=QTerm}}.
 
