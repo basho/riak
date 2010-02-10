@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
-%% @doc riak_mapreduce_fsm is the driver of a mapreduce query.
+%% @doc riak_mapred_query is the driver of a mapreduce query.
 %%
 %%      Map phases are expected to have inputs of the form
 %%      [{Bucket,Key}] or [{{Bucket,Key},KeyData}] (the first form is

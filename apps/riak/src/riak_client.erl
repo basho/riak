@@ -42,9 +42,9 @@
 -define(DEFAULT_ERRTOL, 0.00003).
 
 %% @spec mapred(Inputs :: list(),
-%%              Query :: [riak_mapreduce_fsm:mapred_queryterm()]) ->
-%%       {ok, riak_mapreduce_fsm:mapred_result()} |
-%%       {error, {bad_qterm, riak_mapreduce_fsm:mapred_queryterm()}} |
+%%              Query :: [riak_mapred_query:mapred_queryterm()]) ->
+%%       {ok, riak_mapred_query:mapred_result()} |
+%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
 %%       {error, timeout} |
 %%       {error, Err :: term()}
 %% @doc Perform a map/reduce job across the cluster.
@@ -53,10 +53,10 @@
 mapred(Inputs,Query) -> mapred(Inputs,Query,?DEFAULT_TIMEOUT).
 
 %% @spec mapred(Inputs :: list(),
-%%              Query :: [riak_mapreduce_fsm:mapred_queryterm()],
+%%              Query :: [riak_mapred_query:mapred_queryterm()],
 %%              TimeoutMillisecs :: integer()  | 'infinity') ->
-%%       {ok, riak_mapreduce_fsm:mapred_result()} |
-%%       {error, {bad_qterm, riak_mapreduce_fsm:mapred_queryterm()}} |
+%%       {ok, riak_mapred_query:mapred_result()} |
+%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
 %%       {error, timeout} |
 %%       {error, Err :: term()}
 %% @doc Perform a map/reduce job across the cluster.
@@ -74,21 +74,21 @@ mapred(Inputs,Query,Timeout)
             Error
     end.
 
-%% @spec mapred_stream(Query :: [riak_mapreduce_fsm:mapred_queryterm()],
+%% @spec mapred_stream(Query :: [riak_mapred_query:mapred_queryterm()],
 %%                     ClientPid :: pid()) ->
 %%       {ok, {ReqId :: term(), MR_FSM_PID :: pid()}} |
-%%       {error, {bad_qterm, riak_mapreduce_fsm:mapred_queryterm()}} |
+%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
 %%       {error, Err :: term()}
 %% @doc Perform a streaming map/reduce job across the cluster.
 %%      See the map/reduce documentation for explanation of behavior.
 mapred_stream(Query,ClientPid) ->
     mapred_stream(Query,ClientPid,?DEFAULT_TIMEOUT).
 
-%% @spec mapred_stream(Query :: [riak_mapreduce_fsm:mapred_queryterm()],
+%% @spec mapred_stream(Query :: [riak_mapred_query:mapred_queryterm()],
 %%                     ClientPid :: pid(),
 %%                     TimeoutMillisecs :: integer() | 'infinity') ->
 %%       {ok, {ReqId :: term(), MR_FSM_PID :: pid()}} |
-%%       {error, {bad_qterm, riak_mapreduce_fsm:mapred_queryterm()}} |
+%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
 %%       {error, Err :: term()}
 %% @doc Perform a streaming map/reduce job across the cluster.
 %%      See the map/reduce documentation for explanation of behavior.
