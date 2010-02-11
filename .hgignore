@@ -29,6 +29,7 @@ test\.log
 ^rel/riak/.*
 ^dev/.*
 include/.*_pb.hrl$
-c_src/deps/(js|mozilla|nspr_release)/.*
+c_src/deps/(nsprpub|js|mozilla|nspr_release)/.*
 c_src/include/js/.*
 c_src/.*(\.o|\.a)$
+erlang_js/priv/.*.so$
