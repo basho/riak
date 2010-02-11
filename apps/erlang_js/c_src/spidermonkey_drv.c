@@ -42,7 +42,7 @@ static ErlDrvEntry spidermonkey_drv_entry = {
     NULL,                             /* output */
     NULL,                             /* ready_input */
     NULL,                             /* ready_output */
-    (char *) "spidermonkey_drv",      /* the name of the driver */
+    (char *) "erlang_js_drv",         /* the name of the driver */
     NULL,                             /* finish */
     NULL,                             /* handle */
     NULL,                             /* control */

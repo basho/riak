@@ -7,10 +7,7 @@ verbose:
 clean:
 	rm -rf tests_ebin docs
 	./rebar clean
-	cd c_src;make clean #jsclean
-
-realclean: clean
-	cd c_src;make dist
+	cd c_src;make clean
 
 test: all
 	@mkdir -p tests_ebin

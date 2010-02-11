@@ -12,7 +12,7 @@ js: libjs.a
 libnspr4.a: deps/nspr_release/dist/lib/libnspr4.a
 	@cp deps/nspr_release/dist/lib/libnspr4.a .
 
-libjs.a: libnspr4.a js/src/libjs.a
+libjs.a: libnspr4.a deps/js/src/libjs.a
 	@cp deps/js/src/libjs.a .
 
 deps/nspr_release/dist/lib/libnspr4.a: deps/nsprpub deps/nspr_release
@@ -26,13 +26,13 @@ deps:
 	@mkdir -p $(@)
 
 deps/nsprpub: deps
-	@mkdir $(@)
+	@mkdir -p $(@)
 	@tar -C deps -xzf nsprpub-$(NSPR_VER).tar.gz
 
 deps/nspr_release: deps
-	@mkdir $(@)
+	@mkdir -p $(@)
 
-js/src/libjs.a: deps/js
+deps/js/src/libjs.a: deps/js
 	@echo "Building Spidermonkey... this can take a bit"
 	@for I in patches/deps-js-*.patch; do \
 		patch -p1 < $${I}; \
@@ -52,21 +52,11 @@ deps/js: deps
 	@mkdir $(@)
 	@tar -C deps -xzf js-$(SMONKEY_VER).tar.gz
 
-dist:
+clean:
 	@rm -f libjs.a libnspr4.a
 	@rm -f *flymake*
 	@rm -rf include
 	@rm -rf deps
-
-jsclean:
-	@rm -f *flymake*
-	@rm -f libjs.a libnspr4.a
-	@rm -rf include
-
-clean: jsclean
-	@rm -rf deps/nspr_release
-	@rm -rf deps/nsprpub
-	@rm -rf deps/js
 
 nspryoink: deps
 	@cd deps ; \

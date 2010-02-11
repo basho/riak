@@ -24,7 +24,7 @@
 -export([define_js/2, define_js/3, define_js/4, eval_js/2, eval_js/3]).
 
 -define(SCRIPT_TIMEOUT, 5000).
--define(DRIVER_NAME, "spidermonkey_drv").
+-define(DRIVER_NAME, "erlang_js_drv").
 
 %% @spec load_driver() -> true | false
 %% @doc Attempt to load the Javascript driver
