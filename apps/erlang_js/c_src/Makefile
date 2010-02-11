@@ -1,6 +1,12 @@
 # This Makefile builds the dependencies (libjs and libnspr) needed by
 # spidermonkey_drv.so
 
+SMONKEY_VER	:= 1.8.0-rc1
+NSPR_VER	:= 4.8
+
+# NSPR_SIXTYFOUR, JS_SIXTYFOUR, and JS_TOILET are all conditionally defined in
+# erlang_js/rebar.config
+
 js: libjs.a
 
 libnspr4.a: deps/nspr_release/dist/lib/libnspr4.a
@@ -9,27 +15,42 @@ libnspr4.a: deps/nspr_release/dist/lib/libnspr4.a
 libjs.a: libnspr4.a js/src/libjs.a
 	@cp deps/js/src/libjs.a .
 
-deps/nspr_release/dist/lib/libnspr4.a: deps/mozilla deps/nspr_release
-	@cd deps/nspr_release;../mozilla/nsprpub/configure --disable-debug --enable-optimize;make
+deps/nspr_release/dist/lib/libnspr4.a: deps/nsprpub deps/nspr_release
+	@echo "Building NSPR... this can take a bit"
+	@cd deps/nspr_release ; \
+	../nsprpub/configure --disable-debug --enable-optimize \
+		$(NSPR_SIXTYFOUR) ; \
+	make
 
-deps/mozilla:
+deps:
 	@mkdir -p $(@)
-	@cvs -q -d :pserver:anonymous@cvs-mirror.mozilla.org:/cvsroot co -r NSPR_4_8_RTM mozilla/nsprpub
-	@mv mozilla deps
 
-deps/nspr_release:
-	@mkdir -p $(@)
+deps/nsprpub: deps
+	@mkdir $(@)
+	@tar -C deps -xzf nsprpub-$(NSPR_VER).tar.gz
+
+deps/nspr_release: deps
+	@mkdir $(@)
 
 js/src/libjs.a: deps/js
-	@cd deps/js/src;make BUILD_OPT=1 JS_DIST=../../nspr_release/dist JS_THREADSAFE=1 XCFLAGS="-DHAVE_VA_COPY -DVA_COPY=va_copy" -f Makefile.ref
+	@echo "Building Spidermonkey... this can take a bit"
+	@for I in patches/deps-js-*.patch; do \
+		patch -p1 < $${I}; \
+	done
+	@make -C deps/js/src BUILD_OPT=1 JS_DIST=../../nspr_release/dist \
+		JS_THREADSAFE=1 \
+		XCFLAGS="-DHAVE_VA_COPY -DVA_COPY=va_copy $(JS_SIXTYFOUR)" \
+		XLDFLAGS="$(JS_TOILET)" \
+		-f Makefile.ref
 	@cp deps/js/src/*_OPT.OBJ/libjs.a deps/js/src
-	@mkdir -p include/js;
+	@mkdir -p include/js
 	@cp deps/js/src/*.h include/js
 	@cp deps/js/src/*.tbl include/js
 	@cp deps/js/src/*_OPT.OBJ/*.h include/js
 
-deps/js:
-	@tar -C deps -xzf js-1.8.0-rc1.tar.gz
+deps/js: deps
+	@mkdir $(@)
+	@tar -C deps -xzf js-$(SMONKEY_VER).tar.gz
 
 dist:
 	@rm -f libjs.a libnspr4.a
@@ -41,3 +62,15 @@ jsclean:
 	@rm -f *flymake*
 	@rm -f libjs.a libnspr4.a
 	@rm -rf include
+
+clean: jsclean
+	@rm -rf deps/nspr_release
+	@rm -rf deps/nsprpub
+	@rm -rf deps/js
+
+nspryoink: deps
+	@cd deps ; \
+	@cvs -q -d :pserver:anonymous@cvs-mirror.mozilla.org:/cvsroot \
+		co -r NSPR_4_8_RTM -d nsprpub mozilla/nsprpub
+
+.EXPORT_ALL_VARIABLES:
