@@ -36,7 +36,7 @@ output(Basename, Messages) ->
     BeamFile = filename:dirname(code:which(?MODULE)) ++ "/pokemon_pb.beam",
     {ok,{_,[{abstract_code,{_,Forms}}]}} = beam_lib:chunks(BeamFile, [abstract_code]),
     Forms1 = filter_forms(Messages, Forms, Basename, []),
-    {ok, _, Bytes, _} = compile:forms(Forms1, [return]),
+    {ok, _, Bytes, _} = compile:forms(Forms1, [return, debug_info]),
     file:write_file(Basename ++ ".beam", Bytes).
 
 filter_forms(Msgs, [{attribute,L,file,{_,_}}|Tail], Basename, Acc) ->
