@@ -49,7 +49,7 @@ deps/js/src/libjs.a: deps/js
 	@cp deps/js/src/*_OPT.OBJ/*.h include/js
 
 deps/js: deps
-	@mkdir $(@)
+	@mkdir -p $(@)
 	@tar -C deps -xzf js-$(SMONKEY_VER).tar.gz
 
 clean:
