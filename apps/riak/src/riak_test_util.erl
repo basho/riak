@@ -30,6 +30,9 @@ standard_backend_test(BackendMod, Config) ->
         _ ->
             ?assertEqual([{{<<"b1">>,<<"k1">>},<<"v1">>}], BackendMod:fold(S, Folder, []))
     end,
+    ?assertEqual(false, BackendMod:is_empty(S)),
+    ?assertEqual(ok, BackendMod:delete(S,{<<"b1">>,<<"k1">>})),
+    ?assertEqual(true, BackendMod:is_empty(S)),
     ok = BackendMod:stop(S).
 
 setup_mockring1() ->

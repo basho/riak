@@ -49,7 +49,7 @@ handle_call(list,_From,State) -> {reply, srv_list(State), State};
 handle_call({list_bucket,Bucket},_From,State) ->
     {reply, srv_list_bucket(State, Bucket), State};
 handle_call(is_empty, _From, State) ->
-    {reply, ets:info(State#state.t) =:= 0, State};
+    {reply, ets:info(State#state.t, size) =:= 0, State};
 handle_call(drop, _From, State) -> 
     ets:delete(State#state.t),
     {reply, ok, State};
