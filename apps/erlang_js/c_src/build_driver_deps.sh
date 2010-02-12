@@ -1,9 +1,9 @@
-#!/bin/bash
+#!/bin/sh
 
 set -e
 
 if [ `basename $PWD` != "src" ]; then
-    pushd c_src
+    cd c_src
 fi
 
 unset CFLAGS LDFLAGS
