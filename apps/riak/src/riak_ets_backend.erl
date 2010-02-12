@@ -55,8 +55,8 @@ handle_call(drop, _From, State) ->
     {reply, ok, State};
 handle_call({fold, Fun0, Acc}, _From, State) ->
     Fun = fun({{B,K}, V}, AccIn) -> Fun0({B,K}, V, AccIn) end,
-    ets:foldl(Fun, Acc, State#state.t),
-    {reply, ok, State}.
+    Reply = ets:foldl(Fun, Acc, State#state.t),
+    {reply, Reply, State}.
 
 
 % @spec stop(state()) -> ok | {error, Reason :: term()}

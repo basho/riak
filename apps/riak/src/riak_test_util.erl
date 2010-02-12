@@ -22,6 +22,14 @@ standard_backend_test(BackendMod, Config) ->
     ?assertEqual(ok, BackendMod:delete(S,{<<"b2">>,<<"k2">>})),
     ?assertEqual({error, notfound}, BackendMod:get(S, {<<"b2">>, <<"k2">>})),
     ?assertEqual([{<<"b1">>, <<"k1">>}], BackendMod:list(S)),
+    Folder = fun(K, V, A) -> [{K,V}|A] end,
+    case BackendMod of
+        riak_multi_backend ->
+            ?assertEqual([{{<<"b1">>,<<"k1">>},<<"v1">>},
+                          {{<<"b1">>,<<"k1">>},<<"v1">>}], BackendMod:fold(S, Folder, []));
+        _ ->
+            ?assertEqual([{{<<"b1">>,<<"k1">>},<<"v1">>}], BackendMod:fold(S, Folder, []))
+    end,
     ok = BackendMod:stop(S).
 
 setup_mockring1() ->
