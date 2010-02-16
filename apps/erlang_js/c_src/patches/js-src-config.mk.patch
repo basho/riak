@@ -1,5 +1,5 @@
---- c_src.orig/deps/js/src/config.mk	2010-02-10 15:25:09.000000000 -0800
-+++ c_src/deps/js/src/config.mk	2010-02-10 15:26:42.000000000 -0800
+--- c_src.orig/js/src/config.mk	2010-02-10 15:25:09.000000000 -0800
++++ c_src/js/src/config.mk	2010-02-10 15:26:42.000000000 -0800
 @@ -141,7 +141,9 @@
  
  SO_SUFFIX = so

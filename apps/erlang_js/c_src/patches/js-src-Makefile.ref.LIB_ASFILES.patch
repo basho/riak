@@ -1,5 +1,5 @@
---- c_src/deps/js/src/Makefile.ref.orig	2010-02-11 09:22:46.000000000 -0800
-+++ c_src/deps/js/src/Makefile.ref	2010-02-11 09:26:24.000000000 -0800
+--- c_src/js/src/Makefile.ref.orig	2010-02-11 09:22:46.000000000 -0800
++++ c_src/js/src/Makefile.ref	2010-02-11 09:26:24.000000000 -0800
 @@ -255,7 +255,11 @@
  endif
  

@@ -1,5 +1,5 @@
---- c_src/deps/js/src/Makefile.in.orig  2010-02-11 09:35:02.511252399 -0500
-+++ c_src/deps/js/src/Makefile.in       2010-02-11 09:35:38.505370688 -0500
+--- c_src/js/src/Makefile.in.orig  2010-02-11 09:35:02.511252399 -0500
++++ c_src/js/src/Makefile.in       2010-02-11 09:35:38.505370688 -0500
 @@ -214,7 +214,7 @@
  
  # When using gcc the assembly is inlined in the C-file (see jslock.c)
