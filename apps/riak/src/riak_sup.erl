@@ -62,12 +62,6 @@ init([]) ->
     RiakJsSup = {riak_js_sup,
                  {riak_js_sup, start_link, []},
                  permanent, infinity, supervisor, [riak_js_sup]},
-    MapReduceFSMSup = {riak_mapreduce_sup,
-                       {riak_mapreduce_sup, start_link, []},
-                       permanent, infinity, supervisor, [riak_mapreduce_sup]},
-    PhaseFSMSup = {riak_phase_sup,
-                       {riak_phase_sup, start_link, []},
-                       permanent, infinity, supervisor, [riak_phase_sup]},
     % Figure out which processes we should run...
     IsWebConfigured = (riak:get_app_env(riak_web_ip) /= undefined) andalso (riak:get_app_env(riak_web_ip) /= "undefined"),
     HasStorageBackend = (riak:get_app_env(storage_backend) /= undefined) andalso (riak:get_app_env(storage_backend) /= "undefined"),
@@ -84,8 +78,6 @@ init([]) ->
         LocalLogger,
         ?IF(IsWebConfigured, RiakWeb, []),
         ?IF(IsStatEnabled, RiakStat, []),
-        MapReduceFSMSup,
-        PhaseFSMSup,
         RiakJsSup,
         RiakJsMgr
     ]),

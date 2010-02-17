@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 -module(riak_keys_fsm).
 -behaviour(gen_fsm).
@@ -59,7 +59,7 @@ waiting_kl({kl, Keys, _Idx, ReqId},
             bloom=Bloom,req_id=ReqId,client=Client,client_type=ClientType}) ->
     process_keys(Keys,Bucket,ClientType,Bloom,ReqId,Client),
     case ClientType of
-        mapred -> gen_fsm:send_event(Client,input_done);
+        mapred -> luke_flow:finish_inputs(Client);
         plain -> Client ! {ReqId, done}
     end,
     {stop,normal,StateData};
@@ -80,7 +80,7 @@ process_keys(Keys,Bucket,ClientType,Bloom,ReqId,Client) ->
 %% @private
 process_keys([],Bucket,ClientType,Bloom,ReqId,Client,Acc) ->
     case ClientType of
-        mapred -> gen_fsm:send_event(Client,{input,[{Bucket,K} || K <- Acc]});
+        mapred -> luke_flow:add_inputs(Client, [{Bucket,K} || K <- Acc]);
         plain -> Client ! {ReqId, {keys, Acc}}
     end,
     lists:foldl(fun(E,A) -> bloom:add(E,A) end, Bloom, Acc);

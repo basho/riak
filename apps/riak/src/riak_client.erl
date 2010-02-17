@@ -42,9 +42,9 @@
 -define(DEFAULT_ERRTOL, 0.00003).
 
 %% @spec mapred(Inputs :: list(),
-%%              Query :: [riak_mapreduce_fsm:mapred_queryterm()]) ->
-%%       {ok, riak_mapreduce_fsm:mapred_result()} |
-%%       {error, {bad_qterm, riak_mapreduce_fsm:mapred_queryterm()}} |
+%%              Query :: [riak_mapred_query:mapred_queryterm()]) ->
+%%       {ok, riak_mapred_query:mapred_result()} |
+%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
 %%       {error, timeout} |
 %%       {error, Err :: term()}
 %% @doc Perform a map/reduce job across the cluster.
@@ -53,10 +53,10 @@
 mapred(Inputs,Query) -> mapred(Inputs,Query,?DEFAULT_TIMEOUT).
 
 %% @spec mapred(Inputs :: list(),
-%%              Query :: [riak_mapreduce_fsm:mapred_queryterm()],
+%%              Query :: [riak_mapred_query:mapred_queryterm()],
 %%              TimeoutMillisecs :: integer()  | 'infinity') ->
-%%       {ok, riak_mapreduce_fsm:mapred_result()} |
-%%       {error, {bad_qterm, riak_mapreduce_fsm:mapred_queryterm()}} |
+%%       {ok, riak_mapred_query:mapred_result()} |
+%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
 %%       {error, timeout} |
 %%       {error, Err :: term()}
 %% @doc Perform a map/reduce job across the cluster.
@@ -66,29 +66,29 @@ mapred(Inputs,Query,Timeout)
        (is_integer(Timeout) orelse Timeout =:= infinity) ->
     Me = self(),
     case mapred_stream(Query,Me,Timeout) of
-        {ok, {ReqId, MR_FSM}} ->
-            gen_fsm:send_event(MR_FSM,{input,Inputs}),
-            gen_fsm:send_event(MR_FSM,input_done),
-            collect_mr_results(ReqId, Timeout, []);
+        {ok, {ReqId, FlowPid}} ->
+            luke_flow:add_inputs(FlowPid, Inputs),
+            luke_flow:finish_inputs(FlowPid),
+            luke_flow:collect_output(ReqId, Timeout);
         Error ->
             Error
     end.
 
-%% @spec mapred_stream(Query :: [riak_mapreduce_fsm:mapred_queryterm()],
+%% @spec mapred_stream(Query :: [riak_mapred_query:mapred_queryterm()],
 %%                     ClientPid :: pid()) ->
 %%       {ok, {ReqId :: term(), MR_FSM_PID :: pid()}} |
-%%       {error, {bad_qterm, riak_mapreduce_fsm:mapred_queryterm()}} |
+%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
 %%       {error, Err :: term()}
 %% @doc Perform a streaming map/reduce job across the cluster.
 %%      See the map/reduce documentation for explanation of behavior.
 mapred_stream(Query,ClientPid) ->
     mapred_stream(Query,ClientPid,?DEFAULT_TIMEOUT).
 
-%% @spec mapred_stream(Query :: [riak_mapreduce_fsm:mapred_queryterm()],
+%% @spec mapred_stream(Query :: [riak_mapred_query:mapred_queryterm()],
 %%                     ClientPid :: pid(),
 %%                     TimeoutMillisecs :: integer() | 'infinity') ->
 %%       {ok, {ReqId :: term(), MR_FSM_PID :: pid()}} |
-%%       {error, {bad_qterm, riak_mapreduce_fsm:mapred_queryterm()}} |
+%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
 %%       {error, Err :: term()}
 %% @doc Perform a streaming map/reduce job across the cluster.
 %%      See the map/reduce documentation for explanation of behavior.
@@ -96,7 +96,12 @@ mapred_stream(Query,ClientPid,Timeout)
   when is_list(Query), is_pid(ClientPid),
        (is_integer(Timeout) orelse Timeout =:= infinity) ->
     ReqId = mk_reqid(),
-    riak_mapreduce_sup:new_mapreduce_fsm(Node, ReqId, Query, Timeout, ClientPid).
+    case riak_mapred_query:start(Node, ClientPid, ReqId, Query, Timeout) of
+        {ok, Pid} ->
+            {ok, {ReqId, Pid}};
+        Error ->
+            Error
+    end.
 
 mapred_bucket_stream(Bucket, Query, ClientPid) ->
     mapred_bucket_stream(Bucket, Query, ClientPid, ?DEFAULT_TIMEOUT).
@@ -120,7 +125,7 @@ mapred_bucket(Bucket, Query, Timeout, ErrorTolerance) ->
     Me = self(),
     {ok,MR_ReqId} = mapred_bucket_stream(Bucket, Query, Me,
                                          Timeout, ErrorTolerance),
-    collect_mr_results(MR_ReqId, Timeout, []).
+    luke_flow:collect_output(MR_ReqId, Timeout).
 
 %% @spec get(riak_object:bucket(), riak_object:key(), R :: integer()) ->
 %%       {ok, riak_object:riak_object()} |
@@ -385,18 +390,6 @@ wait_for_reqid(ReqId, Timeout) ->
         {ReqId, {error, Err}} -> {error, Err};
         {ReqId, ok} -> ok;
         {ReqId, {ok, Res}} -> {ok, Res}
-    after Timeout ->
-            {error, timeout}
-    end.
-
-%% @private
-collect_mr_results(ReqId, Timeout, Acc) ->
-    receive
-        {ReqId, done} -> {ok, Acc};
-        {ReqId, {error, _}=Error} ->
-            Error;
-        {ReqId,{mr_results,Res}} ->
-            collect_mr_results(ReqId,Timeout,Acc++Res)
     after Timeout ->
             {error, timeout}
     end.

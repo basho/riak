@@ -240,3 +240,24 @@ prune_old_test() ->
     Props = [{small_vclock,1},{young_vclock,1},
              {big_vclock,2},{old_vclock,10000}],
     ?assert(length(prune(VC, Now, Props)) =:= 1).
+
+accessor_test() ->
+    VC = [{<<"1">>, {1, 1}},
+          {<<"2">>, {2, 2}}],
+    ?assertEqual(1, get_counter(<<"1">>, VC)),
+    ?assertEqual(1, get_timestamp(<<"1">>, VC)),
+    ?assertEqual(2, get_counter(<<"2">>, VC)),
+    ?assertEqual(2, get_timestamp(<<"2">>, VC)),
+    ?assertEqual(undefined, get_counter(<<"3">>, VC)),
+    ?assertEqual(undefined, get_timestamp(<<"3">>, VC)),
+    ?assertEqual([<<"1">>, <<"2">>], all_nodes(VC)).
+
+merge_test() ->
+    VC1 = [{<<"1">>, {1, 1}},
+           {<<"2">>, {2, 2}},
+           {<<"4">>, {4, 4}}],
+    VC2 = [{<<"3">>, {3, 3}},
+           {<<"4">>, {3, 3}}],
+    ?assertEqual([], merge(vclock:fresh())),
+    ?assertEqual([{<<"1">>,{1,1}},{<<"2">>,{2,2}},{<<"3">>,{3,3}},{<<"4">>,{4,4}}],
+                 merge([VC1, VC2])).

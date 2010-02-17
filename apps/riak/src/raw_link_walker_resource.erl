@@ -171,6 +171,8 @@ links(Object, Bucket, Tag) ->
 %% @spec link_match_fun(binary()|'_', binary()|'_') -> function()
 %% @doc Create a function suitable for lists:filter/2 for filtering
 %%      links by Bucket and Tag.
+link_match_fun('_', '_') ->
+    fun(_) -> true end;
 link_match_fun('_', Tag) ->
     fun({_, T}) -> Tag == T end;
 link_match_fun(Bucket, '_') ->

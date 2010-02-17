@@ -11,31 +11,36 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
--module(riak_mapreduce_sup).
+
+-module(luke_sup).
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, new_mapreduce_fsm/5]).
+-export([start_link/0]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
-new_mapreduce_fsm(Node, ReqId, Query, Timeout, Requestor) ->
-    case supervisor:start_child({?MODULE, Node},  [riak_mapreduce_fsm, [ReqId, Query,
-                                                                        Timeout, Requestor], []]) of
-        {ok, Pid} ->
-            {ok, {ReqId, Pid}};
-        Error ->
-            Error
-    end.
+-define(SERVER, ?MODULE).
 
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    supervisor:start_link({local, ?SERVER}, ?MODULE, []).
 
 init([]) ->
-    SupFlags = {simple_one_for_one, 0, 1},
-    Process = {undefined,
-               {gen_fsm, start_link, []},
-               temporary, brutal_kill, worker, dynamic},
-    {ok, {SupFlags, [Process]}}.
+    RestartStrategy = one_for_one,
+    MaxRestarts = 1000,
+    MaxSecondsBetweenRestarts = 3600,
+
+    SupFlags = {RestartStrategy, MaxRestarts, MaxSecondsBetweenRestarts},
+
+    Restart = permanent,
+    Shutdown = infinity,
+    Type = supervisor,
+
+    PhaseSup = {luke_phase_sup, {luke_phase_sup, start_link, []},
+                Restart, Shutdown, Type, [luke_phase_sup]},
+    FlowSup = {luke_flow_sup, {luke_flow_sup, start_link, []},
+                Restart, Shutdown, Type, [luke_flow_sup]},
+
+    {ok, {SupFlags, [FlowSup, PhaseSup]}}.

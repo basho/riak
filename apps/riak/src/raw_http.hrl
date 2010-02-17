@@ -29,7 +29,7 @@
 -define(HEAD_LINK,            "Link").
 -define(HEAD_ENCODING,        "Content-Encoding").
 -define(HEAD_CLIENT,          "X-Riak-ClientId").
--define(HEAD_USERMETA_PREFIX, "X-Riak-Meta-").
+-define(HEAD_USERMETA_PREFIX, "x-riak-meta-").
 
 %% Names of JSON fields in bucket properties
 -define(JSON_PROPS,   <<"props">>).

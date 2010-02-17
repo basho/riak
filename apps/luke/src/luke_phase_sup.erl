@@ -11,25 +11,20 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
--module(riak_phase_sup).
+
+-module(luke_phase_sup).
 
 -behaviour(supervisor).
 
 %% API
--export([start_link/0, new_reduce_phase/5, new_map_phase/5]).
--export([new_map_executor/5]).
+-export([start_link/0, new_phase/6]).
 
 %% Supervisor callbacks
 -export([init/1]).
 
-new_reduce_phase(_Ring, QTerm, NextFSM, Requestor, PerPhaseTimeout) ->
-    start_child(riak_reduce_phase_fsm, [QTerm, NextFSM, Requestor, PerPhaseTimeout]).
-
-new_map_phase(Ring, QTerm, NextFSM, Requestor, PerPhaseTimeout) ->
-    start_child(riak_map_phase_fsm, [Ring, QTerm, NextFSM, Requestor, PerPhaseTimeout]).
-
-new_map_executor(Ring, Input, QTerm, Requestor, Timeout) ->
-    start_child(riak_map_executor, [Ring, Input, QTerm, Requestor, Timeout]).
+new_phase(PhaseMod, Behavior, NextPhases, Flow, Timeout, PhaseArgs) when is_atom(PhaseMod),
+                                                                        is_list(PhaseArgs) ->
+    start_child(PhaseMod, [Behavior, NextPhases, Flow, Timeout, PhaseArgs]).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
@@ -37,10 +32,10 @@ start_link() ->
 init([]) ->
     SupFlags = {simple_one_for_one, 0, 1},
     Process = {undefined,
-               {gen_fsm, start_link, []},
+               {luke_phase, start_link, []},
                temporary, brutal_kill, worker, dynamic},
     {ok, {SupFlags, [Process]}}.
 
 %% Internal functions
 start_child(ModName, Args) ->
-  supervisor:start_child(?MODULE, [ModName, Args, []]).
+  supervisor:start_child(?MODULE, [ModName|Args]).
