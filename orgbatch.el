@@ -33,3 +33,4 @@
   (mapcar
    (lambda (filename) (riak-export-doc-file filename format))
    (file-expand-wildcards (concat directory "/*.org"))))
+;; comment for the testing
