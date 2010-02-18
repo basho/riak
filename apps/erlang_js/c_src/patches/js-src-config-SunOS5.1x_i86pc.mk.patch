@@ -1,6 +1,6 @@
 --- /dev/null	2010-02-11 06:02:12.000000000 -0800
-+++ c_src/deps/js/src/config/SunOS5.11_i86pc.mk	2010-02-11 08:45:45.000000000 -0800
-@@ -0,0 +1,48 @@
++++ c_src/js/src/config/SunOS5.1x_i86pc.mk	2010-02-11 08:42:17.000000000 -0800
+@@ -0,0 +1,69 @@
 +# -*- Mode: makefile -*-
 +#
 +# ***** BEGIN LICENSE BLOCK *****
@@ -21,7 +21,7 @@
 +#
 +# The Initial Developer of the Original Code is
 +# Netscape Communications Corporation.
-+# Portions created by the Initial Developer are Copyright (C) 1999
++# Portions created by the Initial Developer are Copyright (C) 1998
 +# the Initial Developer. All Rights Reserved.
 +#
 +# Contributor(s):
@@ -41,11 +41,32 @@
 +# ***** END LICENSE BLOCK *****
 +
 +#
-+# Config stuff for SunOS5.11, using vendor gcc and NSPR
++# Config stuff for SunOS5.1x_i86pc
 +#
 +
-+include $(DEPTH)/config/SunOS5.1x_i86pc.mk
++AS = /usr/ccs/bin/as
++CC = gcc
++CCC = g++
++CFLAGS +=  -Wall -Wno-format
++LD = gcc
 +
-+INCLUDES += -I/usr/sfw/include/mozilla/nspr
-+OTHER_LIBS += -L/usr/sfw/lib/mozilla -R/usr/sfw/lib/mozilla
++RANLIB = echo
 +
++#.c.o:
++#	$(CC) -c -MD $*.d $(CFLAGS) $<
++
++GFX_ARCH = x
++
++OS_CFLAGS = -DXP_UNIX -DSVR4 -DSYSV -DSOLARIS -DHAVE_LOCALTIME_R -fPIC
++OS_LIBS = -lsocket -lnsl -ldl
++
++ASFLAGS += -P -L -K PIC -D_ASM -D__STDC__=0
++
++HAVE_PURIFY = 1
++
++NOSUCHFILE = /solaris-rm-f-sucks
++
++MKSHLIB = $(LD) -shared
++
++# Use the editline library to provide line-editing support.
++JS_EDITLINE = 1

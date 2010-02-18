@@ -4,59 +4,43 @@
 SMONKEY_VER	:= 1.8.0-rc1
 NSPR_VER	:= 4.8
 
-# NSPR_SIXTYFOUR, JS_SIXTYFOUR, and JS_TOILET are all conditionally defined in
-# erlang_js/rebar.config
+SYSTEM_DIR := $(CURDIR)/system
+LIB_DIR    := $(SYSTEM_DIR)/lib
+INC_DIR    := $(SYSTEM_DIR)/include
 
-js: libjs.a
+JS_DIR     := $(CURDIR)/js
+NSPR_DIR   := $(CURDIR)/nsprpub
 
-libnspr4.a: deps/nspr_release/dist/lib/libnspr4.a
-	@cp deps/nspr_release/dist/lib/libnspr4.a .
+# NSPR_SIXTYFOUR is defined in erlang_js/rebar.config
 
-libjs.a: libnspr4.a deps/js/src/libjs.a
-	@cp deps/js/src/libjs.a .
+js: $(LIB_DIR)/libjs.a
 
-deps/nspr_release/dist/lib/libnspr4.a: deps/nsprpub deps/nspr_release
-	@echo "Building NSPR... this can take a bit"
-	@cd deps/nspr_release ; \
-	../nsprpub/configure --disable-debug --enable-optimize \
-		$(NSPR_SIXTYFOUR) ; \
-	$(MAKE)	
-
-deps:
-	@mkdir -p $(@)
-
-deps/nsprpub: deps
-	@mkdir -p $(@)
-	@tar -C deps -xzf nsprpub-$(NSPR_VER).tar.gz
-
-deps/nspr_release: deps
-	@mkdir -p $(@)
-
-deps/js/src/libjs.a: deps/js
-	@echo "Building Spidermonkey... this can take a bit"
-	@for I in patches/deps-js-*.patch; do \
+$(LIB_DIR)/libjs.a: $(LIB_DIR)/libnspr4.a
+	tar -xzf js-$(SMONKEY_VER).tar.gz
+	@for I in patches/js-*.patch; do \
 		(patch -p1 < $${I} || echo "Skipping patch"); \
 	done
-	@$(MAKE) -C deps/js/src BUILD_OPT=1 JS_DIST=../../nspr_release/dist \
+	@$(MAKE) -C $(JS_DIR)/src BUILD_OPT=1 JS_DIST=$(SYSTEM_DIR) \
 		JS_THREADSAFE=1 \
-		XCFLAGS="-DHAVE_VA_COPY -DVA_COPY=va_copy $(JS_SIXTYFOUR)" \
-		XLDFLAGS="$(JS_TOILET)" \
+		XCFLAGS="-DHAVE_VA_COPY -DVA_COPY=va_copy $(CFLAGS)" \
+		XLDFLAGS="$(LDFLAGS)" \
 		-f Makefile.ref
-	@cp deps/js/src/*_OPT.OBJ/libjs.a deps/js/src
-	@mkdir -p include/js
-	@cp deps/js/src/*.h include/js
-	@cp deps/js/src/*.tbl include/js
-	@cp deps/js/src/*_OPT.OBJ/*.h include/js
+	@mkdir $(INC_DIR)/js
+	@cp $(JS_DIR)/src/*.h $(INC_DIR)/js
+	@cp $(JS_DIR)/src/*.tbl $(INC_DIR)/js
+	@cp $(JS_DIR)/src/*_OPT.OBJ/*.h $(INC_DIR)/js
+	@cp $(JS_DIR)/src/*_OPT.OBJ/libjs.a $(LIB_DIR)
 
-deps/js: deps
-	@mkdir -p $(@)
-	@tar -C deps -xzf js-$(SMONKEY_VER).tar.gz
+$(LIB_DIR)/libnspr4.a:
+	tar -xzf nsprpub-$(NSPR_VER).tar.gz
+	(cd $(NSPR_DIR) && \
+	 ./configure --disable-debug --enable-optimize \
+                     --prefix=$(SYSTEM_DIR) $(NSPR_SIXTYFOUR) && \
+         $(MAKE) all install)
 
 clean:
-	@rm -f libjs.a libnspr4.a
-	@rm -f *flymake*
-	@rm -rf include
-	@rm -rf deps
+	@rm -rf $(SYSTEM_DIR) $(NSPR_DIR) $(JS_DIR)
+	@rm -rf *flymake*
 
 nspryoink: deps
 	@cd deps ; \

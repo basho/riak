@@ -1,5 +1,5 @@
---- c_src/deps/js/src.orig/Makefile.ref	2010-02-10 12:04:17.000000000 -0800
-+++ c_src/deps/js/src/Makefile.ref	2010-02-10 12:06:07.000000000 -0800
+--- c_src/js/src.orig/Makefile.ref	2010-02-10 12:04:17.000000000 -0800
++++ c_src/js/src/Makefile.ref	2010-02-10 12:06:07.000000000 -0800
 @@ -336,7 +336,7 @@
  	$(OBJDIR)/jscpucfg > $@
  
