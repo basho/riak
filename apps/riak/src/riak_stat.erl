@@ -134,7 +134,8 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state,{vnode_gets,vnode_puts,
+-record(state,{vnode_gets,vnode_puts,vnode_gets_total,vnode_puts_total,
+               node_gets_total, node_puts_total,
                get_fsm_time,put_fsm_time}).
 
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
@@ -162,6 +163,10 @@ update(Stat) ->
 init([]) ->
     {ok, #state{vnode_gets=spiraltime:fresh(),
                 vnode_puts=spiraltime:fresh(),
+                vnode_gets_total=0,
+                vnode_puts_total=0,
+                node_gets_total=0,
+                node_puts_total=0,
                 get_fsm_time=slide:fresh(),
                 put_fsm_time=slide:fresh()}}.
 
@@ -196,14 +201,14 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% @spec update(Stat::term(), integer(), state()) -> state()
 %% @doc Update the given stat in State, returning a new State.
-update(vnode_get, Moment, State) ->
-    spiral_incr(#state.vnode_gets, Moment, State);
-update(vnode_put, Moment, State) ->
-    spiral_incr(#state.vnode_puts, Moment, State);
-update({get_fsm_time, Microsecs}, Moment, State) ->
-    slide_incr(#state.get_fsm_time, Microsecs, Moment, State);
-update({put_fsm_time, Microsecs}, Moment, State) ->
-    slide_incr(#state.put_fsm_time, Microsecs, Moment, State);
+update(vnode_get, Moment, State=#state{vnode_gets_total=VGT}) ->
+    spiral_incr(#state.vnode_gets, Moment, State#state{vnode_gets_total=VGT+1});
+update(vnode_put, Moment, State=#state{vnode_puts_total=VPT}) ->
+    spiral_incr(#state.vnode_puts, Moment, State#state{vnode_puts_total=VPT+1});
+update({get_fsm_time, Microsecs}, Moment, State=#state{node_gets_total=NGT}) ->
+    slide_incr(#state.get_fsm_time, Microsecs, Moment, State#state{node_gets_total=NGT+1});
+update({put_fsm_time, Microsecs}, Moment, State=#state{node_puts_total=NPT}) ->
+    slide_incr(#state.put_fsm_time, Microsecs, Moment, State#state{node_puts_total=NPT+1});
 update(_, _, State) ->
     State.
 
@@ -263,25 +268,32 @@ slide_minute(Moment, Elt, State) ->
 
 %% @spec vnode_stats(integer(), state()) -> proplist()
 %% @doc Get the vnode-sum stats proplist.
-vnode_stats(Moment, State) ->
-    [{F, spiral_minute(Moment, Elt, State)}
-     || {F, Elt} <- [{vnode_gets, #state.vnode_gets},
-                     {vnode_puts, #state.vnode_puts}]].
+vnode_stats(Moment, State=#state{vnode_gets_total=VGT, vnode_puts_total=VPT}) ->
+    lists:append(
+      [{F, spiral_minute(Moment, Elt, State)}
+       || {F, Elt} <- [{vnode_gets, #state.vnode_gets},
+                       {vnode_puts, #state.vnode_puts}]],
+      [{vnode_gets_total, VGT}, 
+       {vnode_puts_total, VPT}]).
+          
+
 
 %% @spec node_stats(integer(), state()) -> proplist()
 %% @doc Get the node stats proplist.
-node_stats(Moment, State) ->
+node_stats(Moment, State=#state{node_gets_total=NGT, node_puts_total=NPT}) ->
     {Gets, GetMean, {GetMedian, GetNF, GetNN, GetH}} =
         slide_minute(Moment, #state.get_fsm_time, State),
     {Puts, PutMean, {PutMedian, PutNF, PutNN, PutH}} =
         slide_minute(Moment, #state.put_fsm_time, State),
     [{node_gets, Gets},
+     {node_gets_total, NGT},
      {node_get_fsm_time_mean, GetMean},
      {node_get_fsm_time_median, GetMedian},
      {node_get_fsm_time_95, GetNF},
      {node_get_fsm_time_99, GetNN},
      {node_get_fsm_time_100, GetH},
      {node_puts, Puts},
+     {node_puts_total, NPT},
      {node_put_fsm_time_mean, PutMean},
      {node_put_fsm_time_median, PutMedian},
      {node_put_fsm_time_95, PutNF},
