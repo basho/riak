@@ -14,28 +14,28 @@ basho OBJECT IDENTIFIER ::= { enterprises 31130 }
 riak OBJECT IDENTIFIER ::= { basho 1 }
 
 vnodeGets OBJECT-TYPE
-    SYNTAX Gauge
+    SYNTAX Counter
     ACCESS read-only
     STATUS mandatory
     DESCRIPTION
         "Total number of gets performed by all vnodes on node."
     ::= { riak 1 }
 vnodePuts OBJECT-TYPE
-    SYNTAX Gauge
+    SYNTAX Counter
     ACCESS read-only
     STATUS mandatory
     DESCRIPTION
         "Total number of puts performed by all vnodes on node."
     ::= { riak 2 }
 nodeGets OBJECT-TYPE
-    SYNTAX Gauge
+    SYNTAX Counter
     ACCESS read-only
     STATUS mandatory
     DESCRIPTION
         "Number of gets coordinated by node."
     ::= { riak 3 }
 nodePuts OBJECT-TYPE
-    SYNTAX Gauge
+    SYNTAX Counter
     ACCESS read-only
     STATUS mandatory
     DESCRIPTION
