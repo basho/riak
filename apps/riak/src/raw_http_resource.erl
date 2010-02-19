@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 %% @doc Resource for serving Riak objects over HTTP in a more "raw"
 %%      form (when compared to jiak_resource).
@@ -47,7 +47,7 @@
 %%
 %% GET /Prefix/Bucket/Key
 %%   Get the data stored in the named Bucket under the named Key.
-%%   Content-type of the response will be whatever incoming 
+%%   Content-type of the response will be whatever incoming
 %%   Content-type was used in the request that stored the data.
 %%   Additional headers will include:
 %%     X-Riak-Vclock: The vclock of the object.
@@ -525,7 +525,7 @@ resource_exists(RD, Ctx0) ->
 %%      will include links to all keys in the bucket, with the property
 %%      "rel=contained".
 produce_bucket_body(RD, Ctx=#ctx{bucket=B, client=C}) ->
-    SchemaPart = 
+    SchemaPart =
         case wrq:get_qs_value(?Q_PROPS, RD) of
             ?Q_FALSE -> [];
             _ ->
@@ -561,7 +561,7 @@ produce_bucket_body(RD, Ctx=#ctx{bucket=B, client=C}) ->
 stream_keys(ReqId) ->
     receive
         {ReqId, {keys, Keys}} ->
-            {mochijson2:encode({struct, [{<<"keys">>, Keys}]}), fun() -> stream_keys(ReqId) end};                                                                     
+            {mochijson2:encode({struct, [{<<"keys">>, Keys}]}), fun() -> stream_keys(ReqId) end};
         {ReqId, done} -> {mochijson2:encode({struct, [{<<"keys">>, []}]}), done}
     end.
 
@@ -782,7 +782,7 @@ produce_doc_body(RD, Ctx) ->
                                    RD, Links),
                        Ctx),
             UserMetaRD = case dict:find(?MD_USERMETA, MD) of
-                        {ok, UserMeta} -> 
+                        {ok, UserMeta} ->
                             lists:foldl(fun({K,V},Acc) ->
                                             wrq:merge_resp_headers([{K,V}],Acc)
                                         end,
@@ -858,7 +858,7 @@ multipart_encode_body(Prefix, Bucket, {MD, V}) ->
      end,
      "\n",
      case dict:find(?MD_USERMETA, MD) of
-         {ok, M} -> 
+         {ok, M} ->
             lists:foldl(fun({Hdr,Val},Acc) ->
                             [Acc|[Hdr,": ",Val,"\n"]]
                         end,
@@ -866,7 +866,7 @@ multipart_encode_body(Prefix, Bucket, {MD, V}) ->
          error -> []
      end,
      "\n",V].
-    
+
 
 %% @spec select_doc(context()) -> {metadata(), value()}|multiple_choices
 %% @doc Selects the "proper" document:
@@ -950,7 +950,7 @@ generate_etag(RD, Ctx) ->
             {undefined, RD, Ctx}
     end.
 
-%% @spec last_modified(reqdata(), context()) -> 
+%% @spec last_modified(reqdata(), context()) ->
 %%          {undefined|datetime(), reqdata(), context()}
 %% @doc Get the last-modified time for this resource.
 %%      Bucket requests will have no last-modified time.
@@ -1012,7 +1012,7 @@ get_link_heads(RD, #ctx{prefix=Prefix, bucket=B}) ->
         undefined -> [];
         Heads ->
             BucketLink = lists:flatten(format_link(Prefix, B)),
-            {ok, Re} = re:compile("</([^/]+)/([^/]+)/([^/]+)>; riaktag=\"([^\"]+)\""),
+            {ok, Re} = re:compile("</([^/]+)/([^/]+)/([^/]+)>;(\ )?riaktag=\"([^\"]+)\""),
             lists:map(
               fun(L) ->
                       {match,[InPrefix,Bucket,Key,Tag]} =
