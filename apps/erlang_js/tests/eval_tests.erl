@@ -74,6 +74,11 @@ error_test_() ->
                erlang:unlink(P) end,
        fun() ->
                P = test_util:get_thing(),
+               js:define(P, <<"function foo() { return [{\"error\":\"notfound\"}]; }">>),
+               ?assertMatch({error, <<"[{\"error\":\"notfound\"}]">>}, js:call(P, <<"foo">>, [])),
+               erlang:unlink(P) end,
+       fun() ->
+               P = test_util:get_thing(),
                {error, ErrorDesc} = js:eval(P, <<"blah(\"wubba\");">>),
                ?assert(verify_error(ErrorDesc)),
                erlang:unlink(P) end]}].
