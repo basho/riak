@@ -121,7 +121,7 @@ verify_body(Body, State) ->
     case catch mochijson2:decode(Body) of
         {struct, MapReduceDesc} ->
             Timeout = case proplists:get_value(?TIMEOUT_TOKEN, MapReduceDesc, ?DEFAULT_TIMEOUT) of
-                          X when is_number(X) ->
+                          X when is_number(X) andalso X > 0 ->
                               X;
                           _ ->
                               ?DEFAULT_TIMEOUT
