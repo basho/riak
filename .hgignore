@@ -30,6 +30,7 @@ test\.log
 ^dev/.*
 include/.*_pb.hrl$
 c_src/deps/(nsprpub|js|mozilla|nspr_release)/.*
+c_src/(nsprpub|js|mozilla|nspr_release|system)/.*
 c_src/include/js/.*
 c_src/.*(\.o|\.a)$
 erlang_js/priv/.*.so$
