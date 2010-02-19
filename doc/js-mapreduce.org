@@ -125,6 +125,11 @@ function(v) {
   resource.  The body should be =application/json= of the form
   ={"inputs":[...inputs...],"query":[...query...]}=.
 
+  Map/Reduce queries have a default timeout of 60000 milliseconds
+  (60 seconds). The default timeout can be overridden by supplying
+  a different value, in milliseconds, in the JSON document
+  ={"inputs":[...inputs...],"query":[...query...],"timeout": 90000}=
+
 ** Inputs
 
    The list of input objects is given as a list of 2-element lists of

@@ -8,9 +8,10 @@
 
 -define(QUERY_TOKEN, <<"query">>).
 -define(INPUTS_TOKEN, <<"inputs">>).
--define(DEFAULT_TIMEOUT, 30000).
+-define(TIMEOUT_TOKEN, <<"timeout">>).
+-define(DEFAULT_TIMEOUT, 60000).
 
--record(state, {client, inputs, mrquery, boundary}).
+-record(state, {client, inputs, timeout, mrquery, boundary}).
 
 init(_) ->
     {ok, undefined}.
@@ -50,7 +51,7 @@ content_types_provided(RD, State) ->
 nop(RD, State) ->
     {usage(), RD, State}.
 
-process_post(RD, #state{inputs=Inputs, mrquery=Query}=State) ->
+process_post(RD, #state{inputs=Inputs, mrquery=Query, timeout=Timeout}=State) ->
     Me = self(),
     {ok, Client} = riak:local_client(),
     case wrq:get_qs_value("chunked", RD) of
@@ -58,13 +59,13 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query}=State) ->
             {ok, ReqId} =
                 if is_list(Inputs) ->
                         {ok, {RId, FSM}} = Client:mapred_stream(Query, Me,
-                                                                ?DEFAULT_TIMEOUT),
+                                                                Timeout),
                         luke_flow:add_inputs(FSM, Inputs),
                         luke_flow:finish_inputs(FSM),
                         {ok, RId};
                    is_binary(Inputs) ->
                         Client:mapred_bucket_stream(Inputs, Query, Me,
-                                                    ?DEFAULT_TIMEOUT)
+                                                    Timeout)
                 end,
             Boundary = riak_util:unique_id_62(),
             RD1 = wrq:set_resp_header("Content-Type", "multipart/mixed;boundary=" ++ Boundary, RD),
@@ -78,7 +79,6 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query}=State) ->
                               Client:mapred_bucket(Inputs, Query)
                       end,
             RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
-            io:format("Results: ~p~n", [Results]),
             case Results of
                 {error, _} ->
                     {{halt, 500}, send_error(Results, RD1), State};
@@ -99,7 +99,8 @@ format_error({error, Error}) when is_list(Error) ->
 format_error(_Error) ->
     mochijson2:encode({struct, [{error, map_reduce_error}]}).
 
-stream_mapred_results(RD, ReqId, State) ->
+stream_mapred_results(RD, ReqId, #state{timeout=Timeout}=State) ->
+    FinalTimeout = erlang:trunc(Timeout * 1.02),
     receive
         {flow_results, ReqId, done} -> {iolist_to_binary(["\n--", State#state.boundary, "--\n"]), done};
         {flow_results, ReqId, {error, Error}} ->
@@ -112,13 +113,14 @@ stream_mapred_results(RD, ReqId, State) ->
                     "Content-Type: application/json\n\n",
                     Data],
             {iolist_to_binary(Body), fun() -> stream_mapred_results(RD, ReqId, State) end}
-    after ?DEFAULT_TIMEOUT ->
+    after FinalTimeout ->
             {format_error({error, timeout}), done}
     end.
 
 verify_body(Body, State) ->
     case catch mochijson2:decode(Body) of
         {struct, MapReduceDesc} ->
+            Timeout = proplists:get_value(?TIMEOUT_TOKEN, MapReduceDesc, ?DEFAULT_TIMEOUT),
             Inputs = proplists:get_value(?INPUTS_TOKEN, MapReduceDesc),
             Query = proplists:get_value(?QUERY_TOKEN, MapReduceDesc),
             case not(Inputs =:= undefined) andalso not(Query =:= undefined) of
@@ -128,7 +130,8 @@ verify_body(Body, State) ->
                             case riak_mapred_json:parse_query(Query) of
                                 {ok, ParsedQuery} ->
                                     {true, [], State#state{inputs=ParsedInputs,
-                                                           mrquery=ParsedQuery}};
+                                                           mrquery=ParsedQuery,
+                                                           timeout=Timeout}};
                                 {error, Message} ->
                                     {false,
                                      ["An error occurred parsing "
