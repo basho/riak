@@ -131,17 +131,24 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 invoke_js(Ctx, Js, Args) ->
-    case js:call(Ctx, Js, Args) of
-        {ok, {struct, R}} ->
-            case proplists:get_value(<<"lineno">>, R) of
-                undefined ->
-                    {ok, R};
-                _ ->
-                    {error, R}
-            end;
-        R ->
-            R
+    try
+        case js:call(Ctx, Js, Args) of
+            {ok, {struct, R}} ->
+                case proplists:get_value(<<"lineno">>, R) of
+                    undefined ->
+                        {ok, R};
+                    _ ->
+                        {error, R}
+                end;
+            R ->
+                R
+        end
+    catch
+        exit: {ucs, {bad_utf8_character_code}} ->
+            error_logger:error_msg("Error JSON encoding arguments: ~p~n", [Args]),
+            {error, bad_encoding}
     end.
+
 define_anon_js(Name, JS, #state{ctx=Ctx, last_mapper=LastMapper, last_reducer=LastReducer}=State) ->
     Hash = erlang:phash2(JS),
     {OldHash, FunName} = if
