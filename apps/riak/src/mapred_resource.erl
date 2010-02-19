@@ -120,7 +120,12 @@ stream_mapred_results(RD, ReqId, #state{timeout=Timeout}=State) ->
 verify_body(Body, State) ->
     case catch mochijson2:decode(Body) of
         {struct, MapReduceDesc} ->
-            Timeout = proplists:get_value(?TIMEOUT_TOKEN, MapReduceDesc, ?DEFAULT_TIMEOUT),
+            Timeout = case proplists:get_value(?TIMEOUT_TOKEN, MapReduceDesc, ?DEFAULT_TIMEOUT) of
+                          X when is_number(X) ->
+                              X;
+                          _ ->
+                              ?DEFAULT_TIMEOUT
+                      end,
             Inputs = proplists:get_value(?INPUTS_TOKEN, MapReduceDesc),
             Query = proplists:get_value(?QUERY_TOKEN, MapReduceDesc),
             case not(Inputs =:= undefined) andalso not(Query =:= undefined) of
