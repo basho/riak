@@ -85,17 +85,12 @@ handle_sync_event(_Event, _From, StateName, State) ->
 
 handle_info({'DOWN', _MRef, _Type, Pid, Reason}, StateName, #state{flow_id=FlowId, client=Client,
                                                                    fsms=FSMs, timeout=Timeout}=State) ->
-    case lists:member(Pid, FSMs) of
-        false ->
-            {next_state, StateName, State, Timeout};
+    if
+        Reason =:= normal ->
+            {next_state, StateName, State#state{fsms=lists:delete(Pid, FSMs)}, Timeout};
         true ->
-            if
-                Reason =:= normal ->
-                    {next_state, StateName, State#state{fsms=lists:delete(Pid, FSMs)}, Timeout};
-                true ->
-                    Client ! {flow_error, FlowId, Reason},
-                    {stop, normal, State}
-            end
+            Client ! {flow_error, FlowId, Reason},
+            {stop, normal, State}
     end;
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State}.
@@ -142,7 +137,7 @@ collect_output(FlowId, Timeout, Accum) ->
         {flow_results, FlowId, Results} ->
             collect_output(FlowId, Timeout, [Results|Accum]);
         {flow_error, FlowId, Error} ->
-            {error, Error}
+            Error
     after Timeout ->
             if
                 length(Accum) == 0 ->

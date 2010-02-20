@@ -75,7 +75,7 @@ perform_reduce({Lang,{reduce,FunTerm,Arg,_Acc}},
             {javascript, _} ->
                 riak_js_manager:blocking_dispatch({FunTerm, Reduced, Arg})
         end
-    catch C:R ->
-            Reason = {C, R, erlang:get_stacktrace()},
-            {error, Reason}
+    catch _:R ->
+            error_logger:error_msg("Failed reduce: ~p~n", R),
+            {error, failed_reduce}
     end.
