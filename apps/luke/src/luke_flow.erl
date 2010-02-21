@@ -133,7 +133,7 @@ start_phases([{PhaseMod, Behaviors, Args}|T], Timeout, Accum) ->
 collect_output(FlowId, Timeout, Accum) ->
     receive
         {flow_results, FlowId, done} ->
-            {ok, lists:flatten(lists:reverse(Accum))};
+            {ok, lists:append(lists:reverse(Accum))};
         {flow_results, FlowId, Results} ->
             collect_output(FlowId, Timeout, [Results|Accum]);
         {flow_error, FlowId, Error} ->
@@ -143,7 +143,7 @@ collect_output(FlowId, Timeout, Accum) ->
                 length(Accum) == 0 ->
                     {error, timeout};
                 true ->
-                    {ok, lists:flatten(lists:reverse(Accum))}
+                    {ok, lists:append(lists:reverse(Accum))}
             end
     end.
 
