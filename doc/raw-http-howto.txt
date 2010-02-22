@@ -1,10 +1,5 @@
 How to Use the "Raw" HTTP Interface
 
-If the documents you want to store in Riak are JSON shaped, you'll
-probably find Jiak, the JSON-HTTP interface more appropriate for your
-needs.  But, if your data is in some other format, you'll find
-raw_http_resource far more useful.
-
 Step 1 in using the raw HTTP interface is to enable the Riak web
 interface.  Add these two lines to your riak config:
 
@@ -242,9 +237,6 @@ that the "jane" document links to.  You could get just the "memo"
 documents with links tagged "author" by asking for:
 
    http://127.0.0.1:8098/raw/person/jane/memo,author,_
-
-More details about link-walking URL syntax can be found in the Jiak
-documentation.
 
 The response of a link walk request is always multipart/mixed content.
 Each part of the multipart response body is a representation of the

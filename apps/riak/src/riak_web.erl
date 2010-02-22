@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
-%% @doc Convenience functions for setting up the Jiak HTTP interface
+%% @doc Convenience functions for setting up the HTTP interface
 %%      of Riak.  This module loads parameters from the application
 %%      environment:
 %%
@@ -22,9 +22,6 @@
 %%</dt><dd>   port that the Webmachine node should listen to
 %%</dd><dt> riak_web_logdir
 %%</dt><dd>   directory under which the access log will be stored
-%%</dd><dt> jiak_name
-%%</dt><dd>   the base path under which Jiak should be exposed;
-%%            defaulted to "jiak"
 %%</dd><dt> raw_name
 %%</dt><dd>   the base path under which the raw_http_resource
 %%            should be exposed; defaulted to "raw"
@@ -34,11 +31,11 @@
 -export([config/0]).
 
 %% @spec config() -> [{Key :: atom(), Value :: term()}]
-%% @doc Returns the standard Jiak Webmachine configuration.
+%% @doc Returns the standard Webmachine configuration.
 %%      pass the return of this function to
 %%      webmachine_mochiweb:start/1 to start up a Webmachine
-%%      resource serving Jiak out of
-%%      http://{riak_web_ip}:{riak_web_port}/jiak/
+%%      resource serving out of
+%%      http://{riak_web_ip}:{riak_web_port}/raw/
 config() ->
     [{ip, riak:get_app_env(riak_web_ip)},
      {port, riak:get_app_env(riak_web_port)},
@@ -47,21 +44,11 @@ config() ->
      {dispatch, dispatch_table()}].
 
 dispatch_table() ->
-    JiakProps = jiak_props(),
     RawProps = raw_props(),
     MapredProps = mapred_props(),
     StatsProps = stats_props(),
 
-    [{[proplists:get_value(jiak_name, JiakProps),bucket],
-      jiak_resource,
-      [{key_type, container}|JiakProps]},
-     {[proplists:get_value(jiak_name, JiakProps),bucket,key],
-      jiak_resource,
-      [{key_type, item}|JiakProps]},
-     {[proplists:get_value(jiak_name, JiakProps),bucket,key,'*'],
-      jaywalker_resource,JiakProps},
-
-     {[proplists:get_value(prefix, RawProps),bucket],
+    [{[proplists:get_value(prefix, RawProps),bucket],
       raw_http_resource,RawProps},
      {[proplists:get_value(prefix, RawProps),bucket,key],
       raw_http_resource, RawProps},
@@ -75,11 +62,6 @@ dispatch_table() ->
       stats_http_resource, StatsProps},
 
      {["ping"], ping_http_resource, []}].
-
-jiak_props() ->
-    [{jiak_name, riak:get_app_env(jiak_name, "jiak")},
-     {riak_local, true},
-     {jiak_buckets, [jiak_example]}].
 
 raw_props() ->
     [{prefix, riak:get_app_env(raw_name, "raw")},

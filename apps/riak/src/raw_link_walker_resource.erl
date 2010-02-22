@@ -15,7 +15,7 @@
 %% @doc Raw link walker resource provides an interface to riak object
 %%      linkwalking over HTTP.  The interface exposed is:
 %%
-%%      /jaywalker/Bucket/Key[/b,t,acc]
+%%      /raw/Bucket/Key[/b,t,acc]
 %%
 %%      where:
 %%

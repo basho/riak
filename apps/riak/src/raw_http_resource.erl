@@ -12,8 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
-%% @doc Resource for serving Riak objects over HTTP in a more "raw"
-%%      form (when compared to jiak_resource).
+%% @doc Resource for serving Riak objects over HTTP.
 %%
 %% Available operations:
 %%

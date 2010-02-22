@@ -61,8 +61,6 @@
     ==> riak (compile)
     Compiled src/gen_server2.erl
     Compiled src/bloom.erl
-    Compiled src/jaywalker_resource.erl
-    Compiled src/jiak_client.erl
     ...snipped...
     Compiled src/slide.erl
     $
@@ -254,14 +252,6 @@
 
          Riak's HTTP interface will not be started if
          this setting is not defined.
-
-    + =jiak_name= :: the base of the path in the URL exposing Riak's
-                     JSON-based HTTP interface (default: ="jiak"=)
-
-                     The default value will expose objects at
-                     =/jiak/Bucket/Key=.  For example, changing this
-                     setting to ="foo"= would expose the interface at
-                     =/foo/Bucket/Key=.
 
     + =raw_name= :: the base of the path in the URL exposing Riak's
                     "raw" HTTP interface (default: ="raw"=)
