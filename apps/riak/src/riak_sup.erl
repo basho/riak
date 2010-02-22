@@ -29,9 +29,6 @@ start_link() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->
-    Eventer = {riak_eventer,
-               {riak_eventer, start_link, []},
-               permanent, 5000, worker, [riak_eventer]},
     VSup = {riak_vnode_sup,
             {riak_vnode_sup, start_link, []},
             permanent, infinity, supervisor, [riak_vnode_sup]},
@@ -41,15 +38,6 @@ init([]) ->
     HandoffListen = {riak_handoff_listener,
                {riak_handoff_listener, start_link, []},
                permanent, 5000, worker, [riak_handoff_listener]},
-    RingMgr = {riak_ring_manager,
-             {riak_ring_manager, start_link, []},
-             permanent, 5000, worker, [riak_ring_manager]},
-    Connect = {riak_connect,
-             {riak_connect, start_link, []},
-             permanent, 5000, worker, [riak_connect]},
-    LocalLogger = {riak_local_logger,
-                   {riak_local_logger, start_link, []},
-                   permanent, 5000, worker, [riak_local_logger]},
     RiakWeb = {webmachine_mochiweb,
                  {webmachine_mochiweb, start, [riak_web:config()]},
                   permanent, 5000, worker, dynamic},
@@ -69,13 +57,9 @@ init([]) ->
 
     % Build the process list...
     Processes = lists:flatten([
-        Eventer,
         VSup,
         ?IF(HasStorageBackend, VMaster, []),
         HandoffListen,
-        RingMgr,
-        Connect,
-        LocalLogger,
         ?IF(IsWebConfigured, RiakWeb, []),
         ?IF(IsStatEnabled, RiakStat, []),
         RiakJsSup,
