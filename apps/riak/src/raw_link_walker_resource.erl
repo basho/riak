@@ -155,7 +155,8 @@ links(Object) ->
     MDs = riak_object:get_metadatas(Object),
     lists:umerge(
       [ case dict:find(?MD_LINKS, MD) of
-            {ok, L} -> lists:sort(L);
+            {ok, L} ->
+                [ [B,K,T] || {{B,K},T} <- lists:sort(L) ];
             error -> []
         end
         || MD <- MDs ]).
@@ -174,11 +175,11 @@ links(Object, Bucket, Tag) ->
 link_match_fun('_', '_') ->
     fun(_) -> true end;
 link_match_fun('_', Tag) ->
-    fun({_, T}) -> Tag == T end;
+    fun([_B, _K, T]) -> Tag == T end;
 link_match_fun(Bucket, '_') ->
-    fun({{B, _K}, _T}) -> Bucket == B end;
+    fun([B, _K, _T]) -> Bucket == B end;
 link_match_fun(Bucket, Tag) ->
-    fun({{B, _K}, T}) -> Bucket == B andalso Tag == T end.
+    fun([B, _K, T]) -> Bucket == B andalso Tag == T end.
 
 %% @spec init(proplist()) -> {ok, context()}
 %% @doc Initialize the resource.  This function extacts the 'prefix',

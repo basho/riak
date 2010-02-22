@@ -36,6 +36,8 @@ dev:
 
 dev1 dev2 dev3: dev
 	cp -Rn dev/riak dev/$@
+	rm -rf dev/$@/data
+	mkdir -p dev/$@/data/ring
 	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
 	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
 	perl -pi -e 's/riak_web_port, \d+/riak_web_port, 809$(subst dev,,$@)/g' \

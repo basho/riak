@@ -95,7 +95,7 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc
         {ok, ReturnValue} ->
             gen_fsm:send_event(FsmPid, {mapexec_reply, ReturnValue, Requestor}),
             {noreply, NewState};
-        {error, ErrorResult} ->
+        ErrorResult ->
             gen_fsm:send_event(FsmPid, {mapexec_error_noretry, Requestor, ErrorResult}),
             {noreply, State}
     end;
@@ -109,7 +109,7 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsfun, JS}, Arg, _Acc}
             %% Requestor should be the dispatching vnode
             gen_fsm:send_event(Requestor, {mapcache, BKey, {JS, Arg, KeyData}, R}),
             gen_fsm:send_event(FsmPid, {mapexec_reply, R, Requestor});
-        {error, Error} ->
+        Error ->
             gen_fsm:send_event(FsmPid, {mapexec_error_noretry, Requestor, Error})
     end,
     {noreply, State};
@@ -131,17 +131,28 @@ code_change(_OldVsn, State, _Extra) ->
 
 %% Internal functions
 invoke_js(Ctx, Js, Args) ->
-    case js:call(Ctx, Js, Args) of
-        {ok, {struct, R}} ->
-            case proplists:get_value(<<"lineno">>, R) of
-                undefined ->
-                    {ok, R};
-                _ ->
-                    {error, R}
-            end;
-        R ->
-            R
+    try
+        case js:call(Ctx, Js, Args) of
+            {ok, {struct, R}} ->
+                case proplists:get_value(<<"lineno">>, R) of
+                    undefined ->
+                        {ok, R};
+                    _ ->
+                        {error, R}
+                end;
+            R ->
+                R
+        end
+    catch
+        exit: {ucs, {bad_utf8_character_code}} ->
+            error_logger:error_msg("Error JSON encoding arguments: ~p~n", [Args]),
+            {error, bad_encoding};
+        exit: {json_encode, _} ->
+            {error, bad_json};
+        throw:invalid_utf8 ->
+            {error, bad_encoding}
     end.
+
 define_anon_js(Name, JS, #state{ctx=Ctx, last_mapper=LastMapper, last_reducer=LastReducer}=State) ->
     Hash = erlang:phash2(JS),
     {OldHash, FunName} = if
