@@ -37,9 +37,9 @@
 %%      resource serving out of
 %%      http://{riak_web_ip}:{riak_web_port}/raw/
 config() ->
-    [{ip, riak:get_app_env(riak_web_ip)},
-     {port, riak:get_app_env(riak_web_port)},
-     {log_dir, riak:get_app_env(riak_web_logdir, "log")},
+    [{ip, app_helper:get_env(riak_web_ip)},
+     {port, app_helper:get_env(riak_web_port)},
+     {log_dir, app_helper:get_env(riak_web_logdir, "log")},
      {backlog, 128},
      {dispatch, dispatch_table()}].
 
@@ -64,11 +64,11 @@ dispatch_table() ->
      {["ping"], ping_http_resource, []}].
 
 raw_props() ->
-    [{prefix, riak:get_app_env(raw_name, "raw")},
+    [{prefix, app_helper:get_env(raw_name, "raw")},
      {riak, local}].
 
 mapred_props() ->
-    [{prefix, riak:get_app_env(mapred_name, "mapred")}].
+    [{prefix, app_helper:get_env(mapred_name, "mapred")}].
 
 stats_props() ->
-    [{prefix, riak:get_app_env(stats_urlpath, "stats")}].
+    [{prefix, app_helper:get_env(stats_urlpath, "stats")}].

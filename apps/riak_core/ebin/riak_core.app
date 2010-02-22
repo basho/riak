@@ -5,6 +5,7 @@
   {description, "Riak Core"},
   {vsn, "0.9"},
   {modules, [
+             app_helper,
              riak_core_app,
              riak_core_sup,
              riak_bucket,
@@ -32,6 +33,9 @@
          {ring_state_dir, "data/ring"},
 
          %% Default ring creation size
-         {ring_creation_size, 64}
+         {ring_creation_size, 64},
+
+         %% Default gossip interval (milliseconds)
+         {gossip_interval, 60000}
         ]}
  ]}.

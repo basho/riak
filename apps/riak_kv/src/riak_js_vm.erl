@@ -198,7 +198,7 @@ priv_dir() ->
     end.
 
 load_user_builtins(Ctx) ->
-    case riak:get_app_env(js_source_dir, undefined) of
+    case app_helper:get_env(js_source_dir, undefined) of
         undefined ->
             ok;
         Path ->

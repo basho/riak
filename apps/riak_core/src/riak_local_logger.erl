@@ -23,7 +23,7 @@ start_link() -> gen_server2:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @private
 init([]) ->
-    case riak:get_app_env(riak_local_logfile) of
+    case app_helper:get_env(riak_local_logfile) of
         undefined ->
             {ok, no_logger};
         FN ->

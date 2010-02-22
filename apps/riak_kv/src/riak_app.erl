@@ -29,7 +29,7 @@ start(_Type, _StartArgs) ->
     check_epoch(),
     
     %% Append user-provided code paths 
-    case riak:get_app_env(add_paths) of
+    case app_helper:get_env(add_paths) of
         List when is_list(List) ->
             ok = code:add_paths(List);
         _ ->
@@ -37,7 +37,7 @@ start(_Type, _StartArgs) ->
     end,
 
     %% Make sure default_bucket_props is setup properly
-    DefaultBucketProps = riak:get_app_env(default_bucket_props),
+    DefaultBucketProps = app_helper:get_env(default_bucket_props),
     if
         DefaultBucketProps =:= undefined ->
             set_bucket_params([]);
@@ -49,7 +49,7 @@ start(_Type, _StartArgs) ->
     end,
     
     %% Check the storage backend
-    StorageBackend = riak:get_app_env(storage_backend),
+    StorageBackend = app_helper:get_env(storage_backend),
     case code:ensure_loaded(StorageBackend) of
         {error,nofile} ->
             error_logger:error_msg("storage_backend ~p is non-loadable.\n", [StorageBackend]),
@@ -59,7 +59,7 @@ start(_Type, _StartArgs) ->
     end,
 
     %% Validate that the ring state directory exists
-    RingStateDir = riak:get_app_env(ring_state_dir),
+    RingStateDir = app_helper:get_env(ring_state_dir),
     case filelib:is_dir(RingStateDir) of
         true ->
             ok;

@@ -72,7 +72,7 @@ default_choose_claim(Ring) ->
     default_choose_claim(Ring, node()).
 
 default_choose_claim(Ring, Node) ->
-    TargetN = riak:get_app_env(target_n_val, 3),
+    TargetN = app_helper:get_env(target_n_val, 3),
     case meets_target_n(Ring, TargetN) of
         {true, TailViolations} ->
             %% if target N is met, then it doesn't matter where

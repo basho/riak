@@ -45,15 +45,15 @@ init([]) ->
                 {riak_stat, start_link, []},
                 permanent, 5000, worker, [riak_stat]},
     RiakJsMgr = {riak_js_manager,
-                 {riak_js_manager, start_link, [riak:get_app_env(js_vm_count, 0)]},
+                 {riak_js_manager, start_link, [app_helper:get_env(js_vm_count, 0)]},
                  permanent, 30000, worker, [riak_js_manager]},
     RiakJsSup = {riak_js_sup,
                  {riak_js_sup, start_link, []},
                  permanent, infinity, supervisor, [riak_js_sup]},
     % Figure out which processes we should run...
-    IsWebConfigured = (riak:get_app_env(riak_web_ip) /= undefined) andalso (riak:get_app_env(riak_web_ip) /= "undefined"),
-    HasStorageBackend = (riak:get_app_env(storage_backend) /= undefined) andalso (riak:get_app_env(storage_backend) /= "undefined"),
-    IsStatEnabled = (riak:get_app_env(riak_stat) == true),
+    IsWebConfigured = (app_helper:get_env(riak_web_ip) /= undefined) andalso (app_helper:get_env(riak_web_ip) /= "undefined"),
+    HasStorageBackend = (app_helper:get_env(storage_backend) /= undefined) andalso (app_helper:get_env(storage_backend) /= "undefined"),
+    IsStatEnabled = (app_helper:get_env(riak_stat) == true),
 
     % Build the process list...
     Processes = lists:flatten([

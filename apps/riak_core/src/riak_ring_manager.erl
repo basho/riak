@@ -79,10 +79,10 @@ do_write_ringfile(Ring) ->
     {{Year, Month, Day},{Hour, Minute, Second}} = calendar:universal_time(),
     TS = io_lib:format(".~B~2.10.0B~2.10.0B~2.10.0B~2.10.0B~2.10.0B",
                        [Year, Month, Day, Hour, Minute, Second]),
-    case riak:get_app_env(ring_state_dir) of
+    case app_helper:get_env(ring_state_dir) of
         "<nostore>" -> nop;
         Dir ->
-            Cluster = riak:get_app_env(cluster_name),
+            Cluster = app_helper:get_env(cluster_name),
             FN = Dir ++ "/riak_ring." ++ Cluster ++ TS,
             ok = filelib:ensure_dir(FN),
             riak_eventer:notify(riak_ring_manager, write_ringfile, iolist_to_binary(FN)),
@@ -91,10 +91,10 @@ do_write_ringfile(Ring) ->
 
 %% @spec find_latest_ringfile() -> string()
 find_latest_ringfile() ->
-    Dir = riak:get_app_env(ring_state_dir),
+    Dir = app_helper:get_env(ring_state_dir),
     case file:list_dir(Dir) of
         {ok, Filenames} ->
-            Cluster = riak:get_app_env(cluster_name),
+            Cluster = app_helper:get_env(cluster_name),
             Timestamps = [list_to_integer(TS) || {"riak_ring", C1, TS} <- 
                                                      [list_to_tuple(string:tokens(FN, ".")) || FN <- Filenames],
                                                  C1 =:= Cluster],
@@ -117,10 +117,10 @@ read_ringfile(RingFile) ->
 
 %% @spec prune_ringfiles() -> ok
 prune_ringfiles() ->
-    case riak:get_app_env(ring_state_dir) of
+    case app_helper:get_env(ring_state_dir) of
         "<nostore>" -> ok;
         Dir ->
-            Cluster = riak:get_app_env(cluster_name),
+            Cluster = app_helper:get_env(cluster_name),
             case file:list_dir(Dir) of
                 {error,enoent} -> ok;
                 {ok, []} -> ok;

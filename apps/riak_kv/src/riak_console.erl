@@ -48,7 +48,7 @@ status([]) ->
 
 reip([OldNode, NewNode]) ->
     application:load(riak),
-    RingStateDir = riak:get_app_env(ring_state_dir),
+    RingStateDir = app_helper:get_env(ring_state_dir),
     {ok, RingFile} = riak_ring_manager:find_latest_ringfile(),
     BackupFN = filename:join([RingStateDir, filename:basename(RingFile)++".BAK"]),
     {ok, _} = file:copy(RingFile, BackupFN),

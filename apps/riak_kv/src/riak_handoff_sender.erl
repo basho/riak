@@ -18,7 +18,7 @@
 -define(ACK_COUNT, 1000).
 
 start_link(TargetNode, Partition, BKeyList) ->
-    TokenCount = riak:get_app_env(handoff_concurrency, 4),
+    TokenCount = app_helper:get_env(handoff_concurrency, 4),
     case get_handoff_lock(Partition, TokenCount) of
         {ok, HandoffToken} ->
             Self = self(),
