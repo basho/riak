@@ -1012,7 +1012,7 @@ get_link_heads(RD, #ctx{prefix=Prefix, bucket=B}) ->
         undefined -> [];
         Heads ->
             BucketLink = lists:flatten(format_link(Prefix, B)),
-            {ok, Re} = re:compile("</([^/]+)/([^/]+)/([^/]+)>;(\ )?riaktag=\"([^\"]+)\""),
+            {ok, Re} = re:compile("</([^/]+)/([^/]+)/([^/]+)>; ?riaktag=\"([^\"]+)\""),
             lists:map(
               fun(L) ->
                       {match,[InPrefix,Bucket,Key,Tag]} =
