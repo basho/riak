@@ -6,8 +6,14 @@
   {vsn, "0.9"},
   {modules, [
              app_helper,
+             bloom,
+             chash,
+             gen_nb_server,
+             gen_server2,
+             json_pp,
+             merkerl,
+             priority_queue,
              riak_core_app,
-             riak_core_sup,
              riak_core_bucket,
              riak_core_claim,
              riak_core_connect,
@@ -15,7 +21,11 @@
              riak_core_eventer,
              riak_core_local_logger,
              riak_core_ring,
-             riak_core_ring_manager
+             riak_core_ring_manager,
+             riak_core_sup,
+             slide,
+             spiraltime,
+             vclock
             ]},
   {registered, []},
   {applications, [
