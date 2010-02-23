@@ -27,7 +27,7 @@
 
 start(_StartType, _StartArgs) ->
     %% Validate that the ring state directory exists
-    RingStateDir = app_helper:get_env(ring_state_dir),
+    RingStateDir = app_helper:get_env(riak_core, ring_state_dir),
     case filelib:is_dir(RingStateDir) of
         true ->
             ok;

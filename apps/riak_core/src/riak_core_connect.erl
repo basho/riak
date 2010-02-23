@@ -56,7 +56,7 @@ init(_State) ->
     {ok, true}.
     
 schedule_next_gossip() ->
-    MaxInterval = app_helper:get_env(gossip_interval),
+    MaxInterval = app_helper:get_env(riak_core, gossip_interval),
     Interval = random:uniform(MaxInterval),
     timer:apply_after(Interval, gen_server, cast, [?SERVER, gossip_ring]). 
 
@@ -126,13 +126,13 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) ->  {ok, State}.
 
 claim_until_balanced(Ring) ->
-    {WMod, WFun} = app_helper:get_env(wants_claim_fun),
+    {WMod, WFun} = app_helper:get_env(riak_core, wants_claim_fun),
     NeedsIndexes = apply(WMod, WFun, [Ring]),
     case NeedsIndexes of
         no -> 
             Ring;
         {yes, _NumToClaim} ->
-            {CMod, CFun} = app_helper:get_env(choose_claim_fun),
+            {CMod, CFun} = app_helper:get_env(riak_core, choose_claim_fun),
             NewRing = CMod:CFun(Ring),
             claim_until_balanced(NewRing)
     end.
@@ -206,7 +206,7 @@ remove_from_cluster(ExitingNode) ->
         P <- AllIndices].    
 
 attempt_simple_transfer(Ring, Owners, ExitingNode) ->
-    TargetN = app_helper:get_env(target_n_val, 3),
+    TargetN = app_helper:get_env(riak_core, target_n_val, 3),
     attempt_simple_transfer(Ring, Owners,
                             TargetN,
                             ExitingNode, 0,

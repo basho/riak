@@ -325,7 +325,7 @@ get_handler_id(Pid, MatchHead, MatchGuard) ->
 %% TESTS %%%
     
 add_handler_to_ring_test() ->
-    application:set_env(riak, ring_creation_size, 16),
+    application:set_env(riak_core, ring_creation_size, 16),
     
     % The bare ring...
     Ring = riak_core_ring:fresh(),

@@ -28,8 +28,8 @@
 start_link(Idx) -> gen_fsm:start_link(?MODULE, [Idx], []).
 
 init([VNodeIndex]) ->
-    Mod = app_helper:get_env(storage_backend),
-    Configuration = app_helper:get_env(),
+    Mod = app_helper:get_env(riak_kv, storage_backend),
+    Configuration = app_helper:get_env(riak_kv),
     {ok, ModState} = Mod:start(VNodeIndex, Configuration),
     StateData0 = #state{idx=VNodeIndex,mod=Mod,modstate=ModState,
                         handoff_q=not_in_handoff},

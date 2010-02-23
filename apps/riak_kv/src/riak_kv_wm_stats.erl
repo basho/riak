@@ -59,7 +59,7 @@ content_types_provided(ReqData, Context) ->
 
 
 service_available(ReqData, Ctx) ->
-    case app_helper:get_env(riak_kv_stat, false) of
+    case app_helper:get_env(riak_kv, riak_kv_stat, false) of
         false ->
             {false, wrq:append_to_response_body("riak_kv_stat is disabled on this node.\n", ReqData),
              Ctx};

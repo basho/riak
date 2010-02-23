@@ -30,7 +30,7 @@ start(_Type, _StartArgs) ->
     check_epoch(),
 
     %% Append user-provided code paths
-    case app_helper:get_env(add_paths) of
+    case app_helper:get_env(riak_kv, add_paths) of
         List when is_list(List) ->
             ok = code:add_paths(List);
         _ ->
@@ -38,7 +38,7 @@ start(_Type, _StartArgs) ->
     end,
 
     %% Make sure default_bucket_props is setup properly
-    DefaultBucketProps = app_helper:get_env(default_bucket_props),
+    DefaultBucketProps = app_helper:get_env(riak_kv, default_bucket_props),
     if
         DefaultBucketProps =:= undefined ->
             set_bucket_params([]);
@@ -51,7 +51,7 @@ start(_Type, _StartArgs) ->
     end,
 
     %% Check the storage backend
-    StorageBackend = app_helper:get_env(storage_backend),
+    StorageBackend = app_helper:get_env(riak_kv, storage_backend),
     case code:ensure_loaded(StorageBackend) of
         {error,nofile} ->
             error_logger:error_msg("storage_backend ~p is non-loadable.\n",

@@ -16,28 +16,28 @@
 
 -module(app_helper).
 
--export([get_env/0, get_env/1, get_env/2]).
+-export([get_env/1, get_env/2, get_env/3]).
 
 %% ===================================================================
 %% Public API
 %% ===================================================================
 
-%% @spec get_env() -> [{Key :: atom(), Value :: term()}]
-%% @doc Retrieve all Key/Value pairs in the env for this application.
-get_env() ->
-    application:get_all_env().
+%% @spec get_env(App :: atom()) -> [{Key :: atom(), Value :: term()}]
+%% @doc Retrieve all Key/Value pairs in the env for the specified app.
+get_env(App) ->
+    application:get_all_env(App).
 
-%% @spec get_env(Key :: atom()) -> term()
-%% @doc The official way to get a value from this application's env.
+%% @spec get_env(App :: atom(), Key :: atom()) -> term()
+%% @doc The official way to get a value from the app's env.
 %%      Will return the 'undefined' atom if that key is unset.
-get_env(Key) ->
-    get_env(Key, undefined).
+get_env(App, Key) ->
+    get_env(App, Key, undefined).
 
-%% @spec get_env(Key :: atom(), Default :: term()) -> term()
+%% @spec get_env(App :: atom(), Key :: atom(), Default :: term()) -> term()
 %% @doc The official way to get a value from this application's env.
 %%      Will return Default if that key is unset.
-get_env(Key, Default) ->
-    case application:get_env(Key) of
+get_env(App, Key, Default) ->
+    case application:get_env(App, Key) of
 	{ok, Value} ->
             Value;
         _ ->
