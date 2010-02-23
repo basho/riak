@@ -360,7 +360,6 @@ malformed_link_headers(RD, Ctx) ->
         Links when is_list(Links) ->
             {false, RD, Ctx#ctx{links=Links}};
         _Error ->
-            io:format("~p~n", [_Error]),
             {true,
              wrq:append_to_resp_body(
                io_lib:format("Invalid Link header. Links must be of the form~n"
