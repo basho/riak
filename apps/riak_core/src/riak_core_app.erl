@@ -26,7 +26,37 @@
 %% ===================================================================
 
 start(_StartType, _StartArgs) ->
-    riak_core_sup:start_link().
+    %% Validate that the ring state directory exists
+    RingStateDir = app_helper:get_env(ring_state_dir),
+    case filelib:is_dir(RingStateDir) of
+        true ->
+            ok;
+        false ->
+            error_logger:error_msg("Ring state directory ~p does not exist.\n",
+                                   [RingStateDir]),
+            throw({error, invalid_ring_state_dir})
+    end,
+
+    %% Spin up the supervisor; prune ring files as necessary
+    case riak_core_sup:start_link() of
+        {ok, Pid} ->
+            %% App is running; search for latest ring file and initialize with it
+            riak_core_ring_manager:prune_ringfiles(),
+            case riak_core_ring_manager:find_latest_ringfile() of
+                {ok, RingFile} ->
+                    Ring = riak_core_ring_manager:read_ringfile(RingFile),
+                    riak_core_ring_manager:set_my_ring(Ring);
+                {error, not_found} ->
+                    error_logger:warning_msg("No ring file available.\n");
+                {error, Reason} ->
+                    error_logger:error_msg("Failed to load ring file: ~p\n",
+                                           [Reason]),
+                    throw({error, Reason})
+            end,
+            {ok, Pid};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 stop(_State) ->
     ok.

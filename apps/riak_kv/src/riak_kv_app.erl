@@ -61,41 +61,8 @@ start(_Type, _StartArgs) ->
             ok
     end,
 
-    %% Validate that the ring state directory exists
-    RingStateDir = app_helper:get_env(ring_state_dir),
-    case filelib:is_dir(RingStateDir) of
-        true ->
-            ok;
-        false ->
-            error_logger:error_msg("Ring state directory ~p does not exist.\n",
-                                   [RingStateDir]),
-            throw({error, invalid_ring_state_dir})
-    end,
-
-    %% Make sure required modules are available
-    %% TODO: Is this really necessary?!
-    check_deps(),
-
     %% Spin up supervisor
-    case riak_kv_sup:start_link() of
-        {ok, Pid} ->
-            %% App is running; search for latest ring file and initialize with it
-            riak_core_ring_manager:prune_ringfiles(),
-            case riak_core_ring_manager:find_latest_ringfile() of
-                {ok, RingFile} ->
-                    Ring = riak_core_ring_manager:read_ringfile(RingFile),
-                    riak_core_ring_manager:set_my_ring(Ring);
-                {error, not_found} ->
-                    error_logger:warning_msg("No ring file available.\n");
-                {error, Reason} ->
-                    error_logger:error_msg("Failed to load ring file: ~p\n",
-                                           [Reason]),
-                    throw({error, Reason})
-            end,
-            {ok, Pid};
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    riak_kv_sup:start_link().
 
 %% @spec stop(State :: term()) -> ok
 %% @doc The application:stop callback for riak.
@@ -105,24 +72,13 @@ stop(_State) ->
 
 set_bucket_params(In) ->
     application:set_env(
-      riak, default_bucket_props,
+      riak_kv, default_bucket_props,
       lists:ukeymerge(1,
                       lists:keysort(1, lists:keydelete(name, 1, In)),
                       lists:keysort(1, riak_core_bucket:defaults()))).
 
 
 
-check_deps() ->
-    % explicit list of external modules we should fail-fast on missing
-    Deps = [vclock, chash, merkerl],
-    Fails = [Fail || {Fail, {error,_}} <-
-             [{Dep, code:ensure_loaded(Dep)} || Dep <- Deps]],
-    case Fails of
-        [] ->
-            ok;
-        _ ->
-            throw({error, {missing_modules, Fails}})
-    end.
 
 
 %% 719528 days from Jan 1, 0 to Jan 1, 1970
