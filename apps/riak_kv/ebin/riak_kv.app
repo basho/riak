@@ -14,6 +14,7 @@
              merkerl,
              riak_kv_wm_ping,
              priority_queue,
+             raw_link_walker,
              riak_kv_wm_raw,
              riak_kv_wm_link_walker,
              riak,
