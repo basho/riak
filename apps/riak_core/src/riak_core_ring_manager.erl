@@ -14,7 +14,7 @@
 
 %% @doc this owns the local view of the cluster's ring configuration
 
--module(riak_ring_manager).
+-module(riak_core_ring_manager).
 -include_lib("eunit/include/eunit.hrl").
 
 -behaviour(gen_server2).
@@ -30,23 +30,23 @@ start_link(test) -> % when started this way, run a mock server (no disk, etc)
 
 %% @private
 init([]) ->
-    Ring = riak_ring:fresh(),
+    Ring = riak_core_ring:fresh(),
     ets:new(nodelocal_ring, [protected, named_table]),
     ets:insert(nodelocal_ring, {ring, Ring}),
     {ok, stateless_server};
 init([test]) ->
-    Ring = riak_ring:fresh(16,node()),
+    Ring = riak_core_ring:fresh(16,node()),
     ets:new(nodelocal_ring, [protected, named_table]),
     ets:insert(nodelocal_ring, {ring, Ring}),
     {ok, test}.
 
-%% @spec get_my_ring() -> {ok, riak_ring:riak_ring()} | {error, Reason}
+%% @spec get_my_ring() -> {ok, riak_core_ring:riak_core_ring()} | {error, Reason}
 get_my_ring() ->
     case ets:match(nodelocal_ring, {ring, '$1'}) of
         [[Ring]] -> {ok, Ring};
         [] -> {error, no_ring}
     end.
-%% @spec set_my_ring(riak_ring:riak_ring()) -> ok
+%% @spec set_my_ring(riak_core_ring:riak_core_ring()) -> ok
 set_my_ring(Ring) -> gen_server2:call(?MODULE, {set_my_ring, Ring}).
 %% @spec write_ringfile() -> ok
 write_ringfile() -> gen_server2:cast(?MODULE, write_ringfile).
@@ -83,9 +83,9 @@ do_write_ringfile(Ring) ->
         "<nostore>" -> nop;
         Dir ->
             Cluster = app_helper:get_env(cluster_name),
-            FN = Dir ++ "/riak_ring." ++ Cluster ++ TS,
+            FN = Dir ++ "/riak_core_ring." ++ Cluster ++ TS,
             ok = filelib:ensure_dir(FN),
-            riak_eventer:notify(riak_ring_manager, write_ringfile, iolist_to_binary(FN)),
+            riak_core_eventer:notify(riak_core_ring_manager, write_ringfile, iolist_to_binary(FN)),
             file:write_file(FN, term_to_binary(Ring))
     end.
 
@@ -95,13 +95,13 @@ find_latest_ringfile() ->
     case file:list_dir(Dir) of
         {ok, Filenames} ->
             Cluster = app_helper:get_env(cluster_name),
-            Timestamps = [list_to_integer(TS) || {"riak_ring", C1, TS} <- 
+            Timestamps = [list_to_integer(TS) || {"riak_core_ring", C1, TS} <- 
                                                      [list_to_tuple(string:tokens(FN, ".")) || FN <- Filenames],
                                                  C1 =:= Cluster],
             SortedTimestamps = lists:reverse(lists:sort(Timestamps)),
             case SortedTimestamps of
                 [Latest | _] ->
-                    {ok, Dir ++ "/riak_ring." ++ Cluster ++ "." ++ integer_to_list(Latest)};
+                    {ok, Dir ++ "/riak_core_ring." ++ Cluster ++ "." ++ integer_to_list(Latest)};
                 _ ->
                     {error, not_found}
             end;
@@ -109,10 +109,10 @@ find_latest_ringfile() ->
             {error, Reason}
     end.
 
-%% @spec read_ringfile(string()) -> riak_ring:riak_ring()
+%% @spec read_ringfile(string()) -> riak_core_ring:riak_core_ring()
 read_ringfile(RingFile) ->
     {ok, Binary} = file:read_file(RingFile),
-    riak_eventer:notify(riak_ring_manager, read_ringfile, RingFile),
+    riak_core_eventer:notify(riak_core_ring_manager, read_ringfile, RingFile),
     binary_to_term(Binary).
 
 %% @spec prune_ringfiles() -> ok
@@ -125,7 +125,7 @@ prune_ringfiles() ->
                 {error,enoent} -> ok;
                 {ok, []} -> ok;
                 {ok, Filenames} ->
-                    Timestamps = [TS || {"riak_ring", C1, TS} <- 
+                    Timestamps = [TS || {"riak_core_ring", C1, TS} <- 
                      [list_to_tuple(string:tokens(FN, ".")) || FN <- Filenames],
                                         C1 =:= Cluster],
                     if Timestamps /= [] ->
@@ -143,7 +143,7 @@ prune_ringfiles() ->
                                                           lists:all(fun(TS) -> 
                                                                             string:str(FN,TS)=:=0
                                                                     end, KeepTSs)],
-                            riak_eventer:notify(riak_ring_manager, prune_ringfiles,
+                            riak_core_eventer:notify(riak_core_ring_manager, prune_ringfiles,
                                                 {length(DelFNs),length(Timestamps)}),
                             [file:delete(DelFN) || DelFN <- DelFNs],
                             ok;

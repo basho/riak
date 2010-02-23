@@ -22,7 +22,7 @@
 -record(state, {done=false, qterm, acc=[], ring, fsms=[]}).
 
 init([QTerm]) ->
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     {ok, #state{ring=Ring, qterm=QTerm}}.
 
 handle_input(Inputs0, #state{ring=Ring, qterm=QTerm, fsms=FSMs0}=State, Timeout) ->

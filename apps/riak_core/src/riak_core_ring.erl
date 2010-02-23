@@ -12,14 +12,14 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
-% @doc riak_ring manages a riak node's local view of partition
+% @doc riak_core_ring manages a riak node's local view of partition
 %      ownership.  The functions in this module revolve around use
 %      of the chstate record, which should be treated as opaque by
 %      other modules.  Riak nodes exchange instances of
 %      these records via gossip in order to converge on a common
 %      view of node/partition ownership.
 
--module(riak_ring).
+-module(riak_core_ring).
 -include_lib("eunit/include/eunit.hrl").
 
 -export([fresh/0,fresh/1,fresh/2,preflist/2,
@@ -29,7 +29,7 @@
          random_other_index/2,
          get_meta/2, update_meta/3, equal_rings/2]).	 
 
-% @type riak_ring(). The opaque data type used for partition ownership.
+% @type riak_core_ring(). The opaque data type used for partition ownership.
 -record(chstate, {
     nodename, % the Node responsible for this chstate
     vclock,   % for this chstate object, entries are {Node, Ctr}
@@ -161,7 +161,7 @@ rename_node(State=#chstate{chring=Ring, nodename=ThisNode}, OldNode, NewNode)
                                chash:update(Idx, NewNode, AccIn);
                            _ -> AccIn
                        end
-               end, Ring, riak_ring:all_owners(State)),
+               end, Ring, riak_core_ring:all_owners(State)),
       nodename=case ThisNode of OldNode -> NewNode; _ -> ThisNode end}.
 
 ancestors(RingStates) ->

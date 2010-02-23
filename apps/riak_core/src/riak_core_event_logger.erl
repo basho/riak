@@ -13,10 +13,10 @@
 %% under the License.
 
 %% @doc
-%% riak_event_logger is an example of how to connect to a
+%% riak_core_event_logger is an example of how to connect to a
 %% running Riak cluster to receive events.
 
--module(riak_event_logger).
+-module(riak_core_event_logger).
 -behavior(gen_server).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -151,7 +151,7 @@ file_write_test() ->
     {T1, T2, T3} = erlang:now(),
     random:seed(T1, T2, T3),
     FileName = "/tmp/event_" ++ integer_to_list(random:uniform(1000)) ++ ".log",
-    {ok, Pid} = riak_event_logger:test_start('foo@bar', FileName),
+    {ok, Pid} = riak_core_event_logger:test_start('foo@bar', FileName),
     Pid ! {event, test_event},
     %% Wait for delayed_write to flush
     timer:sleep(2100),

@@ -76,10 +76,10 @@ start(_Type, _StartArgs) ->
     case riak_sup:start_link() of
         {ok, Pid} ->
             %% App is running; search for latest ring file and initialize with it
-            riak_ring_manager:prune_ringfiles(),
-            case riak_ring_manager:find_latest_ringfile() of
+            riak_core_ring_manager:prune_ringfiles(),
+            case riak_core_ring_manager:find_latest_ringfile() of
                 {ok, Ring} ->
-                    riak_ring_manager:set_my_ring(riak_ring_manager:read_ringfile(Ring));
+                    riak_core_ring_manager:set_my_ring(riak_core_ring_manager:read_ringfile(Ring));
                 {error, not_found} ->
                     error_logger:warning_msg("No ring file available.\n");
                 {error, Reason} ->
@@ -104,7 +104,7 @@ set_bucket_params(In) ->
       riak, default_bucket_props,
       lists:ukeymerge(1,
                       lists:keysort(1, lists:keydelete(name, 1, In)),
-                      lists:keysort(1, riak_bucket:defaults()))).
+                      lists:keysort(1, riak_core_bucket:defaults()))).
 
 
 

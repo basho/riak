@@ -44,9 +44,9 @@ init([VNodeIndex]) ->
 %% @private
 hometest(StateData0=#state{idx=Idx,handoff_q=HQ}) ->
     StateData = StateData0#state{mapcache=orddict:new()},
-    {ok, MyRing} = riak_ring_manager:get_my_ring(),
+    {ok, MyRing} = riak_core_ring_manager:get_my_ring(),
     Me = node(),
-    case riak_ring:index_owner(MyRing, Idx) of
+    case riak_core_ring:index_owner(MyRing, Idx) of
         Me ->
             {next_state,active,StateData#state{handoff_q=not_in_handoff},
              ?TIMEOUT};
@@ -173,7 +173,7 @@ do_get(FSM_pid, BKey, ReqID,
 %% @private
 do_list_bucket(FSM_pid,ReqID,Bucket,Mod,ModState,Idx) ->
     RetVal = Mod:list_bucket(ModState,Bucket),
-    riak_eventer:notify(riak_vnode, keys_reply, {ReqID, FSM_pid}),
+    riak_core_eventer:notify(riak_vnode, keys_reply, {ReqID, FSM_pid}),
     gen_fsm:send_event(FSM_pid, {kl, RetVal,Idx,ReqID}).
 
 %% @private
@@ -197,7 +197,7 @@ do_diffobj_put(BKey={Bucket,_}, DiffObj,
     ReqID = erlang:phash2(erlang:now()),
     case syntactic_put_merge(Mod, ModState, BKey, DiffObj, ReqID) of
         {newobj, NewObj} ->
-            AMObj = enforce_allow_mult(NewObj, riak_bucket:get_bucket(Bucket)),
+            AMObj = enforce_allow_mult(NewObj, riak_core_bucket:get_bucket(Bucket)),
             Val = term_to_binary(AMObj),
             Res = Mod:put(ModState, BKey, Val),
             case Res of
@@ -212,9 +212,9 @@ do_diffobj_put(BKey={Bucket,_}, DiffObj,
 % upon receipt of a client-initiated put
 do_put(FSM_pid, BKey, RObj, ReqID, PruneTime,
        _State=#state{idx=Idx,mod=Mod,modstate=ModState}) ->
-    {ok,Ring} = riak_ring_manager:get_my_ring(),
+    {ok,Ring} = riak_core_ring_manager:get_my_ring(),
     {Bucket,_Key} = BKey,
-    BProps = riak_bucket:get_bucket(Bucket, Ring),
+    BProps = riak_core_bucket:get_bucket(Bucket, Ring),
     case syntactic_put_merge(Mod, ModState, BKey, RObj, ReqID) of
         oldobj ->
             gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
@@ -356,7 +356,7 @@ do_map({erlang, {map, FunTerm, Arg, _Acc}}, BKey, Mod, ModState, KeyData, Cache,
             {ok, CV}
     end;
 do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData, Cache, _VNode, ClientPid) ->
-    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
+    riak_core_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
     CacheKey = build_key(FunTerm, Arg, KeyData),
     CacheVal = cache_fetch(BKey, CacheKey, Cache),
     case CacheVal of
@@ -393,7 +393,7 @@ cache_fetch(BKey, CacheKey, Cache) ->
     end.
 
 uncached_map(BKey, Mod, ModState, FunTerm, Arg, KeyData, VNode) ->
-    riak_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
+    riak_core_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
     case Mod:get(ModState, BKey) of
         {ok, Binary} ->
             V = binary_to_term(Binary),

@@ -16,7 +16,7 @@
 %%      Generally, a wants_claim function should return either
 %%      {yes, Integer} or 'no' where Integer is the number of
 %%       additional partitions wanted by this node.
-%%      A choose_claim function should return a riak_ring with
+%%      A choose_claim function should return a riak_core_ring with
 %%      more partitions claimed by this node than in the input ring.
 
 % The usual intention for partition ownership assumes relative
@@ -29,7 +29,7 @@
 
 % The exact amount that is considered tolerable is determined by the
 % application env variable "target_n_val".  The functions in
-% riak_claim will ensure that all sequences up to target_n_val long
+% riak_core_claim will ensure that all sequences up to target_n_val long
 % contain no repeats if at all possible.  The effect of this is that
 % when the number of nodes in the system is smaller than target_n_val,
 % a potentially large number of partitions must be moved in order to
@@ -46,7 +46,7 @@
 % application is to set it to the largest value you expect to use for
 % any bucket's n_val.  The default is 3.
 
--module(riak_claim).
+-module(riak_core_claim).
 -export([default_wants_claim/1, default_choose_claim/1,
          never_wants_claim/1, random_choose_claim/1]).
 -export([default_choose_claim/2,
@@ -54,19 +54,19 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-%% @spec default_wants_claim(riak_ring()) -> {yes, integer()} | no
+%% @spec default_wants_claim(riak_core_ring()) -> {yes, integer()} | no
 %% @doc Want a partition if we currently have less than floor(ringsize/nodes).
 default_wants_claim(Ring) ->
-    NumPart = riak_ring:num_partitions(Ring),
-    NumOwners = length(lists:usort([node() | riak_ring:all_members(Ring)])),
-    Mine = length(riak_ring:my_indices(Ring)),
+    NumPart = riak_core_ring:num_partitions(Ring),
+    NumOwners = length(lists:usort([node() | riak_core_ring:all_members(Ring)])),
+    Mine = length(riak_core_ring:my_indices(Ring)),
     Want = trunc(NumPart / NumOwners) - Mine,
     case Want > 0 of 
         true -> {yes, Want};
         false -> no
     end.
 
-%% @spec default_choose_claim(riak_ring()) -> riak_ring()
+%% @spec default_choose_claim(riak_core_ring()) -> riak_core_ring()
 %% @doc Choose a partition at random.
 default_choose_claim(Ring) ->
     default_choose_claim(Ring, node()).
@@ -86,7 +86,7 @@ default_choose_claim(Ring, Node) ->
     end.
 
 meets_target_n(Ring, TargetN) ->
-    Owners = lists:keysort(1, riak_ring:all_owners(Ring)),
+    Owners = lists:keysort(1, riak_core_ring:all_owners(Ring)),
     meets_target_n(Owners, TargetN, 0, [], []).
 meets_target_n([{Part,Node}|Rest], TargetN, Index, First, Last) ->
     case lists:keytake(Node, 1, Last) of
@@ -117,8 +117,8 @@ meets_target_n([], TargetN, Index, First, Last) ->
     {true, [ Part || {_, _, Part} <- Violations ]}.
 
 claim_with_n_met(Ring, TailViolations, Node) ->
-    CurrentOwners = lists:keysort(1, riak_ring:all_owners(Ring)),
-    Nodes = lists:usort([Node|riak_ring:all_members(Ring)]),
+    CurrentOwners = lists:keysort(1, riak_core_ring:all_owners(Ring)),
+    Nodes = lists:usort([Node|riak_core_ring:all_members(Ring)]),
     case lists:sort([ I || {I, N} <- CurrentOwners, N == Node ]) of
         [] ->
             %% node hasn't claimed anything yet - just claim stuff
@@ -136,11 +136,11 @@ claim_with_n_met(Ring, TailViolations, Node) ->
                 end,
             {_, NewRing} = lists:foldl(
                              fun({I, _}, {0, Acc}) ->
-                                     {Spacing, riak_ring:transfer_node(I, Node, Acc)};
+                                     {Spacing, riak_core_ring:transfer_node(I, Node, Acc)};
                                 (_, {S, Acc}) ->
                                      {S-1, Acc}
                              end,
-                             {Spacing, riak_ring:transfer_node(First, Node, Ring)},
+                             {Spacing, riak_core_ring:transfer_node(First, Node, Ring)},
                              OwnList),
             NewRing;
         Mine ->
@@ -175,7 +175,7 @@ claim_hole(Ring, Mine, Owners, Node) ->
               end,
     Half = length(Choices) div 2,
     {I, _} = lists:nth(Half, Choices),
-    riak_ring:transfer_node(I, Node, Ring).
+    riak_core_ring:transfer_node(I, Node, Ring).
 
 find_biggest_hole(Mine) ->
     lists:foldl(fun({I0, I1}, none) ->
@@ -201,8 +201,8 @@ find_biggest_hole(Mine) ->
 
 claim_rebalance_n(Ring, Node) ->
     %% diagonal stripes guarantee most disperse data
-    Nodes = lists:usort([Node|riak_ring:all_members(Ring)]),
-    Partitions = lists:sort([ I || {I, _} <- riak_ring:all_owners(Ring) ]),
+    Nodes = lists:usort([Node|riak_core_ring:all_members(Ring)]),
+    Partitions = lists:sort([ I || {I, _} <- riak_core_ring:all_owners(Ring) ]),
     Zipped = lists:zip(Partitions,
                        lists:sublist(
                          lists:flatten(
@@ -211,27 +211,27 @@ claim_rebalance_n(Ring, Node) ->
                              Nodes)),
                          1, length(Partitions))),
     lists:foldl(fun({P, N}, Acc) ->
-                        riak_ring:transfer_node(P, N, Acc)
+                        riak_core_ring:transfer_node(P, N, Acc)
                 end,
                 Ring,
                 Zipped).
 
 random_choose_claim(Ring) ->
-    riak_ring:transfer_node(riak_ring:random_other_index(Ring),
+    riak_core_ring:transfer_node(riak_core_ring:random_other_index(Ring),
                             node(), Ring).
 
-%% @spec never_wants_claim(riak_ring()) -> no
+%% @spec never_wants_claim(riak_core_ring()) -> no
 %% @doc For use by nodes that should not claim any partitions.
 never_wants_claim(_) -> no.
 
 wants_claim_test() ->
-    riak_ring_manager:start_link(test),
-    riak_eventer:start_link(test),
+    riak_core_ring_manager:start_link(test),
+    riak_core_eventer:start_link(test),
     riak_test_util:setup_mockring1(),
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     ?assertEqual(yes, erlang:element(1,default_wants_claim(Ring))),
-    riak_ring_manager:stop(),
-    riak_eventer:stop().
+    riak_core_ring_manager:stop(),
+    riak_core_eventer:stop().
 
 find_biggest_hole_test() ->
     Max = trunc(math:pow(2, 160)),

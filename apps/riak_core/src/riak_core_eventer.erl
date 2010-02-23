@@ -33,7 +33,7 @@
 %% handlers of dead processors. Alternatively, an event handler
 %% can be removed using {@link remove_handler/3}.
 
--module(riak_eventer).
+-module(riak_core_eventer).
 -behaviour(gen_server2).
 -export([start_link/0,start_link/1,stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -64,7 +64,7 @@
 %% @doc Generate an event that will be sent to all
 %% handlers whose MatchSpecs match the event.
 notify(Event) ->
-    gen_server2:cast(riak_local_logger, {event, Event}),
+    gen_server2:cast(riak_core_local_logger, {event, Event}),
     gen_server2:cast(?MODULE, {event, Event}).
 
 %% @spec notify(EventModule :: atom(), EventName :: atom(), EventDetail :: term()) -> ok
@@ -172,31 +172,31 @@ handle_call({add_handler, Pid, Desc, MatchHead, MatchGuard},_From,State) ->
     erlang:monitor(process, Pid),
 
     % Add the handler...
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     Handler = make_handler(Pid, Desc, MatchHead, MatchGuard),
     Ring1 = add_handler_to_ring(Handler, Ring),
     
     % Set and save the new ring...
-    riak_ring_manager:set_my_ring(Ring1),
-    riak_ring_manager:write_ringfile(),
+    riak_core_ring_manager:set_my_ring(Ring1),
+    riak_core_ring_manager:write_ringfile(),
     
     % Gossip the new ring...
-    RandomNode = riak_ring:index_owner(Ring1,riak_ring:random_other_index(Ring1)),
-    riak_connect:send_ring(RandomNode),
+    RandomNode = riak_core_ring:index_owner(Ring1,riak_core_ring:random_other_index(Ring1)),
+    riak_core_connect:send_ring(RandomNode),
     {reply, ok, State};
     
 handle_call({remove_handler, HandlerID},_From,State) -> 
     % Remove the handler...
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     Ring1 = remove_handler_from_ring(HandlerID, Ring),
     
     % Set and save the new ring...
-    riak_ring_manager:set_my_ring(Ring1),
-    riak_ring_manager:write_ringfile(),
+    riak_core_ring_manager:set_my_ring(Ring1),
+    riak_core_ring_manager:write_ringfile(),
     
     % Gossip the new ring...
-    RandomNode = riak_ring:index_owner(Ring1,riak_ring:random_other_index(Ring1)),
-    riak_connect:send_ring(RandomNode),
+    RandomNode = riak_core_ring:index_owner(Ring1,riak_core_ring:random_other_index(Ring1)),
+    riak_core_connect:send_ring(RandomNode),
     {reply, ok, State};
     
     
@@ -209,7 +209,7 @@ handle_cast({event, _Event}, test) -> {noreply,test};
 
 handle_cast({event, Event}, State) ->
     % Get the handlers...
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     Handlers = get_handlers(Ring),
     MatchingHandlers = get_matching_handlers(Event, Handlers),
     
@@ -225,7 +225,7 @@ handle_cast(_, State) -> {noreply, State}.
 %% @private
 handle_info({'DOWN', _, process, Pid, _}, State) ->
     % Get a 'DOWN' message, so remove any handlers from this Pid...
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     OldHandlers = get_handlers(Ring),
     
     % Filter out any dead handlers...
@@ -238,12 +238,12 @@ handle_info({'DOWN', _, process, Pid, _}, State) ->
         true ->
             % Set and save the new ring...
             Ring1 = set_handlers(NewHandlers, Ring),
-            riak_ring_manager:set_my_ring(Ring1),
-            riak_ring_manager:write_ringfile(),
+            riak_core_ring_manager:set_my_ring(Ring1),
+            riak_core_ring_manager:write_ringfile(),
     
             % Gossip the new ring...
-            RandomNode = riak_ring:index_owner(Ring1,riak_ring:random_other_index(Ring1)),
-            riak_connect:send_ring(RandomNode);
+            RandomNode = riak_core_ring:index_owner(Ring1,riak_core_ring:random_other_index(Ring1)),
+            riak_core_connect:send_ring(RandomNode);
         false -> ignore
     end,
     {noreply, State};
@@ -310,14 +310,14 @@ get_matching_handlers(Event, Handlers) ->
     
 %% Return the handlers in a ring...        
 get_handlers(Ring) ->
-    case riak_ring:get_meta(handlers, Ring) of
+    case riak_core_ring:get_meta(handlers, Ring) of
         undefined -> [];
         {ok, X} -> X
     end.
     
 %% Update a ring with a new set of handlers...
 set_handlers(Handlers, Ring) ->
-    riak_ring:update_meta(handlers, Handlers, Ring).
+    riak_core_ring:update_meta(handlers, Handlers, Ring).
     
 get_handler_id(Pid, MatchHead, MatchGuard) ->
     erlang:md5(term_to_binary({Pid, MatchHead, MatchGuard})).
@@ -328,7 +328,7 @@ add_handler_to_ring_test() ->
     application:set_env(riak, ring_creation_size, 16),
     
     % The bare ring...
-    Ring = riak_ring:fresh(),
+    Ring = riak_core_ring:fresh(),
     [] = get_handlers(Ring),
     
     % Add an handler...

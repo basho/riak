@@ -340,9 +340,9 @@ system_stats() ->
      {sys_wordsize, erlang:system_info(wordsize)}].
 
 ring_stats() ->
-    {ok, R} = riak_ring_manager:get_my_ring(),
-    [{ring_members, riak_ring:all_members(R)},
-     {ring_num_partitions, riak_ring:num_partitions(R)},
+    {ok, R} = riak_core_ring_manager:get_my_ring(),
+    [{ring_members, riak_core_ring:all_members(R)},
+     {ring_num_partitions, riak_core_ring:num_partitions(R)},
      {ring_ownership, list_to_binary(lists:flatten(io_lib:format("~p", [dict:to_list(
                         lists:foldl(fun({_P, N}, Acc) -> 
                                             case dict:find(N, Acc) of 
@@ -351,7 +351,7 @@ ring_stats() ->
                                                 error ->
                                                     dict:store(N, 1, Acc)
                                             end
-                                    end, dict:new(), riak_ring:all_owners(R)))])))}].
+                                    end, dict:new(), riak_core_ring:all_owners(R)))])))}].
                                           
 
 config_stats() ->

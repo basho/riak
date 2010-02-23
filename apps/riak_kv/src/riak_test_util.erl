@@ -36,15 +36,15 @@ standard_backend_test(BackendMod, Config) ->
     ok = BackendMod:stop(S).
 
 setup_mockring1() ->
-    % requires a running riak_ring_manager, in test-mode is ok
+    % requires a running riak_core_ring_manager, in test-mode is ok
     Ring0 = lists:foldl(fun(_,R) ->
-                               riak_ring:transfer_node(
-                                 hd(riak_ring:my_indices(R)),
+                               riak_core_ring:transfer_node(
+                                 hd(riak_core_ring:my_indices(R)),
                                  othernode@otherhost, R) end,
-                       riak_ring:fresh(16,node()),[1,2,3,4,5,6]),
+                       riak_core_ring:fresh(16,node()),[1,2,3,4,5,6]),
     Ring = lists:foldl(fun(_,R) ->
-                               riak_ring:transfer_node(
-                                 hd(riak_ring:my_indices(R)),
+                               riak_core_ring:transfer_node(
+                                 hd(riak_core_ring:my_indices(R)),
                                  othernode2@otherhost2, R) end,
                        Ring0,[1,2,3,4,5,6]),
-    riak_ring_manager:set_my_ring(Ring).
+    riak_core_ring_manager:set_my_ring(Ring).

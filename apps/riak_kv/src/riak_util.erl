@@ -139,10 +139,10 @@ unique_id_62() ->
 %%      Module.  Return is a list of the results of code:purge/1
 %%      and code:load_file/1 on each node.
 reload_all(Module) ->
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     [{rpc:call(Node, code, purge, [Module]), 
      rpc:call(Node, code, load_file, [Module])} || 
-        Node <- riak_ring:all_members(Ring)].
+        Node <- riak_core_ring:all_members(Ring)].
 
 %% @spec try_cast(term(), term(), [node()], [{Index :: term(), Node :: node()}]) ->
 %%          {[{Index :: term(), Node :: node(), Node :: node()}],
@@ -196,15 +196,15 @@ mkclientid(RemoteNode) ->
 %% @spec chash_key(BKey :: riak_object:bkey()) -> chash:index()
 %% @doc Create a binary used for determining replica placement.
 chash_key({Bucket,Key}) ->
-    BucketProps = riak_bucket:get_bucket(Bucket),
+    BucketProps = riak_core_bucket:get_bucket(Bucket),
     {M, F} = case proplists:lookup(chash_keyfun, BucketProps) of
                  {chash_keyfun, MF} -> MF;
                  none ->
                      %% 0.5 didn't have chash_keyfun - upgrade
                      {chash_keyfun, Default} =
                          proplists:lookup(
-                           chash_keyfun, riak_bucket:defaults()),
-                     riak_bucket:set_bucket(
+                           chash_keyfun, riak_core_bucket:defaults()),
+                     riak_core_bucket:set_bucket(
                        Bucket, [{chash_keyfun,Default}]),
                      Default
              end,

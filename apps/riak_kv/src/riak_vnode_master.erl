@@ -128,5 +128,5 @@ all_vnodes(_State=#state{idxtab=T}) ->
     lists:flatten(ets:match(T, {idxrec, '_', '$1', '_'})).
 
 make_all_active(State) ->
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
-    [{I,get_vnode(I,State)} || I <- riak_ring:my_indices(Ring)].
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    [{I,get_vnode(I,State)} || I <- riak_core_ring:my_indices(Ring)].

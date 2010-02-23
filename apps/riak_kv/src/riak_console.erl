@@ -49,15 +49,15 @@ status([]) ->
 reip([OldNode, NewNode]) ->
     application:load(riak),
     RingStateDir = app_helper:get_env(ring_state_dir),
-    {ok, RingFile} = riak_ring_manager:find_latest_ringfile(),
+    {ok, RingFile} = riak_core_ring_manager:find_latest_ringfile(),
     BackupFN = filename:join([RingStateDir, filename:basename(RingFile)++".BAK"]),
     {ok, _} = file:copy(RingFile, BackupFN),
     io:format("Backed up existing ring file to ~p~n", [BackupFN]),
-    Ring = riak_ring_manager:read_ringfile(RingFile),
-    NewRing = riak_ring:rename_node(Ring, OldNode, NewNode),
-    riak_ring_manager:do_write_ringfile(NewRing),
+    Ring = riak_core_ring_manager:read_ringfile(RingFile),
+    NewRing = riak_core_ring:rename_node(Ring, OldNode, NewNode),
+    riak_core_ring_manager:do_write_ringfile(NewRing),
     io:format("New ring file written to ~p~n", 
-              [element(2, riak_ring_manager:find_latest_ringfile())]).
+              [element(2, riak_core_ring_manager:find_latest_ringfile())]).
 
 
 format_stats([], Acc) ->

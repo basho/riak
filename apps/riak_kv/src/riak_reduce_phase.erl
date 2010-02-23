@@ -23,7 +23,7 @@
 
 %% @private
 init([QTerm]) ->
-    riak_eventer:notify(riak_reduce_phase_fsm, reduce_start, start),
+    riak_core_eventer:notify(riak_reduce_phase_fsm, reduce_start, start),
     {ok, #state{qterm=QTerm}}.
 
 handle_input(Inputs, #state{reduced=Reduced}=State0, _Timeout) ->

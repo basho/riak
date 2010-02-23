@@ -39,9 +39,9 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    Children = [ ?CHILD(riak_eventer, worker),
-                 ?CHILD(riak_ring_manager, worker),
-                 ?CHILD(riak_local_logger, worker) ],
+    Children = [ ?CHILD(riak_core_eventer, worker),
+                 ?CHILD(riak_core_ring_manager, worker),
+                 ?CHILD(riak_core_local_logger, worker) ],
 
     {ok, {{one_for_one, 10, 10}, Children}}.
 

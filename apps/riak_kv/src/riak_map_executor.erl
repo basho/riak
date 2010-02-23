@@ -40,7 +40,7 @@ start_link(_Ring, _BadInput, _QTerm, _Timeout, _PhasePid) ->
 %% @private
 init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
     DocIdx = riak_util:chash_key({Bucket,Key}),
-    BucketProps = riak_bucket:get_bucket(Bucket, Ring),
+    BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     LinkFun = case QTerm0 of
                   {erlang, {link,_,_,_}} -> proplists:get_value(linkfun, BucketProps);
                   _ -> nop
@@ -56,7 +56,7 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
                         {Lang, {link, LB, LT, LAcc}} -> {Lang, {map, LinkFun, {LB, LT}, LAcc}}
                     end,
             N = proplists:get_value(n_val,BucketProps),
-            Preflist = riak_ring:preflist(DocIdx, Ring),
+            Preflist = riak_core_ring:preflist(DocIdx, Ring),
             {Targets, _} = lists:split(N, Preflist),
             VNodes = try_vnode(QTerm, {Bucket,Key}, KeyData, Targets),
             {ok,wait,
@@ -111,7 +111,7 @@ handle_info(_Info, _StateName, StateData) ->
 
 %% @private
 terminate(Reason, _StateName, _State) ->
-    riak_eventer:notify(riak_map_executor, mapexec_end, Reason),
+    riak_core_eventer:notify(riak_map_executor, mapexec_end, Reason),
     Reason.
 
 %% @private

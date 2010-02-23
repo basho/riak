@@ -8,14 +8,14 @@
              app_helper,
              riak_core_app,
              riak_core_sup,
-             riak_bucket,
-             riak_claim,
-             riak_connect,
-             riak_event_logger,
-             riak_eventer,
-             riak_local_logger,
-             riak_ring,
-             riak_ring_manager
+             riak_core_bucket,
+             riak_core_claim,
+             riak_core_connect,
+             riak_core_event_logger,
+             riak_core_eventer,
+             riak_core_local_logger,
+             riak_core_ring,
+             riak_core_ring_manager
             ]},
   {registered, []},
   {applications, [

@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
--module(riak_local_logger).
+-module(riak_core_local_logger).
 -behavior(gen_server2).
 
 -export([start_link/0]).

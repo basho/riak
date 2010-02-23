@@ -27,7 +27,7 @@
                 bucket :: riak_object:bucket(),
                 timeout :: pos_integer(),
                 req_id :: pos_integer(),
-                ring :: riak_ring:riak_ring()
+                ring :: riak_core_ring:riak_core_ring()
                }).
 
 start(ReqId,Bucket,Timeout,ClientType,ErrorTolerance,From) ->
@@ -36,7 +36,7 @@ start(ReqId,Bucket,Timeout,ClientType,ErrorTolerance,From) ->
 
 %% @private
 init([ReqId,Bucket,Timeout,ClientType,ErrorTolerance,Client]) ->
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     Bloom = bloom:sbf(10000000,ErrorTolerance),
     StateData = #state{client=Client, client_type=ClientType, timeout=Timeout,
                        bloom=Bloom, req_id=ReqId, bucket=Bucket, ring=Ring},
@@ -49,7 +49,7 @@ ask_vn({Index,Node},ReqId,Msg) ->
 %% @private
 initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
                                       bucket=Bucket, ring=Ring}) ->
-    [FirstVN|VNodes] = riak_ring:all_owners(Ring),
+    [FirstVN|VNodes] = riak_core_ring:all_owners(Ring),
     ask_vn(FirstVN,ReqId,{self(), Bucket, ReqId}),
     StateData = StateData0#state{vnodes_left=VNodes},
     {next_state, waiting_kl, StateData, Timeout}.
@@ -104,7 +104,7 @@ handle_info(_Info, _StateName, StateData) ->
 
 %% @private
 terminate(Reason, _StateName, _State=#state{req_id=ReqId}) ->
-    riak_eventer:notify(riak_keys_fsm, key_fsm_end,
+    riak_core_eventer:notify(riak_keys_fsm, key_fsm_end,
                         {ReqId, Reason}),
     Reason.
 

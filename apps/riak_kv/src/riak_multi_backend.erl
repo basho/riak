@@ -47,7 +47,7 @@
 %%
 %% Then, tell a bucket which one to use...
 %%
-%%     riak_bucket:set_bucket(&lt;&lt;"MY_BUCKET"&gt;&gt;, [{backend, second_backend}])
+%%     riak_core_bucket:set_bucket(&lt;&lt;"MY_BUCKET"&gt;&gt;, [{backend, second_backend}])
 %%
 %%
 
@@ -151,7 +151,7 @@ fold(State, Fun0, Acc) ->
 get_backend(Bucket, State) ->
     % Get the name of the backend...
     DefaultBackend = State#state.default_backend,
-    BucketProps = riak_bucket:get_bucket(Bucket),
+    BucketProps = riak_core_bucket:get_bucket(Bucket),
     BackendName = proplists:get_value(backend, BucketProps, DefaultBackend),
 
     % Ensure that a backend by that name exists...
@@ -168,11 +168,11 @@ assert(false, Error) -> throw({?MODULE, Error}).
 simple_test() ->    
     % Start the ring manager...
     crypto:start(),
-    riak_ring_manager:start_link(test),
+    riak_core_ring_manager:start_link(test),
     
     % Set some buckets...
-    riak_bucket:set_bucket(<<"b1">>, [{backend, first_backend}]),
-    riak_bucket:set_bucket(<<"b2">>, [{backend, second_backend}]),
+    riak_core_bucket:set_bucket(<<"b1">>, [{backend, first_backend}]),
+    riak_core_bucket:set_bucket(<<"b2">>, [{backend, second_backend}]),
     
     % Run the standard backend test...
     Config = sample_config(),
@@ -181,11 +181,11 @@ simple_test() ->
 get_backend_test() ->
     % Start the ring manager...
     crypto:start(),
-    riak_ring_manager:start_link(test),
+    riak_core_ring_manager:start_link(test),
     
     % Set some buckets...
-    riak_bucket:set_bucket(<<"b1">>, [{backend, first_backend}]),
-    riak_bucket:set_bucket(<<"b2">>, [{backend, second_backend}]),
+    riak_core_bucket:set_bucket(<<"b1">>, [{backend, first_backend}]),
+    riak_core_bucket:set_bucket(<<"b2">>, [{backend, second_backend}]),
     
     % Start the backend...    
     {ok, State} = start(42, sample_config()),
