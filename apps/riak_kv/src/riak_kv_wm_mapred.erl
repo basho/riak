@@ -1,4 +1,4 @@
--module(mapred_resource).
+-module(riak_kv_wm_mapred).
 
 -export([init/1, service_available/2, allowed_methods/2]).
 -export([malformed_request/2, process_post/2, content_types_provided/2]).

@@ -37,7 +37,7 @@
 %%      portion of that body being a list of results for the
 %%      corresponding link step (itself a multipart/mixed list, each
 %%      portion of which is a matching object, encoded as an HTTP
-%%      request would have been from the raw_http_resource).
+%%      request would have been from the riak_kv_wm_raw).
 %%
 %%      so:
 %%
@@ -93,7 +93,7 @@
 %% Webmachine dispatch line for this resource should look like:
 %%
 %%  {["raw", bucket, key, '*'],
-%%   raw_http_resource,
+%%   riak_kv_wm_raw,
 %%   [{prefix, "raw"},
 %%    {riak, local}, %% or {riak, {'riak@127.0.0.1', riak_cookie}}
 %%    {cache_secs, 60}
@@ -106,7 +106,7 @@
 %% will cause the resource to connect to riak on the specified
 %% Node with the specified Cookie.  The Expires header will be
 %% set 60 seconds in the future (default is 600 seconds).
--module(raw_link_walker_resource).
+-module(riak_kv_wm_link_walker).
 -author('Bryan Fink <bryan@basho.com>').
 
 %% webmachine resource exports
@@ -143,7 +143,7 @@
 %% @doc Extract the links from Object that match {Bucket, Tag}.
 %%      Set this function as the bucket property linkfun to enable
 %%      {link, Bucket, Key, Acc} syntax in mapreduce queries on the bucket.
-%%      Client:set_bucket(Bucket, [{linkfun, {modfun, raw_link_walker_resource,
+%%      Client:set_bucket(Bucket, [{linkfun, {modfun, riak_kv_wm_link_walker,
 %%                                            mapreduce_linkfun}}])
 mapreduce_linkfun({error, notfound}, _, _) -> [];
 mapreduce_linkfun(Object, _, {Bucket, Tag}) ->
@@ -357,7 +357,7 @@ multipart_mixed_encode(WalkResults, Boundary, Ctx) ->
      "\n--",Boundary,"--\n"].
 
 %% @spec multipart_encode_body(riak_object()|[riak_object()], context()) -> iolist()
-%% @doc Encode a riak object (as an HTTP response much like what raw_http_resource
+%% @doc Encode a riak object (as an HTTP response much like what riak_kv_wm_raw
 %%      would produce) or a result list (as a multipart/mixed document).
 %%      Riak object body will include a Location header to describe where to find
 %%      the object.  An object with siblings will encode as one of the siblings
@@ -368,7 +368,7 @@ multipart_encode_body(NestedResults, Ctx) when is_list(NestedResults) ->
      multipart_mixed_encode(NestedResults, Boundary, Ctx)];
 multipart_encode_body(RiakObject, #ctx{prefix=Prefix}) ->
     [{MD, V}|Rest] = riak_object:get_contents(RiakObject),
-    {VHead, Vclock} = raw_http_resource:vclock_header(RiakObject),
+    {VHead, Vclock} = riak_kv_wm_raw:vclock_header(RiakObject),
     [VHead,": ",Vclock,"\n",
 
      "Location: /",Prefix,"/",
@@ -390,7 +390,7 @@ multipart_encode_body(RiakObject, #ctx{prefix=Prefix}) ->
         true ->
              []
      end|
-     raw_http_resource:multipart_encode_body(
+     riak_kv_wm_raw:multipart_encode_body(
        Prefix,
        riak_object:bucket(RiakObject),
        {MD,V})].

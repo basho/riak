@@ -107,12 +107,12 @@
 %% Webmachine dispatch lines for this resource should look like:
 %%
 %%  {["raw", bucket],
-%%   raw_http_resource,
+%%   riak_kv_wm_raw,
 %%   [{prefix, "raw"},
 %%    {riak, local} %% or {riak, {'riak@127.0.0.1', riak_cookie}}
 %%   ]}.
 %%  {["raw", bucket, key],
-%%   raw_http_resource,
+%%   riak_kv_wm_raw,
 %%   [{prefix, "raw"},
 %%    {riak, local} %% or {riak, {'riak@127.0.0.1', riak_cookie}}
 %%   ]}.
@@ -123,7 +123,7 @@
 %% is executing.  Using the alternate {riak, {Node, Cookie}} form
 %% will cause the resource to connect to riak on the specified
 %% Node with the specified Cookie.
--module(raw_http_resource).
+-module(riak_kv_wm_raw).
 -author('Bryan Fink <bryan@basho.com>').
 
 %% webmachine resource exports

@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--module(ping_http_resource).
+-module(riak_kv_wm_ping).
 -author('Dave Smith <dizzyd@dizzyd.com>').
 
 %% webmachine resource exports

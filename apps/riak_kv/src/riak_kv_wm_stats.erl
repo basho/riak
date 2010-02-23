@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--module(stats_http_resource).
+-module(riak_kv_wm_stats).
 -author('Andy Gross <andy@basho.com>').
 
 %% webmachine resource exports

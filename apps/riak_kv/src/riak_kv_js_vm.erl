@@ -215,7 +215,7 @@ load_mapred_builtins(Ctx) ->
 jsonify_object({error, notfound}=Obj) ->
     {struct, [Obj]};
 jsonify_object(Obj) ->
-    {_,Vclock} = raw_http_resource:vclock_header(Obj),
+    {_,Vclock} = riak_kv_wm_raw:vclock_header(Obj),
     {struct, [{<<"bucket">>, riak_object:bucket(Obj)},
               {<<"key">>, riak_object:key(Obj)},
               {<<"vclock">>, list_to_binary(Vclock)},

@@ -23,7 +23,7 @@
 %%</dd><dt> riak_kv_web_logdir
 %%</dt><dd>   directory under which the access log will be stored
 %%</dd><dt> raw_name
-%%</dt><dd>   the base path under which the raw_http_resource
+%%</dt><dd>   the base path under which the riak_kv_wm_raw
 %%            should be exposed; defaulted to "raw"
 %%</dd></dl>
 -module(riak_kv_web).
@@ -49,19 +49,19 @@ dispatch_table() ->
     StatsProps = stats_props(),
 
     [{[proplists:get_value(prefix, RawProps),bucket],
-      raw_http_resource,RawProps},
+      riak_kv_wm_raw,RawProps},
      {[proplists:get_value(prefix, RawProps),bucket,key],
-      raw_http_resource, RawProps},
+      riak_kv_wm_raw, RawProps},
      {[proplists:get_value(prefix, RawProps),bucket,key,'*'],
-      raw_link_walker_resource, RawProps},
+      riak_kv_wm_link_walker, RawProps},
 
      {[proplists:get_value(prefix, MapredProps)],
-      mapred_resource, MapredProps},
+      riak_kv_wm_mapred, MapredProps},
      
      {[proplists:get_value(prefix, StatsProps)],
-      stats_http_resource, StatsProps},
+      riak_kv_wm_stats, StatsProps},
 
-     {["ping"], ping_http_resource, []}].
+     {["ping"], riak_kv_wm_ping, []}].
 
 raw_props() ->
     [{prefix, app_helper:get_env(raw_name, "raw")},
