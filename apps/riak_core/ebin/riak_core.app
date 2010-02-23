@@ -43,6 +43,13 @@
          {ring_creation_size, 64},
 
          %% Default gossip interval (milliseconds)
-         {gossip_interval, 60000}
+         {gossip_interval, 60000},
+
+         %% Target N value
+         {target_n_val, 3},
+
+         %% Default claims functions
+         {wants_claim_fun, {riak_core_claim, default_wants_claim}},
+         {choose_claim_fun, {riak_core_claim, default_choose_claim}}
         ]}
  ]}.

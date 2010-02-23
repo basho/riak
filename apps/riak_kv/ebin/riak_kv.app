@@ -60,10 +60,6 @@
   {registered, []},
   {mod, {riak_kv_app, []}},
   {env, [
-         %% Default claims functions
-         {wants_claim_fun, {riak_core_claim, default_wants_claim}},
-         {choose_claim_fun, {riak_core_claim, default_choose_claim}},
-
          %% Number of VNodes allowed to do handoff concurrently.
          {handoff_concurrency, 4},
 

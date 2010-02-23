@@ -200,7 +200,7 @@ remove_from_cluster(ExitingNode) ->
         P <- AllIndices].    
 
 attempt_simple_transfer(Ring, Owners, ExitingNode) ->
-    TargetN = app_helper:get_env(riak_core, target_n_val, 3),
+    TargetN = app_helper:get_env(riak_core, target_n_val),
     attempt_simple_transfer(Ring, Owners,
                             TargetN,
                             ExitingNode, 0,

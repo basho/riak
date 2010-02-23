@@ -355,6 +355,6 @@ ring_stats() ->
                                           
 
 config_stats() ->
-    [{ring_creation_size, app_helper:get_env(riak_kv, ring_creation_size)},
+    [{ring_creation_size, app_helper:get_env(riak_core, ring_creation_size)},
      {storage_backend, app_helper:get_env(riak_kv, storage_backend)}].
 

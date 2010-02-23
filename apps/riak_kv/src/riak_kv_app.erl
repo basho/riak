@@ -38,7 +38,7 @@ start(_Type, _StartArgs) ->
     end,
 
     %% Make sure default_bucket_props is setup properly
-    DefaultBucketProps = app_helper:get_env(riak_kv, default_bucket_props),
+    DefaultBucketProps = app_helper:get_env(riak_core, default_bucket_props),
     if
         DefaultBucketProps =:= undefined ->
             set_bucket_params([]);
@@ -72,7 +72,7 @@ stop(_State) ->
 
 set_bucket_params(In) ->
     application:set_env(
-      riak_kv, default_bucket_props,
+      riak_core, default_bucket_props,
       lists:ukeymerge(1,
                       lists:keysort(1, lists:keydelete(name, 1, In)),
                       lists:keysort(1, riak_core_bucket:defaults()))).
