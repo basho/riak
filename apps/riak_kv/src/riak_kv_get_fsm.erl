@@ -55,10 +55,7 @@ initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
                                       bkey={Bucket,Key}, ring=Ring}) ->
     StartNow = now(),
     TRef = erlang:send_after(Timeout, self(), timeout),
-    RealStartTime = riak_kv_util:moment(),
     DocIdx = riak_kv_util:chash_key({Bucket, Key}),
-    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_start,
-                        {ReqId, RealStartTime, Bucket, Key}),
     Msg = {self(), {Bucket,Key}, ReqId},
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     N = proplists:get_value(n_val,BucketProps),
@@ -70,8 +67,6 @@ initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
         true -> Sent1;
         false -> Sent1 ++ riak_kv_util:fallback(vnode_get,Msg,Pangs1,Fallbacks)
     end,
-    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_sent,
-                                {ReqId, [{T,S} || {_I,T,S} <- Sent]}),
     StateData = StateData0#state{n=N,allowmult=AllowMult,repair_sent=[],
                        preflist=Preflist,final_obj=undefined,
                        replied_r=[],replied_fail=[],
@@ -88,14 +83,6 @@ waiting_vnode_r({r, {ok, RObj}, Idx, ReqId},
         true ->
             Final = respond(Client,Replied,AllowMult,ReqId),
             update_stats(StateData),
-            case Final of
-                {error, notfound} ->
-                    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
-                                        {ReqId, notfound});
-                {ok, _} ->
-                    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
-                                        {ReqId, ok})
-            end,
             NewStateData = StateData#state{replied_r=Replied,final_obj=Final},
             finalize(NewStateData);
         false ->
@@ -113,8 +100,6 @@ waiting_vnode_r({r, {error, notfound}, Idx, ReqId},
             {next_state,waiting_vnode_r,NewStateData};
         false ->
             update_stats(StateData),
-            riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
-                                {ReqId, notfound}),
             Client ! {ReqId, {error,notfound}},
             {stop,normal,NewStateData}
     end;
@@ -132,22 +117,16 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqId},
                 0 ->
                     FullErr = [E || {E,_I} <- Replied],
                     update_stats(StateData),
-                    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
-                                        {ReqId, {error,FullErr}}),
                     Client ! {ReqId, {error,FullErr}},
                     {stop,normal,NewStateData};
                 _ ->
                     update_stats(StateData),
-                    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
-                                        {ReqId, notfound}),
                     Client ! {ReqId, {error,notfound}},
                     {stop,normal,NewStateData}
             end
     end;
 waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
     update_stats(StateData),
-    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
-                        {ReqId, timeout}),
     Client ! {ReqId, {error,timeout}},
     {stop,normal,StateData}.
 
@@ -198,9 +177,6 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
                     case lists:all(fun(X) -> riak_kv_util:is_x_deleted(X) end,
                                    [O || {O,_I} <- RepliedR]) of
                         true -> % and every response was X-Deleted, go!
-                            riak_core_eventer:notify(riak_kv_get_fsm,
-                                                delete_finalize_start,
-                                                {ReqId, BKey}),
                             [gen_server2:call({riak_kv_vnode_master, Node},
                                              {vnode_del, {Idx,Node},
                                               {BKey,ReqId}}) ||
@@ -221,8 +197,6 @@ maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
     case Targets of
         [] -> nop;
         _ ->
-            riak_core_eventer:notify(riak_kv_get_fsm, read_repair,
-                                {ReqId, Targets}),
             [gen_server:cast({riak_kv_vnode_master, Node},
                              {vnode_put, {Idx,Node}, Msg}) ||
                 {Idx,Node} <- Targets]
@@ -244,9 +218,7 @@ handle_info(_Info, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
 %% @private
-terminate(Reason, _StateName, _State=#state{req_id=ReqId}) ->
-    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_end,
-                        {ReqId, Reason}),
+terminate(Reason, _StateName, _State) ->
     Reason.
 
 %% @private

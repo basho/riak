@@ -64,7 +64,6 @@ stop() -> gen_server:cast(?SERVER, stop).
 
 %% @private
 handle_cast({send_ring_to, Node}, RingChanged) ->
-    riak_core_eventer:notify(riak_core_connect, send_ring_to, Node),
     {ok, MyRing} = riak_core_ring_manager:get_my_ring(),    
     gen_server:cast({?SERVER, Node}, {reconcile_ring, MyRing}),
     {noreply, RingChanged};
@@ -82,14 +81,12 @@ handle_cast({reconcile_ring, OtherRing}, RingChanged) ->
             riak_core_ring_manager:set_my_ring(BalancedRing),
             RandomNode = riak_core_ring:random_node(BalancedRing),
             send_ring(node(), RandomNode),
-            riak_core_eventer:notify(riak_core_connect, changed_ring, gossip_changed),
             {noreply, true}
     end;
     
 handle_cast(gossip_ring, RingChanged) ->
     % First, schedule the next round of gossip...
     schedule_next_gossip(),
-    riak_core_eventer:notify(riak_core_connect, interval, interval),
     
     % Make sure all vnodes are started...
     {ok, MyRing} = riak_core_ring_manager:get_my_ring(),
@@ -174,9 +171,6 @@ remove_from_cluster(ExitingNode) ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     AllOwners = riak_core_ring:all_owners(Ring),
     AllIndices = [I || {I,_Owner} <- AllOwners],
-    Indices = [I || {I,Owner} <- AllOwners, Owner =:= ExitingNode],
-    riak_core_eventer:notify(riak_core_connect, remove_from_cluster,
-                        {ExitingNode, length(Indices)}),
 
     % Transfer indexes to other nodes...
     ExitRing = 

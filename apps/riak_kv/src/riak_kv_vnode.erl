@@ -173,7 +173,6 @@ do_get(FSM_pid, BKey, ReqID,
 %% @private
 do_list_bucket(FSM_pid,ReqID,Bucket,Mod,ModState,Idx) ->
     RetVal = Mod:list_bucket(ModState,Bucket),
-    riak_core_eventer:notify(riak_kv_vnode, keys_reply, {ReqID, FSM_pid}),
     gen_fsm:send_event(FSM_pid, {kl, RetVal,Idx,ReqID}).
 
 %% @private
@@ -356,7 +355,6 @@ do_map({erlang, {map, FunTerm, Arg, _Acc}}, BKey, Mod, ModState, KeyData, Cache,
             {ok, CV}
     end;
 do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData, Cache, _VNode, ClientPid) ->
-    riak_core_eventer:notify(riak_kv_vnode, uncached_map, {FunTerm, Arg, BKey}),
     CacheKey = build_key(FunTerm, Arg, KeyData),
     CacheVal = cache_fetch(BKey, CacheKey, Cache),
     case CacheVal of
@@ -393,7 +391,6 @@ cache_fetch(BKey, CacheKey, Cache) ->
     end.
 
 uncached_map(BKey, Mod, ModState, FunTerm, Arg, KeyData, VNode) ->
-    riak_core_eventer:notify(riak_kv_vnode, uncached_map, {FunTerm, Arg, BKey}),
     case Mod:get(ModState, BKey) of
         {ok, Binary} ->
             V = binary_to_term(Binary),

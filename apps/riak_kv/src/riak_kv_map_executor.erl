@@ -111,7 +111,6 @@ handle_info(_Info, _StateName, StateData) ->
 
 %% @private
 terminate(Reason, _StateName, _State) ->
-    riak_core_eventer:notify(riak_kv_map_executor, mapexec_end, Reason),
     Reason.
 
 %% @private

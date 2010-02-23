@@ -25,7 +25,6 @@
 %%      see riak_client:delete/3 for expected gen_server replies to Client.
 delete(ReqId,Bucket,Key,RW,Timeout,Client) ->           
     RealStartTime = riak_kv_util:moment(),
-    riak_core_eventer:notify(riak_kv_delete, delete_start, {ReqId, Bucket, Key}),
     {ok,C} = riak:local_client(),
     case C:get(Bucket,Key,RW,Timeout) of
         {ok, OrigObj} ->
@@ -37,33 +36,19 @@ delete(ReqId,Bucket,Key,RW,Timeout,Client) ->
             case Reply of
                 ok -> 
                     spawn(
-                      fun()-> reap(Bucket,Key,RemainingTime,ReqId) end);
+                      fun()-> reap(Bucket,Key,RemainingTime) end);
                 _ -> nop
             end,
-            riak_core_eventer:notify(riak_kv_delete, delete_reply, {ReqId, Reply}),
             Client ! {ReqId, Reply};
         {error, notfound} ->
-            riak_core_eventer:notify(riak_kv_delete, delete_reply,
-                                {ReqId, {error, notfound}}),
             Client ! {ReqId, {error, notfound}};
         X ->
-            riak_core_eventer:notify(riak_kv_delete, delete_reply, {ReqId, X}),
             Client ! {ReqId, X}
     end.
 
-reap(Bucket, Key, Timeout, ReqId) ->
+reap(Bucket, Key, Timeout) ->
     {ok,C} = riak:local_client(),
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     N = proplists:get_value(n_val,BucketProps),
-    case C:get(Bucket,Key,N,Timeout) of
-        {error, notfound} ->
-            riak_core_eventer:notify(riak_kv_delete, finalize_reap, 
-                                {ReqId, Bucket, Key, ok});
-        {ok, _Obj} ->
-            riak_core_eventer:notify(riak_kv_delete, finalize_reap, 
-                                {ReqId, Bucket, Key, not_deleted});
-        O ->
-            riak_core_eventer:notify(riak_kv_delete, finalize_reap,
-                                {ReqId, Bucket, Key, O})
-    end.
+    C:get(Bucket,Key,N,Timeout).

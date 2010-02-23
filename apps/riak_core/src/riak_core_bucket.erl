@@ -32,7 +32,6 @@ set_bucket(Name, BucketProps) ->
                                Ring),
     riak_core_ring_manager:set_my_ring(R1),
     riak_core_ring_manager:write_ringfile(),
-    riak_core_eventer:notify(riak_core_bucket, set_bucket, {Name,BucketProps++PrunedOld}),
     RandomNode = riak_core_ring:random_node(R1),
     riak_core_connect:send_ring(RandomNode),
     ok.
@@ -75,9 +74,7 @@ defaults() ->
 
 simple_set_test() ->
     riak_core_ring_manager:start_link(test),
-    riak_core_eventer:start_link(test),
     ok = set_bucket(a_bucket,[{key,value}]),
     Bucket = get_bucket(a_bucket),
     riak_core_ring_manager:stop(),
-    riak_core_eventer:stop(),
     ?assertEqual(value, proplists:get_value(key, Bucket)).

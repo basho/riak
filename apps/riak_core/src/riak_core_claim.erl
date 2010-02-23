@@ -226,12 +226,10 @@ never_wants_claim(_) -> no.
 
 wants_claim_test() ->
     riak_core_ring_manager:start_link(test),
-    riak_core_eventer:start_link(test),
     riak_kv_test_util:setup_mockring1(),
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     ?assertEqual(yes, erlang:element(1,default_wants_claim(Ring))),
-    riak_core_ring_manager:stop(),
-    riak_core_eventer:stop().
+    riak_core_ring_manager:stop().
 
 find_biggest_hole_test() ->
     Max = trunc(math:pow(2, 160)),

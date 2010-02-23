@@ -30,7 +30,6 @@ start_link(QTerm,NextQTerm,VNode,PhasePid,Partition) ->
 %% @private
 init([QTerm,NextQTerm,VNode,PhasePid,Partition]) ->
     ReqID = erlang:phash2({random:uniform(), self()}),    
-    riak_core_eventer:notify(riak_kv_map_localphase, start, {VNode,ReqID}),
     {ok,wait,
      #state{qterm=QTerm,phase_pid=PhasePid,next_qterm=NextQTerm,
             vnode=VNode,partition=Partition,acc=[],
@@ -44,21 +43,18 @@ wait(done, StateData=#state{pending=Pending}) ->
 wait({input,Inputs0}, StateData=#state{qterm=QTerm,vnode=VN,pending=Pending,
                                        partition=Partition}) ->
     Inputs = [convert_input(I) || I <- Inputs0],
-    riak_core_eventer:notify(riak_kv_map_localphase, input_set, {QTerm,Partition,VN}),
     [gen_server:cast({riak_kv_vnode_master, VN},
                      {vnode_map, {Partition,node()},
                       {self(),QTerm,BKey,KeyData}}) ||
         {BKey,KeyData} <- Inputs],
     {next_state, wait, StateData#state{pending=Inputs++Pending}};
-wait({mapexec_error, {BKey,KeyData}, VN, ErrMsg},
+wait({mapexec_error, {BKey,KeyData}, _VN, _ErrMsg},
      StateData=#state{phase_pid=PhasePid,pending=Pending}) ->
-    riak_core_eventer:notify(riak_kv_map_localphase, mapexec_vnode_err, {VN,ErrMsg}),
     gen_fsm:send_event(PhasePid, {mapexec_error, self(), {BKey,KeyData}}),
     {stop,normal,StateData#state{
                    pending=lists:delete({BKey,KeyData}, Pending)}};
-wait({mapexec_reply, {BKey,KeyData}, RetVal, VN}, StateData0=#state{
+wait({mapexec_reply, {BKey,KeyData}, RetVal, _VN}, StateData0=#state{
                     acc=Acc0,done=Done,pending=Pending0,finished=Finished0}) ->
-    riak_core_eventer:notify(riak_kv_map_localphase, mapexec_reply, {VN,BKey}),
     Acc = RetVal ++ Acc0,
     Pending = lists:delete({BKey,KeyData}, Pending0),
     Finished = [{BKey,KeyData}|Finished0],
@@ -139,9 +135,7 @@ handle_info(_Info, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
 %% @private
-terminate(Reason, _StateName, _State=#state{vnode=VNode,req_id=ReqID}) ->
-    riak_core_eventer:notify(riak_kv_map_localphase, localphase_end,
-                        {VNode,ReqID,Reason}),
+terminate(Reason, _StateName, _State) ->
     Reason.
 
 %% @private

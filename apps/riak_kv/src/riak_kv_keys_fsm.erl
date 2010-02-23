@@ -103,9 +103,7 @@ handle_info(_Info, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
 %% @private
-terminate(Reason, _StateName, _State=#state{req_id=ReqId}) ->
-    riak_core_eventer:notify(riak_kv_keys_fsm, key_fsm_end,
-                        {ReqId, Reason}),
+terminate(Reason, _StateName, _State) ->
     Reason.
 
 %% @private

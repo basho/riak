@@ -61,8 +61,6 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
     Bucket = riak_object:bucket(RObj),
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     Key = riak_object:key(RObj),
-    riak_core_eventer:notify(riak_kv_put_fsm, put_fsm_start,
-                        {ReqId, RealStartTime, Bucket, Key}),
     DocIdx = riak_kv_util:chash_key({Bucket, Key}),
     Msg = {self(), {Bucket,Key}, RObj, ReqId, RealStartTime},
     N = proplists:get_value(n_val,BucketProps),
@@ -73,8 +71,6 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
         true -> Sent1;
         false -> Sent1 ++ riak_kv_util:fallback(vnode_put,Msg,Pangs1,Fallbacks)
     end,
-    riak_core_eventer:notify(riak_kv_put_fsm, put_fsm_sent,
-                                {ReqId, [{T,S} || {_I,T,S} <- Sent]}),
     StateData = StateData0#state{
                   robj=RObj, n=N, preflist=Preflist, bkey={Bucket,Key},
                   waiting_for=Sent, starttime=riak_kv_util:moment(),
@@ -83,8 +79,8 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
     {next_state,waiting_vnode_w,StateData}.
 
 waiting_vnode_w({w, Idx, ReqId},
-                  StateData=#state{w=W,dw=DW,req_id=ReqId,client=Client, bkey={Bucket, Key},
-                                   replied_w=Replied0}) ->
+                StateData=#state{w=W,dw=DW,req_id=ReqId,client=Client,
+                                 replied_w=Replied0}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= W of
         true ->
@@ -92,8 +88,6 @@ waiting_vnode_w({w, Idx, ReqId},
                 0 ->
                     Client ! {ReqId, ok},
                     update_stats(StateData),
-                    riak_core_eventer:notify(riak_kv_put_fsm, put_fsm_reply_ok,
-                                        {ReqId, ok, {Bucket, Key}}),
                     {stop,normal,StateData};
                 _ ->
                     NewStateData = StateData#state{replied_w=Replied},
@@ -119,15 +113,11 @@ waiting_vnode_w({fail, Idx, ReqId},
             {next_state,waiting_vnode_w,NewStateData};
         false ->
             update_stats(StateData),
-            riak_core_eventer:notify(riak_kv_put_fsm, put_fsm_reply,
-                                {ReqId, {error,too_many_fails,Replied}}),
             Client ! {ReqId, {error,too_many_fails}},
             {stop,normal,NewStateData}
     end;
 waiting_vnode_w(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
     update_stats(StateData),
-    riak_core_eventer:notify(riak_kv_put_fsm, put_fsm_reply,
-                        {ReqId, {error,timeout}}),
     Client ! {ReqId, {error,timeout}},
     {stop,normal,StateData}.
 
@@ -135,14 +125,11 @@ waiting_vnode_dw({w, _Idx, ReqId},
           StateData=#state{req_id=ReqId}) ->
     {next_state,waiting_vnode_dw,StateData};
 waiting_vnode_dw({dw, Idx, ReqId},
-                 StateData=#state{dw=DW, client=Client, bkey={Bucket, Key},
-                                   replied_dw=Replied0}) ->
+                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of
         true ->
             update_stats(StateData),
-            riak_core_eventer:notify(riak_kv_put_fsm, put_fsm_reply_ok,
-                                {ReqId, ok, {Bucket, Key}}),
             Client ! {ReqId, ok},
             {stop,normal,StateData};
         false ->
@@ -158,15 +145,11 @@ waiting_vnode_dw({fail, Idx, ReqId},
         true ->
             {next_state,waiting_vnode_dw,NewStateData};
         false ->
-            riak_core_eventer:notify(riak_kv_put_fsm, put_fsm_reply,
-                                {ReqId, {error,too_many_fails,Replied}}),
             Client ! {ReqId, {error,too_many_fails}},
             {stop,normal,NewStateData}
     end;
 waiting_vnode_dw(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
     update_stats(StateData),
-    riak_core_eventer:notify(riak_kv_put_fsm, put_fsm_reply,
-                        {ReqId, {error,timeout}}),
     Client ! {ReqId, {error,timeout}},
     {stop,normal,StateData}.
 
@@ -186,9 +169,7 @@ handle_info(_Info, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
 %% @private
-terminate(Reason, _StateName, _State=#state{req_id=ReqId}) ->
-    riak_core_eventer:notify(riak_kv_put_fsm, put_fsm_end,
-                        {ReqId, Reason}),
+terminate(Reason, _StateName, _State) ->
     Reason.
 
 %% @private

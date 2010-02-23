@@ -85,7 +85,6 @@ do_write_ringfile(Ring) ->
             Cluster = app_helper:get_env(riak_core, cluster_name),
             FN = Dir ++ "/riak_core_ring." ++ Cluster ++ TS,
             ok = filelib:ensure_dir(FN),
-            riak_core_eventer:notify(riak_core_ring_manager, write_ringfile, iolist_to_binary(FN)),
             file:write_file(FN, term_to_binary(Ring))
     end.
 
@@ -112,7 +111,6 @@ find_latest_ringfile() ->
 %% @spec read_ringfile(string()) -> riak_core_ring:riak_core_ring()
 read_ringfile(RingFile) ->
     {ok, Binary} = file:read_file(RingFile),
-    riak_core_eventer:notify(riak_core_ring_manager, read_ringfile, RingFile),
     binary_to_term(Binary).
 
 %% @spec prune_ringfiles() -> ok
@@ -143,8 +141,6 @@ prune_ringfiles() ->
                                                           lists:all(fun(TS) -> 
                                                                             string:str(FN,TS)=:=0
                                                                     end, KeepTSs)],
-                            riak_core_eventer:notify(riak_core_ring_manager, prune_ringfiles,
-                                                {length(DelFNs),length(Timestamps)}),
                             [file:delete(DelFN) || DelFN <- DelFNs],
                             ok;
                        true ->
