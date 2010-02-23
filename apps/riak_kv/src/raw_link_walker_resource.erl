@@ -262,7 +262,7 @@ resource_exists(RD, Ctx=#ctx{bucket=B, key=K, client=C}) ->
 %%      because Webmachine doesn't know to add the "boundary" parameter to it.
 to_multipart_mixed(RD, Ctx=#ctx{start=Start, client=C}) ->
     Results = execute_query(C, [Start], extract_query(RD)),
-    Boundary = riak_util:unique_id_62(),
+    Boundary = riak_kv_util:unique_id_62(),
     {multipart_mixed_encode(Results, Boundary, Ctx),
      %% reset content-type now that we now what it is
      wrq:set_resp_header(?HEAD_CTYPE,
@@ -302,8 +302,8 @@ execute_query(C, StartObjects, [{Bucket, Tag, Acc}|RestQuery]) ->
 %%      result will be kept for later.
 execute_segment(C, Start, Steps) ->
     MR = [{link, Bucket, Key, false} || {Bucket, Key, _} <- Steps]
-        ++[riak_mapreduce:reduce_set_union(false),
-           riak_mapreduce:map_identity(true)],
+        ++[riak_kv_mapreduce:reduce_set_union(false),
+           riak_kv_mapreduce:map_identity(true)],
     {ok, Objects} = C:mapred(Start, MR),
     %% strip link tags from objects
     lists:map(fun({O,_Tag}) -> O;
@@ -363,7 +363,7 @@ multipart_mixed_encode(WalkResults, Boundary, Ctx) ->
 %%      the object.  An object with siblings will encode as one of the siblings
 %%      (arbitrary choice), with an included vtag query param in the Location header.
 multipart_encode_body(NestedResults, Ctx) when is_list(NestedResults) ->
-    Boundary = riak_util:unique_id_62(),
+    Boundary = riak_kv_util:unique_id_62(),
     [?HEAD_CTYPE, ": multipart/mixed; boundary=",Boundary,"\n",
      multipart_mixed_encode(NestedResults, Boundary, Ctx)];
 multipart_encode_body(RiakObject, #ctx{prefix=Prefix}) ->

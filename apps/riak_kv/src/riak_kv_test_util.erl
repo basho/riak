@@ -1,4 +1,4 @@
--module(riak_test_util).
+-module(riak_kv_test_util).
 -export([standard_backend_test/2,setup_mockring1/0]).
 -include_lib("eunit/include/eunit.hrl").
 
@@ -24,7 +24,7 @@ standard_backend_test(BackendMod, Config) ->
     ?assertEqual([{<<"b1">>, <<"k1">>}], BackendMod:list(S)),
     Folder = fun(K, V, A) -> [{K,V}|A] end,
     case BackendMod of
-        riak_multi_backend ->
+        riak_kv_multi_backend ->
             ?assertEqual([{{<<"b1">>,<<"k1">>},<<"v1">>},
                           {{<<"b1">>,<<"k1">>},<<"v1">>}], BackendMod:fold(S, Folder, []));
         _ ->

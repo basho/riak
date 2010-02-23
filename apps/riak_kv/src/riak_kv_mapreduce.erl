@@ -13,7 +13,7 @@
 %% under the License.    
 
 %% @doc Convenience functions for defining common map/reduce phases.
--module(riak_mapreduce).
+-module(riak_kv_mapreduce).
 
 %% phase spec producers
 -export([map_identity/1,
@@ -43,7 +43,7 @@
 %%      Client:mapred(BucketKeys, [map_identity(true)]).
 %%      Would return all of the objects named by BucketKeys.
 map_identity(Acc) ->
-    {map, {modfun, riak_mapreduce, map_identity}, none, Acc}.
+    {map, {modfun, riak_kv_mapreduce, map_identity}, none, Acc}.
 
 %% @spec map_identity(riak_object:riak_object(), term(), term()) -> 
 %%                   [riak_object:riak_object()]
@@ -58,7 +58,7 @@ map_identity(RiakObject, _, _) -> [RiakObject].
 %%      Would return a list that contains the value of each
 %%      object named by BucketKeys.
 map_object_value(Acc) ->
-    {map, {modfun, riak_mapreduce, map_object_value}, none, Acc}.
+    {map, {modfun, riak_kv_mapreduce, map_object_value}, none, Acc}.
 
 %% @spec map_object_value(riak_object:riak_object(), term(), term()) -> [term()]
 %% @doc map phase function for map_object_value/1
@@ -74,7 +74,7 @@ map_object_value(RiakObject, _, _) ->
 %%      of [a,b], [c,d], and [e,f], the output of this phase is
 %%      [a,b,c,d,e,f].
 map_object_value_list(Acc) ->
-    {map, {modfun, riak_mapreduce, map_object_value_list}, none, Acc}.
+    {map, {modfun, riak_kv_mapreduce, map_object_value_list}, none, Acc}.
 
 %% @spec map_object_value_list(riak_object:riak_object(), term(), term()) -> 
 %%                            [term()]
@@ -93,7 +93,7 @@ map_object_value_list(RiakObject, _, _) ->
 %%      this phase will output
 %%         [a,b,c]
 reduce_set_union(Acc) ->
-    {reduce, {modfun, riak_mapreduce, reduce_set_union}, none, Acc}.
+    {reduce, {modfun, riak_kv_mapreduce, reduce_set_union}, none, Acc}.
 
 %% @spec reduce_set_union([term()], term()) -> [term()]
 %% @doc reduce phase function for reduce_set_union/1
@@ -107,7 +107,7 @@ reduce_set_union(List, _) ->
 %%      this phase will output
 %%         [6]
 reduce_sum(Acc) ->
-    {reduce, {modfun, riak_mapreduce, reduce_sum}, none, Acc}.
+    {reduce, {modfun, riak_kv_mapreduce, reduce_sum}, none, Acc}.
 
 %% @spec reduce_sum([number()], term()) -> [number()]
 %% @doc reduce phase function for reduce_sum/1
@@ -119,7 +119,7 @@ reduce_sum(List, _) -> [lists:foldl(fun erlang:'+'/2, 0, List)].
 %%      produces a proplist where all values are the sums of the
 %%      values of each property from input proplists.
 reduce_plist_sum(Acc) ->
-    {reduce, {modfun, riak_mapreduce, reduce_plist_sum}, none, Acc}.
+    {reduce, {modfun, riak_kv_mapreduce, reduce_plist_sum}, none, Acc}.
 
 %% @spec reduce_plist_sum([{term(),number()}|[{term(),number()}]], term())
 %%       -> [{term(), number()}]
@@ -163,16 +163,16 @@ reduce_plist_sum_test() ->
 
 map_spec_form_test_() ->
     lists:append(
-      [ [?_assertMatch({map, {modfun, riak_mapreduce, F}, _, true},
-                       riak_mapreduce:F(true)),
-         ?_assertMatch({map, {modfun, riak_mapreduce, F}, _, false},
-                       riak_mapreduce:F(false))]
+      [ [?_assertMatch({map, {modfun, riak_kv_mapreduce, F}, _, true},
+                       riak_kv_mapreduce:F(true)),
+         ?_assertMatch({map, {modfun, riak_kv_mapreduce, F}, _, false},
+                       riak_kv_mapreduce:F(false))]
         || F <- [map_identity, map_object_value, map_object_value_list] ]).
 
 reduce_spec_form_test_() ->
     lists:append(
-      [ [?_assertMatch({reduce, {modfun, riak_mapreduce, F}, _, true},
-                       riak_mapreduce:F(true)),
-         ?_assertMatch({reduce, {modfun, riak_mapreduce, F}, _, false},
-                       riak_mapreduce:F(false))]
+      [ [?_assertMatch({reduce, {modfun, riak_kv_mapreduce, F}, _, true},
+                       riak_kv_mapreduce:F(true)),
+         ?_assertMatch({reduce, {modfun, riak_kv_mapreduce, F}, _, false},
+                       riak_kv_mapreduce:F(false))]
         || F <- [reduce_set_union, reduce_sum, reduce_plist_sum] ]).

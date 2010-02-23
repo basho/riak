@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--module(riak_js_vm).
+-module(riak_kv_js_vm).
 
 -behaviour(gen_server).
 
@@ -45,7 +45,7 @@ init([Manager]) ->
     error_logger:info_msg("Spidermonkey VM host starting (~p)~n", [self()]),
     case new_context() of
         {ok, Ctx} ->
-            riak_js_manager:add_to_manager(),
+            riak_kv_js_manager:add_to_manager(),
             erlang:monitor(process, Manager),
             {ok, #state{manager=Manager, ctx=Ctx}};
         Error ->

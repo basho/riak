@@ -13,7 +13,7 @@
 %% under the License.    
 
 %% @doc Various functions that are useful throughout Riak.
--module(riak_util).
+-module(riak_kv_util).
 -include_lib("eunit/include/eunit.hrl").
 
 -export([moment/0,make_tmp_dir/0,compare_dates/2,reload_all/1,
@@ -147,10 +147,10 @@ reload_all(Module) ->
 %% @spec try_cast(term(), term(), [node()], [{Index :: term(), Node :: node()}]) ->
 %%          {[{Index :: term(), Node :: node(), Node :: node()}],
 %%           [{Index :: term(), Node :: node()}]}
-%% @doc Cast {Cmd, {Index,Node}, Msg} at riak_vnode_master on Node
+%% @doc Cast {Cmd, {Index,Node}, Msg} at riak_kv_vnode_master on Node
 %%      if Node is in UpNodes.  The list of successful casts is the
 %%      first element of the return tuple, and the list of unavailable
-%%      nodes is the second element.  Used in riak_put_fsm and riak_get_fsm.
+%%      nodes is the second element.  Used in riak_kv_put_fsm and riak_kv_get_fsm.
 try_cast(Cmd, Msg, UpNodes, Targets) ->
     try_cast(Cmd, Msg, UpNodes, Targets, [], []).
 try_cast(_Cmd, _Msg, _UpNodes, [], Sent, Pangs) -> {Sent, Pangs};
@@ -159,7 +159,7 @@ try_cast(Cmd, Msg, UpNodes, [{Index,Node}|Targets], Sent, Pangs) ->
         false ->
             try_cast(Cmd, Msg, UpNodes, Targets, Sent, [{Index,Node}|Pangs]);
         true ->
-            gen_server:cast({riak_vnode_master, Node},
+            gen_server:cast({riak_kv_vnode_master, Node},
                             {Cmd, {Index,Node}, Msg}),
             try_cast(Cmd, Msg, UpNodes, Targets, [{Index,Node,Node}|Sent],Pangs)
     end.
@@ -171,7 +171,7 @@ try_cast(Cmd, Msg, UpNodes, [{Index,Node}|Targets], Sent, Pangs) ->
 %%      for each node in the Pangs list.  Pangs should have come
 %%      from the second element of the response tuple of a call to
 %%      try_cast/3.
-%%      Used in riak_put_fsm and riak_get_fsm
+%%      Used in riak_kv_put_fsm and riak_kv_get_fsm
 fallback(Cmd, Msg, Pangs, Fallbacks) ->
     fallback(Cmd, Msg, Pangs, Fallbacks, []).
 fallback(_Cmd, _Msg, [], _Fallbacks, Sent) -> Sent;
@@ -180,7 +180,7 @@ fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
     case lists:member(FN, [node()|nodes()]) of
         false -> fallback(Cmd, Msg, [{Index,Node}|Pangs], Fallbacks, Sent);
         true ->
-            gen_server:cast({riak_vnode_master, FN},
+            gen_server:cast({riak_kv_vnode_master, FN},
                             {Cmd, {Index,Node}, Msg}),
             fallback(Cmd, Msg, Pangs, Fallbacks, [{Index,Node,FN}|Sent])
     end.
@@ -220,8 +220,8 @@ chash_bucketonly_keyfun({Bucket, _Key}) -> chash:key_of(Bucket).
 
 %% @spec moment_test() -> boolean()
 moment_test() ->
-    M1 = riak_util:moment(),
-    M2 = riak_util:moment(),
+    M1 = riak_kv_util:moment(),
+    M2 = riak_kv_util:moment(),
     ?assert(M2 >= M1).
 
 deleted_test() ->

@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--module(riak_reduce_phase).
+-module(riak_kv_reduce_phase).
 
 -behaviour(luke_phase).
 
@@ -23,7 +23,7 @@
 
 %% @private
 init([QTerm]) ->
-    riak_core_eventer:notify(riak_reduce_phase_fsm, reduce_start, start),
+    riak_core_eventer:notify(riak_kv_reduce_phase_fsm, reduce_start, start),
     {ok, #state{qterm=QTerm}}.
 
 handle_input(Inputs, #state{reduced=Reduced}=State0, _Timeout) ->
@@ -73,7 +73,7 @@ perform_reduce({Lang,{reduce,FunTerm,Arg,_Acc}},
             {erlang, {modfun,M,F}} ->
                 {ok, M:F(Reduced,Arg)};
             {javascript, _} ->
-                riak_js_manager:blocking_dispatch({FunTerm, Reduced, Arg})
+                riak_kv_js_manager:blocking_dispatch({FunTerm, Reduced, Arg})
         end
     catch _:R ->
             error_logger:error_msg("Failed reduce: ~p~n", R),

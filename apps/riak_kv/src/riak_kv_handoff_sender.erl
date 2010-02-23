@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
--module(riak_handoff_sender).
+-module(riak_kv_handoff_sender).
 -export([start_link/3]).
 -include("riakserver_pb.hrl").
 -define(ACK_COUNT, 1000).
@@ -50,7 +50,7 @@ start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
     ok = gen_tcp:send(Socket, M),
     case BKeyList of
         all ->
-            gen_server2:call(riak_vnode_master, 
+            gen_server2:call(riak_kv_vnode_master, 
                      {fold, {Partition, fun folder/3, {Socket, ParentPid, []}}},
                      infinity);
         _ ->
@@ -90,7 +90,7 @@ visit_item({B,K}, V, {Socket, ParentPid, Acc}) ->
     
 
 get_handoff_port(Node) when is_atom(Node) ->
-    gen_server2:call({riak_handoff_listener, Node}, handoff_port).
+    gen_server2:call({riak_kv_handoff_listener, Node}, handoff_port).
 
 
 

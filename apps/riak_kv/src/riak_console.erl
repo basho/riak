@@ -35,12 +35,12 @@ join(_) ->
     error.
 
 status([]) ->
-    case whereis(riak_stat) of
+    case whereis(riak_kv_stat) of
         undefined ->
-            io:format("riak_stat is not enabled.~n");
+            io:format("riak_kv_stat is not enabled.~n");
         _ ->
             StatString =
-                format_stats(riak_stat:get_stats(), 
+                format_stats(riak_kv_stat:get_stats(), 
                              ["-------------------------------------------\n",
                               io_lib:format("1-minute stats for ~p~n",[node()])]),
             io:format("~s~n", [StatString])

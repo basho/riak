@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
-%% @doc riak_stat is a long-lived gen_server process for aggregating
+%% @doc riak_kv_stat is a long-lived gen_server process for aggregating
 %%      stats about the Riak node on which it is runing.
 %%
 %%      Update each stat with the exported function update/1.  Modify
@@ -22,8 +22,8 @@
 %%      get_stats/0.  Modify the internal function produce_stats/1 to
 %%      change how stats are represented.
 %%
-%%      Riak will start riak_stat for you, if you have specified
-%%      {riak_stat, true} in your config .erlenv file.
+%%      Riak will start riak_kv_stat for you, if you have specified
+%%      {riak_kv_stat, true} in your config .erlenv file.
 %%
 %%      Current stats:
 %%<dl><dt>  vnode_gets
@@ -42,30 +42,30 @@
 %%</dd><dd> update({get_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_get_fsm_time_mean
-%%</dt><dd> Mean time, in microseconds, between when a riak_get_fsm is
+%%</dt><dd> Mean time, in microseconds, between when a riak_kv_get_fsm is
 %%          started and when it sends a reply to the client, for the
 %%          last minute.
 %%</dd><dd> update({get_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_get_fsm_time_median
-%%</dt><dd> Median time, in microseconds, between when a riak_get_fsm
+%%</dt><dd> Median time, in microseconds, between when a riak_kv_get_fsm
 %%          is started and when it sends a reply to the client, for
 %%          the last minute.
 %%</dd><dd> update({get_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_get_fsm_time_95
 %%</dt><dd> Response time, in microseconds, met or beaten by 95% of
-%%          riak_get_fsm executions.
+%%          riak_kv_get_fsm executions.
 %%</dd><dd> update({get_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_get_fsm_time_99
 %%</dt><dd> Response time, in microseconds, met or beaten by 99% of
-%%          riak_get_fsm executions.
+%%          riak_kv_get_fsm executions.
 %%</dd><dd> update({get_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_get_fsm_time_100
 %%</dt><dd> Response time, in microseconds, met or beaten by 100% of
-%%          riak_get_fsm executions.
+%%          riak_kv_get_fsm executions.
 %%</dd><dd> update({get_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_puts
@@ -74,30 +74,30 @@
 %%</dd><dd> update({put_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_put_fsm_time_mean
-%%</dt><dd> Mean time, in microseconds, between when a riak_put_fsm is
+%%</dt><dd> Mean time, in microseconds, between when a riak_kv_put_fsm is
 %%          started and when it sends a reply to the client, for the
 %%          last minute.
 %%</dd><dd> update({put_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_put_fsm_time_median
-%%</dt><dd> Median time, in microseconds, between when a riak_put_fsm
+%%</dt><dd> Median time, in microseconds, between when a riak_kv_put_fsm
 %%          is started and when it sends a reply to the client, for
 %%          the last minute.
 %%</dd><dd> update({put_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_put_fsm_time_95
 %%</dt><dd> Response time, in microseconds, met or beaten by 95% of
-%%          riak_put_fsm executions.
+%%          riak_kv_put_fsm executions.
 %%</dd><dd> update({put_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_put_fsm_time_99
 %%</dt><dd> Response time, in microseconds, met or beaten by 99% of
-%%          riak_put_fsm executions.
+%%          riak_kv_put_fsm executions.
 %%</dd><dd> update({put_fsm_time, Microseconds})
 %%
 %%</dd><dt> node_put_fsm_time_100
 %%</dt><dd> Response time, in microseconds, met or beaten by 100% of
-%%          riak_put_fsm executions.
+%%          riak_kv_put_fsm executions.
 %%</dd><dd> update({put_fsm_time, Microseconds})
 %%
 %%</dd><dt> cpu_nprocs
@@ -123,7 +123,7 @@
 %%</dd><dt> disk
 %%</dt><dd> Value returned by {@link disksup:get_disk_data/0}.
 %%</dd></dl>
--module(riak_stat).
+-module(riak_kv_stat).
 
 -behaviour(gen_server2).
 
@@ -157,7 +157,7 @@ get_stats() ->
 %% @spec update(term()) -> ok
 %% @doc Update the given stat.
 update(Stat) ->
-    gen_server2:cast(?MODULE, {update, Stat, riak_util:moment()}).
+    gen_server2:cast(?MODULE, {update, Stat, riak_kv_util:moment()}).
 
 %% @private
 init([]) ->

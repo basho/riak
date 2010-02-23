@@ -60,7 +60,7 @@ init([Node, Filename, IsTest]) ->
             file:open(LogFN, [raw, append, delayed_write])
     end,
 
-    {ok, #state { node = riak_util:str_to_node(Node),
+    {ok, #state { node = riak_kv_util:str_to_node(Node),
                   fd = FD}}.
 
 %% @private

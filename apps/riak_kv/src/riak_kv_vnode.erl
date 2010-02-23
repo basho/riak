@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--module(riak_vnode).
+-module(riak_kv_vnode).
 -behaviour(gen_fsm).
 
 -export([start_link/1]).
@@ -70,7 +70,7 @@ do_handoff(TargetNode, StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
         true ->
             delete_and_exit(StateData);
         false ->
-            {HQ,TO,HT} = case riak_handoff_sender:start_link(TargetNode, Idx, all) of
+            {HQ,TO,HT} = case riak_kv_handoff_sender:start_link(TargetNode, Idx, all) of
                 {ok, _Pid, HandoffToken} -> {[], ?TIMEOUT, HandoffToken};
                 {error, locked} -> {not_in_handoff, ?LOCK_RETRY_TIMEOUT, undefined}
             end,
@@ -83,7 +83,7 @@ do_list_handoff(TargetNode, BKeyList, StateData=#state{idx=Idx}) ->
         [] ->
             delete_and_exit(StateData);
         _ ->
-            {HQ,TO} = case riak_handoff_sender:start_link(TargetNode, Idx, all) of
+            {HQ,TO} = case riak_kv_handoff_sender:start_link(TargetNode, Idx, all) of
                 {ok, _Pid} -> {[], ?TIMEOUT};
                 {error, locked} -> {not_in_handoff, ?LOCK_RETRY_TIMEOUT}
             end,
@@ -93,7 +93,7 @@ do_list_handoff(TargetNode, BKeyList, StateData=#state{idx=Idx}) ->
 %% @private
 delete_and_exit(StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
     ok = Mod:drop(ModState),
-    gen_server:cast(riak_vnode_master, {add_exclusion, Idx}),
+    gen_server:cast(riak_kv_vnode_master, {add_exclusion, Idx}),
     {stop, normal, StateData}.
 
 %%%%%%%%%% in active state, we process normal client requests
@@ -167,13 +167,13 @@ do_get(FSM_pid, BKey, ReqID,
         {ok, Binary} -> {ok, binary_to_term(Binary)};
         X -> X
     end,
-    riak_stat:update(vnode_get),
+    riak_kv_stat:update(vnode_get),
     gen_fsm:send_event(FSM_pid, {r, RetVal, Idx, ReqID}).
 
 %% @private
 do_list_bucket(FSM_pid,ReqID,Bucket,Mod,ModState,Idx) ->
     RetVal = Mod:list_bucket(ModState,Bucket),
-    riak_core_eventer:notify(riak_vnode, keys_reply, {ReqID, FSM_pid}),
+    riak_core_eventer:notify(riak_kv_vnode, keys_reply, {ReqID, FSM_pid}),
     gen_fsm:send_event(FSM_pid, {kl, RetVal,Idx,ReqID}).
 
 %% @private
@@ -201,7 +201,7 @@ do_diffobj_put(BKey={Bucket,_}, DiffObj,
             Val = term_to_binary(AMObj),
             Res = Mod:put(ModState, BKey, Val),
             case Res of
-                ok -> riak_stat:update(vnode_put);
+                ok -> riak_kv_stat:update(vnode_put);
                 _ -> nop
             end,
             Res;
@@ -230,7 +230,7 @@ do_put(FSM_pid, BKey, RObj, ReqID, PruneTime,
                 {error, _Reason} ->
                     gen_fsm:send_event(FSM_pid, {fail, Idx, ReqID})
             end,
-            riak_stat:update(vnode_put)
+            riak_kv_stat:update(vnode_put)
     end.
 
 %% @private
@@ -253,7 +253,7 @@ enforce_allow_mult(Obj, BProps) ->
 select_newest_content(Mult) ->
     hd(lists:sort(
          fun({MD0, _}, {MD1, _}) ->
-                 riak_util:compare_dates(
+                 riak_kv_util:compare_dates(
                    dict:fetch(<<"X-Riak-Last-Modified">>, MD0),
                    dict:fetch(<<"X-Riak-Last-Modified">>, MD1))
          end,
@@ -356,7 +356,7 @@ do_map({erlang, {map, FunTerm, Arg, _Acc}}, BKey, Mod, ModState, KeyData, Cache,
             {ok, CV}
     end;
 do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData, Cache, _VNode, ClientPid) ->
-    riak_core_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
+    riak_core_eventer:notify(riak_kv_vnode, uncached_map, {FunTerm, Arg, BKey}),
     CacheKey = build_key(FunTerm, Arg, KeyData),
     CacheVal = cache_fetch(BKey, CacheKey, Cache),
     case CacheVal of
@@ -367,7 +367,7 @@ do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData,
                     {error, notfound} ->
                         {error, notfound}
                 end,
-            riak_js_manager:dispatch({ClientPid, QTerm, V, KeyData, BKey}),
+            riak_kv_js_manager:dispatch({ClientPid, QTerm, V, KeyData, BKey}),
             map_executing;
         CV ->
             {ok, CV}
@@ -393,7 +393,7 @@ cache_fetch(BKey, CacheKey, Cache) ->
     end.
 
 uncached_map(BKey, Mod, ModState, FunTerm, Arg, KeyData, VNode) ->
-    riak_core_eventer:notify(riak_vnode, uncached_map, {FunTerm, Arg, BKey}),
+    riak_core_eventer:notify(riak_kv_vnode, uncached_map, {FunTerm, Arg, BKey}),
     case Mod:get(ModState, BKey) of
         {ok, Binary} ->
             V = binary_to_term(Binary),

@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
--module(riak_get_fsm).
+-module(riak_kv_get_fsm).
 -behaviour(gen_fsm).
 
 -export([start/6]).
@@ -55,9 +55,9 @@ initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
                                       bkey={Bucket,Key}, ring=Ring}) ->
     StartNow = now(),
     TRef = erlang:send_after(Timeout, self(), timeout),
-    RealStartTime = riak_util:moment(),
-    DocIdx = riak_util:chash_key({Bucket, Key}),
-    riak_core_eventer:notify(riak_get_fsm, get_fsm_start,
+    RealStartTime = riak_kv_util:moment(),
+    DocIdx = riak_kv_util:chash_key({Bucket, Key}),
+    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_start,
                         {ReqId, RealStartTime, Bucket, Key}),
     Msg = {self(), {Bucket,Key}, ReqId},
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
@@ -65,17 +65,17 @@ initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
     AllowMult = proplists:get_value(allow_mult,BucketProps),
     Preflist = riak_core_ring:preflist(DocIdx, Ring),
     {Targets, Fallbacks} = lists:split(N, Preflist),
-    {Sent1, Pangs1} = riak_util:try_cast(vnode_get, Msg, nodes(), Targets),
+    {Sent1, Pangs1} = riak_kv_util:try_cast(vnode_get, Msg, nodes(), Targets),
     Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
         true -> Sent1;
-        false -> Sent1 ++ riak_util:fallback(vnode_get,Msg,Pangs1,Fallbacks)
+        false -> Sent1 ++ riak_kv_util:fallback(vnode_get,Msg,Pangs1,Fallbacks)
     end,
-    riak_core_eventer:notify(riak_get_fsm, get_fsm_sent,
+    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_sent,
                                 {ReqId, [{T,S} || {_I,T,S} <- Sent]}),
     StateData = StateData0#state{n=N,allowmult=AllowMult,repair_sent=[],
                        preflist=Preflist,final_obj=undefined,
                        replied_r=[],replied_fail=[],
-                       replied_notfound=[],starttime=riak_util:moment(),
+                       replied_notfound=[],starttime=riak_kv_util:moment(),
                        waiting_for=Sent,tref=TRef,startnow=StartNow},
     {next_state,waiting_vnode_r,StateData}.
 
@@ -90,10 +90,10 @@ waiting_vnode_r({r, {ok, RObj}, Idx, ReqId},
             update_stats(StateData),
             case Final of
                 {error, notfound} ->
-                    riak_core_eventer:notify(riak_get_fsm, get_fsm_reply,
+                    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
                                         {ReqId, notfound});
                 {ok, _} ->
-                    riak_core_eventer:notify(riak_get_fsm, get_fsm_reply,
+                    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
                                         {ReqId, ok})
             end,
             NewStateData = StateData#state{replied_r=Replied,final_obj=Final},
@@ -113,7 +113,7 @@ waiting_vnode_r({r, {error, notfound}, Idx, ReqId},
             {next_state,waiting_vnode_r,NewStateData};
         false ->
             update_stats(StateData),
-            riak_core_eventer:notify(riak_get_fsm, get_fsm_reply,
+            riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
                                 {ReqId, notfound}),
             Client ! {ReqId, {error,notfound}},
             {stop,normal,NewStateData}
@@ -132,13 +132,13 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqId},
                 0 ->
                     FullErr = [E || {E,_I} <- Replied],
                     update_stats(StateData),
-                    riak_core_eventer:notify(riak_get_fsm, get_fsm_reply,
+                    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
                                         {ReqId, {error,FullErr}}),
                     Client ! {ReqId, {error,FullErr}},
                     {stop,normal,NewStateData};
                 _ ->
                     update_stats(StateData),
-                    riak_core_eventer:notify(riak_get_fsm, get_fsm_reply,
+                    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
                                         {ReqId, notfound}),
                     Client ! {ReqId, {error,notfound}},
                     {stop,normal,NewStateData}
@@ -146,7 +146,7 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqId},
     end;
 waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
     update_stats(StateData),
-    riak_core_eventer:notify(riak_get_fsm, get_fsm_reply,
+    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_reply,
                         {ReqId, timeout}),
     Client ! {ReqId, {error,timeout}},
     {stop,normal,StateData}.
@@ -195,13 +195,13 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
         N -> % this means we sent to a perfect preflist
             case (length(RepliedR) + length(NotFound)) of
                 N -> % and we heard back from all nodes with non-failure
-                    case lists:all(fun(X) -> riak_util:is_x_deleted(X) end,
+                    case lists:all(fun(X) -> riak_kv_util:is_x_deleted(X) end,
                                    [O || {O,_I} <- RepliedR]) of
                         true -> % and every response was X-Deleted, go!
-                            riak_core_eventer:notify(riak_get_fsm,
+                            riak_core_eventer:notify(riak_kv_get_fsm,
                                                 delete_finalize_start,
                                                 {ReqId, BKey}),
-                            [gen_server2:call({riak_vnode_master, Node},
+                            [gen_server2:call({riak_kv_vnode_master, Node},
                                              {vnode_del, {Idx,Node},
                                               {BKey,ReqId}}) ||
                                 {Idx,Node} <- IdealNodes];
@@ -221,9 +221,9 @@ maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
     case Targets of
         [] -> nop;
         _ ->
-            riak_core_eventer:notify(riak_get_fsm, read_repair,
+            riak_core_eventer:notify(riak_kv_get_fsm, read_repair,
                                 {ReqId, Targets}),
-            [gen_server:cast({riak_vnode_master, Node},
+            [gen_server:cast({riak_kv_vnode_master, Node},
                              {vnode_put, {Idx,Node}, Msg}) ||
                 {Idx,Node} <- Targets]
     end.
@@ -245,7 +245,7 @@ handle_info(_Info, _StateName, StateData) ->
 
 %% @private
 terminate(Reason, _StateName, _State=#state{req_id=ReqId}) ->
-    riak_core_eventer:notify(riak_get_fsm, get_fsm_end,
+    riak_core_eventer:notify(riak_kv_get_fsm, get_fsm_end,
                         {ReqId, Reason}),
     Reason.
 
@@ -258,7 +258,7 @@ respond(Client,VResponses,AllowMult,ReqId) ->
     Reply.
 
 merge_robjs(RObjs0,AllowMult) ->
-    RObjs1 = [X || X <- [riak_util:obj_not_deleted(O) ||
+    RObjs1 = [X || X <- [riak_kv_util:obj_not_deleted(O) ||
                             O <- RObjs0], X /= undefined],
     case RObjs1 of
         [] -> {error, notfound};
@@ -276,4 +276,4 @@ ancestor_indices(_,AnnoObjects) ->
 
 update_stats(#state{startnow=StartNow}) ->
     EndNow = now(),
-    riak_stat:update({get_fsm_time, timer:now_diff(EndNow, StartNow)}).
+    riak_kv_stat:update({get_fsm_time, timer:now_diff(EndNow, StartNow)}).

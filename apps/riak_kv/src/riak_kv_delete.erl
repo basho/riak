@@ -14,7 +14,7 @@
 
 %% @doc Interface for object deletion.
 
--module(riak_delete).
+-module(riak_kv_delete).
 
 -export([delete/6]).
 
@@ -24,12 +24,12 @@
 %% @doc Delete the object at Bucket/Key.  Direct return value is uninteresting,
 %%      see riak_client:delete/3 for expected gen_server replies to Client.
 delete(ReqId,Bucket,Key,RW,Timeout,Client) ->           
-    RealStartTime = riak_util:moment(),
-    riak_core_eventer:notify(riak_delete, delete_start, {ReqId, Bucket, Key}),
+    RealStartTime = riak_kv_util:moment(),
+    riak_core_eventer:notify(riak_kv_delete, delete_start, {ReqId, Bucket, Key}),
     {ok,C} = riak:local_client(),
     case C:get(Bucket,Key,RW,Timeout) of
         {ok, OrigObj} ->
-            RemainingTime = Timeout - (riak_util:moment() - RealStartTime),
+            RemainingTime = Timeout - (riak_kv_util:moment() - RealStartTime),
             OrigMD = hd([MD || {MD,_V} <- riak_object:get_contents(OrigObj)]),
             NewObj = riak_object:update_metadata(OrigObj,
                             dict:store(<<"X-Riak-Deleted">>, "true", OrigMD)),
@@ -40,14 +40,14 @@ delete(ReqId,Bucket,Key,RW,Timeout,Client) ->
                       fun()-> reap(Bucket,Key,RemainingTime,ReqId) end);
                 _ -> nop
             end,
-            riak_core_eventer:notify(riak_delete, delete_reply, {ReqId, Reply}),
+            riak_core_eventer:notify(riak_kv_delete, delete_reply, {ReqId, Reply}),
             Client ! {ReqId, Reply};
         {error, notfound} ->
-            riak_core_eventer:notify(riak_delete, delete_reply,
+            riak_core_eventer:notify(riak_kv_delete, delete_reply,
                                 {ReqId, {error, notfound}}),
             Client ! {ReqId, {error, notfound}};
         X ->
-            riak_core_eventer:notify(riak_delete, delete_reply, {ReqId, X}),
+            riak_core_eventer:notify(riak_kv_delete, delete_reply, {ReqId, X}),
             Client ! {ReqId, X}
     end.
 
@@ -58,12 +58,12 @@ reap(Bucket, Key, Timeout, ReqId) ->
     N = proplists:get_value(n_val,BucketProps),
     case C:get(Bucket,Key,N,Timeout) of
         {error, notfound} ->
-            riak_core_eventer:notify(riak_delete, finalize_reap, 
+            riak_core_eventer:notify(riak_kv_delete, finalize_reap, 
                                 {ReqId, Bucket, Key, ok});
         {ok, _Obj} ->
-            riak_core_eventer:notify(riak_delete, finalize_reap, 
+            riak_core_eventer:notify(riak_kv_delete, finalize_reap, 
                                 {ReqId, Bucket, Key, not_deleted});
         O ->
-            riak_core_eventer:notify(riak_delete, finalize_reap,
+            riak_core_eventer:notify(riak_kv_delete, finalize_reap,
                                 {ReqId, Bucket, Key, O})
     end.

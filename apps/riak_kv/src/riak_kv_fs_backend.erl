@@ -12,9 +12,9 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
-% @doc riak_fs_backend is a simple filesystem storage system.
+% @doc riak_kv_fs_backend is a simple filesystem storage system.
 
--module(riak_fs_backend).
+-module(riak_kv_fs_backend).
 -export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
 -export([fold/3, drop/1, is_empty/1]).
 
@@ -24,16 +24,16 @@
 
 %% @spec start(Partition :: integer(), Config :: proplist()) ->
 %%          {ok, state()} | {{error, Reason :: term()}, state()}
-%% @doc Start this backend.  'riak_fs_backend_root' must be set in
+%% @doc Start this backend.  'riak_kv_fs_backend_root' must be set in
 %%      Riak's application environment.  It must be set to a string
 %%      representing the base directory where this backend should
 %%      store its files.
 start(Partition, Config) ->
     PartitionName = integer_to_list(Partition),
-    ConfigRoot = proplists:get_value(riak_fs_backend_root, Config),
+    ConfigRoot = proplists:get_value(riak_kv_fs_backend_root, Config),
     if
         ConfigRoot =:= undefined ->
-            riak:stop("riak_fs_backend_root unset, failing.");
+            riak:stop("riak_kv_fs_backend_root unset, failing.");
         true -> ok
     end,
     Dir = filename:join([ConfigRoot,PartitionName]),
@@ -220,8 +220,8 @@ nest([],N,Acc) ->
 
 simple_test() ->
    ?assertCmd("rm -rf test/fs-backend"),
-   Config = [{riak_fs_backend_root, "test/fs-backend"}],
-   riak_test_util:standard_backend_test(riak_fs_backend, Config).
+   Config = [{riak_kv_fs_backend_root, "test/fs-backend"}],
+   riak_kv_test_util:standard_backend_test(riak_kv_fs_backend, Config).
 
 dirty_clean_test() ->
     Dirty = "abc=+/def",

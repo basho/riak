@@ -12,9 +12,9 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
-%% @doc riak_dets_backend is a Riak storage backend using dets.
+%% @doc riak_kv_dets_backend is a Riak storage backend using dets.
 
--module(riak_dets_backend).
+-module(riak_kv_dets_backend).
 
 -include_lib("eunit/include/eunit.hrl").
 -export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,fold/3, is_empty/1, drop/1]).
@@ -25,9 +25,9 @@
 % @spec start(Partition :: integer(), Config :: proplist()) ->
 %                        {ok, state()} | {{error, Reason :: term()}, state()}
 start(Partition, Config) ->
-    ConfigRoot = proplists:get_value(riak_dets_backend_root, Config),
+    ConfigRoot = proplists:get_value(riak_kv_dets_backend_root, Config),
     if ConfigRoot =:= undefined ->
-            riak:stop("riak_dets_backend_root unset, failing.~n");
+            riak:stop("riak_kv_dets_backend_root unset, failing.~n");
        true -> ok
     end,
 
@@ -35,7 +35,7 @@ start(Partition, Config) ->
     case filelib:ensure_dir(TablePath) of
         ok -> ok;
         _Error ->
-            riak:stop("riak_dets_backend could not ensure"
+            riak:stop("riak_kv_dets_backend could not ensure"
                       " the existence of its root directory")
     end,
 
@@ -111,5 +111,5 @@ drop(#state{table=T, path=P}) ->
 % @private
 simple_test() ->
     ?assertCmd("rm -rf test/dets-backend"),
-    Config = [{riak_dets_backend_root, "test/dets-backend"}],
-    riak_test_util:standard_backend_test(riak_dets_backend, Config).
+    Config = [{riak_kv_dets_backend_root, "test/dets-backend"}],
+    riak_kv_test_util:standard_backend_test(riak_kv_dets_backend, Config).

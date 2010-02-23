@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
-%% @doc riak_mapred_query is the driver of a mapreduce query.
+%% @doc riak_kv_mapred_query is the driver of a mapreduce query.
 %%
 %%      Map phases are expected to have inputs of the form
 %%      [{Bucket,Key}] or [{{Bucket,Key},KeyData}] (the first form is
@@ -50,7 +50,7 @@
 %%         {qfun, function()}
 %% @type mapred_result() = [term()]
 
--module(riak_mapred_query).
+-module(riak_kv_mapred_query).
 
 -export([start/5]).
 
@@ -104,11 +104,11 @@ check_query_syntax([QTerm={QTermType, QueryFun, Misc, Acc}|Rest], Accum) when is
     end.
 
 phase_mod(link) ->
-    riak_map_phase;
+    riak_kv_map_phase;
 phase_mod(map) ->
-    riak_map_phase;
+    riak_kv_map_phase;
 phase_mod(reduce) ->
-    riak_reduce_phase.
+    riak_kv_reduce_phase.
 
 phase_behavior(link, _QueryFun, true) ->
     [accumulate];

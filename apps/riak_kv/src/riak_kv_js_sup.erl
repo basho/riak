@@ -11,7 +11,7 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
--module(riak_js_sup).
+-module(riak_kv_js_sup).
 -behaviour(supervisor).
 -export([start_link/0, init/1, stop/1]).
 -export([start_js/1]).
@@ -29,5 +29,5 @@ init([]) ->
     {ok,
      {{simple_one_for_one, 10, 10},
       [{undefined,
-        {riak_js_vm, start_link, []},
-        temporary, 2000, worker, [riak_js_vm]}]}}.
+        {riak_kv_js_vm, start_link, []},
+        temporary, 2000, worker, [riak_kv_js_vm]}]}}.

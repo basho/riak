@@ -11,7 +11,7 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.    
--module(riak_vnode_sup).
+-module(riak_kv_vnode_sup).
 -behaviour(supervisor).
 -export([start_link/0, init/1, stop/1]).
 -export([start_vnode/1]).
@@ -29,5 +29,5 @@ init([]) ->
     {ok, 
      {{simple_one_for_one, 10, 10}, 
       [{undefined,
-        {riak_vnode, start_link, []},
-      temporary, brutal_kill, worker, [riak_vnode]}]}}.
+        {riak_kv_vnode, start_link, []},
+      temporary, brutal_kill, worker, [riak_kv_vnode]}]}}.

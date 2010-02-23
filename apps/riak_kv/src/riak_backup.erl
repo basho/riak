@@ -70,7 +70,7 @@ backup(EntryNode, BaseFilename, Mode) ->
     ok.
     
 backup_node(Node) ->
-    VNodes = gen_server:call({riak_vnode_master, Node}, all_possible_vnodes),
+    VNodes = gen_server:call({riak_kv_vnode_master, Node}, all_possible_vnodes),
     [backup_vnode(VNode) ||  VNode <- VNodes].
     
 backup_vnode(_VNode = {_Index, VNodePid}) ->

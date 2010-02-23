@@ -385,7 +385,7 @@ gb_trees_fold_inner(Fun, Acc, {Key, Val, Iterator}) ->
 
 % @private
 simple_test() ->
-    riak_test_util:standard_backend_test(riak_cache_backend, []).
+    riak_kv_test_util:standard_backend_test(riak_cache_backend, []).
     
 % @private
 ttl_test() ->

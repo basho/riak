@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
--module(riak_handoff_listener).
+-module(riak_kv_handoff_listener).
 -behavior(gen_nb_server).
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -51,7 +51,7 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 new_connection(Socket, State) ->
-    {ok, Pid} = riak_handoff_receiver:start_link(Socket),
+    {ok, Pid} = riak_kv_handoff_receiver:start_link(Socket),
     gen_tcp:controlling_process(Socket, Pid),
     {ok, State}.
 

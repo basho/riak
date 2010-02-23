@@ -143,7 +143,7 @@ ensure_vnodes_started(Ring) ->
         case {length(AllMembers), hd(AllMembers) =:= node()} of
             {1, true} -> riak_core_ring:my_indices(Ring);
             _ -> 
-                {ok, Excl} = gen_server:call(riak_vnode_master, get_exclusions, 15000),
+                {ok, Excl} = gen_server:call(riak_kv_vnode_master, get_exclusions, 15000),
                 case riak_core_ring:random_other_index(Ring, Excl) of
                     no_indices ->
                         case length(Excl) =:= riak_core_ring:num_partitions(Ring) of
@@ -161,7 +161,7 @@ ensure_vnodes_started(Ring) ->
             riak:stop("node removal completed, exiting.");
         _ ->
             [begin
-                 gen_server:cast({riak_vnode_master, node()}, {start_vnode, I}) 
+                 gen_server:cast({riak_kv_vnode_master, node()}, {start_vnode, I}) 
              end|| I <- VNodes2Start]
     end.
 
@@ -202,7 +202,7 @@ remove_from_cluster(ExitingNode) ->
     [send_ring(X) || X <- riak_core_ring:all_members(Ring)],
     
     %% This line is right!
-    [gen_server:cast({riak_vnode_master, ExitingNode}, {start_vnode, P}) ||
+    [gen_server:cast({riak_kv_vnode_master, ExitingNode}, {start_vnode, P}) ||
         P <- AllIndices].    
 
 attempt_simple_transfer(Ring, Owners, ExitingNode) ->

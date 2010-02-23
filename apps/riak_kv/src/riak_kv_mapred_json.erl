@@ -1,4 +1,4 @@
--module(riak_mapred_json).
+-module(riak_kv_mapred_json).
 
 -export([parse_inputs/1, parse_query/1]).
 

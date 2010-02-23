@@ -42,9 +42,9 @@
 -define(DEFAULT_ERRTOL, 0.00003).
 
 %% @spec mapred(Inputs :: list(),
-%%              Query :: [riak_mapred_query:mapred_queryterm()]) ->
-%%       {ok, riak_mapred_query:mapred_result()} |
-%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
+%%              Query :: [riak_kv_mapred_query:mapred_queryterm()]) ->
+%%       {ok, riak_kv_mapred_query:mapred_result()} |
+%%       {error, {bad_qterm, riak_kv_mapred_query:mapred_queryterm()}} |
 %%       {error, timeout} |
 %%       {error, Err :: term()}
 %% @doc Perform a map/reduce job across the cluster.
@@ -53,10 +53,10 @@
 mapred(Inputs,Query) -> mapred(Inputs,Query,?DEFAULT_TIMEOUT).
 
 %% @spec mapred(Inputs :: list(),
-%%              Query :: [riak_mapred_query:mapred_queryterm()],
+%%              Query :: [riak_kv_mapred_query:mapred_queryterm()],
 %%              TimeoutMillisecs :: integer()  | 'infinity') ->
-%%       {ok, riak_mapred_query:mapred_result()} |
-%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
+%%       {ok, riak_kv_mapred_query:mapred_result()} |
+%%       {error, {bad_qterm, riak_kv_mapred_query:mapred_queryterm()}} |
 %%       {error, timeout} |
 %%       {error, Err :: term()}
 %% @doc Perform a map/reduce job across the cluster.
@@ -74,21 +74,21 @@ mapred(Inputs,Query,Timeout)
             Error
     end.
 
-%% @spec mapred_stream(Query :: [riak_mapred_query:mapred_queryterm()],
+%% @spec mapred_stream(Query :: [riak_kv_mapred_query:mapred_queryterm()],
 %%                     ClientPid :: pid()) ->
 %%       {ok, {ReqId :: term(), MR_FSM_PID :: pid()}} |
-%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
+%%       {error, {bad_qterm, riak_kv_mapred_query:mapred_queryterm()}} |
 %%       {error, Err :: term()}
 %% @doc Perform a streaming map/reduce job across the cluster.
 %%      See the map/reduce documentation for explanation of behavior.
 mapred_stream(Query,ClientPid) ->
     mapred_stream(Query,ClientPid,?DEFAULT_TIMEOUT).
 
-%% @spec mapred_stream(Query :: [riak_mapred_query:mapred_queryterm()],
+%% @spec mapred_stream(Query :: [riak_kv_mapred_query:mapred_queryterm()],
 %%                     ClientPid :: pid(),
 %%                     TimeoutMillisecs :: integer() | 'infinity') ->
 %%       {ok, {ReqId :: term(), MR_FSM_PID :: pid()}} |
-%%       {error, {bad_qterm, riak_mapred_query:mapred_queryterm()}} |
+%%       {error, {bad_qterm, riak_kv_mapred_query:mapred_queryterm()}} |
 %%       {error, Err :: term()}
 %% @doc Perform a streaming map/reduce job across the cluster.
 %%      See the map/reduce documentation for explanation of behavior.
@@ -96,7 +96,7 @@ mapred_stream(Query,ClientPid,Timeout)
   when is_list(Query), is_pid(ClientPid),
        (is_integer(Timeout) orelse Timeout =:= infinity) ->
     ReqId = mk_reqid(),
-    case riak_mapred_query:start(Node, ClientPid, ReqId, Query, Timeout) of
+    case riak_kv_mapred_query:start(Node, ClientPid, ReqId, Query, Timeout) of
         {ok, Pid} ->
             {ok, {ReqId, Pid}};
         Error ->
@@ -149,7 +149,7 @@ get(Bucket, Key, R, Timeout) when is_binary(Bucket), is_binary(Key),
                                   is_integer(R), is_integer(Timeout) ->
     Me = self(),
     ReqId = mk_reqid(),
-    spawn(Node, riak_get_fsm, start, [ReqId,Bucket,Key,R,Timeout,Me]),
+    spawn(Node, riak_kv_get_fsm, start, [ReqId,Bucket,Key,R,Timeout,Me]),
     wait_for_reqid(ReqId, Timeout).
 
 %% @spec put(RObj :: riak_object:riak_object(), W :: integer()) ->
@@ -184,7 +184,7 @@ put(RObj, W, DW, Timeout) ->
     R0 = riak_object:increment_vclock(RObj, ClientId),
     Me = self(),
     ReqId = mk_reqid(),
-    spawn(Node, riak_put_fsm, start, [ReqId,R0,W,DW,Timeout,Me]),
+    spawn(Node, riak_kv_put_fsm, start, [ReqId,R0,W,DW,Timeout,Me]),
     wait_for_reqid(ReqId, Timeout).
 
 %% @spec delete(riak_object:bucket(), riak_object:key(), RW :: integer()) ->
@@ -210,7 +210,7 @@ delete(Bucket,Key,RW) -> delete(Bucket,Key,RW,?DEFAULT_TIMEOUT).
 delete(Bucket,Key,RW,Timeout) ->
     Me = self(),
     ReqId = mk_reqid(),
-    spawn(Node, riak_delete, delete, [ReqId,Bucket,Key,RW,Timeout,Me]),
+    spawn(Node, riak_kv_delete, delete, [ReqId,Bucket,Key,RW,Timeout,Me]),
     wait_for_reqid(ReqId, Timeout).
 
 %% @spec list_keys(riak_object:bucket()) ->
@@ -236,7 +236,7 @@ list_keys(Bucket, Timeout) ->
 list_keys(Bucket, Timeout, ErrorTolerance) ->
     Me = self(),
     ReqId = mk_reqid(),
-    spawn(Node, riak_keys_fsm, start,
+    spawn(Node, riak_kv_keys_fsm, start,
           [ReqId,Bucket,Timeout,plain,ErrorTolerance,Me]),
     wait_for_listkeys(ReqId, Timeout).
 
@@ -271,7 +271,7 @@ stream_list_keys(Bucket, Timeout, ErrorTolerance, Client) ->
 %%      messages will be sent in the form of a MR input stream.
 stream_list_keys(Bucket, Timeout, ErrorTolerance, Client, ClientType) ->
     ReqId = mk_reqid(),
-    spawn(Node, riak_keys_fsm, start,
+    spawn(Node, riak_kv_keys_fsm, start,
           [ReqId,Bucket,Timeout,ClientType,ErrorTolerance,Client]),
     {ok, ReqId}.
 
@@ -338,7 +338,7 @@ get_bucket(BucketName) ->
 %% @spec reload_all(Module :: atom()) -> term()
 %% @doc Force all Riak nodes to reload Module.
 %%      This is used when loading new modules for map/reduce functionality.
-reload_all(Module) -> rpc:call(Node,riak_util,reload_all,[Module]).
+reload_all(Module) -> rpc:call(Node,riak_kv_util,reload_all,[Module]).
 
 %% @spec remove_from_cluster(ExitingNode :: atom()) -> term()
 %% @doc Cause all partitions owned by ExitingNode to be taken over
@@ -374,11 +374,11 @@ remove_event_handler(Pid, MatchHead, MatchGuard) ->
     rpc:call(Node, riak_core_eventer, remove_handler, [Pid, MatchHead, MatchGuard]).
 
 get_stats(local) ->
-    [{Node, rpc:call(Node, gen_server, call, [riak_stat, get_stats])}];
+    [{Node, rpc:call(Node, gen_server, call, [riak_kv_stat, get_stats])}];
 get_stats(global) ->
     {ok, Ring} = rpc:call(Node, riak_core_ring_manager, get_my_ring, []),
     Nodes = riak_core_ring:all_members(Ring),
-    [{N, rpc:call(N, gen_server, call, [riak_stat, get_stats])}
+    [{N, rpc:call(N, gen_server, call, [riak_kv_stat, get_stats])}
      || N <- Nodes].
 
 %% @private

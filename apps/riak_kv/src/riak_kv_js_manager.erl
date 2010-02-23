@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--module(riak_js_manager).
+-module(riak_kv_js_manager).
 
 -behaviour(gen_server).
 
@@ -31,7 +31,7 @@ dispatch(JSCall) ->
             {error, no_vms};
         Target ->
             JobId = {Target, make_ref()},
-            riak_js_vm:dispatch(Target, self(), JobId, JSCall),
+            riak_kv_js_vm:dispatch(Target, self(), JobId, JSCall),
             {ok, JobId}
     end.
 
@@ -41,7 +41,7 @@ blocking_dispatch(JSCall) ->
             {error, no_vms};
         Target ->
             JobId = {Target, make_ref()},
-            riak_js_vm:blocking_dispatch(Target, JobId, JSCall)
+            riak_kv_js_vm:blocking_dispatch(Target, JobId, JSCall)
     end.
 
 %% Hack to allow riak-admin to trigger a reload
@@ -66,7 +66,7 @@ handle_call(reload_all_vm, _From, #state{tid=Tid}=State) ->
     ets:safe_fixtable(Tid, true),
     reload_children(ets:first(Tid), Tid),
     ets:safe_fixtable(Tid, false),
-    VNodes = gen_server2:call(riak_vnode_master, all_vnodes),
+    VNodes = gen_server2:call(riak_kv_vnode_master, all_vnodes),
     lists:foreach(fun(VNode) -> gen_fsm:send_event(VNode, purge_mapcache) end, VNodes),
     {reply, ok, State};
 
@@ -86,7 +86,7 @@ handle_info({'DOWN', _MRef, _Type, Pid, _Info}, #state{tid=Tid}=State) ->
             {noreply, State};
         [{Pid}] ->
             ets:delete(?MODULE, Pid),
-            riak_js_sup:start_js(self()),
+            riak_kv_js_sup:start_js(self()),
             {noreply, State}
     end;
 handle_info(_Info, State) ->
@@ -102,7 +102,7 @@ code_change(_OldVsn, State, _Extra) ->
 start_children(0) ->
     ok;
 start_children(Count) ->
-    riak_js_sup:start_js(self()),
+    riak_kv_js_sup:start_js(self()),
     start_children(Count - 1).
 
 select_random() ->
@@ -133,5 +133,5 @@ pick_pos(OldPos, Size) ->
 reload_children('$end_of_table', _Tid) ->
     ok;
 reload_children(Current, Tid) ->
-    riak_js_vm:reload(Current),
+    riak_kv_js_vm:reload(Current),
     reload_children(ets:next(Tid, Current), Tid).

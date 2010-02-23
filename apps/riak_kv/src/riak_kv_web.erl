@@ -16,17 +16,17 @@
 %%      of Riak.  This module loads parameters from the application
 %%      environment:
 %%
-%%<dl><dt>  riak_web_ip
+%%<dl><dt>  riak_kv_web_ip
 %%</dt><dd>   IP address that the Webmachine node should listen to
-%%</dd><dt> riak_web_port
+%%</dd><dt> riak_kv_web_port
 %%</dt><dd>   port that the Webmachine node should listen to
-%%</dd><dt> riak_web_logdir
+%%</dd><dt> riak_kv_web_logdir
 %%</dt><dd>   directory under which the access log will be stored
 %%</dd><dt> raw_name
 %%</dt><dd>   the base path under which the raw_http_resource
 %%            should be exposed; defaulted to "raw"
 %%</dd></dl>
--module(riak_web).
+-module(riak_kv_web).
 
 -export([config/0]).
 
@@ -35,11 +35,11 @@
 %%      pass the return of this function to
 %%      webmachine_mochiweb:start/1 to start up a Webmachine
 %%      resource serving out of
-%%      http://{riak_web_ip}:{riak_web_port}/raw/
+%%      http://{riak_kv_web_ip}:{riak_kv_web_port}/raw/
 config() ->
-    [{ip, app_helper:get_env(riak_web_ip)},
-     {port, app_helper:get_env(riak_web_port)},
-     {log_dir, app_helper:get_env(riak_web_logdir, "log")},
+    [{ip, app_helper:get_env(riak_kv_web_ip)},
+     {port, app_helper:get_env(riak_kv_web_port)},
+     {log_dir, app_helper:get_env(riak_kv_web_logdir, "log")},
      {backlog, 128},
      {dispatch, dispatch_table()}].
 

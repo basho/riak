@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--module(riak_map_phase).
+-module(riak_kv_map_phase).
 
 -behaviour(luke_phase).
 
@@ -76,7 +76,7 @@ start_executors(Ring, Inputs, QTerm, Timeout) ->
 start_executors(_Ring, [], _QTerm, _Timeout, Accum) ->
     lists:reverse(Accum);
 start_executors(Ring, [H|T], QTerm, Timeout, Accum) ->
-    case riak_map_executor:start_link(Ring, H, QTerm, Timeout, self()) of
+    case riak_kv_map_executor:start_link(Ring, H, QTerm, Timeout, self()) of
         {ok, FSM} ->
             start_executors(Ring, T, QTerm, Timeout, [FSM|Accum]);
         {error, bad_input} ->

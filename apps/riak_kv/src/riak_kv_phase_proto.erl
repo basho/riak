@@ -11,7 +11,7 @@
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
--module(riak_phase_proto).
+-module(riak_kv_phase_proto).
 
 -export([send_inputs/2, mapexec_result/2, mapexec_error/2, error/2]).
 -export([die/1, die_all/1, propagate_done/1, done/1, phase_done/1]).

@@ -12,9 +12,9 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
-%% @doc riak_gb_trees_backend is a Riak storage backend using Erlang gb_trees.
+%% @doc riak_kv_gb_trees_backend is a Riak storage backend using Erlang gb_trees.
 
--module(riak_gb_trees_backend).
+-module(riak_kv_gb_trees_backend).
 
 -include_lib("eunit/include/eunit.hrl").
 -export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,is_empty/1,fold/3,drop/1]).
@@ -166,5 +166,5 @@ srv_fold1({K,V,Iter}, Fun0, Acc) ->
 
 % @private
 simple_test() ->
-    riak_test_util:standard_backend_test(riak_gb_trees_backend, []).
+    riak_kv_test_util:standard_backend_test(riak_kv_gb_trees_backend, []).
 

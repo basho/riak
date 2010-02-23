@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--module(riak_keys_fsm).
+-module(riak_kv_keys_fsm).
 -behaviour(gen_fsm).
 
 -export([start/6]).
@@ -43,7 +43,7 @@ init([ReqId,Bucket,Timeout,ClientType,ErrorTolerance,Client]) ->
     {ok,initialize,StateData,0}.
 
 ask_vn({Index,Node},ReqId,Msg) ->
-    gen_server:cast({riak_vnode_master, Node},
+    gen_server:cast({riak_kv_vnode_master, Node},
                     {vnode_list_bucket,{Index,ReqId},Msg}).
 
 %% @private
@@ -104,7 +104,7 @@ handle_info(_Info, _StateName, StateData) ->
 
 %% @private
 terminate(Reason, _StateName, _State=#state{req_id=ReqId}) ->
-    riak_core_eventer:notify(riak_keys_fsm, key_fsm_end,
+    riak_core_eventer:notify(riak_kv_keys_fsm, key_fsm_end,
                         {ReqId, Reason}),
     Reason.
 

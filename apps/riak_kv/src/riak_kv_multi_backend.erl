@@ -12,9 +12,9 @@
 %% specific language governing permissions and limitations
 %% under the License.    
 
-%% @doc riak_gb_trees_backend is a Riak storage backend using Erlang gb_trees.
+%% @doc riak_kv_gb_trees_backend is a Riak storage backend using Erlang gb_trees.
 
--module (riak_multi_backend).
+-module (riak_kv_multi_backend).
 -export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,is_empty/1,drop/1,fold/3]).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -22,7 +22,7 @@
 -record (state, {backends, default_backend}).
 
 %% @doc
-%% riak_multi_backend allows you to run multiple backends within a 
+%% riak_kv_multi_backend allows you to run multiple backends within a 
 %% single Riak instance. The 'backend' property of a bucket specifies
 %% the backend in which the object should be stored. If no 'backend'
 %% is specified, then the 'multi_backend_default' setting is used.
@@ -30,7 +30,7 @@
 %% 
 %% === Configuration ===
 %% 
-%%     {storage_backend, riak_multi_backend},
+%%     {storage_backend, riak_kv_multi_backend},
 %%     {multi_backend_default, first_backend},
 %%     {multi_backend, [ 
 %%       % format: {name, module, [Configs]}
@@ -176,7 +176,7 @@ simple_test() ->
     
     % Run the standard backend test...
     Config = sample_config(),
-    riak_test_util:standard_backend_test(riak_multi_backend, Config).
+    riak_kv_test_util:standard_backend_test(riak_kv_multi_backend, Config).
 
 get_backend_test() ->
     % Start the ring manager...
@@ -191,21 +191,21 @@ get_backend_test() ->
     {ok, State} = start(42, sample_config()),
 
     % Check our buckets...
-    {first_backend, riak_gb_trees_backend, _} = get_backend(<<"b1">>, State),
-    {second_backend, riak_ets_backend, _} = get_backend(<<"b2">>, State),
+    {first_backend, riak_kv_gb_trees_backend, _} = get_backend(<<"b1">>, State),
+    {second_backend, riak_kv_ets_backend, _} = get_backend(<<"b2">>, State),
     
     % Check the default...
-    {second_backend, riak_ets_backend, _} = get_backend(<<"b3">>, State),
+    {second_backend, riak_kv_ets_backend, _} = get_backend(<<"b3">>, State),
     
     ok.
 
 
 sample_config() ->
     [
-        {storage_backend, riak_multi_backend},
+        {storage_backend, riak_kv_multi_backend},
         {multi_backend_default, second_backend},
         {multi_backend, [
-            {first_backend, riak_gb_trees_backend, []},
-            {second_backend, riak_ets_backend, []}
+            {first_backend, riak_kv_gb_trees_backend, []},
+            {second_backend, riak_kv_ets_backend, []}
         ]}
     ].

@@ -12,9 +12,9 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
-% @doc riak_ets_backend is a Riak storage backend using ets.
+% @doc riak_kv_ets_backend is a Riak storage backend using ets.
 
--module(riak_ets_backend).
+-module(riak_kv_ets_backend).
 -behaviour(gen_server).
 
 -include_lib("eunit/include/eunit.hrl").
@@ -135,4 +135,4 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 % @private
 simple_test() ->
-    riak_test_util:standard_backend_test(riak_ets_backend, []).
+    riak_kv_test_util:standard_backend_test(riak_kv_ets_backend, []).

@@ -73,7 +73,7 @@ start(_Type, _StartArgs) ->
     check_deps(),
 
     %% Spin up supervisor
-    case riak_sup:start_link() of
+    case riak_kv_sup:start_link() of
         {ok, Pid} ->
             %% App is running; search for latest ring file and initialize with it
             riak_core_ring_manager:prune_ringfiles(),

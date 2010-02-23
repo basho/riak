@@ -67,7 +67,7 @@ defaults() ->
     [{n_val,3},
      {allow_mult,false},
      {linkfun,{modfun, raw_link_walker_resource, mapreduce_linkfun}},
-     {chash_keyfun, {riak_util, chash_std_keyfun}},
+     {chash_keyfun, {riak_kv_util, chash_std_keyfun}},
      {old_vclock, 86400},
      {young_vclock, 20},
      {big_vclock, 50},

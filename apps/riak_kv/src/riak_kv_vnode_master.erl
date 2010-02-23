@@ -12,7 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
--module(riak_vnode_master).
+-module(riak_kv_vnode_master).
 
 -behaviour(gen_server).
 -export([start_link/0]).
@@ -24,7 +24,7 @@
 start_link() -> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @private
-init([]) -> {ok, #state{idxtab=ets:new(riak_vnode_idx,[{keypos,2}])}}.
+init([]) -> {ok, #state{idxtab=ets:new(riak_kv_vnode_idx,[{keypos,2}])}}.
 
 
 %% @private
@@ -116,7 +116,7 @@ add_vnode_rec(I,  _State=#state{idxtab=T}) -> ets:insert(T,I).
 get_vnode(Idx, State) ->
     case idx2vnode(Idx, State) of
         no_match ->
-            {ok, Pid} = riak_vnode_sup:start_vnode(Idx),
+            {ok, Pid} = riak_kv_vnode_sup:start_vnode(Idx),
             MonRef = erlang:monitor(process, Pid),
             add_vnode_rec(#idxrec{idx=Idx,pid=Pid,monref=MonRef}, State),
             Pid;

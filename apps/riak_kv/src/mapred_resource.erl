@@ -67,7 +67,7 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query, timeout=Timeout}=State) ->
                         Client:mapred_bucket_stream(Inputs, Query, Me,
                                                     Timeout)
                 end,
-            Boundary = riak_util:unique_id_62(),
+            Boundary = riak_kv_util:unique_id_62(),
             RD1 = wrq:set_resp_header("Content-Type", "multipart/mixed;boundary=" ++ Boundary, RD),
             State1 = State#state{boundary=Boundary},
             {true, wrq:set_resp_body({stream, stream_mapred_results(RD1, ReqId, State1)}, RD1), State1};
@@ -130,9 +130,9 @@ verify_body(Body, State) ->
             Query = proplists:get_value(?QUERY_TOKEN, MapReduceDesc),
             case not(Inputs =:= undefined) andalso not(Query =:= undefined) of
                 true ->
-                    case riak_mapred_json:parse_inputs(Inputs) of
+                    case riak_kv_mapred_json:parse_inputs(Inputs) of
                         {ok, ParsedInputs} ->
-                            case riak_mapred_json:parse_query(Query) of
+                            case riak_kv_mapred_json:parse_query(Query) of
                                 {ok, ParsedQuery} ->
                                     {true, [], State#state{inputs=ParsedInputs,
                                                            mrquery=ParsedQuery,
