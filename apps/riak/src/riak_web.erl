@@ -47,15 +47,13 @@ dispatch_table() ->
     MapredProps = mapred_props(),
     StatsProps = stats_props(),
 
-    R = lists:append(
+    lists:append(
       raw_dispatch(),
       [{[proplists:get_value(prefix, MapredProps)],
         mapred_resource, MapredProps},
        {[proplists:get_value(prefix, StatsProps)],
         stats_http_resource, StatsProps},
        {["ping"], ping_http_resource, []}]),
-    io:format("~p~n", [R]),
-    R.
 
 raw_dispatch() ->
     case riak:get_app_env(raw_name) of
