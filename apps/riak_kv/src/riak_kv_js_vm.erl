@@ -190,7 +190,7 @@ init_context(Ctx) ->
 priv_dir() ->
     %% Hacky workaround to handle running from a standard app directory
     %% and .ez package
-    case code:priv_dir(riak) of
+    case code:priv_dir(riak_kv) of
         {error, bad_name} ->
             filename:join([filename:dirname(code:which(?MODULE)), "..", "priv"]);
         Dir ->

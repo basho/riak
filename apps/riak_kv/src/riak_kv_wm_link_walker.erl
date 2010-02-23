@@ -125,7 +125,7 @@
 -export([mapreduce_linkfun/3]).
 
 -include_lib("webmachine/include/webmachine.hrl").
--include("raw_http.hrl").
+-include("riak_kv_wm_raw.hrl").
 
 %% @type context() = term()
 -record(ctx, {prefix,     %% string() - prefix for resource urls

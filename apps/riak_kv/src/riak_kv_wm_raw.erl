@@ -177,7 +177,7 @@
 %% @type link() = {{Bucket::binary(), Key::binary()}, Tag::binary()}
 
 -include_lib("webmachine/include/webmachine.hrl").
--include("raw_http.hrl").
+-include("riak_kv_wm_raw.hrl").
 
 %% @spec init(proplist()) -> {ok, context()}
 %% @doc Initialize this resource.  This function extracts the

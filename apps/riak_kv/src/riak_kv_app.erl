@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 %% @doc Bootstrapping the Riak application.
 
@@ -25,10 +25,11 @@
 %%      Arguments are ignored as all configuration is done via the erlenv file.
 start(_Type, _StartArgs) ->
 
-    %% Look at the epoch and generating an error message if it doesn't match up to our expectations
+    %% Look at the epoch and generating an error message if it doesn't match up
+    %% to our expectations
     check_epoch(),
-    
-    %% Append user-provided code paths 
+
+    %% Append user-provided code paths
     case app_helper:get_env(add_paths) of
         List when is_list(List) ->
             ok = code:add_paths(List);
@@ -44,15 +45,17 @@ start(_Type, _StartArgs) ->
         is_list(DefaultBucketProps) ->
             set_bucket_params(DefaultBucketProps);
         true ->
-            error_logger:error_msg("default_bucket_props is not a list: ~p\n", [DefaultBucketProps]),
+            error_logger:error_msg("default_bucket_props is not a list: ~p\n",
+                                   [DefaultBucketProps]),
             throw({error, invalid_default_bucket_props})
     end,
-    
+
     %% Check the storage backend
     StorageBackend = app_helper:get_env(storage_backend),
     case code:ensure_loaded(StorageBackend) of
         {error,nofile} ->
-            error_logger:error_msg("storage_backend ~p is non-loadable.\n", [StorageBackend]),
+            error_logger:error_msg("storage_backend ~p is non-loadable.\n",
+                                   [StorageBackend]),
             throw({error, invalid_storage_backend});
         _ ->
             ok
@@ -64,7 +67,8 @@ start(_Type, _StartArgs) ->
         true ->
             ok;
         false ->
-            error_logger:error_msg("Ring state directory ~p does not exist.\n", [RingStateDir]),
+            error_logger:error_msg("Ring state directory ~p does not exist.\n",
+                                   [RingStateDir]),
             throw({error, invalid_ring_state_dir})
     end,
 
@@ -78,20 +82,20 @@ start(_Type, _StartArgs) ->
             %% App is running; search for latest ring file and initialize with it
             riak_core_ring_manager:prune_ringfiles(),
             case riak_core_ring_manager:find_latest_ringfile() of
-                {ok, Ring} ->
-                    riak_core_ring_manager:set_my_ring(riak_core_ring_manager:read_ringfile(Ring));
+                {ok, RingFile} ->
+                    Ring = riak_core_ring_manager:read_ringfile(RingFile),
+                    riak_core_ring_manager:set_my_ring(Ring);
                 {error, not_found} ->
                     error_logger:warning_msg("No ring file available.\n");
                 {error, Reason} ->
-                    error_logger:error_msg("Failed to load ring file: ~p\n", [Reason]),
+                    error_logger:error_msg("Failed to load ring file: ~p\n",
+                                           [Reason]),
                     throw({error, Reason})
             end,
             {ok, Pid};
         {error, Reason} ->
             {error, Reason}
     end.
-            
-            
 
 %% @spec stop(State :: term()) -> ok
 %% @doc The application:stop callback for riak.
@@ -126,7 +130,7 @@ check_deps() ->
 -define(SEC_TO_EPOCH, 62167219200).
 
 %% @spec check_epoch() -> ok
-%% @doc 
+%% @doc
 check_epoch() ->
     %% doc for erlang:now/0 says return value is platform-dependent
     %% -> let's emit an error if this platform doesn't think the epoch
