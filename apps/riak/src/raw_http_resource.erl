@@ -106,19 +106,19 @@
 %%
 %% Webmachine dispatch lines for this resource should look like:
 %%
-%%  {["raw", bucket],
+%%  {["riak", bucket],
 %%   raw_http_resource,
-%%   [{prefix, "raw"},
+%%   [{prefix, "riak"},
 %%    {riak, local} %% or {riak, {'riak@127.0.0.1', riak_cookie}}
 %%   ]}.
-%%  {["raw", bucket, key],
+%%  {["riak", bucket, key],
 %%   raw_http_resource,
-%%   [{prefix, "raw"},
+%%   [{prefix, "riak"},
 %%    {riak, local} %% or {riak, {'riak@127.0.0.1', riak_cookie}}
 %%   ]}.
 %%
 %% These example dispatch lines will expose this resource at
-%% /raw/Bucket and /raw/Bucket/Key.  The resource will attempt to
+%% /riak/Bucket and /riak/Bucket/Key.  The resource will attempt to
 %% connect to Riak on the same Erlang node one which the resource
 %% is executing.  Using the alternate {riak, {Node, Cookie}} form
 %% will cause the resource to connect to riak on the specified

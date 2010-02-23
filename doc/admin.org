@@ -254,10 +254,10 @@
          this setting is not defined.
 
     + =raw_name= :: the base of the path in the URL exposing Riak's
-                    "raw" HTTP interface (default: ="raw"=)
+                    HTTP interface (default: ="riak"=)
 
                     The default value will expose data at
-                    =/raw/Bucket/Key=.  For example, changing this
+                    =/riak/Bucket/Key=.  For example, changing this
                     setting to ="bar"= would expose the interface at
                     =/bar/Bucket/Key=.
 
