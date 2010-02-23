@@ -44,28 +44,31 @@ config() ->
      {dispatch, dispatch_table()}].
 
 dispatch_table() ->
-    RawProps = raw_props(),
     MapredProps = mapred_props(),
     StatsProps = stats_props(),
 
-    [{[proplists:get_value(prefix, RawProps),bucket],
-      raw_http_resource,RawProps},
-     {[proplists:get_value(prefix, RawProps),bucket,key],
-      raw_http_resource, RawProps},
-     {[proplists:get_value(prefix, RawProps),bucket,key,'*'],
-      raw_link_walker_resource, RawProps},
+    lists:append(
+      raw_dispatch(),
+      [{[proplists:get_value(prefix, MapredProps)],
+        mapred_resource, MapredProps},
+       {[proplists:get_value(prefix, StatsProps)],
+        stats_http_resource, StatsProps},
+       {["ping"], ping_http_resource, []}]).
 
-     {[proplists:get_value(prefix, MapredProps)],
-      mapred_resource, MapredProps},
-     
-     {[proplists:get_value(prefix, StatsProps)],
-      stats_http_resource, StatsProps},
+raw_dispatch() ->
+    case riak:get_app_env(raw_name) of
+        undefined -> raw_dispatch("riak");
+        Name -> lists:append(raw_dispatch(Name), raw_dispatch("riak"))
+    end.
 
-     {["ping"], ping_http_resource, []}].
+raw_dispatch(Name) ->
+    Props = raw_props(Name),
+    [{[Name, bucket], raw_http_resource, Props},
+     {[Name, bucket, key], raw_http_resource, Props},
+     {[Name, bucket, key, '*'], raw_link_walker_resource, Props}].
 
-raw_props() ->
-    [{prefix, riak:get_app_env(raw_name, "raw")},
-     {riak, local}].
+raw_props(Prefix) ->
+    [{prefix, Prefix}, {riak, local}].
 
 mapred_props() ->
     [{prefix, riak:get_app_env(mapred_name, "mapred")}].
