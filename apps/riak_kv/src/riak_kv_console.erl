@@ -17,7 +17,7 @@
 %% @author Justin Sheehy <justin@basho.com>
 %% @author Bryan Fink <bryan@basho.com>
 %% @copyright 2007-2009 Basho Technologies, Inc.  All Rights Reserved.
--module(riak_console).
+-module(riak_kv_console).
 
 -export([join/1, status/1, reip/1]).
 

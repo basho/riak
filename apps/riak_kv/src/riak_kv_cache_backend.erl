@@ -13,7 +13,7 @@
 %% under the License.    
 
 %% @doc
-%% riak_cache_backend is a backend that turns a bucket into a 
+%% riak_kv_cache_backend is a backend that turns a bucket into a 
 %% memcached-type memory cache. Ejects the least recently used
 %% objects either when cache gets full or the object's lease
 %% expires.
@@ -21,14 +21,14 @@
 %% 
 %% === Config Settings ===
 %% 
-%% * 'riak_cache_backend_memory' - Specifies the amount of maximum 
+%% * 'riak_kv_cache_backend_memory' - Specifies the amount of maximum 
 %%   amount of memory allocated to cache, in MB. 
-%% * 'riak_cache_backend_ttl' - When an object is accessed, renew the
+%% * 'riak_kv_cache_backend_ttl' - When an object is accessed, renew the
 %%   lease for this many seconds.
-%% * 'riak_cache_backend_max_ttl' - Don't allow the object's lease to 
+%% * 'riak_kv_cache_backend_max_ttl' - Don't allow the object's lease to 
 %%   be renewed after this many seconds.
 
--module (riak_cache_backend).
+-module (riak_kv_cache_backend).
 -export([start/2, stop/1, get/2, put/3, list/1, list_bucket/2, delete/2]).
 -export([drop/1, is_empty/1, fold/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
@@ -87,9 +87,9 @@ stop(State) ->
 
 %% @private
 init([Config]) ->
-    MaxTTL = proplists:get_value(riak_cache_backend_max_ttl, Config, ?DEFAULT_MAX_TTL),
-    TTL = proplists:get_value(riak_cache_backend_ttl, Config, ?DEFAULT_TTL),
-    Memory = proplists:get_value(riak_cache_backend_memory, Config, ?DEFAULT_MEMORY),
+    MaxTTL = proplists:get_value(riak_kv_cache_backend_max_ttl, Config, ?DEFAULT_MAX_TTL),
+    TTL = proplists:get_value(riak_kv_cache_backend_ttl, Config, ?DEFAULT_TTL),
+    Memory = proplists:get_value(riak_kv_cache_backend_memory, Config, ?DEFAULT_MEMORY),
     {ok, #state { 
         ttl=TTL, max_ttl=MaxTTL, max_memory=Memory * 1024 * 1024, used_memory=0,
         obj_tree=gb_trees:empty(), time_tree=gb_trees:empty()
@@ -385,12 +385,12 @@ gb_trees_fold_inner(Fun, Acc, {Key, Val, Iterator}) ->
 
 % @private
 simple_test() ->
-    riak_kv_test_util:standard_backend_test(riak_cache_backend, []).
+    riak_kv_test_util:standard_backend_test(riak_kv_cache_backend, []).
     
 % @private
 ttl_test() ->
     % Set TTL to 0.02 seconds...
-    Config = [{riak_cache_backend_ttl, 0.02}],
+    Config = [{riak_kv_cache_backend_ttl, 0.02}],
     {ok, State} = start(42, Config),
 
     Bucket = <<"Bucket">>, 
@@ -416,7 +416,7 @@ ttl_test() ->
 max_ttl_test() ->
     % Set TTL to 0.04 seconds...
     % Set Max TTL to 0.9 seconds...
-    Config = [{riak_cache_backend_ttl, 0.04}, {riak_cache_backend_max_ttl, 0.09}],
+    Config = [{riak_kv_cache_backend_ttl, 0.04}, {riak_kv_cache_backend_max_ttl, 0.09}],
     {ok, State} = start(42, Config),
 
     Bucket = <<"Bucket">>, 
@@ -445,7 +445,7 @@ max_ttl_test() ->
 % @private
 max_memory_test() ->
     % Set max size to 1.5kb...
-    Config = [{riak_cache_backend_memory, 1.5 * (1 / 1024)}],
+    Config = [{riak_kv_cache_backend_memory, 1.5 * (1 / 1024)}],
     {ok, State} = start(42, Config),
 
     Bucket = <<"Bucket">>, 

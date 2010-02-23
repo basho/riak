@@ -14,7 +14,7 @@
 
 %% @doc Bootstrapping the Riak application.
 
--module(riak_app).
+-module(riak_kv_app).
 
 -behaviour(application).
 -export([start/2,stop/1]).

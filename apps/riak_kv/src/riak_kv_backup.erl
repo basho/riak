@@ -17,9 +17,9 @@
 %%      a dump, you should restore to an empty cluster.  Otherwise,
 %%      restore will reconcile values with the existing data.
 
--module(riak_backup).
+-module(riak_kv_backup).
 -export ([backup/3, restore/2]).
--define (TABLE, riak_backup_table).
+-define (TABLE, riak_kv_backup_table).
 
 %%% BACKUP %%%
 

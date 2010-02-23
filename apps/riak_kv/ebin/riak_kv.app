@@ -17,11 +17,11 @@
              raw_http_resource,
              raw_link_walker_resource,
              riak,
-             riak_app,
-             riak_backup,
-             riak_cache_backend,
+             riak_kv_app,
+             riak_kv_backup,
+             riak_kv_cache_backend,
              riak_client,
-             riak_console,
+             riak_kv_console,
              riak_kv_delete,
              riak_kv_dets_backend,
              riak_kv_ets_backend,
@@ -67,7 +67,7 @@
                   crypto
                  ]},
   {registered, []},
-  {mod, {riak_app, []}},
+  {mod, {riak_kv_app, []}},
   {env, [
          %% Default claims functions
          {wants_claim_fun, {riak_core_claim, default_wants_claim}},
