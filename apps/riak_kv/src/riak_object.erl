@@ -155,7 +155,7 @@ rem_dup_objs([O|Rest],Acc) ->
 
 compare_content_dates(C1,C2) ->
     % true if C1 was modifed later than C2
-    riak_kv_util:compare_dates(
+    riak_core_util:compare_dates(
       dict:fetch(<<"X-Riak-Last-Modified">>, C1#r_content.metadata),
       dict:fetch(<<"X-Riak-Last-Modified">>, C2#r_content.metadata)).
 

@@ -252,7 +252,7 @@ enforce_allow_mult(Obj, BProps) ->
 select_newest_content(Mult) ->
     hd(lists:sort(
          fun({MD0, _}, {MD1, _}) ->
-                 riak_kv_util:compare_dates(
+                 riak_core_util:compare_dates(
                    dict:fetch(<<"X-Riak-Last-Modified">>, MD0),
                    dict:fetch(<<"X-Riak-Last-Modified">>, MD1))
          end,

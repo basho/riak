@@ -39,7 +39,7 @@ start_link(_Ring, _BadInput, _QTerm, _Timeout, _PhasePid) ->
     {error, bad_input}.
 %% @private
 init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
-    DocIdx = riak_kv_util:chash_key({Bucket,Key}),
+    DocIdx = riak_core_util:chash_key({Bucket,Key}),
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     LinkFun = case QTerm0 of
                   {erlang, {link,_,_,_}} -> proplists:get_value(linkfun, BucketProps);

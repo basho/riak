@@ -198,7 +198,7 @@ prune_vclock1(V,Now,BProps,HeadTime) ->
 
 prune_small_test() ->
     % vclock with less entries than small_vclock will be untouched
-    Now = riak_kv_util:moment(),
+    Now = riak_core_util:moment(),
     OldTime = Now - 32000000,
     SmallVC = [{<<"1">>, {1, OldTime}},
                {<<"2">>, {2, OldTime}},
@@ -208,7 +208,7 @@ prune_small_test() ->
 
 prune_young_test() ->
     % vclock with all entries younger than young_vclock will be untouched
-    Now = riak_kv_util:moment(),
+    Now = riak_core_util:moment(),
     NewTime = Now - 1,
     VC = [{<<"1">>, {1, NewTime}},
           {<<"2">>, {2, NewTime}},
@@ -219,7 +219,7 @@ prune_young_test() ->
 prune_big_test() ->
     % vclock not preserved by small or young will be pruned down to
     % no larger than big_vclock entries
-    Now = riak_kv_util:moment(),
+    Now = riak_core_util:moment(),
     NewTime = Now - 1000,
     VC = [{<<"1">>, {1, NewTime}},
           {<<"2">>, {2, NewTime}},
@@ -231,7 +231,7 @@ prune_big_test() ->
 prune_old_test() ->
     % vclock not preserved by small or young will be pruned down to
     % no larger than big_vclock and no entries more than old_vclock ago
-    Now = riak_kv_util:moment(),
+    Now = riak_core_util:moment(),
     NewTime = Now - 1000,
     OldTime = Now - 100000,    
     VC = [{<<"1">>, {1, NewTime}},

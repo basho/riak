@@ -24,11 +24,11 @@
 %% @doc Delete the object at Bucket/Key.  Direct return value is uninteresting,
 %%      see riak_client:delete/3 for expected gen_server replies to Client.
 delete(ReqId,Bucket,Key,RW,Timeout,Client) ->           
-    RealStartTime = riak_kv_util:moment(),
+    RealStartTime = riak_core_util:moment(),
     {ok,C} = riak:local_client(),
     case C:get(Bucket,Key,RW,Timeout) of
         {ok, OrigObj} ->
-            RemainingTime = Timeout - (riak_kv_util:moment() - RealStartTime),
+            RemainingTime = Timeout - (riak_core_util:moment() - RealStartTime),
             OrigMD = hd([MD || {MD,_V} <- riak_object:get_contents(OrigObj)]),
             NewObj = riak_object:update_metadata(OrigObj,
                             dict:store(<<"X-Riak-Deleted">>, "true", OrigMD)),

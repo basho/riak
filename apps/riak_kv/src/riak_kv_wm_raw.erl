@@ -664,7 +664,7 @@ post_is_create(RD, Ctx) ->
 %%      This function also sets the Location header to generate a
 %%      201 Created response.
 create_path(RD, Ctx=#ctx{prefix=P, bucket=B}) ->
-    K = riak_kv_util:unique_id_62(),
+    K = riak_core_util:unique_id_62(),
     {K,
      wrq:set_resp_header("Location",
                          lists:append(["/",P,"/",binary_to_list(B),"/",K]),
@@ -812,7 +812,7 @@ produce_sibling_message_body(RD, Ctx=#ctx{doc={ok, Doc}}) ->
 %%      values (siblings), each sibling being one part of the larger
 %%      document.
 produce_multipart_body(RD, Ctx=#ctx{doc={ok, Doc}, bucket=B, prefix=P}) ->
-    Boundary = riak_kv_util:unique_id_62(),
+    Boundary = riak_core_util:unique_id_62(),
     {[[["\n--",Boundary,"\n",
         multipart_encode_body(P, B, Content)]
        || Content <- riak_object:get_contents(Doc)],

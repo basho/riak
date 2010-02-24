@@ -55,7 +55,7 @@ initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
                                       bkey={Bucket,Key}, ring=Ring}) ->
     StartNow = now(),
     TRef = erlang:send_after(Timeout, self(), timeout),
-    DocIdx = riak_kv_util:chash_key({Bucket, Key}),
+    DocIdx = riak_core_util:chash_key({Bucket, Key}),
     Msg = {self(), {Bucket,Key}, ReqId},
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     N = proplists:get_value(n_val,BucketProps),
@@ -70,7 +70,7 @@ initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
     StateData = StateData0#state{n=N,allowmult=AllowMult,repair_sent=[],
                        preflist=Preflist,final_obj=undefined,
                        replied_r=[],replied_fail=[],
-                       replied_notfound=[],starttime=riak_kv_util:moment(),
+                       replied_notfound=[],starttime=riak_core_util:moment(),
                        waiting_for=Sent,tref=TRef,startnow=StartNow},
     {next_state,waiting_vnode_r,StateData}.
 

@@ -67,7 +67,7 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query, timeout=Timeout}=State) ->
                         Client:mapred_bucket_stream(Inputs, Query, Me,
                                                     Timeout)
                 end,
-            Boundary = riak_kv_util:unique_id_62(),
+            Boundary = riak_core_util:unique_id_62(),
             RD1 = wrq:set_resp_header("Content-Type", "multipart/mixed;boundary=" ++ Boundary, RD),
             State1 = State#state{boundary=Boundary},
             {true, wrq:set_resp_body({stream, stream_mapred_results(RD1, ReqId, State1)}, RD1), State1};

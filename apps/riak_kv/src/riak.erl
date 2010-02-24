@@ -101,7 +101,7 @@ client_connect(Node, ClientId= <<_:32>>) ->
         pong -> {ok, riak_client:new(Node, ClientId)}
     end;
 client_connect(Node, undefined) ->
-    client_connect(Node, riak_kv_util:mkclientid(Node));
+    client_connect(Node, riak_core_util:mkclientid(Node));
 client_connect(Node, Other) ->
     client_connect(Node, <<(erlang:phash2(Other)):32>>).
 
@@ -109,7 +109,7 @@ client_connect(Node, Other) ->
 %% @doc Validate that a specified node is accessible and functional.
 %%
 client_test(NodeStr) when is_list(NodeStr) ->
-    client_test(riak_kv_util:str_to_node(NodeStr));
+    client_test(riak_core_util:str_to_node(NodeStr));
 client_test(Node) ->
     case net_adm:ping(Node) of
         pong ->
@@ -137,7 +137,7 @@ client_test(Node) ->
 %% @doc Join the ring found on the specified remote node
 %%
 join(NodeStr) when is_list(NodeStr) ->
-    join(riak_kv_util:str_to_node(NodeStr));
+    join(riak_core_util:str_to_node(NodeStr));
 join(Node) when is_atom(Node) ->
     case net_adm:ping(Node) of
         pong ->
@@ -156,7 +156,7 @@ code_hash() ->
                          erlang:md5_init(),
                          [C || {_, C, _} <- [code:get_object_code(M) || M <- AllMods]]
                         )),
-    riak_kv_util:integer_to_list(MD5Sum, 62).
+    riak_core_util:integer_to_list(MD5Sum, 62).
 
 
 %%

@@ -57,11 +57,11 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
     StartNow = now(),
     TRef = erlang:send_after(Timeout, self(), timeout),
     RObj = update_metadata(RObj0),
-    RealStartTime = riak_kv_util:moment(),
+    RealStartTime = riak_core_util:moment(),
     Bucket = riak_object:bucket(RObj),
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     Key = riak_object:key(RObj),
-    DocIdx = riak_kv_util:chash_key({Bucket, Key}),
+    DocIdx = riak_core_util:chash_key({Bucket, Key}),
     Msg = {self(), {Bucket,Key}, RObj, ReqId, RealStartTime},
     N = proplists:get_value(n_val,BucketProps),
     Preflist = riak_core_ring:preflist(DocIdx, Ring),
@@ -73,7 +73,7 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
     end,
     StateData = StateData0#state{
                   robj=RObj, n=N, preflist=Preflist, bkey={Bucket,Key},
-                  waiting_for=Sent, starttime=riak_kv_util:moment(),
+                  waiting_for=Sent, starttime=riak_core_util:moment(),
                   replied_w=[], replied_dw=[], replied_fail=[],
                   tref=TRef,startnow=StartNow},
     {next_state,waiting_vnode_w,StateData}.
@@ -189,7 +189,7 @@ update_metadata(RObj) ->
 
 make_vtag(RObj) ->
     <<HashAsNum:128/integer>> = crypto:md5(term_to_binary(riak_object:vclock(RObj))),
-    riak_kv_util:integer_to_list(HashAsNum,62).
+    riak_core_util:integer_to_list(HashAsNum,62).
 
 make_vtag_test() ->
     Obj = riak_object:new(<<"b">>,<<"k">>,<<"v1">>),

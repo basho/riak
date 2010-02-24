@@ -157,7 +157,7 @@ get_stats() ->
 %% @spec update(term()) -> ok
 %% @doc Update the given stat.
 update(Stat) ->
-    gen_server2:cast(?MODULE, {update, Stat, riak_kv_util:moment()}).
+    gen_server2:cast(?MODULE, {update, Stat, riak_core_util:moment()}).
 
 %% @private
 init([]) ->
