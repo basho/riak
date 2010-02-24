@@ -15,7 +15,7 @@
 %% @doc Raw link walker resource provides an interface to riak object
 %%      linkwalking over HTTP.  The interface exposed is:
 %%
-%%      /raw/Bucket/Key[/b,t,acc]
+%%      /riak/Bucket/Key[/b,t,acc]
 %%
 %%      where:
 %%
@@ -41,7 +41,7 @@
 %%
 %%      so:
 %%
-%%      /raw/foo/123/bar,_,_ : returns all bar objects
+%%      /riak/foo/123/bar,_,_ : returns all bar objects
 %%      attached to foo 123:
 %%        Content-type: multipart/mixed; boundary=ABC
 %%
@@ -59,7 +59,7 @@
 %%        --XYZ--
 %%      --ABC--
 %%
-%%      /raw/foo/123/bar,_,1/_,_,_ : returns all
+%%      /riak/foo/123/bar,_,1/_,_,_ : returns all
 %%      bar objects attached to foo 123, and all objects attached
 %%      to those bar objects:
 %%        Content-type: multipart/mixed; boundary=ABC
@@ -92,15 +92,15 @@
 %%
 %% Webmachine dispatch line for this resource should look like:
 %%
-%%  {["raw", bucket, key, '*'],
+%%  {["riak", bucket, key, '*'],
 %%   raw_http_resource,
-%%   [{prefix, "raw"},
+%%   [{prefix, "riak"},
 %%    {riak, local}, %% or {riak, {'riak@127.0.0.1', riak_cookie}}
 %%    {cache_secs, 60}
 %%   ]}.
 %%
 %% These example dispatch lines will expose this resource at
-%% /raw/Bucket/Key/*.  The resource will attempt to
+%% /riak/Bucket/Key/*.  The resource will attempt to
 %% connect to Riak on the same Erlang node one which the resource
 %% is executing.  Using the alternate {riak, {Node, Cookie}} form
 %% will cause the resource to connect to riak on the specified

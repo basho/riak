@@ -1,27 +1,27 @@
-How to Use the "Raw" HTTP Interface
+How to Use the Riak HTTP Interface
 
-Step 1 in using the raw HTTP interface is to enable the Riak web
+Step 1 in using the Riak HTTP interface is to enable the Riak web
 interface.  Add these two lines to your riak config:
 
    {riak_web_ip, "127.0.0.1"}.
    {riak_web_port, 8098}.
 
-Now start Riak with your config file, and you'll find the raw HTTP
-interface at http://127.0.0.1:8098/raw/...  If you'd rather have some
-prefix other than "raw", add another line to your config:
+Now start Riak with your config file, and you'll find the HTTP
+interface at http://127.0.0.1:8098/riak/...  If you'd rather have some
+prefix other than "riak", add another line to your config:
 
-   {raw_name, "myrawprefix"}.
+   {raw_name, "myprefix"}.
 
-If you plan on only or mostly using the raw HTTP interface, you'll
-also find it convenient to set the default linkfun for your buckets.
+If you plan on only or mostly using the HTTP interface, you'll also 
+find it convenient to set the default linkfun for your buckets.
 One more line for your config file:
 
    {default_bucket_props, [{linkfun, {modfun, raw_link_walker_resource, mapreduce_linkfun}}]}.
 
 You'll find that all buckets exist, and are ready to give you details
-about themselves at /raw/BucketName:
+about themselves at /riak/BucketName:
 
-   $ curl -i http://127.0.0.1:8098/raw/example
+   $ curl -i http://127.0.0.1:8098/riak/example
    HTTP/1.1 200 OK
    Vary: Accept-Encoding
    Server: MochiWeb/1.1 WebMachine/1.4 (our dis is finally out)
@@ -34,16 +34,16 @@ about themselves at /raw/BucketName:
 It is not necessary to "create" or otherwise "touch" a bucket before storing documents into it, but if you want to change a property at runtime, it's as simple as PUTing to the bucket:
 
    $ curl -X PUT -H "content-type: application/json" \
-     http://127.0.0.1:8098/raw/example --data "{\"props\":{\"n_val\":4}}"
+     http://127.0.0.1:8098/riak/example --data "{\"props\":{\"n_val\":4}}"
 
 This would change the n_val of the bucket to 4.
 
 Storing data is just as easy - just PUT to the bucket and key:
 
    $ curl -X PUT -H "content-type: text/plain" \
-     http://127.0.0.1:8098/raw/example/foo --data "I have a document."
+     http://127.0.0.1:8098/riak/example/foo --data "I have a document."
 
-The raw HTTP interface requires only that you include a content-type,
+The Riak HTTP interface requires only that you include a content-type,
 but no attempt to validate the content is made.  You could use
 application/json just as easily as image/gif - it's up to you to
 provide the correct body.  Whatever content type you include here will
@@ -52,12 +52,12 @@ this document.
 
 To get the document back, just GET the bucket and key:
 
-   $ curl -i http://127.0.0.1:8098/raw/example/foo
+   $ curl -i http://127.0.0.1:8098/riak/example/foo
    HTTP/1.1 200 OK
    X-Riak-Vclock: a85hYGBgzGDKBVIsbIt4J2UwJTLmsTIEn4s7wpcFAA==
    Vary: Accept-Encoding
    Server: MochiWeb/1.1 WebMachine/1.4 (our dis is finally out)
-   Link: </raw/example>; rel="up"
+   Link: </riak/example>; rel="up"
    Last-Modified: Fri, 30 Oct 2009 02:41:23 GMT
    ETag: 3ntEVjk1ubJ8fVWZRsuuij
    Date: Fri, 30 Oct 2009 02:43:44 GMT
@@ -73,18 +73,18 @@ example:
 
    $ curl -X PUT -H "content-type: text/plain" \
      -H "X-Riak-Vclock: a85hYGBgzGDKBVIsbIt4J2UwJTLmsTIEn4s7wpcFAA==" \
-     http://127.0.0.1:8098/raw/example/foo \
+     http://127.0.0.1:8098/riak/example/foo \
      --data "I have a modified document."
 
 This command will modify the document, which we can verify with a
 second GET:
 
-   $ curl -i http://127.0.0.1:8098/raw/example/foo
+   $ curl -i http://127.0.0.1:8098/riak/example/foo
    HTTP/1.1 200 OK
    X-Riak-Vclock: a85hYGBgymDKBVIsbJZ3MjOYEhnzWBl8zscd4YMJL+KdBBUOPgcUzgIA
    Vary: Accept-Encoding
    Server: MochiWeb/1.1 WebMachine/1.4 (our dis is finally out)
-   Link: </raw/example>; rel="up"
+   Link: </riak/example>; rel="up"
    Last-Modified: Fri, 30 Oct 2009 02:45:32 GMT
    ETag: ZzCoM94wkIPIs9j1ygTu
    Date: Fri, 30 Oct 2009 02:45:38 GMT
@@ -97,12 +97,12 @@ At this point, with your document in Riak, if you were to issue that
 bucket-GET again, you'd find that the "keys" field now includes the
 "foo" key under which your document is stored:
 
-   $ curl http://127.0.0.1:8098/raw/example
+   $ curl http://127.0.0.1:8098/riak/example
    {"props":{"n_val":4,"name":"example","allow_mult":false,"big_vclock":50,"chash_keyfun":{"mod":"riak_util","fun":"chash_std_keyfun"},"linkfun":{"mod":"raw_link_walker_resource","fun":"mapreduce_linkfun"},"old_vclock":86400,"small_vclock":10,"young_vclock":21600},"keys":["foo"]}
 
 To delete a document, simply issue a DELETE request:
 
-   $ curl -X DELETE http://127.0.0.1:8098/raw/example/foo
+   $ curl -X DELETE http://127.0.0.1:8098/riak/example/foo
 
 You'll find that further GETs of that URL return status code 404, and
 a bucket-GET will no longer list the "foo" key.
@@ -112,7 +112,7 @@ query parameters 'r', 'w', 'dw', and 'rw', to tune the R (read), W
 (write), DW (durable write), and RW (read-write, for delete) value for
 that request.  For instance:
 
-   $ curl http://127.0.0.1:8098/raw/example/foo?r=1
+   $ curl http://127.0.0.1:8098/riak/example/foo?r=1
 
 Would get the "foo" document in the "example" bucket using an R-value of 1.
 
@@ -124,19 +124,19 @@ Documents in Riak can have multiple, conflicting values if the
 example, if you issued the following:
 
    $ curl -X PUT -H "content-type: application/json" \
-     http://127.0.0.1:8098/raw/example \
+     http://127.0.0.1:8098/riak/example \
      --data "{\"props\":{\"allow_mult\":true}}"
    $ curl -X PUT -H "content-type: text/plain" \
-     http://127.0.0.1:8098/raw/example/sib --data "one thing"
+     http://127.0.0.1:8098/riak/example/sib --data "one thing"
    $ curl -X PUT -H "content-type: text/plain" \
-     http://127.0.0.1:8098/raw/example/sib --data "another"
+     http://127.0.0.1:8098/riak/example/sib --data "another"
 
 You will have created two siblings for the "sib" document in the
 "example" bucket.  Riak won't know what to do with these siblings if
 you ask for the "sib" document, so instead it will just tell you that
 they're both there:
 
-   $ curl -i http://127.0.0.1:8098/raw/example/sib
+   $ curl -i http://127.0.0.1:8098/riak/example/sib
    HTTP/1.1 300 Multiple Choices
    X-Riak-Vclock: a85hYGBgzmDKBVJszUnMSekGGUyJjHmsDE6X4o7wQSRYWLQeTYYK2yAJszX7RCCrzgIA
    Vary: Accept-Encoding
@@ -153,16 +153,16 @@ The strings listed in the body are the vtags of each sibling.  To
 examine each sibling, perform the same GET, but add a "vtag" query
 parameter to the URL:
 
-   $ curl http://127.0.0.1:8098/raw/example/sib?vtag=5huW49JytEFZIJG9ryTU8U
+   $ curl http://127.0.0.1:8098/riak/example/sib?vtag=5huW49JytEFZIJG9ryTU8U
    one thing
-   $ curl http://127.0.0.1:8098/raw/example/sib?vtag=5y8TG9rlUoQwT3WZQan7KI
+   $ curl http://127.0.0.1:8098/riak/example/sib?vtag=5y8TG9rlUoQwT3WZQan7KI
    another
 
 If you'd rather see all of the siblings at once, set your Accept
 header to multipart/mixed.  Riak will hand back each of the versions
 as a separate part of a multipart/mixed document:
 
-   $ curl -i -H "accept: multipart/mixed" http://127.0.0.1:8098/raw/example/sib
+   $ curl -i -H "accept: multipart/mixed" http://127.0.0.1:8098/riak/example/sib
    HTTP/1.1 300 Multiple Choices
    X-Riak-Vclock: a85hYGBgz2DKBVJszUlMCj+kMpgSGfNYGVy/xR/hg0iwMPg9FYMK2yELvzwvhEU1yyfGjVDh4hUIYXbJhmaocB5CGGgps/qNZEz1QAm2fc6lyNZmAQA=
    Vary: Accept, Accept-Encoding
@@ -173,14 +173,14 @@ as a separate part of a multipart/mixed document:
    
    --IASZJsIrb8ykNEc1fuue9LitToc
    Content-Type: text/plain
-   Link: </raw/example>; rel="up"
+   Link: </riak/example>; rel="up"
    Etag: 6YUKo8vXvtBAXD0Hjy8crv
    Last-Modified: Fri, 30 Oct 2009 18:12:03 GMT
    
    one thing
    --IASZJsIrb8ykNEc1fuue9LitToc
    Content-Type: text/plain
-   Link: </raw/example>; rel="up"
+   Link: </riak/example>; rel="up"
    Etag: 4XcBgFOm0Ab517wWjNXeWc
    Last-Modified: Fri, 30 Oct 2009 18:11:58 GMT
    
@@ -192,11 +192,11 @@ want, and the vclock from this version:
 
    $ curl -X PUT -H "content-type: text/plain" \
      -H "X-Riak-Vclock: a85hYGBgzmDKBVJszUnMSekGGUyJjHmsDE6X4o7wQSRYWLQeTYYK2yAJszX7RCCrzgIA" \
-     http://127.0.0.1:8098/raw/example/sib --data "resolved"
+     http://127.0.0.1:8098/riak/example/sib --data "resolved"
 
 And you'll see that things are back to normal:
 
-   $ curl http://127.0.0.1:8098/raw/example/sib
+   $ curl http://127.0.0.1:8098/riak/example/sib
    resolved
 
 
@@ -204,7 +204,7 @@ And you'll see that things are back to normal:
 
 As with other Riak documents, you are free to specify links in your
 documents in any fashion you wish, as long as you also write a
-function for extracting them at map/reduce time.  However, the raw
+function for extracting them at map/reduce time.  However, the HTTP
 interface provides a function that will handle link parsing and
 extraction for you, if you are able to describe your links in a Link
 HTTP header.
@@ -217,26 +217,26 @@ For Riak, the goal is to provide a link from one document to another.
 For instance, you may want to link from the "jane" document in the
 "person" bucket to the "xyz" document in the "memo" bucket.  To do
 this, you'd add a header of the following format to your PUT to
-/raw/person/jane:
+/riak/person/jane:
 
-   Link: </raw/memo/xyz>; riaktag="author"
+   Link: </riak/memo/xyz>; riaktag="author"
 
 Multiple links should be separated by commas:
 
-   Link: </raw/memo/xyz>; riaktag="author", </raw/memo/abc>; riaktag="reader"
+   Link: </riak/memo/xyz>; riaktag="author", </riak/memo/abc>; riaktag="reader"
 
 Performening a GET on a resource with links will return a Link header
 of the same format.
 
 To walk these links, use the URL-walking syntax:
 
-   http://127.0.0.1:8098/raw/person/jane/memo,_,_
+   http://127.0.0.1:8098/riak/person/jane/memo,_,_
 
 This request would return all of the documents in the "memo" bucket
 that the "jane" document links to.  You could get just the "memo"
 documents with links tagged "author" by asking for:
 
-   http://127.0.0.1:8098/raw/person/jane/memo,author,_
+   http://127.0.0.1:8098/riak/person/jane/memo,author,_
 
 The response of a link walk request is always multipart/mixed content.
 Each part of the multipart response body is a representation of the
@@ -250,16 +250,16 @@ representation to alert the user that this is the case.
 A few examples are approriate:
 
    $ curl -X PUT -H "content-type: text/plain" \
-     http://127.0.0.1:8098/raw/memo/xyz \
+     http://127.0.0.1:8098/riak/memo/xyz \
      --data "my reading list: New York Times, Wired"
    $ curl -X PUT -H "content-type: text/plain" \
-     http://127.0.0.1:8098/raw/memo/abc \
+     http://127.0.0.1:8098/riak/memo/abc \
      --data "todos: have meeting, make phone call"
    $ curl -X PUT -H "content-type: text/plain" \
-     -H "link: </raw/memo/xyz>; riaktag=\"author\", </raw/memo/abc>; riaktag=\"reader\"" \
-     http://127.0.0.1:8098/raw/person/jane --data "Name: Jane Doe"
+     -H "link: </riak/memo/xyz>; riaktag=\"author\", </riak/memo/abc>; riaktag=\"reader\"" \
+     http://127.0.0.1:8098/riak/person/jane --data "Name: Jane Doe"
 
-   $ curl -i http://127.0.0.1:8098/raw/person/jane/memo,_,_
+   $ curl -i http://127.0.0.1:8098/riak/person/jane/memo,_,_
    HTTP/1.1 200 OK
    Server: MochiWeb/1.1 WebMachine/1.4 (our dis is finally out)
    Expires: Fri, 30 Oct 2009 16:55:30 GMT
@@ -272,19 +272,19 @@ A few examples are approriate:
    Content-Type: multipart/mixed; boundary=V6AxdhwiGzh4MLwdiee2cBWtGug
    
    --V6AxdhwiGzh4MLwdiee2cBWtGug
-   Location: /raw/memo/abc
+   Location: /riak/memo/abc
    Content-Type: text/plain
    X-Riak-Vclock: a85hYGBgzGDKBVIsDOf5gjOYEhnzWBlmTow/wpcFAA==
-   Link: </raw/memo>; rel="up"
+   Link: </riak/memo>; rel="up"
    Etag: 7j63akQj4WqR28GoYjW4hm
    Last-Modified: Fri, 30 Oct 2009 16:34:33 GMT
    
    todos: have meeting, make phone call
    --V6AxdhwiGzh4MLwdiee2cBWtGug
-   Location: /raw/memo/xyz
+   Location: /riak/memo/xyz
    Content-Type: text/plain
    X-Riak-Vclock: a85hYGBgzGDKBVIsLJWfpTKYEhnzWBlKJ8Yf4csCAA==
-   Link: </raw/memo>; rel="up"
+   Link: </riak/memo>; rel="up"
    Etag: 5kW1gxTizjTALthrHPjQJ3
    Last-Modified: Fri, 30 Oct 2009 16:33:57 GMT
    
