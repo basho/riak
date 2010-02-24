@@ -12,13 +12,27 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+
 %% @doc Functions for manipulating bucket properties.
 %% @type riak_core_bucketprops() = [{Propkey :: atom(), Propval :: term()}]
 
 -module(riak_core_bucket).
+
+-export([append_bucket_defaults/1,
+         set_bucket/2,
+         get_bucket/1,
+         get_bucket/2]).
+
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
--export([set_bucket/2, get_bucket/1, get_bucket/2]).
--export([defaults/0]).
+-endif.
+
+%% @doc Add a list of defaults to global list of defaults for new buckets.
+append_bucket_defaults(Items) when is_list(Items) ->
+    NewDefaults = app_helper:get_env(riak_core, default_bucket_props) ++ Items,
+    application:set_env(riak_core, default_bucket_props, NewDefaults).
+
 
 %% @spec set_bucket(riak_object:bucket(), BucketProps::riak_core_bucketprops()) -> ok
 %% @doc Set the given BucketProps in Bucket.
@@ -35,6 +49,7 @@ set_bucket(Name, BucketProps) ->
     RandomNode = riak_core_ring:random_node(R1),
     riak_core_connect:send_ring(RandomNode),
     ok.
+
 
 %% @spec get_bucket(riak_object:bucket()) ->
 %%         {ok, BucketProps :: riak_core_bucketprops()}
@@ -58,19 +73,15 @@ get_bucket(Name, Ring) ->
     case riak_core_ring:get_meta({bucket, Name}, Ring) of
         undefined ->
             [{name, Name}
-             |app_helper:get_env(riak_core, default_bucket_props, defaults())];
+             |app_helper:get_env(riak_core, default_bucket_props)];
         {ok, Bucket} -> Bucket
     end.
 
-defaults() ->
-    [{n_val,3},
-     {allow_mult,false},
-     {linkfun,{modfun, riak_kv_wm_link_walker, mapreduce_linkfun}},
-     {chash_keyfun, {riak_kv_util, chash_std_keyfun}},
-     {old_vclock, 86400},
-     {young_vclock, 20},
-     {big_vclock, 50},
-     {small_vclock, 10}].
+
+%% ===================================================================
+%% EUnit tests
+%% ===================================================================
+-ifdef(TEST).
 
 simple_set_test() ->
     riak_core_ring_manager:start_link(test),
@@ -78,3 +89,5 @@ simple_set_test() ->
     Bucket = get_bucket(a_bucket),
     riak_core_ring_manager:stop(),
     ?assertEqual(value, proplists:get_value(key, Bucket)).
+
+-endif.

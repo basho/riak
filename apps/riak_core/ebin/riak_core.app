@@ -52,6 +52,12 @@
 
          %% Default claims functions
          {wants_claim_fun, {riak_core_claim, default_wants_claim}},
-         {choose_claim_fun, {riak_core_claim, default_choose_claim}}
+         {choose_claim_fun, {riak_core_claim, default_choose_claim}},
+
+         %% Default bucket props
+         {default_bucket_props, [{n_val,3},
+                                 {allow_mult,false},
+                                 {chash_keyfun, {riak_core_util, chash_std_keyfun}}]}
+
         ]}
  ]}.
