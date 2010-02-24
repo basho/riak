@@ -10,7 +10,9 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
+
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 
 %% @doc this owns the local view of the cluster's ring configuration
 
@@ -18,27 +20,38 @@
 -include_lib("eunit/include/eunit.hrl").
 
 -behaviour(gen_server2).
--export([start_link/0,start_link/1,stop/0]).
+
+-export([start_link/0,
+         start_link/1,
+         get_my_ring/0,
+         set_my_ring/1,
+         write_ringfile/0,
+         prune_ringfiles/0,
+         read_ringfile/1,
+         find_latest_ringfile/0,
+         do_write_ringfile/1,
+         stop/0]).
+
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
--export([get_my_ring/0,set_my_ring/1,write_ringfile/0,prune_ringfiles/0,
-        read_ringfile/1,find_latest_ringfile/0,do_write_ringfile/1]).
 
-start_link() -> gen_server2:start_link({local, ?MODULE}, ?MODULE, [], []).
-start_link(test) -> % when started this way, run a mock server (no disk, etc)
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
+
+
+%% ===================================================================
+%% Public API
+%% ===================================================================
+
+start_link() ->
+    gen_server2:start_link({local, ?MODULE}, ?MODULE, [live], []).
+
+
+%% Testing entry point
+start_link(test) ->
     gen_server2:start_link({local, ?MODULE}, ?MODULE, [test], []).
 
-%% @private
-init([]) ->
-    Ring = riak_core_ring:fresh(),
-    ets:new(nodelocal_ring, [protected, named_table]),
-    ets:insert(nodelocal_ring, {ring, Ring}),
-    {ok, stateless_server};
-init([test]) ->
-    Ring = riak_core_ring:fresh(16,node()),
-    ets:new(nodelocal_ring, [protected, named_table]),
-    ets:insert(nodelocal_ring, {ring, Ring}),
-    {ok, test}.
 
 %% @spec get_my_ring() -> {ok, riak_core_ring:riak_core_ring()} | {error, Reason}
 get_my_ring() ->
@@ -46,34 +59,17 @@ get_my_ring() ->
         [[Ring]] -> {ok, Ring};
         [] -> {error, no_ring}
     end.
+
+
 %% @spec set_my_ring(riak_core_ring:riak_core_ring()) -> ok
-set_my_ring(Ring) -> gen_server2:call(?MODULE, {set_my_ring, Ring}).
+set_my_ring(Ring) ->
+    gen_server2:call(?MODULE, {set_my_ring, Ring}).
+
+
 %% @spec write_ringfile() -> ok
-write_ringfile() -> gen_server2:cast(?MODULE, write_ringfile).
-%% @private (only used for test instances)
-stop() -> gen_server2:cast(?MODULE, stop).
+write_ringfile() ->
+    gen_server2:cast(?MODULE, write_ringfile).
 
-%% @private
-handle_cast(stop, State) -> {stop,normal,State};
-
-handle_cast(write_ringfile, test) -> {noreply,test};
-handle_cast(write_ringfile, State) ->
-    {ok, Ring} = get_my_ring(),
-    spawn(fun() -> do_write_ringfile(Ring) end),
-    {noreply,State}.
-
-handle_info(_Info, State) -> {noreply, State}.
-
-%% @private
-handle_call({set_my_ring, Ring}, _From, State) -> 
-    ets:insert(nodelocal_ring, {ring, Ring}),
-    {reply,ok,State}.
-
-%% @private
-terminate(_Reason, _State) -> ok.
-
-%% @private
-code_change(_OldVsn, State, _Extra) ->  {ok, State}.
 
 do_write_ringfile(Ring) ->
     {{Year, Month, Day},{Hour, Minute, Second}} = calendar:universal_time(),
@@ -94,7 +90,7 @@ find_latest_ringfile() ->
     case file:list_dir(Dir) of
         {ok, Filenames} ->
             Cluster = app_helper:get_env(riak_core, cluster_name),
-            Timestamps = [list_to_integer(TS) || {"riak_core_ring", C1, TS} <- 
+            Timestamps = [list_to_integer(TS) || {"riak_core_ring", C1, TS} <-
                                                      [list_to_tuple(string:tokens(FN, ".")) || FN <- Filenames],
                                                  C1 =:= Cluster],
             SortedTimestamps = lists:reverse(lists:sort(Timestamps)),
@@ -150,6 +146,70 @@ prune_ringfiles() ->
                     end
             end
     end.
+
+
+%% @private (only used for test instances)
+stop() ->
+    gen_server2:cast(?MODULE, stop).
+
+
+%% ===================================================================
+%% gen_server callbacks
+%% ===================================================================
+
+init([Mode]) ->
+    case Mode of
+        live ->
+            Ring = riak_core_ring:fresh();
+        test ->
+            Ring = riak_core_ring:fresh(16,node())
+    end,
+    ets:new(nodelocal_ring, [protected, named_table]),
+    ets:insert(nodelocal_ring, {ring, Ring}),
+
+    % Initial notification to local observers that ring has changed
+    riak_core_ring_events:ring_update(Ring),
+    {ok, Mode}.
+
+
+handle_call({set_my_ring, Ring}, _From, State) ->
+    % Update ETS with the new ring
+    ets:insert(nodelocal_ring, {ring, Ring}),
+
+    % Notify any local observers that the ring has changed (async)
+    riak_core_ring_events:ring_update(Ring),
+    {reply,ok,State}.
+
+
+handle_cast(stop, State) ->
+    {stop,normal,State};
+
+handle_cast(write_ringfile, test) ->
+    {noreply,test};
+
+handle_cast(write_ringfile, State) ->
+    {ok, Ring} = get_my_ring(),
+    do_write_ringfile(Ring),
+    {noreply,State}.
+
+
+handle_info(_Info, State) ->
+    {noreply, State}.
+
+
+%% @private
+terminate(_Reason, _State) ->
+    ok.
+
+
+%% @private
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
+
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
 
 prune_list([X|Rest]) ->
     lists:usort(lists:append([[X],back(1,X,Rest),back(2,X,Rest),

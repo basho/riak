@@ -10,7 +10,7 @@
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
 
 %% @doc
 %% riak_core_connect takes care of the mechanics of shuttling a
@@ -27,106 +27,129 @@
 -module(riak_core_connect).
 
 -behaviour(gen_server).
+
 -export([start_link/0, stop/0]).
--export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2,
+         terminate/2, code_change/3]).
 -export ([send_ring/1, send_ring/2, remove_from_cluster/1]).
 
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
--define (SERVER, ?MODULE).
+-endif.
+
+%% ===================================================================
+%% Public API
+%% ===================================================================
 
 %% send_ring/1 -
 %% Send the current node's ring to some other node.
 send_ring(ToNode) -> send_ring(node(), ToNode).
 
 %% send_ring/2 -
-%% Send the ring from one node to another node. 
+%% Send the ring from one node to another node.
 %% Does nothing if the two nodes are the same.
-send_ring(Node, Node) -> ok;
+send_ring(Node, Node) ->
+    ok;
 send_ring(FromNode, ToNode) ->
-    gen_server:cast({?SERVER, FromNode}, {send_ring_to, ToNode}).
+    gen_server:cast({?MODULE, FromNode}, {send_ring_to, ToNode}).
+
+start_link() ->
+    gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+stop() ->
+    gen_server:cast(?MODULE, stop).
 
 
+%% ===================================================================
+%% gen_server behaviour
+%% ===================================================================
+
 %% @private
-start_link() -> 
-    gen_server:start_link({local, ?SERVER}, ?MODULE, [], []).
-    
-%% @private
-init(_State) -> 
+init(_State) ->
     schedule_next_gossip(),
     {ok, true}.
-    
-schedule_next_gossip() ->
-    MaxInterval = app_helper:get_env(riak_core, gossip_interval),
-    Interval = random:uniform(MaxInterval),
-    timer:apply_after(Interval, gen_server, cast, [?SERVER, gossip_ring]). 
 
-stop() -> gen_server:cast(?SERVER, stop).
+
+%% @private
+handle_call(_, _From, State) ->
+    {reply, ok, State}.
+
 
 %% @private
 handle_cast({send_ring_to, Node}, RingChanged) ->
-    {ok, MyRing} = riak_core_ring_manager:get_my_ring(),    
-    gen_server:cast({?SERVER, Node}, {reconcile_ring, MyRing}),
+    {ok, MyRing} = riak_core_ring_manager:get_my_ring(),
+    gen_server:cast({?MODULE, Node}, {reconcile_ring, MyRing}),
     {noreply, RingChanged};
-    
+
 handle_cast({reconcile_ring, OtherRing}, RingChanged) ->
     % Compare the two rings, see if there is anything that
     % must be done to make them equal...
     {ok, MyRing} = riak_core_ring_manager:get_my_ring(),
     case riak_core_ring:reconcile(OtherRing, MyRing) of
-        {no_change, _} -> 
+        {no_change, _} ->
             {noreply, RingChanged};
-            
+
         {new_ring, ReconciledRing} ->
+            % Rebalance the new ring and save it
             BalancedRing = claim_until_balanced(ReconciledRing),
             riak_core_ring_manager:set_my_ring(BalancedRing),
+
+            % Finally, push it out to another node
             RandomNode = riak_core_ring:random_node(BalancedRing),
             send_ring(node(), RandomNode),
             {noreply, true}
     end;
-    
+
 handle_cast(gossip_ring, RingChanged) ->
     % First, schedule the next round of gossip...
     schedule_next_gossip(),
-    
-    % Make sure all vnodes are started...
-    {ok, MyRing} = riak_core_ring_manager:get_my_ring(),
-    ensure_vnodes_started(MyRing),
-    
+
     % If the ring has changed since our last write,
     % then rewrite the ring...
     case RingChanged of
         true ->
             riak_core_ring_manager:prune_ringfiles(),
             riak_core_ring_manager:write_ringfile();
-        false -> 
+        false ->
             ignore
     end,
-      
-    % Finally, gossip the ring to some random other node...
-    RandomNode = riak_core_ring:index_owner(MyRing, riak_core_ring:random_other_index(MyRing)),
-    send_ring(node(), RandomNode),
-    {noreply, false};                         
 
-handle_cast(_, State) -> 
+    % Finally, gossip the ring to some random other node...
+    {ok, MyRing} = riak_core_ring_manager:get_my_ring(),
+    RandomIdx = riak_core_ring:random_other_index(MyRing),
+    RandomNode = riak_core_ring:index_owner(MyRing, RandomIdx),
+    send_ring(node(), RandomNode),
+    {noreply, false};
+
+handle_cast(_, State) ->
     {noreply, State}.
 
 %% @private
 handle_info(_Info, State) -> {noreply, State}.
 
 %% @private
-handle_call(_, _From, State) -> {reply, ok, State}.
+terminate(_Reason, _State) ->
+    ok.
 
 %% @private
-terminate(_Reason, _State) -> ok.
+code_change(_OldVsn, State, _Extra) ->
+    {ok, State}.
 
-%% @private
-code_change(_OldVsn, State, _Extra) ->  {ok, State}.
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
+
+schedule_next_gossip() ->
+    MaxInterval = app_helper:get_env(riak_core, gossip_interval),
+    Interval = random:uniform(MaxInterval),
+    timer:apply_after(Interval, gen_server, cast, [?MODULE, gossip_ring]).
 
 claim_until_balanced(Ring) ->
     {WMod, WFun} = app_helper:get_env(riak_core, wants_claim_fun),
     NeedsIndexes = apply(WMod, WFun, [Ring]),
     case NeedsIndexes of
-        no -> 
+        no ->
             Ring;
         {yes, _NumToClaim} ->
             {CMod, CFun} = app_helper:get_env(riak_core, choose_claim_fun),
@@ -134,70 +157,44 @@ claim_until_balanced(Ring) ->
             claim_until_balanced(NewRing)
     end.
 
-ensure_vnodes_started(Ring) ->
-    AllMembers = riak_core_ring:all_members(Ring),
-    VNodes2Start = 
-        case {length(AllMembers), hd(AllMembers) =:= node()} of
-            {1, true} -> riak_core_ring:my_indices(Ring);
-            _ -> 
-                {ok, Excl} = gen_server:call(riak_kv_vnode_master, get_exclusions, 15000),
-                case riak_core_ring:random_other_index(Ring, Excl) of
-                    no_indices ->
-                        case length(Excl) =:= riak_core_ring:num_partitions(Ring) of
-                            true ->
-                                exit;
-                            false ->
-                                riak_core_ring:my_indices(Ring)
-                        end;
-                    RO ->
-                        [RO | riak_core_ring:my_indices(Ring)]
-                end
-        end,
-    case VNodes2Start of
-        exit ->
-            riak:stop("node removal completed, exiting.");
-        _ ->
-            [begin
-                 gen_server:cast({riak_kv_vnode_master, node()}, {start_vnode, I}) 
-             end|| I <- VNodes2Start]
-    end.
 
 remove_from_cluster(ExitingNode) ->
     % Set the remote node to stop claiming.
     % Ignore return of rpc as this should succeed even if node is offline
-    rpc:call(ExitingNode, application, set_env, [riak, wants_claim_fun, {riak_core_claim, never_wants_claim}]),
-    
+    rpc:call(ExitingNode, application, set_env,
+             [riak, wants_claim_fun, {riak_core_claim, never_wants_claim}]),
+
     % Get a list of indices owned by the ExitingNode...
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     AllOwners = riak_core_ring:all_owners(Ring),
-    AllIndices = [I || {I,_Owner} <- AllOwners],
 
     % Transfer indexes to other nodes...
-    ExitRing = 
+    ExitRing =
         case attempt_simple_transfer(Ring, AllOwners, ExitingNode) of
-            {ok, NR} -> NR;
+            {ok, NR} ->
+                NR;
             target_n_fail ->
                 %% re-diagonalize
                 %% first hand off all claims to *any* one else,
                 %% just so rebalance doesn't include exiting node
-                Other = hd(lists:delete(ExitingNode, riak_core_ring:all_members(Ring))),
-                TempRing = lists:foldl(fun({I,N}, R) when N == ExitingNode ->
-                                               riak_core_ring:transfer_node(
-                                                 I, Other, R);
-                                          (_, R) -> R
-                                       end,
-                                       Ring,
-                                       AllOwners),
+                Members = riak_core_ring:all_members(Ring),
+                Other = hd(lists:delete(ExitingNode, Members)),
+                TempRing = lists:foldl(
+                             fun({I,N}, R) when N == ExitingNode ->
+                                     riak_core_ring:transfer_node(I, Other, R);
+                                (_, R) -> R
+                             end,
+                             Ring,
+                             AllOwners),
                 riak_core_claim:claim_rebalance_n(TempRing, Other)
         end,
+
+    % Update our local copy of the ring
     riak_core_ring_manager:set_my_ring(ExitRing),
 
-    % Send the ring to all other rings...
-    [send_ring(X) || X <- riak_core_ring:all_members(Ring)],
-    
-    %% This line is right!
-    [gen_server:cast({riak_kv_vnode_master, ExitingNode}, {start_vnode, P}) ||
-        P <- AllIndices].    
+    % Send the new ring to all other rings
+    [send_ring(X) || X <- riak_core_ring:all_members(Ring)].
+
 
 attempt_simple_transfer(Ring, Owners, ExitingNode) ->
     TargetN = app_helper:get_env(riak_core, target_n_val),

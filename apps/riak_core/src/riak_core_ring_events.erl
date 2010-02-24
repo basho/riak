@@ -14,34 +14,27 @@
 
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 
--module(riak_core_sup).
+-module(riak_core_ring_events).
 
--behaviour(supervisor).
+-export([start_link/0,
+         add_handler/2,
+         add_sup_handler/2,
+         ring_update/1]).
 
-%% API
--export([start_link/0]).
-
-%% Supervisor callbacks
--export([init/1]).
-
-%% Helper macro for declaring children of supervisor
--define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
 
 %% ===================================================================
 %% API functions
 %% ===================================================================
 
 start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+    gen_event:start_link({local, ?MODULE}).
 
-%% ===================================================================
-%% Supervisor callbacks
-%% ===================================================================
+add_handler(Handler, Args) ->
+    gen_event:add_handler(?MODULE, Handler, Args).
 
-init([]) ->
-    Children = [?CHILD(riak_core_ring_events, worker),
-                ?CHILD(riak_core_ring_manager, worker)],
+add_sup_handler(Handler, Args) ->
+    gen_event:add_sup_handler(?MODULE, Handler, Args).
 
-    {ok, {{one_for_one, 10, 10}, Children}}.
-
+ring_update(Ring) ->
+    gen_event:notify({?MODULE, local}, {ring_update, Ring}).
 

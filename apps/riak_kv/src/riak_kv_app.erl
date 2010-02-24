@@ -62,7 +62,14 @@ start(_Type, _StartArgs) ->
     end,
 
     %% Spin up supervisor
-    riak_kv_sup:start_link().
+    case riak_kv_sup:start_link() of
+        {ok, Pid} ->
+            ok = riak_core_ring_events:add_handler(riak_kv_ring_handler, []),
+            {ok, Pid};
+        {error, Reason} ->
+            {error, Reason}
+    end.
+
 
 %% @spec stop(State :: term()) -> ok
 %% @doc The application:stop callback for riak.

@@ -18,6 +18,7 @@
              riak_core_claim,
              riak_core_connect,
              riak_core_ring,
+             riak_core_ring_events,
              riak_core_ring_manager,
              riak_core_sup,
              riak_core_util,
