@@ -41,10 +41,12 @@ start(_Type, _StartArgs) ->
     %% TODO: Need to revisit this. Buckets are typically created
     %% by a specific entity; seems lame to append a bunch of unused
     %% metadata to buckets that may not be appropriate for the bucket.
-    riak_core_bucket:append_bucket_defaults([{old_vclock, 86400},
-                                             {young_vclock, 20},
-                                             {big_vclock, 50},
-                                             {small_vclock, 10}]),
+    riak_core_bucket:append_bucket_defaults(
+      [{linkfun, {modfun, riak_kv_wm_link_walker, mapreduce_linkfun}},
+       {old_vclock, 86400},
+       {young_vclock, 20},
+       {big_vclock, 50},
+       {small_vclock, 10}]),
 
     %% Check the storage backend
     StorageBackend = app_helper:get_env(riak_kv, storage_backend),
