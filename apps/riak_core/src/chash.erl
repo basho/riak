@@ -73,12 +73,7 @@ lookup(IndexAsInt, CHash) ->
 % @spec contains_name(Name :: node(), CHash :: chash()) -> bool()
 contains_name(Name, CHash) ->
     {_NumPartitions, Nodes} = CHash,
-    case [X || {_,X} <- Nodes, X == Name] of
-    [] ->
-        false;
-    _ ->
-        true
-    end.
+    [X || {_,X} <- Nodes, X == Name] =/= [].
 
 % @doc Make the partition beginning at IndexAsInt owned by Name'd node.
 % @spec update(IndexAsInt :: integer(), Name :: node(), CHash :: chash())
@@ -121,12 +116,7 @@ predecessors(Index, CHash, N) ->
 %      is lesser.
 % @spec max_n(N :: integer(), CHash :: chash()) -> integer()
 max_n(N, {NumPartitions, _Nodes}) ->
-    if
-    N > NumPartitions ->
-        NumPartitions;
-    true ->
-        N
-    end.    
+    erlang:min(N, NumPartitions).
 
 % @doc Given an object key, return all NodeEntries in order starting at Index.
 % @spec ordered_from(Index :: index(), CHash :: chash()) -> [NodeEntry]
