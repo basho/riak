@@ -22,7 +22,7 @@
 
 start_link() ->
     PortNum = 
-        case application:get_env(riak, riak_handoff_port) of
+        case application:get_env(riak, handoff_port) of
             undefined -> 8099;
             {ok, N} -> N
         end,
