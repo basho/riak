@@ -166,7 +166,6 @@ RiakMapper.prototype._buildInputs = function() {
  * @param vclock - Riak-assigned vclock
  */
 function RiakObject(bucketName, key, client, body, contentType, vclock) {
-  console.log('Body: ' + body);
   if (client === undefined) {
     throw("Cannot construct RiakObject without a client reference");
   }
@@ -181,7 +180,6 @@ function RiakObject(bucketName, key, client, body, contentType, vclock) {
   }
   if (contentType === 'application/json') {
     if (body !== undefined) {
-      console.log('Parsing: ' + body);
       this.body = JSON.parse(body);
     }
     else {
@@ -403,7 +401,6 @@ RiakObject.prototype.store = function(callback) {
 					req.setRequestHeader('X-Riak-Vclock', object.vclock);
 				      }
 				      var linkHeader = object.getLinkHeader();
-				      console.log('Submitting link header: ' + linkHeader);
 				      if (linkHeader !== '') {
 					req.setRequestHeader('Link', linkHeader);
 				      }
@@ -416,7 +413,6 @@ RiakObject.prototype._store = function(req, callback) {
   if (req.readyState != 4) {
     return;
   }
-  //console.log('RiakObject store: ' + req.status);
   if (callback !== undefined && callback !== null) {
     if (req.status == 200) {
       callback(RiakObject.fromRequest(this.bucket, this.key, this.client, req), req);
@@ -676,7 +672,6 @@ RiakClient.prototype._buildPath = function(method, bucket, key) {
       path = path + '?keys=false';
     }
   }
-  //console.log('method: ' + method + ', path: ' + path);
   return path;
 };
 

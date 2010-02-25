@@ -131,6 +131,7 @@
          init/1,
          service_available/2,
          allowed_methods/2,
+         allow_missing_post/2,
          malformed_request/2,
          resource_exists/2,
          last_modified/2,
@@ -254,6 +255,13 @@ allowed_methods(RD, Ctx=#ctx{key=undefined}) ->
 allowed_methods(RD, Ctx) ->
     %% key-level: just about anything
     {['HEAD', 'GET', 'POST', 'PUT', 'DELETE'], RD, Ctx}.
+
+%% @spec allow_missing_post(reqdata(), context()) ->
+%%           {true, reqdata(), context()}
+%% @doc Makes POST and PUT equivalent for creating new
+%%      bucket entries.
+allow_missing_post(RD, Ctx) ->
+    {true, RD, Ctx}.
 
 %% @spec is_bucket_put(reqdata(), context()) -> boolean()
 %% @doc Determine whether this request is of the form
