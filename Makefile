@@ -55,11 +55,6 @@ docs:
 	@erl -noshell -run edoc_run application riak '"apps/riak"' '[]' 
 	@cp -R apps/riak/doc doc/riak
 
-reldocs: docs
-	@mkdir -p www/java_client_api
-	@cd client_lib/java && make javadoc && \
-            cp -R javadoc/* ../../www/java_client_api
-
 orgs: orgs-doc orgs-README
 
 orgs-doc:
