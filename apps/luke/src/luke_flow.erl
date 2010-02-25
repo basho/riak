@@ -12,6 +12,7 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
+%% @doc Manages the execution of a flow
 -module(luke_flow).
 
 -behaviour(gen_fsm).
@@ -28,15 +29,26 @@
 
 -record(state, {flow_id, fsms, client, timeout, results=[]}).
 
+%% @doc Add inputs to the flow. Inputs will be sent to the
+%%      first phase
+%% @spec add_inputs(pid(), any()) -> ok
 add_inputs(FlowPid, Inputs) ->
     gen_fsm:send_event(FlowPid, {inputs, Inputs}).
 
+%% @doc Informs the phases all inputs are complete.
+%% @spec finish_inputs(pid()) -> ok
 finish_inputs(FlowPid) ->
     gen_fsm:send_event(FlowPid, inputs_done).
 
+%% @doc Collects flow output. This function will block
+%%      until the flow completes or exceeds the timeout.
+%% @spec collect_output(any(), integer()) -> [any()] | {error, any()}
 collect_output(FlowId, Timeout) ->
     collect_output(FlowId, Timeout, []).
 
+%% @doc Returns the pids for each phase. Intended for
+%%      testing only
+%% @spec get_phases(pid()) -> [pid()]
 get_phases(FlowPid) ->
     gen_fsm:sync_send_event(FlowPid, get_phases).
 

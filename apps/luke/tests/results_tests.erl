@@ -19,17 +19,13 @@
 
 all_test_() ->
     [fun() ->
-             FlowId = make_ref(),
-             {ok, Pid} = luke:new_flow(FlowId, ?TWO_PHASE_FLOW),
-             Phases = test_util:verify_phases(Pid, 2),
+             {FlowId, Pid, Phases} = test_util:start_flow(?TWO_PHASE_FLOW),
              luke_flow:add_inputs(Pid, ["hello"]),
              test_util:verify_results(FlowId, none),
              exit(Pid, shutdown),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
-             FlowId = make_ref(),
-             {ok, Pid} = luke:new_flow(FlowId, ?TWO_PHASE_FLOW),
-             Phases = test_util:verify_phases(Pid, 2),
+             {FlowId, Pid, Phases} = test_util:start_flow(?TWO_PHASE_FLOW),
              luke_flow:add_inputs(Pid, ["hello"]),
              luke_flow:finish_inputs(Pid),
              {ok, Results} = test_util:verify_results(FlowId, results),
@@ -37,9 +33,7 @@ all_test_() ->
              ?assertMatch(["hello"], Results),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
-             FlowId = make_ref(),
-             {ok, Pid} = luke:new_flow(FlowId, ?TWO_ASYNC_FLOW),
-             Phases = test_util:verify_phases(Pid, 2),
+             {FlowId, Pid, Phases} = test_util:start_flow(?TWO_ASYNC_FLOW),
              luke_flow:add_inputs(Pid, "testing"),
              {ok, "testing"} = test_util:verify_results(FlowId, results),
              luke_flow:add_inputs(Pid, [100, 200]),
@@ -48,9 +42,7 @@ all_test_() ->
              test_util:verify_results(FlowId, done),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
-             FlowId = make_ref(),
-             {ok, Pid} = luke:new_flow(FlowId, ?MAP_FLOW),
-             Phases = test_util:verify_phases(Pid, 1),
+             {FlowId, Pid, Phases} = test_util:start_flow(?MAP_FLOW),
              luke_flow:add_inputs(Pid, [a,b]),
              {ok, [5,5]} = test_util:verify_results(FlowId, results),
              test_util:verify_results(FlowId, none),
@@ -60,9 +52,7 @@ all_test_() ->
              test_util:verify_results(FlowId, done),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
-             FlowId = make_ref(),
-             {ok, Pid} = luke:new_flow(FlowId, ?MAP_FLOW),
-             Phases = test_util:verify_phases(Pid, 1),
+             {FlowId, Pid, Phases} = test_util:start_flow(?MAP_FLOW),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:add_inputs(Pid, [a,b]),
              ?assertMatch({ok, [5,5,5,5]}, luke_flow:collect_output(FlowId, 100)),
@@ -71,9 +61,7 @@ all_test_() ->
              test_util:verify_results(FlowId, done),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
-             FlowId = make_ref(),
-             {ok, Pid} = luke:new_flow(FlowId, ?MAP_DBL_FLOW),
-             Phases = test_util:verify_phases(Pid, 2),
+             {FlowId, Pid, Phases} = test_util:start_flow(?MAP_DBL_FLOW),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:add_inputs(Pid, [a,b]),
              ?assertMatch({ok, [5,5,5,5,5,5,5,5]}, luke_flow:collect_output(FlowId, 100)),
@@ -82,9 +70,7 @@ all_test_() ->
              test_util:verify_results(FlowId, done),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
-             FlowId = make_ref(),
-             {ok, Pid} = luke:new_flow(FlowId, ?MAPRED_FLOW),
-             Phases = test_util:verify_phases(Pid, 3),
+             {FlowId, Pid, Phases} = test_util:start_flow(?MAPRED_FLOW),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:finish_inputs(Pid),
@@ -92,9 +78,7 @@ all_test_() ->
              test_util:verify_results(FlowId, none),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
-             FlowId = make_ref(),
-             {ok, Pid} = luke:new_flow(FlowId, ?MAPRED_FLOW1),
-             Phases = test_util:verify_phases(Pid, 2),
+             {FlowId, Pid, Phases} = test_util:start_flow(?MAPRED_FLOW1),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:finish_inputs(Pid),
@@ -102,9 +86,7 @@ all_test_() ->
              test_util:verify_results(FlowId, none),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
-             FlowId = make_ref(),
-             {ok, Pid} = luke:new_flow(FlowId, ?MAPRED_EMPTY),
-             Phases = test_util:verify_phases(Pid, 2),
+             {FlowId, Pid, Phases} = test_util:start_flow(?MAPRED_EMPTY),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:finish_inputs(Pid),

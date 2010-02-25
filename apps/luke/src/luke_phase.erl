@@ -135,6 +135,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
 %% Internal functions
+%% Handle callback module return values
 handle_callback({no_output, NewModState}, #state{timeout=Timeout}=State) ->
     {next_state, executing, State#state{modstate=NewModState}, Timeout};
 handle_callback({no_output, NewModState, TempTimeout}, #state{timeout=Timeout}=State) when TempTimeout < Timeout ->
@@ -146,11 +147,19 @@ handle_callback({output, Output, NewModState, TempTimeout}, #state{timeout=Timeo
     State1 = route_output(Output, State),
     {next_state, executing, State1#state{modstate=NewModState, cb_timeout=true}, TempTimeout};
 handle_callback({stop, Reason, NewModState}, State) ->
-    {stop, Reason, State#state{modstate=NewModState}}.
+    {stop, Reason, State#state{modstate=NewModState}};
+handle_callback(BadValue, _State) ->
+  throw({error, {bad_return, BadValue}}).
 
+%% Route output to lead when converging
+%% Accumulation is ignored for non-leads of converging phases
 route_output(Output, #state{converge=true, lead_partner=Lead}=State) when is_pid(Lead) ->
     propagate_inputs([Lead], Output),
     State;
+
+%% Send output to flow for accumulation and propagate as inputs
+%% to the next phase. Accumulation is only true for the lead
+%% process of a converging phase
 route_output(Output, #state{converge=true, accumulate=Accumulate, lead_partner=undefined,
                             flow=Flow, next_phases=Next}=State) ->
     if
@@ -161,6 +170,9 @@ route_output(Output, #state{converge=true, accumulate=Accumulate, lead_partner=u
     end,
     RotatedNext = propagate_inputs(Next, Output),
     State#state{next_phases=RotatedNext};
+
+%% Route output to the next phase. Accumulate output
+%% to the flow if accumulation is turned on.
 route_output(Output, #state{converge=false, accumulate=Accumulate, flow=Flow, next_phases=Next} = State) ->
     if
         Accumulate =:= true ->

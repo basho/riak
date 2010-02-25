@@ -12,6 +12,10 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
+%% @doc The main entry point for Luke. This module is responsible
+%%      for starting Luke as an OTP application and also
+%%      running new process flows.
+
 -module(luke).
 
 -behaviour(application).
@@ -19,7 +23,10 @@
 -define(DEFAULT_TIMEOUT, 60000).
 
 %% Application callbacks
--export([start/0, start/2, stop/1, new_flow/2, new_flow/3, new_flow/4, new_flow/5]).
+-export([start/0, start/2, stop/1]).
+
+%% Public API
+-export([new_flow/2, new_flow/3, new_flow/4, new_flow/5]).
 
 new_flow(FlowId, FlowDesc) ->
     new_flow(self(), FlowId, FlowDesc, ?DEFAULT_TIMEOUT).
