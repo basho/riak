@@ -141,7 +141,7 @@ join(NodeStr) when is_list(NodeStr) ->
 join(Node) when is_atom(Node) ->
     case net_adm:ping(Node) of
         pong ->
-            riak_core_connect:send_ring(Node, node());
+            riak_core_gossip:send_ring(Node, node());
         pang ->
             {error, not_reachable}
     end.

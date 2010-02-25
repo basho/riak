@@ -13,7 +13,7 @@
 %% under the License.
 
 %% @doc
-%% riak_core_connect takes care of the mechanics of shuttling a
+%% riak_core_gossip takes care of the mechanics of shuttling a
 %% from one node to another upon request by other
 %% Riak processes.
 %%
@@ -24,7 +24,7 @@
 %% of the Riak cluster. This interval is configurable, but defaults
 %% to once per minute.
 
--module(riak_core_connect).
+-module(riak_core_gossip).
 
 -behaviour(gen_server).
 

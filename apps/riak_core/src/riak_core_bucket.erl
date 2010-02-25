@@ -47,7 +47,7 @@ set_bucket(Name, BucketProps) ->
     riak_core_ring_manager:set_my_ring(R1),
     riak_core_ring_manager:write_ringfile(),
     RandomNode = riak_core_ring:random_node(R1),
-    riak_core_connect:send_ring(RandomNode),
+    riak_core_gossip:send_ring(RandomNode),
     ok.
 
 

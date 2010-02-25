@@ -341,7 +341,7 @@ reload_all(Module) -> rpc:call(Node,riak_kv_util,reload_all,[Module]).
 %% @doc Cause all partitions owned by ExitingNode to be taken over
 %%      by other nodes.
 remove_from_cluster(ExitingNode) ->
-    rpc:call(Node, riak_core_connect, remove_from_cluster,[ExitingNode]).
+    rpc:call(Node, riak_core_gossip, remove_from_cluster,[ExitingNode]).
 
 get_stats(local) ->
     [{Node, rpc:call(Node, gen_server, call, [riak_kv_stat, get_stats])}];
