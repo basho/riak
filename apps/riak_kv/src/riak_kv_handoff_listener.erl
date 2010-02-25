@@ -21,16 +21,8 @@
 -record(state, {portnum}).
 
 start_link() ->
-    PortNum = 
-        case application:get_env(riak, handoff_port) of
-            undefined -> 8099;
-            {ok, N} -> N
-        end,
-    IpAddr = 
-        case application:get_env(riak, riak_handoff_ip) of
-            undefined -> "0.0.0.0";
-            {ok, IP} -> IP
-        end,
+    PortNum = app_helper:get_env(riak_kv, handoff_port),
+    IpAddr = app_helper:get_env(riak_kv, handoff_ip),
     gen_nb_server:start_link(?MODULE, IpAddr, PortNum, [PortNum]).
 
 init([PortNum]) -> 

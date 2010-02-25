@@ -64,6 +64,10 @@
          %% Number of VNodes allowed to do handoff concurrently.
          {handoff_concurrency, 4},
 
+         %% Handoff IP/port
+         {handoff_port, 8099},
+         {handoff_ip, "0.0.0.0"},
+
          %% Endpoint for system stats HTTP provider
          {stats_urlpath, "stats"},
 
