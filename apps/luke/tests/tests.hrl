@@ -19,12 +19,16 @@
                          {async_phase, [accumulate], []}]).
 
 -define(MAP_FLOW, [{map_phase, [accumulate], []}]).
+
 -define(MAP_DBL_FLOW, [{map_phase, [accumulate], []},
                        {map_phase, [accumulate], []}]).
+
 -define(MAPRED_FLOW, [{map_phase, [], []},
                       {reduce_phase, [{converge, 3}], []},
                       {reduce_phase, [accumulate], []}]).
+
 -define(MAPRED_FLOW1, [{map_phase, [], []},
                        {reduce_phase, [{converge, 1}, accumulate], []}]).
+
 -define(MAPRED_EMPTY, [{map_phase, [], []},
                        {reduce_phase, [{converge, 1}], []}]).
