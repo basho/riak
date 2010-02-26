@@ -44,8 +44,7 @@
                 next_phases,
                 done_count=1,
                 flow,
-                timeout,
-                cb_timeout=false}).
+                flow_timeout}).
 
 behaviour_info(callbacks) ->
   [{init, 1},
@@ -73,12 +72,12 @@ init([PhaseMod, Behaviors, NextPhases, Flow, Timeout, PhaseArgs]) ->
             Accumulate = lists:member(accumulate, Behaviors),
             Converge = lists:member(converge, Behaviors),
             {ok, executing, #state{mod=PhaseMod, modstate=ModState, next_phases=NextPhases,
-                                   flow=Flow, accumulate=Accumulate, converge=Converge, timeout=Timeout}, Timeout};
+                                   flow=Flow, accumulate=Accumulate, converge=Converge, flow_timeout=Timeout}};
         {stop, Reason} ->
             {stop, Reason}
     end.
 
-executing({partners, Lead0, Partners0}, #state{converge=true, timeout=Timeout}=State) when is_list(Partners0) ->
+executing({partners, Lead0, Partners0}, #state{converge=true}=State) when is_list(Partners0) ->
     Me = self(),
     Lead = case Lead0 of
                Me ->
@@ -94,10 +93,10 @@ executing({partners, Lead0, Partners0}, #state{converge=true, timeout=Timeout}=S
                     true ->
                         1
                 end,
-    {next_state, executing, State#state{lead_partner=Lead, partners=Partners, done_count=DoneCount}, Timeout};
+    {next_state, executing, State#state{lead_partner=Lead, partners=Partners, done_count=DoneCount}};
 executing({partners, _, _}, State) ->
     {stop, {error, no_convergence}, State};
-executing({inputs, Input}, #state{mod=PhaseMod, modstate=ModState, timeout=Timeout}=State) ->
+executing({inputs, Input}, #state{mod=PhaseMod, modstate=ModState, flow_timeout=Timeout}=State) ->
     handle_callback(PhaseMod:handle_input(Input, ModState, Timeout), State);
 executing(inputs_done, #state{mod=PhaseMod, modstate=ModState, done_count=DoneCount0}=State) ->
     case DoneCount0 - 1 of
@@ -117,24 +116,20 @@ executing(complete, #state{flow=Flow, next_phases=Next}=State) ->
             luke_phases:send_inputs_done(Next)
     end,
     {stop, normal, State};
-executing(timeout, #state{cb_timeout=true, mod=Mod, modstate=ModState}=State) ->
-    handle_callback(Mod:handle_timeout(ModState), State#state{cb_timeout=false});
-executing(timeout, #state{cb_timeout=false}=State) ->
+executing(timeout, #state{mod=Mod, modstate=ModState}=State) ->
+    handle_callback(Mod:handle_timeout(ModState), State);
+executing(timeout, State) ->
     {stop, normal, State};
 executing(Event, #state{mod=PhaseMod, modstate=ModState}=State) ->
     handle_callback(PhaseMod:handle_event(Event, ModState), State).
 
-handle_event(_Event, StateName, #state{timeout=Timeout}=State) ->
-    {next_state, StateName, State, Timeout}.
+handle_event(_Event, StateName, State) ->
+    {next_state, StateName, State}.
 
-handle_sync_event(_Event, _From, StateName, #state{timeout=Timeout}=State) ->
-    {reply, ignored, StateName, State, Timeout}.
-handle_info(timeout, executing, #state{cb_timeout=true, mod=Mod, modstate=ModState}=State) ->
-    handle_callback(Mod:handle_timeout(ModState), State#state{cb_timeout=false});
-handle_info(timeout, executing, #state{flow=Flow}=State) ->
-    luke_phases:send_flow_results(Flow, {error, timeout}),
-    luke_phases:send_flow_complete(Flow),
-    {stop, normal, State};
+handle_sync_event(_Event, _From, StateName, State) ->
+    {reply, ignored, StateName, State}.
+handle_info(timeout, executing, #state{mod=Mod, modstate=ModState}=State) ->
+    handle_callback(Mod:handle_timeout(ModState), State);
 handle_info(Info, _StateName, #state{mod=PhaseMod, modstate=ModState}=State) ->
     handle_callback(PhaseMod:handle_info(Info, ModState), State).
 
@@ -147,16 +142,16 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 %% Internal functions
 %% Handle callback module return values
-handle_callback({no_output, NewModState}, #state{timeout=Timeout}=State) ->
-    {next_state, executing, State#state{modstate=NewModState}, Timeout};
-handle_callback({no_output, NewModState, TempTimeout}, #state{timeout=Timeout}=State) when TempTimeout < Timeout ->
-    {next_state, executing, State#state{modstate=NewModState, cb_timeout=true}, TempTimeout};
-handle_callback({output, Output, NewModState}, #state{timeout=Timeout}=State) ->
+handle_callback({no_output, NewModState}, State) ->
+    {next_state, executing, State#state{modstate=NewModState}};
+handle_callback({no_output, NewModState, PhaseTimeout}, #state{flow_timeout=Timeout}=State) when PhaseTimeout < Timeout ->
+    {next_state, executing, State#state{modstate=NewModState}, PhaseTimeout};
+handle_callback({output, Output, NewModState}, State) ->
     State1 = route_output(Output, State),
-    {next_state, executing, State1#state{modstate=NewModState}, Timeout};
-handle_callback({output, Output, NewModState, TempTimeout}, #state{timeout=Timeout}=State) when TempTimeout < Timeout ->
+    {next_state, executing, State1#state{modstate=NewModState}};
+handle_callback({output, Output, NewModState, PhaseTimeout}, #state{flow_timeout=Timeout}=State) when PhaseTimeout < Timeout ->
     State1 = route_output(Output, State),
-    {next_state, executing, State1#state{modstate=NewModState, cb_timeout=true}, TempTimeout};
+    {next_state, executing, State1#state{modstate=NewModState}, PhaseTimeout};
 handle_callback({stop, Reason, NewModState}, State) ->
     {stop, Reason, State#state{modstate=NewModState}};
 handle_callback(BadValue, _State) ->
