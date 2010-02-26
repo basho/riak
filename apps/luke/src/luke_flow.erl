@@ -39,7 +39,8 @@
 -record(state, {flow_id,
                 fsms,
                 client,
-                timeout,
+                flow_timeout,
+                tref,
                 results=[]}).
 
 %% @doc Add inputs to the flow. Inputs will be sent to the
@@ -54,7 +55,7 @@ finish_inputs(FlowPid) ->
     gen_fsm:send_event(FlowPid, inputs_done).
 
 %% @doc Collects flow output. This function will block
-%%      until the flow completes or exceeds the timeout.
+%%      until the flow completes or exceeds the flow_timeout.
 %% @spec collect_output(any(), integer()) -> [any()] | {error, any()}
 collect_output(FlowId, Timeout) ->
     collect_output(FlowId, Timeout, []).
@@ -71,28 +72,35 @@ start_link(Client, FlowId, FlowDesc, Timeout) when is_list(FlowDesc),
 
 init([Client, FlowId, FlowDesc, Timeout]) ->
     process_flag(trap_exit, true),
+    Tref = case Timeout of
+               infinity ->
+                   undefined;
+               _ ->
+                   {ok, T} = timer:send_after(Timeout, flow_timeout),
+                   T
+           end,
     case start_phases(FlowDesc, Timeout) of
         {ok, FSMs} ->
-            {ok, executing, #state{fsms=FSMs, flow_id=FlowId, timeout=Timeout, client=Client}, Timeout};
+            {ok, executing, #state{fsms=FSMs, flow_id=FlowId, flow_timeout=Timeout, client=Client, tref=Tref}};
         Error ->
             {stop, Error}
     end.
 
-executing({inputs, Inputs}, #state{fsms=[H|_], timeout=Timeout}=State) ->
+executing({inputs, Inputs}, #state{fsms=[H|_]}=State) ->
     luke_phases:send_inputs(H, Inputs),
-    {next_state, executing, State, Timeout};
-executing(inputs_done, #state{fsms=[H|_], timeout=Timeout}=State) ->
+    {next_state, executing, State};
+executing(inputs_done, #state{fsms=[H|_]}=State) ->
     luke_phases:send_inputs_done(H),
-    {next_state, executing, State, Timeout};
+    {next_state, executing, State};
 executing(timeout, #state{client=Client, flow_id=FlowId}=State) ->
     Client ! {flow_results, FlowId, done},
     {stop, normal, State};
 executing({results, done}, #state{client=Client, flow_id=FlowId}=State) ->
     Client ! {flow_results, FlowId, done},
     {stop, normal, State};
-executing({results, Result}, #state{client=Client, flow_id=FlowId, timeout=Timeout}=State) ->
+executing({results, Result}, #state{client=Client, flow_id=FlowId}=State) ->
     Client ! {flow_results, FlowId, Result},
-    {next_state, executing, State, Timeout}.
+    {next_state, executing, State}.
 
 executing(get_phases, _From, #state{fsms=FSMs}=State) ->
     {reply, FSMs, executing, State}.
@@ -103,6 +111,8 @@ handle_event(_Event, StateName, State) ->
 handle_sync_event(_Event, _From, StateName, State) ->
     {reply, ignored, StateName, State}.
 
+handle_info(flow_timeout, _StateName, State) ->
+    {stop, flow_timeout, State};
 handle_info({'EXIT', _Pid, normal}, StateName, State) ->
     {next_state, StateName, State};
 handle_info({'EXIT', _Pid, Reason}, _StateName, #state{flow_id=FlowId, client=Client}=State) ->
@@ -111,7 +121,8 @@ handle_info({'EXIT', _Pid, Reason}, _StateName, #state{flow_id=FlowId, client=Cl
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State}.
 
-terminate(_Reason, _StateName, _State) ->
+terminate(_Reason, _StateName, #state{tref=Tref}) ->
+    timer:cancel(Tref),
     ok.
 
 code_change(_OldVsn, StateName, State, _Extra) ->
