@@ -17,7 +17,9 @@
 -behaviour(gen_fsm).
 
 %% API
--export([start_link/6, complete/0, partners/3]).
+-export([start_link/6,
+         complete/0,
+         partners/3]).
 
 %% Behaviour
 -export([behaviour_info/1]).
@@ -26,11 +28,24 @@
 -export([executing/2]).
 
 %% gen_fsm callbacks
--export([init/1, handle_event/3,
-         handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
+-export([init/1,
+         handle_event/3,
+         handle_sync_event/4,
+         handle_info/3,
+         terminate/3,
+         code_change/4]).
 
--record(state, {mod, modstate, converge=false, accumulate=false, lead_partner, partners, next_phases,
-                done_count=1, flow, timeout, cb_timeout=false}).
+-record(state, {mod,
+                modstate,
+                converge=false,
+                accumulate=false,
+                lead_partner,
+                partners,
+                next_phases,
+                done_count=1,
+                flow,
+                timeout,
+                cb_timeout=false}).
 
 behaviour_info(callbacks) ->
   [{init, 1},

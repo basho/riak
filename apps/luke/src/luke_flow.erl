@@ -18,16 +18,29 @@
 -behaviour(gen_fsm).
 
 %% API
--export([start_link/4, add_inputs/2, finish_inputs/1, collect_output/2]).
+-export([start_link/4,
+         add_inputs/2,
+         finish_inputs/1,
+         collect_output/2]).
 
 %% FSM states
--export([get_phases/1, executing/2, executing/3]).
+-export([get_phases/1,
+         executing/2,
+         executing/3]).
 
 %% gen_fsm callbacks
--export([init/1, handle_event/3,
-         handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
+-export([init/1,
+         handle_event/3,
+         handle_sync_event/4,
+         handle_info/3,
+         terminate/3,
+         code_change/4]).
 
--record(state, {flow_id, fsms, client, timeout, results=[]}).
+-record(state, {flow_id,
+                fsms,
+                client,
+                timeout,
+                results=[]}).
 
 %% @doc Add inputs to the flow. Inputs will be sent to the
 %%      first phase

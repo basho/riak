@@ -23,10 +23,15 @@
 -define(DEFAULT_TIMEOUT, 60000).
 
 %% Application callbacks
--export([start/0, start/2, stop/1]).
+-export([start/0,
+         start/2,
+         stop/1]).
 
 %% Public API
--export([new_flow/2, new_flow/3, new_flow/4, new_flow/5]).
+-export([new_flow/2,
+         new_flow/3,
+         new_flow/4,
+         new_flow/5]).
 
 new_flow(FlowId, FlowDesc) ->
     new_flow(self(), FlowId, FlowDesc, ?DEFAULT_TIMEOUT).

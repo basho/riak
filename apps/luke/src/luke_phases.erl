@@ -21,7 +21,9 @@
 %%      phase behavior.
 -module(luke_phases).
 
--export([send_inputs/2, send_inputs_done/1, send_flow_complete/1]).
+-export([send_inputs/2,
+         send_inputs_done/1,
+         send_flow_complete/1]).
 -export([send_flow_results/2]).
 
 %% @doc Sends inputs to a phase process
