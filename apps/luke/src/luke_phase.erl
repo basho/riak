@@ -153,6 +153,7 @@ handle_callback(BadValue, _State) ->
 
 %% Route output to lead when converging
 %% Accumulation is ignored for non-leads of converging phases
+%% since all accumulation is performed in the lead process
 route_output(Output, #state{converge=true, lead_partner=Lead}=State) when is_pid(Lead) ->
     propagate_inputs([Lead], Output),
     State;
