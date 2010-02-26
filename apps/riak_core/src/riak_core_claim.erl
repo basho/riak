@@ -1,50 +1,55 @@
+%% -------------------------------------------------------------------
+%%
+%% riak_core: Core Riak Application
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
 %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
 %% except in compliance with the License.  You may obtain
 %% a copy of the License at
-
+%%
 %%   http://www.apache.org/licenses/LICENSE-2.0
-
+%%
 %% Unless required by applicable law or agreed to in writing,
 %% software distributed under the License is distributed on an
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
+%%
+%% -------------------------------------------------------------------
 
-%% @doc The default functions used for claiming partition ownership.
-%%      Generally, a wants_claim function should return either
-%%      {yes, Integer} or 'no' where Integer is the number of
-%%       additional partitions wanted by this node.
-%%      A choose_claim function should return a riak_core_ring with
-%%      more partitions claimed by this node than in the input ring.
+%% @doc The default functions used for claiming partition ownership.  Generally,
+%%      a wants_claim function should return either {yes, Integer} or 'no' where
+%%      Integer is the number of additional partitions wanted by this node.  A
+%%      choose_claim function should return a riak_core_ring with more
+%%      partitions claimed by this node than in the input ring.
 
-% The usual intention for partition ownership assumes relative
-% heterogeneity of capacity and connectivity.  Accordingly, the
-% standard claim functions attempt to maximize "spread" -- expected
-% distance between partitions claimed by each given node.  This
-% is in order to produce the expectation that for any reasonably
-% short span of consecutive partitions, there will be a minimal
-% number of partitions owned by the same node.
+%% The usual intention for partition ownership assumes relative heterogeneity of
+%% capacity and connectivity.  Accordingly, the standard claim functions attempt
+%% to maximize "spread" -- expected distance between partitions claimed by each
+%% given node.  This is in order to produce the expectation that for any
+%% reasonably short span of consecutive partitions, there will be a minimal
+%% number of partitions owned by the same node.
 
-% The exact amount that is considered tolerable is determined by the
-% application env variable "target_n_val".  The functions in
-% riak_core_claim will ensure that all sequences up to target_n_val long
-% contain no repeats if at all possible.  The effect of this is that
-% when the number of nodes in the system is smaller than target_n_val,
-% a potentially large number of partitions must be moved in order to
-% safely add a new node.  After the cluster has grown beyond that size,
-% a minimal number of partitions (1/NumNodes) will generally be moved.
+%% The exact amount that is considered tolerable is determined by the
+%% application env variable "target_n_val".  The functions in riak_core_claim
+%% will ensure that all sequences up to target_n_val long contain no repeats if
+%% at all possible.  The effect of this is that when the number of nodes in the
+%% system is smaller than target_n_val, a potentially large number of partitions
+%% must be moved in order to safely add a new node.  After the cluster has grown
+%% beyond that size, a minimal number of partitions (1/NumNodes) will generally
+%% be moved.
 
-% If the number of nodes does not divide evenly into the number of
-% partitions, it may not be possible to perfectly achieve the maximum
-% spread constraint.  In that case, Riak will minimize the cases where
-% the constraint is violated and they will all exist near the origin
-% point of the ring.
+%% If the number of nodes does not divide evenly into the number of partitions,
+%% it may not be possible to perfectly achieve the maximum spread constraint.
+%% In that case, Riak will minimize the cases where the constraint is violated
+%% and they will all exist near the origin point of the ring.
 
-% A good way to decide on the setting of target_n_val for your
-% application is to set it to the largest value you expect to use for
-% any bucket's n_val.  The default is 3.
+%% A good way to decide on the setting of target_n_val for your application is
+%% to set it to the largest value you expect to use for any bucket's n_val.  The
+%% default is 3.
 
 -module(riak_core_claim).
 -export([default_wants_claim/1, default_choose_claim/1,

@@ -1,45 +1,54 @@
-%% @copyright 2007-2008 Basho Technologies
+%% -------------------------------------------------------------------
+%%
+%% riak_core: Core Riak Application
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
+%% This file is provided to you under the Apache License,
+%% Version 2.0 (the "License"); you may not use this file
+%% except in compliance with the License.  You may obtain
+%% a copy of the License at
+%%
+%%   http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing,
+%% software distributed under the License is distributed on an
+%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+%% KIND, either express or implied.  See the License for the
+%% specific language governing permissions and limitations
+%% under the License.
+%%
+%% -------------------------------------------------------------------
 
-%% @reference Ralph C. Merkle, A Digital Signature Based on a Conventional Encryption Function, A Conference on the Theory and Applications of Cryptographic Techniques on Advances in Cryptology, p.369-378, August 16-20, 1987 
-
-% @author Justin Sheehy <justin@basho.com>
-
-% @doc An implementation of Merkle Trees for anti-entropy.
-%
-% Intended use is for synchronizing two key/value stores with
-% similar but potentially-divergent content.
-%
-% Typical usage is when a pair (or more) of nodes or systems have
-% views of a set of key/value objects which can change independently.
-% Whenever a new object is created or an existing one is modified
-% (there is no difference from the merkle point of view) the node
-% seeing the change performs an insert/2 to record the change.  At any
-% time, one node can send a representation of its tree to another
-% node.  The receiving node can diff/2 the trees to see which objects
-% differ on the two systems.  From this information, a system knows
-% exactly which objects to send or request in order to converge toward
-% a common view of the world.  Of course, if the objects contain
-% versioning information it will be much easier to resolve which
-% node's view for any given object is newer.
-%
-% See the code of merkle_test/0 for trivial example usage.
-%
-% Application usage note: the 'crypto' OTP application must be started
-% before any of this module's functions will work.
-%
-%% Licensed under the Apache License, Version 2.0 (the "License");
-%% you may not use this file except in compliance with the License.
-%% You may obtain a copy of the License at
-%
-%% http://www.apache.org/licenses/LICENSE-2.0
-%
-%% Unless required by applicable law or agreed to in writing, software
-%% distributed under the License is distributed on an "AS IS" BASIS,
-%% WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
-%% See the License for the specific language governing permissions and
-%% limitations under the License.
+%% @doc An implementation of Merkle Trees for anti-entropy.
+%%
+%% Intended use is for synchronizing two key/value stores with similar but
+%% potentially-divergent content.
+%%
+%% Typical usage is when a pair (or more) of nodes or systems have views of a
+%% set of key/value objects which can change independently.  Whenever a new
+%% object is created or an existing one is modified (there is no difference from
+%% the merkle point of view) the node seeing the change performs an insert/2 to
+%% record the change.  At any time, one node can send a representation of its
+%% tree to another node.  The receiving node can diff/2 the trees to see which
+%% objects differ on the two systems.  From this information, a system knows
+%% exactly which objects to send or request in order to converge toward a common
+%% view of the world.  Of course, if the objects contain versioning information
+%% it will be much easier to resolve which node's view for any given object is
+%% newer.
+%%
+%% See the code of merkle_test/0 for trivial example usage.
+%%
+%% Application usage note: the 'crypto' OTP application must be started before
+%% any of this module's functions will work.
+%%
+%% @reference Ralph C. Merkle, A Digital Signature Based on a Conventional
+%% Encryption Function, A Conference on the Theory and Applications of
+%% Cryptographic Techniques on Advances in Cryptology, p.369-378, August 16-20,
+%% 1987
 
 -module(merkerl).
+-author("Justin Sheehy <justin@basho.com>").
 -export([insert/2,delete/2,build_tree/1,diff/2,allkeys/1]).
 
 -include_lib("eunit/include/eunit.hrl").
