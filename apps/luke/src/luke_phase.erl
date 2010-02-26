@@ -70,7 +70,6 @@ partners(PhasePid, Leader, Partners) ->
 init([PhaseMod, Behaviors, NextPhases, Flow, Timeout, PhaseArgs]) ->
     case PhaseMod:init(PhaseArgs) of
         {ok, ModState} ->
-            erlang:monitor(process, Flow),
             Accumulate = lists:member(accumulate, Behaviors),
             Converge = lists:member(converge, Behaviors),
             {ok, executing, #state{mod=PhaseMod, modstate=ModState, next_phases=NextPhases,
@@ -130,9 +129,6 @@ handle_event(_Event, StateName, #state{timeout=Timeout}=State) ->
 
 handle_sync_event(_Event, _From, StateName, #state{timeout=Timeout}=State) ->
     {reply, ignored, StateName, State, Timeout}.
-
-handle_info({'DOWN', _MRef, _Type, Flow, _Info}, _StateName, #state{flow=Flow}=State) ->
-    {stop, normal, State};
 handle_info(timeout, executing, #state{cb_timeout=true, mod=Mod, modstate=ModState}=State) ->
     handle_callback(Mod:handle_timeout(ModState), State#state{cb_timeout=false});
 handle_info(timeout, executing, #state{flow=Flow}=State) ->

@@ -70,6 +70,7 @@ start_link(Client, FlowId, FlowDesc, Timeout) when is_list(FlowDesc),
     gen_fsm:start_link(?MODULE, [Client, FlowId, FlowDesc, Timeout], []).
 
 init([Client, FlowId, FlowDesc, Timeout]) ->
+    process_flag(trap_exit, true),
     case start_phases(FlowDesc, Timeout) of
         {ok, FSMs} ->
             {ok, executing, #state{fsms=FSMs, flow_id=FlowId, timeout=Timeout, client=Client}, Timeout};
@@ -102,15 +103,11 @@ handle_event(_Event, StateName, State) ->
 handle_sync_event(_Event, _From, StateName, State) ->
     {reply, ignored, StateName, State}.
 
-handle_info({'DOWN', _MRef, _Type, Pid, Reason}, StateName, #state{flow_id=FlowId, client=Client,
-                                                                   fsms=FSMs, timeout=Timeout}=State) ->
-    if
-        Reason =:= normal ->
-            {next_state, StateName, State#state{fsms=lists:delete(Pid, FSMs)}, Timeout};
-        true ->
-            Client ! {flow_error, FlowId, Reason},
-            {stop, normal, State}
-    end;
+handle_info({'EXIT', _Pid, normal}, StateName, State) ->
+    {next_state, StateName, State};
+handle_info({'EXIT', _Pid, Reason}, _StateName, #state{flow_id=FlowId, client=Client}=State) ->
+    Client ! {flow_error, FlowId, Reason},
+    {stop, normal, State};
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State}.
 
@@ -132,7 +129,7 @@ start_phases([{PhaseMod, Behaviors, Args}|T], Timeout, Accum) ->
         undefined ->
             case luke_phase_sup:new_phase(PhaseMod, Behaviors, NextFSM, self(), Timeout, Args) of
                 {ok, Pid} ->
-                    erlang:monitor(process, Pid),
+                    erlang:link(Pid),
                     start_phases(T, Timeout, [Pid|Accum]);
                 Error ->
                     Error

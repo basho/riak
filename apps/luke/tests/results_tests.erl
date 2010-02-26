@@ -22,7 +22,7 @@ all_test_() ->
              {FlowId, Pid, Phases} = test_util:start_flow(?TWO_PHASE_FLOW),
              luke_flow:add_inputs(Pid, ["hello"]),
              test_util:verify_results(FlowId, none),
-             exit(Pid, shutdown),
+             exit(Pid, kill),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
              {FlowId, Pid, Phases} = test_util:start_flow(?TWO_PHASE_FLOW),
