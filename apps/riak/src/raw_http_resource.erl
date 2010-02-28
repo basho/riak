@@ -1,19 +1,26 @@
+%% -------------------------------------------------------------------
+%%
+%% raw_http_resource: Webmachine resource for serving Riak data
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
 %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
 %% except in compliance with the License.  You may obtain
 %% a copy of the License at
-
+%%
 %%   http://www.apache.org/licenses/LICENSE-2.0
-
+%%
 %% Unless required by applicable law or agreed to in writing,
 %% software distributed under the License is distributed on an
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
-
-%% @doc Resource for serving Riak objects over HTTP.
 %%
+%% -------------------------------------------------------------------
+
+%% @doc Webmachine resource for serving Riak data.
 %% Available operations:
 %%
 %% GET /Prefix/Bucket
@@ -131,6 +138,7 @@
          init/1,
          service_available/2,
          allowed_methods/2,
+         allow_missing_post/2,
          malformed_request/2,
          resource_exists/2,
          last_modified/2,
@@ -254,6 +262,13 @@ allowed_methods(RD, Ctx=#ctx{key=undefined}) ->
 allowed_methods(RD, Ctx) ->
     %% key-level: just about anything
     {['HEAD', 'GET', 'POST', 'PUT', 'DELETE'], RD, Ctx}.
+
+%% @spec allow_missing_post(reqdata(), context()) ->
+%%           {true, reqdata(), context()}
+%% @doc Makes POST and PUT equivalent for creating new
+%%      bucket entries.
+allow_missing_post(RD, Ctx) ->
+    {true, RD, Ctx}.
 
 %% @spec is_bucket_put(reqdata(), context()) -> boolean()
 %% @doc Determine whether this request is of the form

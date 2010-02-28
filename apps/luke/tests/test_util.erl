@@ -16,7 +16,14 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--export([verify_phases/2, verify_results/2, assertDead/1]).
+-export([start_flow/1, verify_phases/2, verify_results/2, assertDead/1]).
+
+start_flow(FlowDesc) ->
+    FlowId = make_ref(),
+    {ok, Pid} = luke:new_flow(FlowId, FlowDesc),
+    Phases = test_util:verify_phases(Pid, length(FlowDesc)),
+    {FlowId, Pid, Phases}.
+
 
 verify_phases(Pid, Size) ->
     Phases = luke_flow:get_phases(Pid),

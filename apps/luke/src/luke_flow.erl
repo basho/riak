@@ -12,31 +12,57 @@
 %% specific language governing permissions and limitations
 %% under the License.
 
+%% @doc Manages the execution of a flow
 -module(luke_flow).
 
 -behaviour(gen_fsm).
 
 %% API
--export([start_link/4, add_inputs/2, finish_inputs/1, collect_output/2]).
+-export([start_link/4,
+         add_inputs/2,
+         finish_inputs/1,
+         collect_output/2]).
 
 %% FSM states
--export([get_phases/1, executing/2, executing/3]).
+-export([get_phases/1,
+         executing/2,
+         executing/3]).
 
 %% gen_fsm callbacks
--export([init/1, handle_event/3,
-         handle_sync_event/4, handle_info/3, terminate/3, code_change/4]).
+-export([init/1,
+         handle_event/3,
+         handle_sync_event/4,
+         handle_info/3,
+         terminate/3,
+         code_change/4]).
 
--record(state, {flow_id, fsms, client, timeout, results=[]}).
+-record(state, {flow_id,
+                fsms,
+                client,
+                flow_timeout,
+                tref,
+                results=[]}).
 
+%% @doc Add inputs to the flow. Inputs will be sent to the
+%%      first phase
+%% @spec add_inputs(pid(), any()) -> ok
 add_inputs(FlowPid, Inputs) ->
     gen_fsm:send_event(FlowPid, {inputs, Inputs}).
 
+%% @doc Informs the phases all inputs are complete.
+%% @spec finish_inputs(pid()) -> ok
 finish_inputs(FlowPid) ->
     gen_fsm:send_event(FlowPid, inputs_done).
 
+%% @doc Collects flow output. This function will block
+%%      until the flow completes or exceeds the flow_timeout.
+%% @spec collect_output(any(), integer()) -> [any()] | {error, any()}
 collect_output(FlowId, Timeout) ->
     collect_output(FlowId, Timeout, []).
 
+%% @doc Returns the pids for each phase. Intended for
+%%      testing only
+%% @spec get_phases(pid()) -> [pid()]
 get_phases(FlowPid) ->
     gen_fsm:sync_send_event(FlowPid, get_phases).
 
@@ -44,35 +70,37 @@ start_link(Client, FlowId, FlowDesc, Timeout) when is_list(FlowDesc),
                                                    is_pid(Client) ->
     gen_fsm:start_link(?MODULE, [Client, FlowId, FlowDesc, Timeout], []).
 
-init([Client, FlowId, FlowDesc, Timeout0]) ->
-    Timeout = case Timeout0 of
-                  infinity ->
-                      Timeout0;
-                  _ ->
-                      erlang:trunc(Timeout0 * 1.1)
-              end,
+init([Client, FlowId, FlowDesc, Timeout]) ->
+    process_flag(trap_exit, true),
+    Tref = case Timeout of
+               infinity ->
+                   undefined;
+               _ ->
+                   {ok, T} = timer:send_after(Timeout, flow_timeout),
+                   T
+           end,
     case start_phases(FlowDesc, Timeout) of
         {ok, FSMs} ->
-            {ok, executing, #state{fsms=FSMs, flow_id=FlowId, timeout=Timeout, client=Client}, Timeout};
+            {ok, executing, #state{fsms=FSMs, flow_id=FlowId, flow_timeout=Timeout, client=Client, tref=Tref}};
         Error ->
             {stop, Error}
     end.
 
-executing({inputs, Inputs}, #state{fsms=[H|_], timeout=Timeout}=State) ->
+executing({inputs, Inputs}, #state{fsms=[H|_]}=State) ->
     luke_phases:send_inputs(H, Inputs),
-    {next_state, executing, State, Timeout};
-executing(inputs_done, #state{fsms=[H|_], timeout=Timeout}=State) ->
+    {next_state, executing, State};
+executing(inputs_done, #state{fsms=[H|_]}=State) ->
     luke_phases:send_inputs_done(H),
-    {next_state, executing, State, Timeout};
+    {next_state, executing, State};
 executing(timeout, #state{client=Client, flow_id=FlowId}=State) ->
     Client ! {flow_results, FlowId, done},
     {stop, normal, State};
 executing({results, done}, #state{client=Client, flow_id=FlowId}=State) ->
     Client ! {flow_results, FlowId, done},
     {stop, normal, State};
-executing({results, Result}, #state{client=Client, flow_id=FlowId, timeout=Timeout}=State) ->
+executing({results, Result}, #state{client=Client, flow_id=FlowId}=State) ->
     Client ! {flow_results, FlowId, Result},
-    {next_state, executing, State, Timeout}.
+    {next_state, executing, State}.
 
 executing(get_phases, _From, #state{fsms=FSMs}=State) ->
     {reply, FSMs, executing, State}.
@@ -83,19 +111,18 @@ handle_event(_Event, StateName, State) ->
 handle_sync_event(_Event, _From, StateName, State) ->
     {reply, ignored, StateName, State}.
 
-handle_info({'DOWN', _MRef, _Type, Pid, Reason}, StateName, #state{flow_id=FlowId, client=Client,
-                                                                   fsms=FSMs, timeout=Timeout}=State) ->
-    if
-        Reason =:= normal ->
-            {next_state, StateName, State#state{fsms=lists:delete(Pid, FSMs)}, Timeout};
-        true ->
-            Client ! {flow_error, FlowId, Reason},
-            {stop, normal, State}
-    end;
+handle_info(flow_timeout, _StateName, State) ->
+    {stop, flow_timeout, State};
+handle_info({'EXIT', _Pid, normal}, StateName, State) ->
+    {next_state, StateName, State};
+handle_info({'EXIT', _Pid, Reason}, _StateName, #state{flow_id=FlowId, client=Client}=State) ->
+    Client ! {flow_error, FlowId, Reason},
+    {stop, normal, State};
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State}.
 
-terminate(_Reason, _StateName, _State) ->
+terminate(_Reason, _StateName, #state{tref=Tref}) ->
+    timer:cancel(Tref),
     ok.
 
 code_change(_OldVsn, StateName, State, _Extra) ->
@@ -103,13 +130,7 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 %% Internal functions
 start_phases(FlowDesc, Timeout) ->
-    PerPhaseTimeout = case Timeout of
-                          infinity ->
-                              Timeout;
-                          _ ->
-                              erlang:trunc(Timeout / length(FlowDesc))
-                      end,
-    start_phases(lists:reverse(FlowDesc), PerPhaseTimeout, []).
+    start_phases(lists:reverse(FlowDesc), Timeout, []).
 
 start_phases([], _Timeout, Accum) ->
     {ok, Accum};
@@ -119,7 +140,7 @@ start_phases([{PhaseMod, Behaviors, Args}|T], Timeout, Accum) ->
         undefined ->
             case luke_phase_sup:new_phase(PhaseMod, Behaviors, NextFSM, self(), Timeout, Args) of
                 {ok, Pid} ->
-                    erlang:monitor(process, Pid),
+                    erlang:link(Pid),
                     start_phases(T, Timeout, [Pid|Accum]);
                 Error ->
                     Error
