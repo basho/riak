@@ -116,10 +116,12 @@ waiting_vnode_r({r, {error, notfound}, Idx, ReqId},
                                    replied_notfound=Replied0}) ->
     Replied = [Idx|Replied0],
     NewStateData = StateData#state{replied_notfound=Replied},
-    case (N - length(Replied) - length(Fails)) >= R of
-        true ->
-            {next_state,waiting_vnode_r,NewStateData};
+    FailThreshold = erlang:min(trunc((N/2.0)+1), % basic quorum, or
+                               (N-R+1)), % cannot ever get R 'ok' replies
+    case (length(Replied) + length(Fails)) >= FailThreshold of
         false ->
+            {next_state,waiting_vnode_r,NewStateData};
+        true ->
             update_stats(StateData),
             riak_eventer:notify(riak_get_fsm, get_fsm_reply,
                                 {ReqId, notfound}),
@@ -132,10 +134,12 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqId},
                                    replied_notfound=NotFound}) ->
     Replied = [{Err,Idx}|Replied0],
     NewStateData = StateData#state{replied_fail=Replied},
-    case (N - length(Replied) - length(NotFound)) >= R of
-        true ->
-            {next_state,waiting_vnode_r,NewStateData};
+    FailThreshold = erlang:min(trunc((N/2.0)+1), % basic quorum, or
+                               (N-R+1)), % cannot ever get R 'ok' replies
+    case (length(Replied) + length(NotFound)) >= FailThreshold of
         false ->
+            {next_state,waiting_vnode_r,NewStateData};
+        true ->
             case length(NotFound) of
                 0 ->
                     FullErr = [E || {E,_I} <- Replied],
