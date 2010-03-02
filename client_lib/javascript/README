@@ -1,1 +1,28 @@
-Coming Soon
+Installation:
+1) Drop riak.js, json2.js, and a recent version of jQuery into a Riak bucket.
+
+2) Enjoy!
+
+Running unit tests:
+
+You'll need to have curl installed in order to set up the testing environment.
+
+0) If your Riak server is listening on something other than 127.0.0.1:8098, you'll
+   need to edit tests/setup to point to the right host and port. The variables to
+   edit are called, helpfully, HOST and PORT.
+
+1) To install the test environment, run the setup script in the tests directory
+   with the -i option:
+   cd tests;./setup -i
+
+2) You can now run the unit tests by pointing your browser to the unit
+   test page. Assuming Riak is listening on 127.0.0.1:8098, the URL for
+   the unit tests is: http://127.0.0.1:8098/riak/basho_test/tests.html.
+
+3) You can clean out any transient test data by running the setup script
+   with the -c option:
+   cd tests;./setup -c
+
+4) Finally, you can remove the test environment by running setup again with
+   the -u option:
+   cd tests;./setup -u
