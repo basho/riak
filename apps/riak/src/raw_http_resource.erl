@@ -661,7 +661,7 @@ erlify_bucket_prop({?JSON_CHASH, {struct, Props}}) ->
                       binary_to_list(
                         proplists:get_value(?JSON_FUN, Props)))}};
 erlify_bucket_prop({?JSON_ALLOW_MULT, Value}) ->
-    {allow_mult, (Value == <<"true">>)};
+    {allow_mult, any_to_bool(Value)};
 erlify_bucket_prop({Prop, Value}) ->
     {list_to_existing_atom(binary_to_list(Prop)), Value}.
 
@@ -1047,3 +1047,12 @@ any_to_list(V) when is_atom(V) ->
     atom_to_list(V);
 any_to_list(V) when is_binary(V) ->
     binary_to_list(V).
+
+any_to_bool(V) when is_list(V) ->
+    (V == "1") orelse (V == "true") orelse (V == "TRUE");
+any_to_bool(V) when is_binary(V) ->
+    any_to_bool(binary_to_list(V));
+any_to_bool(V) when is_integer(V) ->
+    V /= 0;
+any_to_bool(V) when is_boolean(V) ->
+    V.
