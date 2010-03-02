@@ -137,9 +137,14 @@ RiakMapper.prototype.run = function(timeout, callback) {
 							 callback(true, JSON.parse(req.responseText), req);
 						       }
 						       else {
-							 callback(false, null, req);
-						       }
-						     } } });
+							 try {
+							   var error = {error: JSON.parse(req.responseText)};
+							   callback(false, error, req);
+							 }
+							 catch (e) {
+							   callback(false, null, req);
+							 }
+						       } } } });
 };
 
 /** Start RiakMapper internals **/
@@ -147,7 +152,8 @@ RiakMapper.prototype._buildPhase = function(starter, options) {
   if (typeof options.source === 'function') {
       options.source = options.source.toString();
   }
-  if (options.language === null || options.language === undefined) {
+  if ((starter.map === null ||
+       starter.reduce === null) && (options.language === null || options.language === undefined)) {
     options.language = 'javascript';
   }
   if (starter.map === null) {
@@ -504,7 +510,7 @@ RiakBucket.prototype.map = function(options) {
  * @return RiakMapper object
  */
 RiakBucket.prototype.reduce = function(options) {
-  var mapper = new RiakMapper(this.client, this.bucket);
+  var mapper = new RiakMapper(this.client, this.name);
   return mapper.reduce(options);
 };
 
@@ -515,7 +521,8 @@ RiakBucket.prototype.reduce = function(options) {
  * @return RiakMapper object
  */
 RiakBucket.prototype.link = function(options) {
-  var mapper = new RiakMapper(this.client, this.bucket);
+  var mapper = new RiakMapper(this.client, this.name);
+  options.bucket = this.name;
   return mapper.link(options);
 };
 
