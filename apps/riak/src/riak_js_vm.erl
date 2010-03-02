@@ -50,8 +50,6 @@ reload(VMPid) ->
     gen_server:cast(VMPid, reload).
 
 init([Manager]) ->
-    pg2:create({node(), js_vm}),
-    pg2:join({node(), js_vm}, self()),
     error_logger:info_msg("Spidermonkey VM host starting (~p)~n", [self()]),
     case new_context() of
         {ok, Ctx} ->

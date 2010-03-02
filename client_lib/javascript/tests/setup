@@ -1,0 +1,54 @@
+#!/bin/sh
+
+populate_mapred_data() {
+    echo "Populating test map/reduce data"
+    curl -X PUT -H "content-type:text/plain" -H "Link:</riak/mr_test/second>;riaktag=\"test\"" http://$1:8098/riak/mr_test/first --data "1"
+    curl -X PUT -H "content-type: text/plain" -H "Link: </riak/mr_test/third>;riaktag=\"test\"" http://$1:8098/riak/mr_test/second --data "1"
+    curl -X PUT -H "content-type: text/plain" http://$1:8098/riak/mr_test/third --data "1"
+}
+
+clear_mapred_data() {
+    echo "Deleting test map/reduce data"
+    curl --silent -X DELETE http://$1:8098/riak/mr_test/first -o /dev/null
+    curl --silent -X DELETE http://$1:8098/riak/mr_test/second -o /dev/null
+    curl --silent -X DELETE http://$1:8098/riak/mr_test/third -o /dev/null
+}
+
+clear_test_data() {
+    echo "Deleting test data"
+    curl --silent -X DELETE http://$1:8098/riak/basho_test/td1 -o /dev/null
+}
+
+case $1 in
+    "-i")
+	for file in `ls *.js ../*.js`; do
+	    echo "Storing `basename $file`"
+	    curl -X PUT -H "content-type:text/javascript" http://$2:8098/riak/basho_test/`basename $file` --data-binary @$file
+	done
+	for file in `ls *.html`; do
+	    echo "Storing $file"
+	    curl -X PUT -H "content-type:text/html" http://$2:8098/riak/basho_test/$file --data-binary @$file
+	done
+	for file in `ls *.css`; do
+	    echo "Storing $file"
+	    curl -X PUT -H "content-type:text/css" http://$2:8098/riak/basho_test/$file --data-binary @$file
+	done
+	clear_test_data $2
+	populate_mapred_data $2
+	;;
+    "-c")
+	clear_test_data
+	;;
+    "-u")
+	for file in `ls *.js *.css *.html ../*.js`; do
+	    echo "Deleting `basename $file`"
+	    curl --silent -X DELETE http://$2:8098/riak/basho_test/`basename $file` -o /dev/null
+	done
+	clear_test_data $2
+	clear_mapred_data $2
+	;;
+    *)
+	echo "$0 -i host (to install test infrastructure)"
+	echo "$0 -c host (to clear test data)"
+	echo "$0 -d host (to uninstall test infrastructure)"
+esac

@@ -1,4 +1,5 @@
-/*
+
+/**
    This file is provided to you under the Apache License,
    Version 2.0 (the "License"); you may not use this file
    except in compliance with the License.  You may obtain
@@ -12,7 +13,7 @@
    KIND, either express or implied.  See the License for the
    specific language governing permissions and limitations
    under the License.
-*/
+**/
 
 /**
  * This is a Javascript client for the Riak REST API. It
@@ -112,8 +113,8 @@ RiakMapper.prototype.link = function(options) {
  *
  * callback - function(success, request, results)
  * @param success - Boolean indicating success or failure
- * @param request - XMLHttpRequest object
  * @param results - JSON decoded results or null
+ * @param request - XMLHttpRequest object
  */
 RiakMapper.prototype.run = function(timeout, callback) {
   if (timeout === undefined || timeout === null) {
@@ -128,15 +129,15 @@ RiakMapper.prototype.run = function(timeout, callback) {
 	     'query': this.phases,
 	     'timeout': timeout};
   jQuery.ajax({url: this.client.mapredUrl,
-	       type: 'PUT',
+	       type: 'POST',
 	       data: JSON.stringify(job),
 	       beforeSend: function(req) { req.setRequestHeader('X-Riak-ClientId', mapper.client.clientId); },
 	       complete: function(req, StatusText) { if (callback !== undefined) {
 						       if (RiakUtil.wasSuccessful(req)) {
-							 callback(true, req, JSON.parse(req.responseText));
+							 callback(true, JSON.parse(req.responseText), req);
 						       }
 						       else {
-							 callback(false, req, null);
+							 callback(false, null, req);
 						       }
 						     } } });
 };
@@ -275,8 +276,10 @@ RiakObject.prototype.setLinks = function(linkHeader) {
     var linkTag = RiakUtil.trim(linkParts[1]);
     var linkTo = RiakUtil.trim(linkParts[0].replace(/Link: ?/, ''));
     linkTo = linkTo.replace(/</, '').replace(/>/, '');
+    linkTo = linkTo.replace(/\"/g, '');
     linkTag = linkTag.replace('riaktag=', '');
-    parsedLinks.push({tag: linkTag, target: linkTo});
+    linkTag = linkTag.replace(/\"/g, '');
+    parsedLinks.push({tag: linkTag.toString(), target: linkTo.toString()});
   }
   this.links = parsedLinks;
 };
@@ -300,8 +303,8 @@ RiakObject.prototype.getLinkHeader = function() {
   var header = '';
   this.links.forEach(function(link) {
 		       header = header + '<' + link.target + '>; ';
-		       if (link.tag === 'rel="up"') {
-			 header = header + link.tag + ', ';
+		       if (link.tag === 'rel=up') {
+			 header = header + 'rel="up", ';
 		       }
 		       else {
 			 header = header + 'riaktag=\"' + link.tag + '\", ';
@@ -441,7 +444,7 @@ RiakObject.prototype._store = function(req, callback) {
     return;
   }
   if (callback !== undefined && callback !== null) {
-    if (req.status == 200) {
+    if (req.status == 200 || req.status == 204) {
       callback(RiakObject.fromRequest(this.bucket, this.key, this.client, req), req);
     }
     else {
