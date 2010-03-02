@@ -24,6 +24,10 @@
  */
 
 /**
+ * TODO: Handle sibling values
+ */
+
+/**
  * Utility functions which don't belong anywhere else
  */
 var RiakUtil = function() {
