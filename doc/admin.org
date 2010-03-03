@@ -87,7 +87,54 @@
 
 
 * Configuration
-** TODO Capacity Planning
+** Capacity Planning
+
+   Riak will run on a wide variety of hardware.  Determining the shape
+   of hardware your use case requires is best done by benchmarking a
+   development system with sample data.  However, a few guidelines may
+   help narrow the playing field.
+
+** Disk Space
+
+   In order to provide fault tolerance, Riak stores multiple copies of
+   each piece of data in the cluster.  The number of copies is
+   determined by the "N-value" with which each piece of data is
+   stored.  So, as a minimum bound, the cluster, as a whole, must have
+   at least N times the average size of a piece of data (plus a little
+   overhead) bytes of available disk space.  For example, 1 million
+   objects, average size 1 kilobyte, stored with the default N-value
+   of 3, would require a minimum of 3 to 4 gigabytes of disk space in
+   the cluster.
+
+   Every node in the cluster is considered equal, so data is spread
+   across the cluster fairly evenly.  This means that each node in the
+   cluster can expect to hold an amount of data equal to the total
+   amount of data in the cluster (N*average object size) divided by
+   the number of nodes in the cluster.  So, in the same example as
+   before, in a cluster storing 4 gigabytes of data total, each of
+   four nodes could expect to store 1 gigabyte of data.
+
+   Riak is not, as yet, aware of multiple disks per machine *except*
+   when using the Innostore backend.  When using Innostore, or when
+   doing any other logging on a Riak node, storing the log on a
+   different disk than the data will dramatically increase
+   performance, as the multiple processes accessing the disk will not
+   compete for seek time.
+
+   In general, it's a good idea to use smaller disks, operating at
+   higher RPM, instead of larger, slower disks.  This will help
+   minimize seek time when disk access is necessary.
+
+** Memory (RAM)
+
+   More memory is always better, as usual.  Plan 1 gigabyte of memory
+   for general Riak operation.  Beyond that, the ultimate goal should
+   be to fit as much of a node's local data in RAM as possible,
+   because doing so will reduce the number of disk-seeks necessary to
+   fulfill read operations.  So, in the earlier example, where each
+   node was storing 1 gigabyte of data, planning for the node to have
+   at least 2 gigabytes of RAM for Riak to use would be a good idea.
+
 ** TODO OS Configuration  (noatime, separate disks, max fds, ...)
 ** vm.args
 
