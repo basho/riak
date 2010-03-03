@@ -40,29 +40,23 @@
 
 *** Building Riak from Source
 
-    Building Riak should be as simple as running =make= in the top
+    Building Riak should be as simple as running =make rel= in the top
     level of the source directory.
 
 #+BEGIN_EXAMPLE
-    $ make
-    ./rebar compile
+    $ make rel
+    ./rebar compile generate 
     ==> mochiweb (compile)
-    Compiled src/mochifmt_std.erl
     Compiled src/mochifmt_records.erl
-    Compiled src/mochifmt.erl
+    Compiled src/mochifmt_std.erl
     Compiled src/mochihex.erl
-    ...snipped...
-    ==> webmachine (compile)
-    Compiled src/webmachine_app.erl
-    Compiled src/webmachine.erl
-    Compiled src/webmachine_deps.erl
-    Compiled src/webmachine_error_handler.erl
-    ...snipped...
+    ...snipped..
     ==> riak (compile)
+    Compiling src/riakserver.proto
+    Compiled src/gen_nb_server.erl
     Compiled src/gen_server2.erl
-    Compiled src/bloom.erl
     ...snipped...
-    Compiled src/slide.erl
+    ==> rel (generate)
     $
 #+END_EXAMPLE
 
@@ -73,65 +67,23 @@
     [[Troubleshooting]] section of this document for help with build
     errors.
 
-*** Creating the Release
-
-    Riak's command line scripts expect the object files and their
-    dependencies to be packaged into an Erlang release.  To create
-    this release, simply run =make rel= in the top-level source
-    directory.
-
-#+BEGIN_EXAMPLE
-    $ make rel
-    ./rebar compile generate
-    ==> mochiweb (compile)
-    ==> webmachine (compile)
-    ==> riak (compile)
-    ==> rel (generate)
-    Generating target specification...
-    Constructing release...
-    $
-#+END_EXAMPLE
-
-    That's it.  This process created an Erlang "embedded node" in
-    rel/riak.  You should now be able to run Riak from that directory,
-    or copy the directory to any other path on this machine, or to any
-    other machine with matching architecture.  See the [[Installation]]
-    section for more details.
+    This process created an Erlang "embedded node" in rel/riak.  You
+    should now be able to run Riak from that directory, or copy the
+    directory to any other path on this machine, or to any other
+    machine with matching architecture.  See the [[Installation]] section
+    for more details.
 
 
 * Installation
-** Embedded Erlang Node
 
-   If you downloaded a pre-built, binary release of Riak, or if
-   you have made it through building the release from source, you
-   should have an Erlang embedded node ready to run Riak in-place.
-   No further installation is needed.
+  If you downloaded a pre-built, binary release of Riak, or if you
+  have made it through building the release from source, you should
+  have an Erlang embedded node ready to run Riak in-place.  No further
+  installation is needed.
 
-   To run Riak on other machines, simply copy the entire embedded
-   node directory to those machines.  See the [[Configuration]] section
-   for details about altering configurations for each machine.
-
-** Installing to OTP Libary Path
-
-   You also have the option of installing Riak into the Erlang/OTP
-   library path.  This will make Riak modules available to all other
-   Erlang applications on your system without needing to muck about
-   with code paths.
-
-   To install, simply execute =rebar install= in the top-level Riak
-   directory.
-
-#+BEGIN_EXAMPLE
-    $ sudo ./rebar install
-    ==> mochiweb (install)
-    Installing: mochiweb-0.01
-    ==> webmachine (install)
-    Installing: webmachine-1.5
-    ==> riak (install)
-    Installing: riak-0.8
-    $ ls $ERLANG_ROOT/lib/riak-*
-    ebin	priv	src
-#+END_EXAMPLE
+  To run Riak on other machines, simply copy the entire embedded node
+  directory to those machines.  See the [[Configuration]] section for
+  details about altering configurations for each machine.
 
 
 * Configuration
