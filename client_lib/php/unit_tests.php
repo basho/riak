@@ -1,6 +1,6 @@
 <?php
 
-require_once 'riak2.php';
+require_once 'riak.php';
 
 define('HOST', 'localhost');
 define('PORT', 8098);
@@ -66,6 +66,26 @@ function testStoreAndGet() {
   test_assert($obj->getData() == $rand);
 }
 
+function testBinaryStoreAndGet() {
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket('bucket');
+
+  # Store as binary, retrieve as binary, then compare...
+  $rand = rand();
+  $obj = $bucket->newBinary('foo1', $rand);
+  $obj->store();
+  $obj = $bucket->getBinary('foo1');
+  test_assert($obj->exists());
+  test_assert($obj->getData() == $rand);
+
+  # Store as JSON, retrieve as binary, JSON-decode, then compare...
+  $data = array(rand(), rand(), rand());
+  $obj = $bucket->newObject('foo2', $data);
+  $obj->store();
+  $obj = $bucket->getBinary('foo2');
+  assert($data == json_decode($obj->getData()));
+}
+
 function testMissingObject() {
   $client = new RiakClient(HOST, PORT);
   $bucket = $client->bucket('bucket');
@@ -95,8 +115,8 @@ function testSetBucketProperties() {
   $bucket = $client->bucket('bucket');
 
   # Test setting allow mult...
-  $bucket->setAllowMult(TRUE);
-  test_assert($bucket->getAllowMult());
+  $bucket->setAllowMultiples(TRUE);
+  test_assert($bucket->getAllowMultiples());
 
   # Test setting nval...
   $bucket->setNVal(3);
@@ -104,7 +124,7 @@ function testSetBucketProperties() {
 
   # Test setting multiple properties...
   $bucket->setProperties(array("allow_mult"=>FALSE, "n_val"=>2));
-  test_assert(!$bucket->getAllowMult());
+  test_assert(!$bucket->getAllowMultiples());
   test_assert($bucket->getNVal() == 2);
 }
 
@@ -112,7 +132,7 @@ function testSiblings() {
   # Set up the bucket, clear any existing object...
   $client = new RiakClient(HOST, PORT);
   $bucket = $client->bucket('multiBucket');
-  $bucket->setAllowMult('true');
+  $bucket->setAllowMultiples('true');
   $obj = $bucket->get('foo');
   $obj->delete();
 
@@ -125,7 +145,6 @@ function testSiblings() {
   }
 
   # Make sure the object has 5 siblings...
-  $obj = $bucket->get('foo');
   test_assert($obj->hasSiblings());
   test_assert($obj->getSiblingCount() == 5);
 
@@ -152,6 +171,7 @@ function testSiblings() {
 print("Starting Unit Tests\n---\n");
 test("testIsAlive");
 test("testStoreAndGet");
+test("testBinaryStoreAndGet");
 test("testMissingObject");
 test("testDelete");
 test("testSetBucketProperties");

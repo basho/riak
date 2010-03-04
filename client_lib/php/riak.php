@@ -17,7 +17,18 @@
 */
 
 
+/**
+ * The RiakClient object holds information necessary to connect to
+ * Riak. The Riak API uses HTTP, so there is no persistent
+ * connection, and the RiakClient object is extremely lightweight.
+ */
 class RiakClient {
+  /**
+   * Construct a new RiakClient object.
+   * @param string $host - Hostname or IP address (default '127.0.0.1')
+   * @param int $port - Port number (default 8098)
+   * @param string $prefix - Interface prefix (default "riak")
+   */
   function RiakClient($host='127.0.0.1', $port=8098, $prefix='riak') {
     $this->host = $host;
     $this->port = $port;
@@ -28,21 +39,73 @@ class RiakClient {
     $this->dw = 2;
   }
 
+  /**
+   * Get the R-value setting for this ClientObject. (default 2)
+   * @return nteger
+   */
   function getR()     { return $this->r; }
+
+  /**
+   * Set the R-value for this ClientObject. This value will be used
+   * for any calls to get(...) or getBinary(...) where where 1) no
+   * R-value is specified in the method call and 2) no R-value has
+   * been set in the BucketObject.  
+   * @param integer $r - The R value.
+   */
   function setR($r)   { $this->r = $r; }
 
+  /**
+   * Get the W-value setting for this ClientObject. (default 2)
+   * @return integer
+   */
   function getW()     { return $this->w; }
+
+  /**
+   * Set the W-value for this ClientObject. See setR(...) for a
+   * description of how these values are used.
+   * @param integer $w - The W value.
+   */
   function setW($w)   { $this->w = $w; }
 
+  /**
+   * Get the DW-value for this ClientOBject. (default 2)
+   * @return integer
+   */
   function getDW()    { return $this->dw; }
+
+  /**
+   * Set the DW-value for this ClientObject. See setR(...) for a
+   * description of how these values are used.
+   * @param  integer $dw - The DW value.
+   */
   function setDW($dw) { $this->dw = $dw; }
 
-  function clientID() { return $this->clientid; }
+  /**
+   * Get the clientID for this ClientObject.
+   * @return string
+   */
+  function getClientID() { return $this->clientid; }
 
+  /**
+   * Set the clientID for this ClientObject. Should not be called
+   * unless you know what you are doing.
+   * @param string $clientID - The new clientID.
+   */
+  function setClientID($clientid) { $this->clientid = $clientid; }
+
+  /**
+   * Get the bucket by the specified name. Since buckets always exist,
+   * this will always return a BucketObject.
+   * @return BucketObject
+   */
   function bucket($name) {
     return new RiakBucket($this, $name);
   }
 
+  /**
+   * Check if the Riak server for this ClientObject is alive.
+   * @return boolean
+   */
   function isAlive() {
     $url = 'http://' . $this->host . ':' . $this->port . '/ping';
     $response = RiakUtils::httpRequest('GET', $url);
@@ -50,6 +113,12 @@ class RiakClient {
   }
 }
 
+
+/**
+ * The RiakBucket object allows you to access and change information
+ * about a Riak bucket, and provides methods to create or retrieve
+ * objects within the bucket.
+ */
 class RiakBucket {
   function RiakBucket($client, $name) {
     $this->client = $client;
@@ -59,97 +128,173 @@ class RiakBucket {
     $this->dw = NULL;
   }
 
-  function getR($r)     { 
+  /** 
+   * Get the R-value for this bucket, if it is set, otherwise return
+   * the R-value for the client.
+   * @return integer
+   */
+  function getR($r=NULL)     { 
     if ($r != NULL) return $r;
     if ($this->r != NULL) return $this->r;
     return $this->client->getR();
   }
   
+  /**
+   * Set the R-value for this bucket. get(...) and getBinary(...)
+   * operations that do not specify an R-value will use this value.
+   * @param integer $r - The new R-value.
+   */
   function setR($r)   { 
     $this->r = $r; 
   }
 
+  /**
+   * Get the W-value for this bucket, if it is set, otherwise return
+   * the W-value for the client.
+   * @return integer
+   */
   function getW($w)     { 
     if ($w != NULL) return $w;
     if ($this->w != NULL) return $this->w;
     return $this->client->getW();
   }
 
+  /**
+   * Set the W-value for this bucket. See setR(...) for more information.
+   * @param  integer $w - The new W-value.
+   */
   function setW($w)   { 
     $this->w = $w; 
   }
 
+  /**
+   * Get the DW-value for this bucket, if it is set, otherwise return
+   * the DW-value for the client.
+   * @return integer
+   */
   function getDW($dw)    { 
     if ($dw != NULL) return $dw;
     if ($this->dw != NULL) return $this->dw;
     return $this->client->getDW();
   }
 
+  /**
+   * Set the DW-value for this bucket. See setR(...) for more information.
+   * @param  integer $dw - The new DW-value
+   */
   function setDW($dw) { 
     $this->dw = $dw; 
   }
 
+  /**
+   * Create a new Riak object that will be stored as JSON.
+   * @param  string $key - Name of the key.
+   * @param  object $data - The data to store. (default NULL)
+   * @return RiakObject
+   */
   function newObject($key, $data=NULL) {
     $obj = new RiakObject($this->client, $this, $key);
-    $obj->data = $data;
-    $obj->content_type = 'text/json';
-    $obj->jsonify = TRUE;
+    $obj->setData($data);
+    $obj->setContentType('text/json');
+    $obj->jsonize = TRUE;
     return $obj;
   }
 
+  /**
+   * Create a new Riak object that will be stored as plain text/binary.
+   * @param  string $key - Name of the key.
+   * @param  object $data - The data to store.
+   * @param  string $content_type - The content type of the object. (default 'text/json')
+   * @return RiakObject
+   */
   function newBinary($key, $data, $content_type='text/json') {
     $obj = new RiakObject($this->client, $this, $key);
-    $obj->data = $data;
-    $obj->content_type = $content_type;
-    $obj->jsonify = FALSE;
+    $obj->setData($data);
+    $obj->setContentType('text/json');
+    $obj->jsonize = FALSE;
     return $obj;
   }
 
+  /**
+   * Retrieve a JSON-encoded object from Riak.
+   * @param  string $key - Name of the key.
+   * @param  int    $r   - R-Value of the request (defaults to bucket's R)
+   * @return RiakObject
+   */
   function get($key, $r=NULL) {
     $obj = new RiakObject($this->client, $this, $key);
-    $obj->jsonify = TRUE;
+    $obj->jsonize = TRUE;
     $r = $this->getR($r);
     return $obj->reload($r);
   }
 
+  /**
+   * Retrieve a binary/string object from Riak.
+   * @param  string $key - Name of the key.
+   * @param  int    $r   - R-Value of the request (defaults to bucket's R)
+   * @return RiakObject
+   */
   function getBinary($key, $r=NULL) {
     $obj = new RiakObject($this->client, $this, $key);
-    $obj->jsonify = FALSE;
+    $obj->jsonize = FALSE;
     $r = $this->getR($r);
     return $obj->reload($r);
   }
 
-  function getOrNew($key, $data=NULL) {
-    $obj = new RiakObject($this->client, $this, $key);
-    $obj->jsonify = TRUE;
-    $r = $this->getR($r);
-    $obj.reload($r);
-    if ($obj->exists()) {
-      return $obj;
-    } else {
-      return $this->new($key, $data);
-    }
-  }
-
+  /**
+   * Set the N-value for this bucket, which is the number of replicas
+   * that will be written of each object in the bucket. Set this once
+   * before you write any data to the bucket, and never change it
+   * again, otherwise unpredictable things could happen. This should
+   * only be used if you know what you are doing.
+   * @param integer $nval - The new N-Val.
+   */
   function setNVal($nval) {
     return $this->setProperty("n_val", $nval);
   }
 
+  /**
+   * Retrieve the N-value for this bucket.
+   * @return integer
+   */
   function getNVal() {
     return $this->getProperty("n_val");
   }
 
-  function setAllowMult($bool) {
+  /**
+   * If set to true, then writes with conflicting data will be stored
+   * and returned to the client. This situation can be detected by
+   * calling hasSiblings() and getSiblings(). This should only be used
+   * if you know what you are doing.
+   * @param  boolean $bool - True to store and return conflicting writes.
+   */
+  function setAllowMultiples($bool) {
     return $this->setProperty("allow_mult", $bool);
   }
-  function getAllowMult() {
+
+  /**
+   * Retrieve the 'allow multiples' setting.
+   * @return Boolean
+   */
+  function getAllowMultiples() {
     return "true" == $this->getProperty("allow_mult");
   }
 
+  /**
+   * Set a bucket property. This should only be used if you know what
+   * you are doing.
+   * @param  string $key - Property to set.
+   * @param  mixed  $value - Property value.
+   */
   function setProperty($key, $value) {
     return $this->setProperties(array($key=>$value));
   }
 
+  /**
+   * Retrieve a bucket property.
+   * @param string $key - The property to retrieve.
+   * @return mixed
+   */
   function getProperty($key) {
     $props = $this->getProperties();
     if (array_key_exists($key, $props)) {
@@ -159,6 +304,11 @@ class RiakBucket {
     }
   }
 
+  /**
+   * Set multiple bucket properties in one call. This should only be
+   * used if you know what you are doing.
+   * @param  array $props - An associative array of $key=>$value.
+   */
   function setProperties($props) {
     # Construct the URL, Headers, and Content...
     $url = RiakUtils::buildRestPath($this->client, $this);
@@ -180,7 +330,10 @@ class RiakBucket {
     }
   }
 
-
+  /**
+   * Retrieve an associative array of all bucket properties.
+   * @return Array
+   */
   function getProperties() {
     # Run the request...
     $params = array('props' => 'true', 'keys' => 'false');
@@ -201,8 +354,21 @@ class RiakBucket {
   }
 }
 
+
+/**
+ * The RiakObject holds meta information about a Riak object, plus the
+ * object's data.
+ */
 class RiakObject {
-  function RiakObject($client, $bucket, $key) {
+
+  /**
+   * Construct a new RiakObject.
+   * @param RiakClient $client - A RiakClient object.
+   * @param RiakBucket $bucket - A RiakBucket object.
+   * @param string $key - An optional key. If not specified, then key
+   * is generated by server when store(...) is called.
+   */
+  function RiakObject($client, $bucket, $key=NULL) {
     $this->client = $client;
     $this->bucket = $bucket;
     $this->key = $key;
@@ -212,26 +378,65 @@ class RiakObject {
     $this->exists = FALSE;
   }
 
-  function getData() { return $this->data; }
-  function setData($data) { $this->data = $data; }
+  /**
+   * Get the data stored in this object. Will return a associative
+   * array, unless the object was constructed with newBinary(...) or
+   * getBinary(...), in which case this will return a string.
+   * @return array or string
+   */
+  function getData() { 
+    return $this->data; 
+  }
 
+  /**
+   * Set the data stored in this object. This data will be
+   * JSON encoded unless the object was constructed with
+   * newBinary(...) or getBinary(...).
+   * @param mixed $data - The data to store.
+   */
+  function setData($data) { 
+    $this->data = $data; 
+  }
+
+  /**
+   * Get the HTTP status from the last operation on this object.
+   * @return integer
+   */
   function status() {
     return $this->headers['http_code'];
   }
 
+  /**
+   * Return true if the object exists, false otherwise. Allows you to
+   * detect a get(...) or getBinary(...) operation where the object is missing.
+   * @return boolean
+   */
   function exists() {
     return $this->exists;
   }
 
+  /**
+   * Get the content type of this object. This is either text/json, or
+   * the provided content type if the object was created via newBinary(...).
+   * @return string
+   */
   function getContentType() { 
-    return $this->headers['content-type']; 
+    return $this->headers['content_type']; 
   }
 
+  /**
+   * Set the content type of this object.
+   * @param  string $content_type - The new content type.
+   */
   function setContentType($content_type) {
-    $this->headers['content-type'] = $content_type;
+    $this->headers['content_type'] = $content_type;
   }
 
-  function vclock() {
+  /**
+   * Get the vclock of this object.
+   * @return string
+   */
+  private function vclock() {
     if (array_key_exists('X-Riak-Vclock', $this->headers)) {
       return $this->headers['X-Riak-Vclock'];
     } else {
@@ -239,6 +444,16 @@ class RiakObject {
     }
   }
 
+  /**
+   * Store the object in Riak. When this operation completes, the
+   * object could contain new metadata and possibly new data if Riak
+   * contains a newer version of the object according to the object's
+   * vector clock.  
+   * @param integer $w - W-value, wait for this many partitions to respond
+   * before returning to client.
+   * @param integer $dw - DW-value, wait for this many partitions to
+   * confirm the write before returning to client.
+   */
   function store($w=NULL, $dw=NULL) {
     # Use defaults if not specified...
     $w = $this->bucket->getW($w);
@@ -249,9 +464,9 @@ class RiakObject {
     $url = RiakUtils::buildRestPath($this->client, $this->bucket, $this->key, NULL, $params);
     
     # Construct the headers...
-    $headers = array('Content-Type: application/json',
-                     'Accept: text/plain, */*; q=0.5',
-                     'X-Riak-ClientId: ' . $this->client->clientID());
+    $headers = array('Accept: text/plain, */*; q=0.5',
+                     'Content-Type: ' . $this->getContentType(),
+                     'X-Riak-ClientId: ' . $this->client->getClientID());
 
     # Add the vclock if it exists...
     if ($this->vclock() != NULL) {
@@ -270,6 +485,13 @@ class RiakObject {
     return $this;
   }
  
+  /**
+   * Reload the object from Riak. When this operation completes, the
+   * object could contain new metadata and a new value, if the object
+   * was updated in Riak since it was last retrieved.
+   * @param integer $r - R-Value, wait for this many partitions to respond
+   * before returning to client.
+   */
   function reload($r=NULL) {
     # Do the request...
     $r = $this->bucket->getR($r);
@@ -287,13 +509,41 @@ class RiakObject {
     return $this;
   }
 
-  function clear() {
+  /**
+   * Delete this object from Riak.
+   * @param  integer $dw - DW-value. Wait until this many partitions have
+   * deleted the object before responding.
+   */
+  function delete($dw=NULL) {
+    # Use defaults if not specified...
+    $dw = $this->bucket->getDW($dw);
+
+    # Construct the URL...
+    $params = array('dw' => $dw);
+    $url = RiakUtils::buildRestPath($this->client, $this->bucket, $this->key, NULL, $params);
+
+    # Run the operation...
+    $response = RiakUtils::httpRequest('DELETE', $url);    
+    $this->populate($response, array(204, 404));
+    return $this;
+  }
+
+
+  /**
+   * Reset this object.
+   */
+  private function clear() {
       $this->headers = array();
       $this->data = NULL;
       $this->exists = FALSE;
       $this->siblings = NULL;
   }
 
+  /**
+   * Given the output of RiakUtils::httpRequest and a list of
+   * statuses, populate the object. Only for use by the Riak client
+   * library.
+   */
   function populate($response, $expected_statuses) {
     $this->clear();
 
@@ -323,7 +573,10 @@ class RiakObject {
     if ($status == 404) {
       $this->clear();
       return $this;
-    }
+    } 
+      
+    # If we are here, then the object exists...
+    $this->exists = TRUE;
 
     # If 300 (Siblings), then load the first sibling, and
     # store the rest.
@@ -338,34 +591,34 @@ class RiakObject {
     # Possibly json_decode...
     if ($status == 200 && $this->jsonize) {
       $this->data = json_decode($this->data, true);
-      $this->exists = TRUE;
     }
 
     return $this;
   }
 
-  function delete($dw=NULL) {
-    # Use defaults if not specified...
-    $dw = $this->bucket->getDW($dw);
-
-    # Construct the URL...
-    $params = array('dw' => $dw);
-    $url = RiakUtils::buildRestPath($this->client, $this->bucket, $this->key, NULL, $params);
-
-    # Run the operation...
-    $response = RiakUtils::httpRequest('DELETE', $url);    
-    $this->populate($response, array(204, 404));
-    return $response;
-  }
-
+  /**
+   * Return true if this object has siblings.
+   * @return boolean
+   */
   function hasSiblings() {
     return ($this->getSiblingCount() > 0);
   }
 
+  /**
+   * Get the number of siblings that this object contains.
+   * @return integer
+   */
   function getSiblingCount() {
     return count($this->siblings);
   }
 
+  /**
+   * Retrieve a sibling by sibling number.
+   * @param  integer $i - Sibling number.
+   * @param  integer $r - R-Value. Wait until this many partitions
+   * have responded before returning to client.
+   * @return RiakObject.
+   */
   function getSibling($i, $r=NULL) {
     # Use defaults if not specified.
     $r = $this->bucket->getR($r);
@@ -382,10 +635,16 @@ class RiakObject {
     return $obj;
   }
 
-  function getSiblings() {
+  /**
+   * Retrieve an array of siblings.
+   * @param integer $r - R-Value. Wait until this many partitions have
+   * responded before returning to client.
+   * @return array of RiakObject
+   */
+  function getSiblings($r=NULL) {
     $a = array();
     for ($i = 0; $i<$this->getSiblingCount(); $i++) {
-      $a[] = $this->getSibling($i);
+      $a[] = $this->getSibling($i, $r);
     }
     return $a;
   }
@@ -409,14 +668,13 @@ class RiakStringIO {
   }
 }
 
+/**
+ * Utility functions used by Riak library.
+ */
 class RiakUtils {
   /**
-   * Construct a REST path from client/bucket/object.
-   * @param string $bucket - Name of the bucket.
-   * @param string $key - Name of the key.
-   * @param array $spec - Linkwalking spec (see the 'walk' function for format).
-   * @param array $params - Params of the form array($key=>$value).
-   * @returns string Combined path.
+   * Given a ClientObject, BucketObject, Key, LinkSpec, and Params,
+   * construct and return a URL.
    */
   public static function buildRestPath($client, $bucket, $key=NULL, $spec=NULL, $params=NULL) {
     # Build 'http://hostname:port/prefix/bucket'
@@ -455,12 +713,9 @@ class RiakUtils {
   }
 
   /**
-   * Run a Riak Request.
-   * @param string $method 'GET', 'PUT', 'POST', or 'DELETE'
-   * @param string $url URL of the request to run.
-   * @param object $obj The string or object to store.
-   * @param array $request_headers Request headers to set, of the form array('Header: Value')
-   * @return RiakResponse object
+   * Given a Method, URL, Headers, and Body, perform and HTTP request,
+   * and return an array of arity 2 containing an associative array of
+   * response headers and the response body.
    */
   public static function httpRequest($method, $url, $request_headers = array(), $obj = '') {
     # Set up curl
@@ -513,9 +768,8 @@ class RiakUtils {
   }
 
   /**
-   * Parse an HTTP Header string.
-   * @param  string $header - Header string.
-   * @return An array of headers of the form array(array('Header', 'Value'))
+   * Parse an HTTP Header string into an asssociative array of
+   * response headers.
    */
   static function parseHttpHeaders($headers) {
     $retVal = array();
@@ -533,6 +787,5 @@ class RiakUtils {
     return $retVal;
   }
 }
-
 
 ?>
