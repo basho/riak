@@ -164,9 +164,107 @@ function testSiblings() {
   $obj->delete();
 }
 
-/* function testSiblings() { */
-/*   assert(false); */
-/* } */
+function testJavascriptSourceMap() {
+  # Create the object...
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket("bucket");
+  $bucket->newObject("foo", 2)->store();
+
+  # Run the map...
+  $result = $client->
+    add("bucket", "foo")->
+    map("function (v) { return [JSON.parse(v.values[0].data)]; }") ->
+    run();
+  assert($result == array(2));
+}
+
+function testJavascriptNamedMap() {
+  # Create the object...
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket("bucket");
+  $bucket->newObject("foo", 2)->store();
+
+  # Run the map...
+  $result = $client->
+    add("bucket", "foo")->
+    map("Riak.mapValuesJson") ->
+    run();
+  assert($result == array(2));
+}
+
+function testJavascriptSourceMapReduce() {
+  # Create the object...
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket("bucket");
+  $bucket->newObject("foo", 2)->store();
+  $bucket->newObject("bar", 3)->store();
+  $bucket->newObject("baz", 4)->store();
+
+  # Run the map...
+  $result = $client->
+    add("bucket", "foo")->
+    add("bucket", "bar")->
+    add("bucket", "baz")->
+    map("function (v) { return [1]; }") ->
+    reduce("function (v) { return v.length; }")->
+    run();
+  assert($result == 3);
+}
+
+function testJavascriptNamedMapReduce() {
+  # Create the object...
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket("bucket");
+  $bucket->newObject("foo", 2)->store();
+  $bucket->newObject("bar", 3)->store();
+  $bucket->newObject("baz", 4)->store();
+
+  # Run the map...
+  $result = $client->
+    add("bucket", "foo")->
+    add("bucket", "bar")->
+    add("bucket", "baz")->
+    map("Riak.mapValuesJson") ->
+    reduce("Riak.reduceSum")->
+    run();
+  assert($result == array(9));
+}
+
+function testJavascriptBucketMapReduce() {
+  # Create the object...
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket("bucket_" . rand());
+  $bucket->newObject("foo", 2)->store();
+  $bucket->newObject("bar", 3)->store();
+  $bucket->newObject("baz", 4)->store();
+
+  # Run the map...
+  $result = $client->
+    add($bucket->name)->
+    map("Riak.mapValuesJson") ->
+    reduce("Riak.reduceSum")->
+    run();
+  assert($result == array(9));
+}
+
+function testJavascriptArgMapReduce() {
+  # Create the object...
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket("bucket");
+  $bucket->newObject("foo", 2)->store();
+
+  # Run the map...
+  $result = $client->
+    add("bucket", "foo", 5)->
+    add("bucket", "foo", 10)->
+    add("bucket", "foo", 15)->
+    add("bucket", "foo", -15)->
+    add("bucket", "foo", -5)->
+    map("function(v, arg) { return [arg]; }")-> 
+    reduce("Riak.reduceSum")->
+    run();
+  assert($result == array(10));
+}
 
 print("Starting Unit Tests\n---\n");
 test("testIsAlive");
@@ -176,6 +274,14 @@ test("testMissingObject");
 test("testDelete");
 test("testSetBucketProperties");
 test("testSiblings");
+
+test("testJavascriptSourceMap");
+test("testJavascriptNamedMap");
+test("testJavascriptSourceMapReduce");
+test("testJavascriptNamedMapReduce");
+test("testJavascriptBucketMapReduce");
+test("testJavascriptArgMapReduce");
+
 test_summary();
 
 ?>
