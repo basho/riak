@@ -40,29 +40,23 @@
 
 *** Building Riak from Source
 
-    Building Riak should be as simple as running =make= in the top
+    Building Riak should be as simple as running =make rel= in the top
     level of the source directory.
 
 #+BEGIN_EXAMPLE
-    $ make
-    ./rebar compile
+    $ make rel
+    ./rebar compile generate 
     ==> mochiweb (compile)
-    Compiled src/mochifmt_std.erl
     Compiled src/mochifmt_records.erl
-    Compiled src/mochifmt.erl
+    Compiled src/mochifmt_std.erl
     Compiled src/mochihex.erl
-    ...snipped...
-    ==> webmachine (compile)
-    Compiled src/webmachine_app.erl
-    Compiled src/webmachine.erl
-    Compiled src/webmachine_deps.erl
-    Compiled src/webmachine_error_handler.erl
-    ...snipped...
+    ...snipped..
     ==> riak (compile)
+    Compiling src/riakserver.proto
+    Compiled src/gen_nb_server.erl
     Compiled src/gen_server2.erl
-    Compiled src/bloom.erl
     ...snipped...
-    Compiled src/slide.erl
+    ==> rel (generate)
     $
 #+END_EXAMPLE
 
@@ -73,70 +67,161 @@
     [[Troubleshooting]] section of this document for help with build
     errors.
 
-*** Creating the Release
-
-    Riak's command line scripts expect the object files and their
-    dependencies to be packaged into an Erlang release.  To create
-    this release, simply run =make rel= in the top-level source
-    directory.
-
-#+BEGIN_EXAMPLE
-    $ make rel
-    ./rebar compile generate
-    ==> mochiweb (compile)
-    ==> webmachine (compile)
-    ==> riak (compile)
-    ==> rel (generate)
-    Generating target specification...
-    Constructing release...
-    $
-#+END_EXAMPLE
-
-    That's it.  This process created an Erlang "embedded node" in
-    rel/riak.  You should now be able to run Riak from that directory,
-    or copy the directory to any other path on this machine, or to any
-    other machine with matching architecture.  See the [[Installation]]
-    section for more details.
+    This process created an Erlang "embedded node" in rel/riak.  You
+    should now be able to run Riak from that directory, or copy the
+    directory to any other path on this machine, or to any other
+    machine with matching architecture.  See the [[Installation]] section
+    for more details.
 
 
 * Installation
-** Embedded Erlang Node
 
-   If you downloaded a pre-built, binary release of Riak, or if
-   you have made it through building the release from source, you
-   should have an Erlang embedded node ready to run Riak in-place.
-   No further installation is needed.
+  If you downloaded a pre-built, binary release of Riak, or if you
+  have made it through building the release from source, you should
+  have an Erlang embedded node ready to run Riak in-place.  No further
+  installation is needed.
 
-   To run Riak on other machines, simply copy the entire embedded
-   node directory to those machines.  See the [[Configuration]] section
-   for details about altering configurations for each machine.
-
-** Installing to OTP Libary Path
-
-   You also have the option of installing Riak into the Erlang/OTP
-   library path.  This will make Riak modules available to all other
-   Erlang applications on your system without needing to muck about
-   with code paths.
-
-   To install, simply execute =rebar install= in the top-level Riak
-   directory.
-
-#+BEGIN_EXAMPLE
-    $ sudo ./rebar install
-    ==> mochiweb (install)
-    Installing: mochiweb-0.01
-    ==> webmachine (install)
-    Installing: webmachine-1.5
-    ==> riak (install)
-    Installing: riak-0.8
-    $ ls $ERLANG_ROOT/lib/riak-*
-    ebin	priv	src
-#+END_EXAMPLE
+  To run Riak on other machines, simply copy the entire embedded node
+  directory to those machines.  See the [[Configuration]] section for
+  details about altering configurations for each machine.
 
 
 * Configuration
-** TODO Capacity Planning
-** TODO OS Configuration  (noatime, separate disks, max fds, ...)
+** Capacity Planning
+
+   Riak will run on a wide variety of hardware.  Determining the shape
+   of hardware your use case requires is best done by benchmarking a
+   development system with sample data.  However, a few guidelines may
+   help narrow the playing field.
+
+*** Disk Space
+
+   In order to provide fault tolerance, Riak stores multiple copies of
+   each piece of data in the cluster.  The number of copies is
+   determined by the "N-value" with which each piece of data is
+   stored.  So, as a minimum bound, the cluster, as a whole, must have
+   at least N times the average size of a piece of data (plus a little
+   overhead) bytes of available disk space.  For example, 1 million
+   objects, average size 1 kilobyte, stored with the default N-value
+   of 3, would require a minimum of 3 to 4 gigabytes of disk space in
+   the cluster.
+
+   Every node in the cluster is considered equal, so data is spread
+   across the cluster fairly evenly.  This means that each node in the
+   cluster can expect to hold an amount of data equal to the total
+   amount of data in the cluster (N*average object size) divided by
+   the number of nodes in the cluster.  So, in the same example as
+   before, in a cluster storing 4 gigabytes of data total, each of
+   four nodes could expect to store 1 gigabyte of data.
+
+   Riak is not, as yet, aware of multiple disks per machine *except*
+   when using the Innostore backend.  When using Innostore, or when
+   doing any other logging on a Riak node, storing the log on a
+   different disk than the data will dramatically increase
+   performance, as the multiple processes accessing the disk will not
+   compete for seek time.
+
+   In general, it's a good idea to use smaller disks, operating at
+   higher RPM, instead of larger, slower disks.  This will help
+   minimize seek time when disk access is necessary.
+
+*** Memory (RAM)
+
+   More memory is always better, as usual.  Plan 1 gigabyte of memory
+   for general Riak operation.  Beyond that, the ultimate goal should
+   be to fit as much of a node's local data in RAM as possible,
+   because doing so will reduce the number of disk-seeks necessary to
+   fulfill read operations.  So, in the earlier example, where each
+   node was storing 1 gigabyte of data, planning for the node to have
+   at least 2 gigabytes of RAM for Riak to use would be a good idea.
+
+** Operating System Configuration
+
+*** Libary Paths
+
+    Riak needs access to the =ncurses=, =libgcc=, and =openssl=
+    libraries.  These are likely already in your path, but if not, you
+    will want to add them to the =LD_LIBRARY_PATH= environment
+    variable.
+
+*** noatime
+
+    Read performance in Riak can be improved by disabling file access
+    time (atime) tracking for the disk or directory on which Riak's
+    data is stored.
+
+    On Linux, use the 'noatime' mount parameter in =/etc/fstab=.
+
+    On Solaris using ZFS, use =pfexec zfs set atime=off <pool>=.
+
+*** Max File Descriptors
+
+    Especially when using the Innostore backend, it may be necessary
+    to increase the maximum allowed number of open file descriptors.
+    Innostore currently uses one file descriptor per bucket, per
+    partition.  If you have 4 nodes in your cluster, and your cluster
+    has 64 partitions, then each node is responsible for 16
+    partitions.  If this same cluster stores data in 10 buckets,
+    Innostore will use 160 (=16*10) file descriptors per node.
+
+    To set the file descriptor count on Linux or Solaris, use the
+    command =ulimit -n <COUNT>=, where =<COUNT>= is the new maximum
+    number of file descriptors.
+
+*** Network Ports
+
+    To run a distributed cluster, Riak needs access to many network
+    ports.  Make sure that the following ports are open, if you are
+    running a firewall on any of the machines in the cluster:
+
+    + 4369: Erlang Port Mapper Daemon's (EPMD) port, for connecting
+      Riak nodes.  Which network interface on which this port is
+      exposed can be configured by specifying a value for
+      =inet_dist_user_interface= in the =kernel= section of Riak's
+      =app.config= (see example below).
+
+    + 5001-6024: Dynamically allocated ports by EPMD.  This range can
+      be modified by specifying values for =inet_dist_listen_min= and
+      =inet_dist_listen_max= in Riak's =app.config= (see example
+      below).
+
+    + 8098: Default HTTP interface port.  This port can be modified by
+      specifying a value for =riak_web_port= in the =riak= section of
+      Riak's =app.config= (see example below).  The network interface
+      on which this port is exposed can be configured by specifying a
+      value for =riak_web_ip= in the =riak= section of Riak's
+      =app.config=.
+
+    As noted, several of these ports are configurable.  The default
+    configuration in =app.config= would look something like this:
+
+#+BEGIN_SRC erlang
+   [
+    {riak, [
+            {riak_web_ip, "127.0.0.1"},
+            {riak_web_port, 8098},
+
+            %% More Riak settings...
+           ]},
+    {kernel, [
+              {inet_dist_use_interface, {0, 0, 0, 0}},
+              {inet_dist_listen_min, 5001},
+              {inet_dist_listen_max, 6024}
+             ]}
+    %% Other application configurations...
+   ].
+#+END_SRC
+
+   The value of =riak_web_ip= is a string representation of an IP
+   address.  To specify that Webmachine should listen on all
+   interfaces, use =0.0.0.0=.
+
+   The value of the =inet_dist_use_interface= is a tuple of four
+   bytes.  The example above says "listen on every interface" by
+   specifying an IP of =0.0.0.0=.  If you wanted to specify an IP like
+   =10.0.12.3=, you would replace the ={0, 0, 0, 0}= with
+   ={10, 0, 12, 3}=.
+
 ** vm.args
 
    Parameters for the Erlang node on which Riak runs are set in the
