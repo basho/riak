@@ -42,7 +42,7 @@ case $1 in
 	populate_mapred_data $HOST $PORT
 	;;
     "-c")
-	clear_test_data
+	clear_test_data $HOST $PORT
 	;;
     "-u")
 	for file in `ls *.js *.css *.html ../*.js`; do
