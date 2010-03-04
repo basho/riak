@@ -57,9 +57,7 @@ new_siblings(Module) ->
 %%      of the application for Module are on the code path.
 ensure(Module) ->
     code:add_paths(new_siblings(Module)),
-    %% consider re-enabling code:clash/0 when it doesn't generate bogus "Bad path..."
-    %%  messages for .ez files
-    %% code:clash(),
+    code:clash(),
     ok.
 
 %% @spec ensure() -> ok
