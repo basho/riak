@@ -86,6 +86,6 @@ perform_reduce({Lang,{reduce,FunTerm,Arg,_Acc}},
                 riak_js_manager:blocking_dispatch({FunTerm, Reduced, Arg})
         end
     catch _:R ->
-            error_logger:error_msg("Failed reduce: ~p~n", R),
+            error_logger:error_msg("Failed reduce: ~p~n", [R]),
             {error, failed_reduce}
     end.

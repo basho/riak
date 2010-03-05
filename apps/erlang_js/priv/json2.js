@@ -440,6 +440,12 @@ if (!this.JSON) {
                 });
             }
 
+// Detect if we're parsing a non-string and throw a descriptive
+// error
+	  if (text.replace === undefined) {
+	    throw new SyntaxError('Cannot JSON parse a non-String');
+	  }
+
 // In the second stage, we run the text against regular expressions that look
 // for non-JSON patterns. We are especially concerned with '()' and 'new'
 // because they can cause invocation, and '=' because it can cause mutation.

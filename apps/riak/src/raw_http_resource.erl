@@ -719,16 +719,35 @@ accept_doc_body(RD, Ctx=#ctx{bucket=B, key=K, client=C, links=L}) ->
     MDDoc = riak_object:update_metadata(VclockDoc, UserMetaMD),
     Doc = riak_object:update_value(MDDoc, wrq:req_body(RD)),
     ok = C:put(Doc, Ctx#ctx.w, Ctx#ctx.dw),
-    {RD2, Ctx2} = case wrq:get_qs_value(?Q_RETURNBODY, RD) of
-                      ?Q_TRUE ->
-                          R = Ctx#ctx.r,
-                          DocCtx = Ctx#ctx{doc=C:get(B, K, R)},
-                          {Body, DocRD, DocCtx2} = produce_doc_body(RD, DocCtx),
-                          {wrq:append_to_response_body(Body, DocRD), DocCtx2};
-                      _ ->
-                          {RD, Ctx#ctx{doc={ok, Doc}}}
-                  end,
-    {true, RD2, Ctx2}.
+
+    %% If returnbody=true is specified, then send the body back.
+    case wrq:get_qs_value(?Q_RETURNBODY, RD) of
+        ?Q_TRUE ->
+            R = Ctx#ctx.w, % R won't be available, use the same setting as W.
+            DocCtx = Ctx#ctx{doc=C:get(B, K, R)},
+            HasSiblings = (select_doc(DocCtx) == multiple_choices),
+            send_returnbody(RD, DocCtx, HasSiblings);
+        _ ->
+            {true, RD, Ctx#ctx{doc = {ok, Doc}}}
+    end.
+
+%% Handle the no-sibling case. Just send the object.
+send_returnbody(RD, DocCtx, _HasSiblings = false) ->
+    {Body, DocRD, DocCtx2} = produce_doc_body(RD, DocCtx),
+    {true, wrq:append_to_response_body(Body, DocRD), DocCtx2};
+
+%% Handle the sibling case. Send either the sibling message body, or a
+%% multipart body, depending on what the client accepts.
+send_returnbody(RD, DocCtx, _HasSiblings = true) ->
+    AcceptHdr = wrq:get_req_header("Accept", RD),
+    case webmachine_util:choose_media_type(["multipart/mixed", "text/plain"], AcceptHdr) of
+        "multipart/mixed"  ->
+            {Body, DocRD, DocCtx2} = produce_multipart_body(RD, DocCtx),
+            {true, wrq:append_to_response_body(Body, DocRD), DocCtx2};
+        _ ->
+            {Body, DocRD, DocCtx2} = produce_sibling_message_body(RD, DocCtx),
+            {true, wrq:append_to_response_body(Body, DocRD), DocCtx2}
+    end.
 
 %% @spec extract_content_type(reqdata()) ->
 %%          {ContentType::string(), Charset::string()|undefined}
@@ -807,7 +826,7 @@ produce_doc_body(RD, Ctx) ->
                     end,
             {Doc, encode_vclock_header(UserMetaRD, Ctx), Ctx};
         multiple_choices ->
-            {<<"">>, RD, Ctx}
+            throw({unexpected_code_path, ?MODULE, produce_doc_body, multiple_choices})
     end.
 
 %% @spec produce_sibling_message_body(reqdata(), context()) ->
