@@ -1,3 +1,15 @@
+/** Helper functions start **/
+
+var RiakHelper = function() {
+  return {
+    numericSorter: function(first, second) {
+      return first - second;
+    }
+  };
+}();
+
+/** Helper functions end **/
+
 var Riak = function() {
 
   return {
@@ -34,16 +46,17 @@ var Riak = function() {
       return [values[0]];
     },
     reduceSort: function(value, arg) {
-      var c = null;
-      if (arg) {
-	c = eval(arg);
-      }
-      if(c) {
+      try {
+	var c = eval(arg);
 	return value.sort(c);
       }
-      else {
+      catch (e) {
 	return value.sort();
       }
+    },
+    reduceNumericSort: function(value, arg) {
+      value.sort(RiakHelper.numericSorter);
+      return value;
     },
     reduceLimit: function(value, arg) {
       return value.slice(0, arg - 1);
@@ -58,5 +71,5 @@ var Riak = function() {
 	return value.slice(start, end);
       }
     }
-  }
+  };
 }();
