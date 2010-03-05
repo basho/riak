@@ -23,8 +23,7 @@ test("testJavascriptSourceMapReduce");
 test("testJavascriptNamedMapReduce");
 test("testJavascriptArgMapReduce");
 
-test("testErlangFunctionMap");
-test("testErlangFunctionMapReduce");
+test("testErlangMapReduce");
 test("testMapReduceFromObject");
 
 test("testStoreAndGetLinks");
@@ -254,16 +253,35 @@ function testJavascriptArgMapReduce() {
   assert($result == array(10));
 }
 
-function testErlangFunctionMap() {
-  assert(false);
-}
+function testErlangMapReduce() {
+  # Create the object...
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket("bucket");
+  $bucket->newObject("foo", 2)->store();
+  $bucket->newObject("bar", 2)->store();
+  $bucket->newObject("baz", 4)->store();
 
-function testErlangFunctionMapReduce() {
-  assert(false);
+  # Run the map...
+  $result = $client->
+    add("bucket", "foo")->
+    add("bucket", "bar")->
+    add("bucket", "baz")->
+    map(array("riak_mapreduce", "map_object_value")) ->
+    reduce(array("riak_mapreduce", "reduce_set_union"))->
+    run();
+
+  assert(count($result) == 2);
 }
 
 function testMapReduceFromObject() {
-  assert(false);
+  # Create the object...
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket("bucket");
+  $bucket->newObject("foo", 2)->store();
+ 
+  $obj = $bucket->get("foo");
+  $result = $obj->map("Riak.mapValuesJson")->run();
+  assert($result = array(2));
 }
 
 
