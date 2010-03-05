@@ -333,7 +333,7 @@ parse_header(String) ->
      lists:foldr(F, [], Parts)}.
 
 unquote_header("\"" ++ Rest) ->
-    unquote_HEADER(Rest, []);
+    unquote_header(Rest, []);
 unquote_header(S) ->
     S.
 
