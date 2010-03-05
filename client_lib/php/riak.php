@@ -136,24 +136,41 @@ class RiakClient {
 
   # MAP/REDUCE/LINK FUNCTIONS
 
+  /**
+   * Start assembling a Map/Reduce operation.
+   * @see RiakMapReduce::add()
+   * @return RiakMapReduce
+   */
   function add($params) {
     $mr = new RiakMapReduce($this);
     $args = func_get_args();
     return call_user_func_array(array(&$mr, "add"), $args);
   }
 
+  /**
+   * Start assembling a Map/Reduce operation.
+   * @see RiakMapReduce::link()
+   */
   function link($params) {
     $mr = new RiakMapReduce($this);
     $args = func_get_args();
     return call_user_func_array(array(&$mr, "link"), $args);
   }
 
+  /**
+   * Start assembling a Map/Reduce operation.
+   * @see RiakMapReduce::map()
+   */
   function map($params) {
     $mr = new RiakMapReduce($this);
     $args = func_get_args();
     return call_user_func_array(array(&$mr, "map"), $args);
   }
 
+  /**
+   * Start assembling a Map/Reduce operation.
+   * @see RiakMapReduce::reduce()
+   */
   function reduce($params) {
     $mr = new RiakMapReduce($this);
     $args = func_get_args();
@@ -162,8 +179,17 @@ class RiakClient {
 }
 
 
+/**
+ * The RiakMapReduce object allows you to build up and run a
+ * map/reduce operation on Riak.
+ */
 class RiakMapReduce {
   
+  /**
+   * Construct a Map/Reduce object.
+   * @param RiakClient $client - A RiakClient object.
+   * @return RiakMapReduce
+   */
   function RiakMapReduce($client) {
     $this->client = $client;
     $this->phases = array();
@@ -172,8 +198,14 @@ class RiakMapReduce {
   }
 
   /**
-   * Params can either be bucket or an associative array of
-   * bucket=>key.
+   * Add inputs to a map/reduce operation. This method takes three
+   * different forms, depending on the provided inputs. You can
+   * specify either  a RiakObject, a string bucket name, or a bucket,
+   * key, and additional arg.
+   * @param mixed $arg1 - RiakObject or Bucket
+   * @param mixed $arg2 - Key or blank
+   * @param mixed $arg3 - Arg or blank
+   * @return RiakMapReduce
    */
   function add($arg1, $arg2=NULL, $arg3=NULL) {
     if (func_num_args() == 1) {
@@ -185,10 +217,16 @@ class RiakMapReduce {
     return $this->add_bucket_key_data($arg1, $arg2, $arg3);
   }
 
+  /**
+   * Private.
+   */
   private function add_object($obj) {
     return $this->add_bucket_key_data($obj->bucket->name, $obj->key, NULL);
   }
   
+  /**
+   * Private.
+   */
   private function add_bucket_key_data($bucket, $key, $data) {
     if ($this->input_mode == "bucket") 
       throw new Exception("Already added a bucket, can't add an object.");
@@ -196,17 +234,40 @@ class RiakMapReduce {
     return $this;
   }
 
+  /**
+   * Private.
+   */
   private function add_bucket($bucket) {
     $this->input_mode = "bucket";
     $this->inputs = $bucket;
     return $this;
   }
 
+  /**
+   * Add a link phase to the map/reduce operation.
+   * @param string $bucket - Bucket name (default '_', which means all
+   * buckets)
+   * @param string $tag - Tag (default '_', which means all buckets)
+   * @param boolean $keep - Flag whether to keep results from this
+   * stage in the map/reduce. (default FALSE, unless this is the last
+   * step in the phase)
+   * @return RiakMapReduce
+   */
   function link($bucket='_', $tag='_', $keep=FALSE) {
     $this->phases[] = new RiakLinkPhase($bucket, $tag, $keep);
     return $this;
   }
 
+  /**
+   * Add a map phase to the map/reduce operation.
+   * @param mixed $function - Either a named Javascript function (ie:
+   * "Riak.mapValues"), or an anonymous javascript function (ie:
+   * "function(...) { ... }" or an array ["erlang_module",
+   * "function"].
+   * @param array() $options - An optional associative array
+   * containing "language", "keep" flag, and/or "arg".
+   * @return RiakMapReduce
+   */
   function map($function, $options=array()) {
     $language = is_array($function) ? "erlang" : "javascript";
     $this->phases[] = new RiakMapReducePhase("map",
@@ -217,6 +278,16 @@ class RiakMapReduce {
     return $this;
   }
 
+  /**
+   * Add a reduce phase to the map/reduce operation.
+   * @param mixed $function - Either a named Javascript function (ie:
+   * "Riak.mapValues"), or an anonymous javascript function (ie:
+   * "function(...) { ... }" or an array ["erlang_module",
+   * "function"].
+   * @param array() $options - An optional associative array
+   * containing "language", "keep" flag, and/or "arg".
+   * @return RiakMapReduce
+   */
   function reduce($function, $options=array()) {
     $language = is_array($function) ? "erlang" : "javascript";
     $this->phases[] = new RiakMapReducePhase("reduce", 
@@ -227,25 +298,13 @@ class RiakMapReduce {
     return $this;
   }
 
+  /**
+   * Run the map/reduce operation. Returns an array of results, or an
+   * array of RiakLink objects if the last phase is a link phase. 
+   * @param integer $timeout - Timeout in seconds.
+   * @return array()
+   */
   function run($timeout=NULL) {
-    $result = json_decode($this->runBinary($timeout));
-
-    # If the last phase is NOT a link phase, then return the result.
-    $lastIsLink = (end($this->phases) instanceof RiakLinkPhase);
-    if (!$lastIsLink) return $result;
-
-    # Otherwise, if the last phase IS a link phase, then convert the
-    # results to RiakLink objects.
-    $a = array();
-    foreach ($result as $r) {
-      $link = new RiakLink($r[0], $r[1], $r[2]);
-      $link->client = $this->client;
-      $a[] = $link;
-    }
-    return $a;
-  }
-
-  function runBinary($timeout=NULL) {
     # Convert all phases to associative arrays. Also,
     # if none of the phases are accumulating, then set the last one to
     # accumulate.
@@ -267,12 +326,39 @@ class RiakMapReduce {
     # Do the request...
     $url = "http://" . $this->client->host . ":" . $this->client->port . "/" . $this->client->mapred_prefix;
     $response = RiakUtils::httpRequest('POST', $url, array(), $content);
+    $result = json_decode($response[1]);
 
-    return $response[1];
+    # If the last phase is NOT a link phase, then return the result.
+    $lastIsLink = (end($this->phases) instanceof RiakLinkPhase);
+    if (!$lastIsLink) return $result;
+
+    # Otherwise, if the last phase IS a link phase, then convert the
+    # results to RiakLink objects.
+    $a = array();
+    foreach ($result as $r) {
+      $link = new RiakLink($r[0], $r[1], $r[2]);
+      $link->client = $this->client;
+      $a[] = $link;
+    }
+    return $a;
   }
 }
 
+/**
+ * The RiakMapReducePhase holds information about a Map phase or
+ * Reduce phase in a RiakMapReduce operation.
+ */
 class RiakMapReducePhase {
+  /**
+   * Construct a RiakMapReducePhase object.
+   * @param string $type - "map" or "reduce"
+   * @param mixed $function - string or array() 
+   * @param string $language - "javascript" or "erlang"
+   * @param boolean $keep - True to return the output of this phase in
+   * the results.
+   * @param mixed $arg - Additional value to pass into the map or
+   * reduce function.
+   */
   function RiakMapReducePhase($type, $function, $language, $keep, $arg) {
     $this->type = $type;
     $this->language = $language;
@@ -281,6 +367,10 @@ class RiakMapReducePhase {
     $this->arg = $arg;
   }
   
+  /**
+   * Convert the RiakMapReducePhase to an associative array. Used
+   * internally.
+   */
   function to_array() {
     $stepdef = array("keep"=>$this->keep,
                      "language"=>$this->language,
@@ -303,13 +393,27 @@ class RiakMapReducePhase {
   }
 }
 
+/**
+ * The RiakLinkPhase object holds information about a Link phase in a
+ * map/reduce operation.
+ */
 class RiakLinkPhase {
+  /**
+   * Construct a RiakLinkPhase object.
+   * @param string $bucket - The bucket name.
+   * @param string $tag - The tag.
+   * @param boolean $keep - True to return results of this phase.
+   */
   function RiakLinkPhase($bucket, $tag, $keep) {
     $this->bucket = $bucket;
     $this->tag = $tag;
     $this->keep = $keep;
   }
 
+  /**
+   * Convert the RiakLinkPhase to an associative array. Used
+   * internally.
+   */
   function to_array() {
     $stepdef = array("bucket"=>$this->bucket,
                      "tag"=>$this->tag,
@@ -318,7 +422,16 @@ class RiakLinkPhase {
   }
 }
 
+/**
+ * The RiakLink object represents a link from one Riak object to another.
+ */
 class RiakLink {
+  /**
+   * Construct a RiakLink object.
+   * @param string $bucket - The bucket name.
+   * @param string $key - The key.
+   * @param string $tag - The tag.
+   */
   function RiakLink($bucket, $key, $tag=NULL) {
     $this->bucket = $bucket;
     $this->key = $key;
@@ -326,32 +439,62 @@ class RiakLink {
     $this->client = NULL;
   }
 
+  /**
+   * Retrieve the RiakObject to which this link points.
+   * @param integer $r - The R-value to use.
+   * @return RiakObject
+   */
   function get($r=NULL) {
     return $this->client->bucket($this->bucket)->get($this->key, $r);
   }
 
+  /**
+   * Retrieve the RiakObject to which this link points, as a binary.
+   * @param integer $r - The R-value to use.
+   * @return RiakObject
+   */
   function getBinary($r=NULL) {
     return $this->client->bucket($this->bucket)->getBinary($this->key, $r);
   }
 
+  /**
+   * Get the bucket name of this link.
+   * @return string
+   */
   function getBucket() {
     return $this->bucket;
   }
 
+  /**
+   * Set the bucket name of this link.
+   * @param string $name - The bucket name.
+   */
   function setBucket($name) {
     $this->bucket = $bucket;
     return $this;
   }
 
+  /**
+   * Get the key of this link.
+   * @return string
+   */
   function getKey() {
     return $this->key;
   }
 
+  /**
+   * Set the key of this link.
+   * @param string $key - The key.
+   */
   function setKey($key) {
     $this->key = $key;
     return $this;
   }
 
+  /**
+   * Get the tag of this link.
+   * @return string
+   */
   function getTag() {
     if ($this->tag == null) 
       return $this->bucket;
@@ -359,11 +502,18 @@ class RiakLink {
       return $this->tag;
   }
 
+  /**
+   * Set the tag of this link.
+   * @param string $tag - The tag.
+   */
   function setTag($tag) {
     $this->tag = $tag;
     return $this;
   }
 
+  /**
+   * Convert this RiakLink object to a link header string. Used internally.
+   */
   function toLinkHeader($client) {
     $link = "</" .
       $client->prefix . "/" .
@@ -373,6 +523,11 @@ class RiakLink {
     return $link;
   }
   
+  /**
+   * Return true if the links are equal.
+   * @param RiakLink $link - A RiakLink object.
+   * @return boolean
+   */
   function isEqual($link) {
     $is_equal =         
       ($this->bucket == $link->bucket) &&
@@ -708,6 +863,13 @@ class RiakObject {
     return $this;
   }
 
+  /**
+   * Add a link to a RiakObject.
+   * @param mixed $obj - Either a RiakObject or a RiakLink object.
+   * @param string $tag - Optional link tag. (default is bucket name,
+   * ignored if $obj is a RiakLink object.)
+   * @return RiakObject
+   */
   function addLink($obj, $tag=NULL) {
     if ($obj instanceof RiakLink)
       $newlink = $obj;
@@ -720,6 +882,15 @@ class RiakObject {
     return $this;
   }
   
+  /**
+   * Remove a link to a RiakObject.
+   * @param mixed $obj - Either a RiakObject or a RiakLink object.
+   * @param string $tag - 
+   * @param mixed $obj - Either a RiakObject or a RiakLink object.
+   * @param string $tag - Optional link tag. (default is bucket name,
+   * ignored if $obj is a RiakLink object.)
+   * @return RiakObject
+   */
   function removeLink($obj, $tag=NULL) {
     if ($obj instanceof RiakLink)
       $oldlink = $obj;
@@ -736,6 +907,10 @@ class RiakObject {
     return $this;
   }
 
+  /**
+   * Return an array of RiakLink objects.
+   * @return array()
+   */
   function getLinks() {
     # Set the clients before returning...
     foreach ($this->links as $link) {
@@ -920,6 +1095,9 @@ class RiakObject {
     return $this;
   }
 
+  /**
+   * Private.
+   */
   private function populateLinks($linkHeaders) {
     $linkHeaders = explode(",", trim($linkHeaders));
     foreach ($linkHeaders as $linkHeader) {
@@ -985,6 +1163,11 @@ class RiakObject {
     return $a;
   }
 
+  /**
+   * Start assembling a Map/Reduce operation.
+   * @see RiakMapReduce::add()
+   * @return RiakMapReduce
+   */
   function add($params) {
     $mr = new RiakMapReduce($this->client);
     $mr->add($this->bucket->name, $this->key);
@@ -992,6 +1175,11 @@ class RiakObject {
     return call_user_func_array(array(&$mr, "add"), $args);
   }
 
+  /**
+   * Start assembling a Map/Reduce operation.
+   * @see RiakMapReduce::link()
+   * @return RiakMapReduce
+   */
   function link($params) {
     $mr = new RiakMapReduce($this->client);
     $mr->add($this->bucket->name, $this->key);
@@ -999,6 +1187,11 @@ class RiakObject {
     return call_user_func_array(array(&$mr, "link"), $args);
   }
 
+  /**
+   * Start assembling a Map/Reduce operation.
+   * @see RiakMapReduce::map()
+   * @return RiakMapReduce
+   */
   function map($params) {
     $mr = new RiakMapReduce($this->client);
     $mr->add($this->bucket->name, $this->key);
@@ -1006,6 +1199,11 @@ class RiakObject {
     return call_user_func_array(array(&$mr, "map"), $args);
   }
 
+  /**
+   * Start assembling a Map/Reduce operation.
+   * @see RiakMapReduce::reduce()
+   * @return RiakMapReduce
+   */
   function reduce($params) {
     $mr = new RiakMapReduce($this->client);
     $mr->add($this->bucket->name, $this->key);

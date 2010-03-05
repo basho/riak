@@ -7,42 +7,30 @@ define('PORT', 8098);
 define('VERBOSE', true);
 
 
-/* BEGIN UNIT TEST FRAMEWORK */
+print("Starting Unit Tests\n---\n");
 
-assert_options(ASSERT_ACTIVE,   true);
-assert_options(ASSERT_BAIL,     true);
-$test_pass = 0; $test_fail = 0;
+test("testIsAlive");
+test("testStoreAndGet");
+test("testBinaryStoreAndGet");
+test("testMissingObject");
+test("testDelete");
+test("testSetBucketProperties");
+test("testSiblings");
 
-function test($method) {
-  global $test_pass, $test_fail;
-  try {
-    $method(); 
-    $test_pass++;
-    print "  [.] TEST PASSED: $method\n";
-  } catch (Exception $e) {
-    $test_fail++;
-    print "  [X] TEST FAILED: $method\n";
-    if (VERBOSE) {
-      throw $e;
-    }
-  }
-}
+test("testJavascriptSourceMap");
+test("testJavascriptNamedMap");
+test("testJavascriptSourceMapReduce");
+test("testJavascriptNamedMapReduce");
+test("testJavascriptArgMapReduce");
 
-function test_summary() {
-  global $test_pass, $test_fail;
-  if ($test_fail == 0) {
-    print "\nSUCCESS: Passed all $test_pass tests.\n";
-  } else {
-    $test_total = $test_pass + $test_fail;
-    print "\nFAILURE: Failed $test_fail of $test_total tests!";
-  }
-}
+test("testErlangFunctionMap");
+test("testErlangFunctionMapReduce");
+test("testMapReduceFromObject");
 
-function test_assert($bool) {
-  if (!$bool) throw new Exception("Test failed.");
-}
+test("testStoreAndGetLinks");
+test("testLinkWalking");
 
-/* END UNIT FRAMEWORK */
+test_summary();
 
 
 /* BEGIN UNIT TESTS */
@@ -266,6 +254,19 @@ function testJavascriptArgMapReduce() {
   assert($result == array(10));
 }
 
+function testErlangFunctionMap() {
+  assert(false);
+}
+
+function testErlangFunctionMapReduce() {
+  assert(false);
+}
+
+function testMapReduceFromObject() {
+  assert(false);
+}
+
+
 function testStoreAndGetLinks() {
   # Create the object...
   $client = new RiakClient(HOST, PORT);
@@ -299,23 +300,41 @@ function testLinkWalking() {
   assert(count($results) == 1);
 }
 
-print("Starting Unit Tests\n---\n");
-test("testIsAlive");
-test("testStoreAndGet");
-test("testBinaryStoreAndGet");
-test("testMissingObject");
-test("testDelete");
-test("testSetBucketProperties");
-test("testSiblings");
 
-test("testJavascriptSourceMap");
-test("testJavascriptNamedMap");
-test("testJavascriptSourceMapReduce");
-test("testJavascriptNamedMapReduce");
-test("testJavascriptArgMapReduce");
+/* BEGIN UNIT TEST FRAMEWORK */
 
-test("testStoreAndGetLinks");
-test("testLinkWalking");
+assert_options(ASSERT_ACTIVE,   true);
+assert_options(ASSERT_BAIL,     true);
+$test_pass = 0; $test_fail = 0;
 
-test_summary();
+function test($method) {
+  global $test_pass, $test_fail;
+  try {
+    $method(); 
+    $test_pass++;
+    print "  [.] TEST PASSED: $method\n";
+  } catch (Exception $e) {
+    $test_fail++;
+    print "  [X] TEST FAILED: $method\n";
+    if (VERBOSE) {
+      throw $e;
+    }
+  }
+}
+
+function test_summary() {
+  global $test_pass, $test_fail;
+  if ($test_fail == 0) {
+    print "\nSUCCESS: Passed all $test_pass tests.\n";
+  } else {
+    $test_total = $test_pass + $test_fail;
+    print "\nFAILURE: Failed $test_fail of $test_total tests!";
+  }
+}
+
+function test_assert($bool) {
+  if (!$bool) throw new Exception("Test failed.");
+}
+
+/* END UNIT FRAMEWORK */
 ?>
