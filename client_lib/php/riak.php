@@ -26,6 +26,7 @@
  *
  * See the unit_tests.php file for example usage.
  * 
+ * @author Rusty Klophaus (@rklophaus) (rusty@basho.com)
  * @package RiakAPI
  */
 
