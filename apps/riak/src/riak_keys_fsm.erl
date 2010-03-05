@@ -97,7 +97,7 @@ process_keys([],Bucket,ClientType,Bloom,ReqId,Client,Acc) ->
 process_keys([K|Rest],Bucket,ClientType,Bloom,ReqId,Client,Acc) ->
     case bloom:member(K,Bloom) of
         true -> process_keys(Rest,Bucket,ClientType,Bloom,ReqId,Client,Acc);
-        false -> process_keys(Rest,Bucket,ClientType,Bloom,ReqId,Client,[K|Acc])
+        false -> process_keys(Rest,Bucket,ClientType,bloom:add(K,Bloom),ReqId,Client,[K|Acc])
     end.
 
 %% @private
