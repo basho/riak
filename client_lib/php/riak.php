@@ -44,7 +44,9 @@ class RiakClient {
    * Get the R-value setting for this ClientObject. (default 2)
    * @return nteger
    */
-  function getR()     { return $this->r; }
+  function getR() { 
+    return $this->r; 
+  }
 
   /**
    * Set the R-value for this ClientObject. This value will be used
@@ -53,46 +55,64 @@ class RiakClient {
    * been set in the BucketObject.  
    * @param integer $r - The R value.
    */
-  function setR($r)   { $this->r = $r; }
+  function setR($r) { 
+    $this->r = $r; 
+    return $this; 
+  }
 
   /**
    * Get the W-value setting for this ClientObject. (default 2)
    * @return integer
    */
-  function getW()     { return $this->w; }
+  function getW() { 
+    return $this->w; 
+  }
 
   /**
    * Set the W-value for this ClientObject. See setR(...) for a
    * description of how these values are used.
    * @param integer $w - The W value.
    */
-  function setW($w)   { $this->w = $w; }
+  function setW($w) { 
+    $this->w = $w; 
+    return $this; 
+  }
 
   /**
    * Get the DW-value for this ClientOBject. (default 2)
    * @return integer
    */
-  function getDW()    { return $this->dw; }
+  function getDW() { 
+    return $this->dw; 
+  }
 
   /**
    * Set the DW-value for this ClientObject. See setR(...) for a
    * description of how these values are used.
    * @param  integer $dw - The DW value.
    */
-  function setDW($dw) { $this->dw = $dw; }
+  function setDW($dw) { 
+    $this->dw = $dw; 
+    return $this; 
+  }
 
   /**
    * Get the clientID for this ClientObject.
    * @return string
    */
-  function getClientID() { return $this->clientid; }
+  function getClientID() { 
+    return $this->clientid; 
+  }
 
   /**
    * Set the clientID for this ClientObject. Should not be called
    * unless you know what you are doing.
    * @param string $clientID - The new clientID.
    */
-  function setClientID($clientid) { $this->clientid = $clientid; }
+  function setClientID($clientid) { 
+    $this->clientid = $clientid; 
+    return $this;
+  }
 
   /**
    * Get the bucket by the specified name. Since buckets always exist,
@@ -115,7 +135,6 @@ class RiakClient {
 
 
   # MAP/REDUCE/LINK FUNCTIONS
-
 
   function add($params) {
     $mr = new RiakMapReduce($this);
@@ -184,7 +203,7 @@ class RiakMapReduce {
   }
 
   function link($bucket='_', $tag='_', $keep=FALSE) {
-    $this->phases[] = new RiakLinkPhase($bucket, $key, $keep);
+    $this->phases[] = new RiakLinkPhase($bucket, $tag, $keep);
     return $this;
   }
 
@@ -209,7 +228,21 @@ class RiakMapReduce {
   }
 
   function run($timeout=NULL) {
-    return json_decode($this->runBinary($timeout));
+    $result = json_decode($this->runBinary($timeout));
+
+    # If the last phase is NOT a link phase, then return the result.
+    $lastIsLink = (end($this->phases) instanceof RiakLinkPhase);
+    if (!$lastIsLink) return $result;
+
+    # Otherwise, if the last phase IS a link phase, then convert the
+    # results to RiakLink objects.
+    $a = array();
+    foreach ($result as $r) {
+      $link = new RiakLink($r[0], $r[1], $r[2]);
+      $link->client = $this->client;
+      $a[] = $link;
+    }
+    return $a;
   }
 
   function runBinary($timeout=NULL) {
@@ -271,9 +304,9 @@ class RiakMapReducePhase {
 }
 
 class RiakLinkPhase {
-  function RiakLinkPhase($bucket, $key, $keep) {
+  function RiakLinkPhase($bucket, $tag, $keep) {
     $this->bucket = $bucket;
-    $this->key = $key;
+    $this->tag = $tag;
     $this->keep = $keep;
   }
 
@@ -282,6 +315,70 @@ class RiakLinkPhase {
                      "tag"=>$this->tag,
                      "keep"=>$this->keep);
     return array("link"=>$stepdef);
+  }
+}
+
+class RiakLink {
+  function RiakLink($bucket, $key, $tag=NULL) {
+    $this->bucket = $bucket;
+    $this->key = $key;
+    $this->tag = $tag;
+    $this->client = NULL;
+  }
+
+  function get($r=NULL) {
+    return $this->client->bucket($this->bucket)->get($this->key, $r);
+  }
+
+  function getBinary($r=NULL) {
+    return $this->client->bucket($this->bucket)->getBinary($this->key, $r);
+  }
+
+  function getBucket() {
+    return $this->bucket;
+  }
+
+  function setBucket($name) {
+    $this->bucket = $bucket;
+    return $this;
+  }
+
+  function getKey() {
+    return $this->key;
+  }
+
+  function setKey($key) {
+    $this->key = $key;
+    return $this;
+  }
+
+  function getTag() {
+    if ($this->tag == null) 
+      return $this->bucket;
+    else
+      return $this->tag;
+  }
+
+  function setTag($tag) {
+    $this->tag = $tag;
+    return $this;
+  }
+
+  function toLinkHeader($client) {
+    $link = "</" .
+      $client->prefix . "/" .
+      urlencode($this->bucket) . "/" .
+      urlencode($this->key) . ">; riaktag=\"" . 
+      urlencode($this->getTag()) . "\"";
+    return $link;
+  }
+  
+  function isEqual($link) {
+    $is_equal =         
+      ($this->bucket == $link->bucket) &&
+      ($this->key == $link->key) &&
+      ($this->getTag() == $link->getTag());
+    return $is_equal;
   }
 }
 
@@ -319,6 +416,7 @@ class RiakBucket {
    */
   function setR($r)   { 
     $this->r = $r; 
+    return $this;
   }
 
   /**
@@ -338,6 +436,7 @@ class RiakBucket {
    */
   function setW($w)   { 
     $this->w = $w; 
+    return $this;
   }
 
   /**
@@ -357,6 +456,7 @@ class RiakBucket {
    */
   function setDW($dw) { 
     $this->dw = $dw; 
+    return $this;
   }
 
   /**
@@ -547,6 +647,7 @@ class RiakObject {
     $this->key = $key;
     $this->jsonize = TRUE;
     $this->headers = array();
+    $this->links = array();
     $this->siblings = NULL;
     $this->exists = FALSE;
   }
@@ -569,6 +670,7 @@ class RiakObject {
    */
   function setData($data) { 
     $this->data = $data; 
+    return $this->data;
   }
 
   /**
@@ -603,18 +705,43 @@ class RiakObject {
    */
   function setContentType($content_type) {
     $this->headers['content_type'] = $content_type;
+    return $this;
   }
 
-  /**
-   * Get the vclock of this object.
-   * @return string
-   */
-  private function vclock() {
-    if (array_key_exists('X-Riak-Vclock', $this->headers)) {
-      return $this->headers['X-Riak-Vclock'];
-    } else {
-      return NULL;
+  function addLink($obj, $tag=NULL) {
+    if ($obj instanceof RiakLink)
+      $newlink = $obj;
+    else
+      $newlink = new RiakLink($obj->bucket->name, $obj->key, $tag);
+   
+    $this->removeLink($newlink);
+    $this->links[] = $newlink;
+
+    return $this;
+  }
+  
+  function removeLink($obj, $tag=NULL) {
+    if ($obj instanceof RiakLink)
+      $oldlink = $obj;
+    else 
+      $oldlink = new RiakLink($obj->bucket->name, $obj->key, $tag);
+
+    $a = array();
+    foreach ($this->links as $link) {
+      if (!$link->isEqual($oldlink)) 
+        $a[] = $link;
     }
+
+    $this->links = $a;
+    return $this;
+  }
+
+  function getLinks() {
+    # Set the clients before returning...
+    foreach ($this->links as $link) {
+      $link->client = $this->client;
+    }
+    return $this->links;
   }
 
   /**
@@ -644,6 +771,11 @@ class RiakObject {
     # Add the vclock if it exists...
     if ($this->vclock() != NULL) {
       $headers[] = 'X-Riak-Vclock: ' . $this->vclock();
+    }
+
+    # Add the Links...
+    foreach ($this->links as $link) {
+      $headers[] = 'Link: ' . $link->toLinkHeader($this->client);
     }
 
     if ($this->jsonize) {
@@ -698,6 +830,7 @@ class RiakObject {
     # Run the operation...
     $response = RiakUtils::httpRequest('DELETE', $url);    
     $this->populate($response, array(204, 404));
+
     return $this;
   }
 
@@ -707,9 +840,22 @@ class RiakObject {
    */
   private function clear() {
       $this->headers = array();
+      $this->links = array();
       $this->data = NULL;
       $this->exists = FALSE;
       $this->siblings = NULL;
+  }
+
+  /**
+   * Get the vclock of this object.
+   * @return string
+   */
+  private function vclock() {
+    if (array_key_exists('X-Riak-Vclock', $this->headers)) {
+      return $this->headers['X-Riak-Vclock'];
+    } else {
+      return NULL;
+    }
   }
 
   /**
@@ -730,7 +876,7 @@ class RiakObject {
     $this->data = $response[1];
     $status = $this->status();
 
-    # Check if the server is down (status==)
+    # Check if the server is down (status==0)
     if ($status == 0) {
       $m = 'Could not contact Riak Server: http://' . $this->client->host . ':' . $this->client->port . '!';
       throw new Exception($m);
@@ -751,6 +897,11 @@ class RiakObject {
     # If we are here, then the object exists...
     $this->exists = TRUE;
 
+    # Parse the link header...
+    if (array_key_exists("Link", $this->headers)) {
+      $this->populateLinks($this->headers["Link"]);
+    }
+
     # If 300 (Siblings), then load the first sibling, and
     # store the rest.
     if ($status == 300) {
@@ -767,6 +918,18 @@ class RiakObject {
     }
 
     return $this;
+  }
+
+  private function populateLinks($linkHeaders) {
+    $linkHeaders = explode(",", trim($linkHeaders));
+    foreach ($linkHeaders as $linkHeader) {
+      $linkHeader = trim($linkHeader);
+      $matches = array();
+      $result = preg_match("/\<\/([^\/]+)\/([^\/]+)\/([^\/]+)\>; ?riaktag=\"([^\"]+)\"/", $linkHeader, $matches);
+      if ($result == 1) {
+        $this->links[] = new RiakLink($matches[2], $matches[3], $matches[4]);
+      }
+    }
   }
 
   /**
@@ -820,6 +983,34 @@ class RiakObject {
       $a[] = $this->getSibling($i, $r);
     }
     return $a;
+  }
+
+  function add($params) {
+    $mr = new RiakMapReduce($this->client);
+    $mr->add($this->bucket->name, $this->key);
+    $args = func_get_args();
+    return call_user_func_array(array(&$mr, "add"), $args);
+  }
+
+  function link($params) {
+    $mr = new RiakMapReduce($this->client);
+    $mr->add($this->bucket->name, $this->key);
+    $args = func_get_args();
+    return call_user_func_array(array(&$mr, "link"), $args);
+  }
+
+  function map($params) {
+    $mr = new RiakMapReduce($this->client);
+    $mr->add($this->bucket->name, $this->key);
+    $args = func_get_args();
+    return call_user_func_array(array(&$mr, "map"), $args);
+  }
+
+  function reduce($params) {
+    $mr = new RiakMapReduce($this->client);
+    $mr->add($this->bucket->name, $this->key);
+    $args = func_get_args();
+    return call_user_func_array(array(&$mr, "reduce"), $args);
   }
 }
 

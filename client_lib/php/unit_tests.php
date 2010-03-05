@@ -266,6 +266,39 @@ function testJavascriptArgMapReduce() {
   assert($result == array(10));
 }
 
+function testStoreAndGetLinks() {
+  # Create the object...
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket("bucket");
+  $bucket->newObject("foo", 2)->
+    addLink($bucket->newObject("foo1"))->
+    addLink($bucket->newObject("foo2"), "tag")->
+    addLink($bucket->newObject("foo3"), "tag2!@#$%^&*")->
+    store();
+
+  $obj = $bucket->get("foo");
+  $links = $obj->getLinks();
+  assert(count($links) == 3);
+}
+
+function testLinkWalking() {
+  # Create the object...
+  $client = new RiakClient(HOST, PORT);
+  $bucket = $client->bucket("bucket");
+  $bucket->newObject("foo", 2)->
+    addLink($bucket->newObject("foo1", "test1")->store())->
+    addLink($bucket->newObject("foo2", "test2")->store(), "tag")->
+    addLink($bucket->newObject("foo3", "test3")->store(), "tag2!@#$%^&*")->
+    store();
+  
+  $obj = $bucket->get("foo");
+  $results = $obj->link("bucket")->run();
+  assert(count($results) == 3);
+
+  $results = $obj->link("bucket", "tag")->run();
+  assert(count($results) == 1);
+}
+
 print("Starting Unit Tests\n---\n");
 test("testIsAlive");
 test("testStoreAndGet");
@@ -279,9 +312,10 @@ test("testJavascriptSourceMap");
 test("testJavascriptNamedMap");
 test("testJavascriptSourceMapReduce");
 test("testJavascriptNamedMapReduce");
-test("testJavascriptBucketMapReduce");
 test("testJavascriptArgMapReduce");
 
-test_summary();
+test("testStoreAndGetLinks");
+test("testLinkWalking");
 
+test_summary();
 ?>
