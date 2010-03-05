@@ -193,6 +193,7 @@ start_converging_phases(_PhaseMod, _Behaviors, _NextFSM, _Flow, _Timeout, _Args,
 start_converging_phases(PhaseMod, Behaviors, NextFSM, Flow, Timeout, Args, Count, Accum) ->
     case luke_phase_sup:new_phase(PhaseMod, Behaviors, NextFSM, Flow, Timeout, Args) of
         {ok, Pid} ->
+            erlang:link(Pid),
             start_converging_phases(PhaseMod, Behaviors, NextFSM, Flow, Timeout, Args, Count - 1, [Pid|Accum]);
         Error ->
             throw(Error)
