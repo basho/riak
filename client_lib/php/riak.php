@@ -18,9 +18,22 @@
 
 
 /**
+ * The Riak API for PHP allows you to connect to a Riak instance,
+ * create, modify, and delete Riak objects, add and remove links from
+ * Riak objects, run Javascript (and
+ * Erlang) based Map/Reduce operations, and run Linkwalking
+ * operations.
+ *
+ * See the unit_tests.php file for example usage.
+ * 
+ * @package RiakAPI
+ */
+
+/**
  * The RiakClient object holds information necessary to connect to
  * Riak. The Riak API uses HTTP, so there is no persistent
  * connection, and the RiakClient object is extremely lightweight.
+ * @package RiakClient
  */
 class RiakClient {
   /**
@@ -28,6 +41,7 @@ class RiakClient {
    * @param string $host - Hostname or IP address (default '127.0.0.1')
    * @param int $port - Port number (default 8098)
    * @param string $prefix - Interface prefix (default "riak")
+   * @param string $mapred_prefix - MapReduce prefix (default "mapred")
    */
   function RiakClient($host='127.0.0.1', $port=8098, $prefix='riak', $mapred_prefix='mapred') {
     $this->host = $host;
@@ -42,7 +56,7 @@ class RiakClient {
 
   /**
    * Get the R-value setting for this ClientObject. (default 2)
-   * @return nteger
+   * @return integer
    */
   function getR() { 
     return $this->r; 
@@ -54,6 +68,7 @@ class RiakClient {
    * R-value is specified in the method call and 2) no R-value has
    * been set in the BucketObject.  
    * @param integer $r - The R value.
+   * @return $this
    */
   function setR($r) { 
     $this->r = $r; 
@@ -72,6 +87,7 @@ class RiakClient {
    * Set the W-value for this ClientObject. See setR(...) for a
    * description of how these values are used.
    * @param integer $w - The W value.
+   * @return $this
    */
   function setW($w) { 
     $this->w = $w; 
@@ -90,6 +106,7 @@ class RiakClient {
    * Set the DW-value for this ClientObject. See setR(...) for a
    * description of how these values are used.
    * @param  integer $dw - The DW value.
+   * @return $this
    */
   function setDW($dw) { 
     $this->dw = $dw; 
@@ -108,6 +125,7 @@ class RiakClient {
    * Set the clientID for this ClientObject. Should not be called
    * unless you know what you are doing.
    * @param string $clientID - The new clientID.
+   * @return $this
    */
   function setClientID($clientid) { 
     $this->clientid = $clientid; 
@@ -117,7 +135,7 @@ class RiakClient {
   /**
    * Get the bucket by the specified name. Since buckets always exist,
    * this will always return a BucketObject.
-   * @return BucketObject
+   * @return RiakBucket
    */
   function bucket($name) {
     return new RiakBucket($this, $name);
@@ -182,6 +200,7 @@ class RiakClient {
 /**
  * The RiakMapReduce object allows you to build up and run a
  * map/reduce operation on Riak.
+ * @package RiakMapReduce
  */
 class RiakMapReduce {
   
@@ -236,6 +255,7 @@ class RiakMapReduce {
 
   /**
    * Private.
+   * @return $this
    */
   private function add_bucket($bucket) {
     $this->input_mode = "bucket";
@@ -251,7 +271,7 @@ class RiakMapReduce {
    * @param boolean $keep - Flag whether to keep results from this
    * stage in the map/reduce. (default FALSE, unless this is the last
    * step in the phase)
-   * @return RiakMapReduce
+   * @return $this
    */
   function link($bucket='_', $tag='_', $keep=FALSE) {
     $this->phases[] = new RiakLinkPhase($bucket, $tag, $keep);
@@ -266,7 +286,7 @@ class RiakMapReduce {
    * "function"].
    * @param array() $options - An optional associative array
    * containing "language", "keep" flag, and/or "arg".
-   * @return RiakMapReduce
+   * @return $this
    */
   function map($function, $options=array()) {
     $language = is_array($function) ? "erlang" : "javascript";
@@ -286,7 +306,7 @@ class RiakMapReduce {
    * "function"].
    * @param array() $options - An optional associative array
    * containing "language", "keep" flag, and/or "arg".
-   * @return RiakMapReduce
+   * @return $this
    */
   function reduce($function, $options=array()) {
     $language = is_array($function) ? "erlang" : "javascript";
@@ -347,6 +367,7 @@ class RiakMapReduce {
 /**
  * The RiakMapReducePhase holds information about a Map phase or
  * Reduce phase in a RiakMapReduce operation.
+ * @package RiakMapReducePhase
  */
 class RiakMapReducePhase {
   /**
@@ -396,6 +417,7 @@ class RiakMapReducePhase {
 /**
  * The RiakLinkPhase object holds information about a Link phase in a
  * map/reduce operation.
+ * @package RiakLinkPhase
  */
 class RiakLinkPhase {
   /**
@@ -423,7 +445,9 @@ class RiakLinkPhase {
 }
 
 /**
- * The RiakLink object represents a link from one Riak object to another.
+ * The RiakLink object represents a link from one Riak object to
+ * another.
+ * @package RiakLink
  */
 class RiakLink {
   /**
@@ -468,6 +492,7 @@ class RiakLink {
   /**
    * Set the bucket name of this link.
    * @param string $name - The bucket name.
+   * @return $this
    */
   function setBucket($name) {
     $this->bucket = $bucket;
@@ -485,6 +510,7 @@ class RiakLink {
   /**
    * Set the key of this link.
    * @param string $key - The key.
+   * @return $this
    */
   function setKey($key) {
     $this->key = $key;
@@ -505,6 +531,7 @@ class RiakLink {
   /**
    * Set the tag of this link.
    * @param string $tag - The tag.
+   * @return $this
    */
   function setTag($tag) {
     $this->tag = $tag;
@@ -543,6 +570,7 @@ class RiakLink {
  * The RiakBucket object allows you to access and change information
  * about a Riak bucket, and provides methods to create or retrieve
  * objects within the bucket.
+ * @package RiakBucket
  */
 class RiakBucket {
   function RiakBucket($client, $name) {
@@ -568,6 +596,7 @@ class RiakBucket {
    * Set the R-value for this bucket. get(...) and getBinary(...)
    * operations that do not specify an R-value will use this value.
    * @param integer $r - The new R-value.
+   * @return $this
    */
   function setR($r)   { 
     $this->r = $r; 
@@ -588,6 +617,7 @@ class RiakBucket {
   /**
    * Set the W-value for this bucket. See setR(...) for more information.
    * @param  integer $w - The new W-value.
+   * @return $this
    */
   function setW($w)   { 
     $this->w = $w; 
@@ -608,6 +638,7 @@ class RiakBucket {
   /**
    * Set the DW-value for this bucket. See setR(...) for more information.
    * @param  integer $dw - The new DW-value
+   * @return $this
    */
   function setDW($dw) { 
     $this->dw = $dw; 
@@ -786,6 +817,7 @@ class RiakBucket {
 /**
  * The RiakObject holds meta information about a Riak object, plus the
  * object's data.
+ * @package RiakObject
  */
 class RiakObject {
 
@@ -822,6 +854,7 @@ class RiakObject {
    * JSON encoded unless the object was constructed with
    * newBinary(...) or getBinary(...).
    * @param mixed $data - The data to store.
+   * @return $data
    */
   function setData($data) { 
     $this->data = $data; 
@@ -857,6 +890,7 @@ class RiakObject {
   /**
    * Set the content type of this object.
    * @param  string $content_type - The new content type.
+   * @return $this
    */
   function setContentType($content_type) {
     $this->headers['content_type'] = $content_type;
@@ -889,7 +923,7 @@ class RiakObject {
    * @param mixed $obj - Either a RiakObject or a RiakLink object.
    * @param string $tag - Optional link tag. (default is bucket name,
    * ignored if $obj is a RiakLink object.)
-   * @return RiakObject
+   * @return $this
    */
   function removeLink($obj, $tag=NULL) {
     if ($obj instanceof RiakLink)
@@ -928,6 +962,7 @@ class RiakObject {
    * before returning to client.
    * @param integer $dw - DW-value, wait for this many partitions to
    * confirm the write before returning to client.
+   * @return $this
    */
   function store($w=NULL, $dw=NULL) {
     # Use defaults if not specified...
@@ -971,6 +1006,7 @@ class RiakObject {
    * was updated in Riak since it was last retrieved.
    * @param integer $r - R-Value, wait for this many partitions to respond
    * before returning to client.
+   * @return $this
    */
   function reload($r=NULL) {
     # Do the request...
@@ -993,6 +1029,7 @@ class RiakObject {
    * Delete this object from Riak.
    * @param  integer $dw - DW-value. Wait until this many partitions have
    * deleted the object before responding.
+   * @return $this
    */
   function delete($dw=NULL) {
     # Use defaults if not specified...
@@ -1012,6 +1049,7 @@ class RiakObject {
 
   /**
    * Reset this object.
+   * @return $this
    */
   private function clear() {
       $this->headers = array();
@@ -1019,6 +1057,7 @@ class RiakObject {
       $this->data = NULL;
       $this->exists = FALSE;
       $this->siblings = NULL;
+      return $this;
   }
 
   /**
@@ -1037,6 +1076,7 @@ class RiakObject {
    * Given the output of RiakUtils::httpRequest and a list of
    * statuses, populate the object. Only for use by the Riak client
    * library.
+   * @return $this
    */
   function populate($response, $expected_statuses) {
     $this->clear();
@@ -1097,6 +1137,7 @@ class RiakObject {
 
   /**
    * Private.
+   * @return $this
    */
   private function populateLinks($linkHeaders) {
     $linkHeaders = explode(",", trim($linkHeaders));
@@ -1108,6 +1149,8 @@ class RiakObject {
         $this->links[] = new RiakLink($matches[2], $matches[3], $matches[4]);
       }
     }
+    
+    return $this;
   }
 
   /**
@@ -1214,6 +1257,7 @@ class RiakObject {
 
 /**
  * Private class used to accumulate a CURL response.
+ * @package RiakStringIO
  */
 class RiakStringIO {
   function RiakStringIO() {
@@ -1232,6 +1276,7 @@ class RiakStringIO {
 
 /**
  * Utility functions used by Riak library.
+ * @package RiakUtils
  */
 class RiakUtils {
 

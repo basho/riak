@@ -1,0 +1,391 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+
+<html lang="en">
+<head>
+
+<meta name="generator" content="PHPDoctor 2RC4 (http://phpdoctor.sourceforge.net/)">
+<meta name="when" content="Fri, 05 Mar 2010 15:23:51 -0500">
+
+<link rel="stylesheet" type="text/css" href="../stylesheet.css">
+<link rel="start" href="../overview-summary.html">
+
+<title>RiakBucket (Riak PHP Client API)</title>
+
+</head>
+<body id="definition" onload="parent.document.title=document.title;">
+
+<div class="header">
+<h1>RiakAPI</h1>
+<ul>
+<li><a href="../overview-summary.html">Overview</a></li>
+<li><a href="../riakbucket/package-summary.html">Package</a></li>
+<li class="active">Class</li>
+<li><a href="../riakbucket/package-tree.html">Tree</a></li>
+<li><a href="../deprecated-list.html">Deprecated</a></li>
+<li><a href="../index-all.html">Index</a></li>
+</ul>
+</div>
+
+<div class="small_links">
+<a href="../index.html" target="_top">Frames</a>
+<a href="../riakbucket/riakbucket.html" target="_top">No frames</a>
+</div>
+<div class="small_links">
+Summary: <a href="#summary_field">Field</a> | <a href="#summary_method">Method</a> | <a href="#summary_constr">Constr</a>
+Detail: <a href="#detail_field">Field</a> | <a href="#detail_method">Method</a> | <a href="#summary_constr">Constr</a>
+</div>
+<hr>
+
+<div class="qualifiedName">RiakBucket.RiakBucket</div>
+<div class="location">/riak.php at line 575</div>
+
+<h1>Class RiakBucket</h1>
+
+<pre class="tree"><strong>RiakBucket</strong><br /></pre>
+
+<hr>
+
+<p class="signature">public  class <strong>RiakBucket</strong></p>
+
+<div class="comment" id="overview_description"><p>The RiakBucket object allows you to access and change information
+about a Riak bucket, and provides methods to create or retrieve
+objects within the bucket.</p></div>
+
+<hr>
+
+<table id="summary_constr">
+<tr><th colspan="2">Constructor Summary</th></tr>
+<tr>
+<td class="description"><p class="name"><a href="#RiakBucket()">RiakBucket</a>(mixed client, mixed name)</p></td>
+</tr>
+</table>
+
+<table id="summary_method">
+<tr><th colspan="2">Method Summary</th></tr>
+<tr>
+<td class="type"> <a href="../riakobject/riakobject.html">RiakObject</a></td>
+<td class="description"><p class="name"><a href="#get()">get</a>(string key, int r)</p><p class="description">Retrieve a JSON-encoded object from Riak.</p></td>
+</tr>
+<tr>
+<td class="type"> Boolean</td>
+<td class="description"><p class="name"><a href="#getAllowMultiples()">getAllowMultiples</a>()</p><p class="description">Retrieve the 'allow multiples' setting.</p></td>
+</tr>
+<tr>
+<td class="type"> <a href="../riakobject/riakobject.html">RiakObject</a></td>
+<td class="description"><p class="name"><a href="#getBinary()">getBinary</a>(string key, int r)</p><p class="description">Retrieve a binary/string object from Riak.</p></td>
+</tr>
+<tr>
+<td class="type"> integer</td>
+<td class="description"><p class="name"><a href="#getDW()">getDW</a>(mixed dw)</p><p class="description">Get the DW-value for this bucket, if it is set, otherwise return
+the DW-value for the client.</p></td>
+</tr>
+<tr>
+<td class="type"> integer</td>
+<td class="description"><p class="name"><a href="#getNVal()">getNVal</a>()</p><p class="description">Retrieve the N-value for this bucket.</p></td>
+</tr>
+<tr>
+<td class="type"> Array</td>
+<td class="description"><p class="name"><a href="#getProperties()">getProperties</a>()</p><p class="description">Retrieve an associative array of all bucket properties.</p></td>
+</tr>
+<tr>
+<td class="type"> mixed</td>
+<td class="description"><p class="name"><a href="#getProperty()">getProperty</a>(string key)</p><p class="description">Retrieve a bucket property.</p></td>
+</tr>
+<tr>
+<td class="type"> integer</td>
+<td class="description"><p class="name"><a href="#getR()">getR</a>(mixed r)</p><p class="description">Get the R-value for this bucket, if it is set, otherwise return
+the R-value for the client.</p></td>
+</tr>
+<tr>
+<td class="type"> integer</td>
+<td class="description"><p class="name"><a href="#getW()">getW</a>(mixed w)</p><p class="description">Get the W-value for this bucket, if it is set, otherwise return
+the W-value for the client.</p></td>
+</tr>
+<tr>
+<td class="type"> <a href="../riakobject/riakobject.html">RiakObject</a></td>
+<td class="description"><p class="name"><a href="#newBinary()">newBinary</a>(string key, object data, string content_type)</p><p class="description">Create a new Riak object that will be stored as plain text/binary.</p></td>
+</tr>
+<tr>
+<td class="type"> <a href="../riakobject/riakobject.html">RiakObject</a></td>
+<td class="description"><p class="name"><a href="#newObject()">newObject</a>(string key, object data)</p><p class="description">Create a new Riak object that will be stored as JSON.</p></td>
+</tr>
+<tr>
+<td class="type"> void</td>
+<td class="description"><p class="name"><a href="#setAllowMultiples()">setAllowMultiples</a>(boolean bool)</p><p class="description">If set to true, then writes with conflicting data will be stored
+and returned to the client. </p></td>
+</tr>
+<tr>
+<td class="type"> $this</td>
+<td class="description"><p class="name"><a href="#setDW()">setDW</a>(integer dw)</p><p class="description">Set the DW-value for this bucket. </p></td>
+</tr>
+<tr>
+<td class="type"> void</td>
+<td class="description"><p class="name"><a href="#setNVal()">setNVal</a>(integer nval)</p><p class="description">Set the N-value for this bucket, which is the number of replicas
+that will be written of each object in the bucket. </p></td>
+</tr>
+<tr>
+<td class="type"> void</td>
+<td class="description"><p class="name"><a href="#setProperties()">setProperties</a>(array props)</p><p class="description">Set multiple bucket properties in one call. </p></td>
+</tr>
+<tr>
+<td class="type"> void</td>
+<td class="description"><p class="name"><a href="#setProperty()">setProperty</a>(string key, mixed value)</p><p class="description">Set a bucket property. </p></td>
+</tr>
+<tr>
+<td class="type"> $this</td>
+<td class="description"><p class="name"><a href="#setR()">setR</a>(integer r)</p><p class="description">Set the R-value for this bucket. </p></td>
+</tr>
+<tr>
+<td class="type"> $this</td>
+<td class="description"><p class="name"><a href="#setW()">setW</a>(integer w)</p><p class="description">Set the W-value for this bucket. </p></td>
+</tr>
+</table>
+
+<h2 id="detail_constr">Constructor Detail</h2>
+<div class="location">/riak.php at line 576</div>
+<h3 id="RiakBucket()">RiakBucket</h3>
+<code class="signature">public <strong>RiakBucket</strong>(mixed client, mixed name)</code>
+<div class="details">
+</div>
+
+<hr>
+
+<h2 id="detail_method">Method Detail</h2>
+<div class="location">/riak.php at line 683</div>
+<h3 id="get()">get</h3>
+<code class="signature">public  <a href="../riakobject/riakobject.html">RiakObject</a> <strong>get</strong>(string key, int r)</code>
+<div class="details">
+<p>Retrieve a JSON-encoded object from Riak.</p><dl>
+<dt>Parameters:</dt>
+<dd>key - - Name of the key.</dd>
+<dd>r - - R-Value of the request (defaults to bucket's R)</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 738</div>
+<h3 id="getAllowMultiples()">getAllowMultiples</h3>
+<code class="signature">public  Boolean <strong>getAllowMultiples</strong>()</code>
+<div class="details">
+<p>Retrieve the 'allow multiples' setting.</p></div>
+
+<hr>
+
+<div class="location">/riak.php at line 696</div>
+<h3 id="getBinary()">getBinary</h3>
+<code class="signature">public  <a href="../riakobject/riakobject.html">RiakObject</a> <strong>getBinary</strong>(string key, int r)</code>
+<div class="details">
+<p>Retrieve a binary/string object from Riak.</p><dl>
+<dt>Parameters:</dt>
+<dd>key - - Name of the key.</dd>
+<dd>r - - R-Value of the request (defaults to bucket's R)</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 632</div>
+<h3 id="getDW()">getDW</h3>
+<code class="signature">public  integer <strong>getDW</strong>(mixed dw)</code>
+<div class="details">
+<p>Get the DW-value for this bucket, if it is set, otherwise return
+the DW-value for the client.</p></div>
+
+<hr>
+
+<div class="location">/riak.php at line 719</div>
+<h3 id="getNVal()">getNVal</h3>
+<code class="signature">public  integer <strong>getNVal</strong>()</code>
+<div class="details">
+<p>Retrieve the N-value for this bucket.</p></div>
+
+<hr>
+
+<div class="location">/riak.php at line 796</div>
+<h3 id="getProperties()">getProperties</h3>
+<code class="signature">public  Array <strong>getProperties</strong>()</code>
+<div class="details">
+<p>Retrieve an associative array of all bucket properties.</p></div>
+
+<hr>
+
+<div class="location">/riak.php at line 757</div>
+<h3 id="getProperty()">getProperty</h3>
+<code class="signature">public  mixed <strong>getProperty</strong>(string key)</code>
+<div class="details">
+<p>Retrieve a bucket property.</p><dl>
+<dt>Parameters:</dt>
+<dd>key - - The property to retrieve.</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 589</div>
+<h3 id="getR()">getR</h3>
+<code class="signature">public  integer <strong>getR</strong>(mixed r)</code>
+<div class="details">
+<p>Get the R-value for this bucket, if it is set, otherwise return
+the R-value for the client.</p></div>
+
+<hr>
+
+<div class="location">/riak.php at line 611</div>
+<h3 id="getW()">getW</h3>
+<code class="signature">public  integer <strong>getW</strong>(mixed w)</code>
+<div class="details">
+<p>Get the W-value for this bucket, if it is set, otherwise return
+the W-value for the client.</p></div>
+
+<hr>
+
+<div class="location">/riak.php at line 669</div>
+<h3 id="newBinary()">newBinary</h3>
+<code class="signature">public  <a href="../riakobject/riakobject.html">RiakObject</a> <strong>newBinary</strong>(string key, object data, string content_type)</code>
+<div class="details">
+<p>Create a new Riak object that will be stored as plain text/binary.</p><dl>
+<dt>Parameters:</dt>
+<dd>key - - Name of the key.</dd>
+<dd>data - - The data to store.</dd>
+<dd>content_type - - The content type of the object. (default 'text/json')</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 654</div>
+<h3 id="newObject()">newObject</h3>
+<code class="signature">public  <a href="../riakobject/riakobject.html">RiakObject</a> <strong>newObject</strong>(string key, object data)</code>
+<div class="details">
+<p>Create a new Riak object that will be stored as JSON.</p><dl>
+<dt>Parameters:</dt>
+<dd>key - - Name of the key.</dd>
+<dd>data - - The data to store. (default NULL)</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 730</div>
+<h3 id="setAllowMultiples()">setAllowMultiples</h3>
+<code class="signature">public  void <strong>setAllowMultiples</strong>(boolean bool)</code>
+<div class="details">
+<p>If set to true, then writes with conflicting data will be stored
+and returned to the client. This situation can be detected by
+calling hasSiblings() and getSiblings(). This should only be used
+if you know what you are doing.</p><dl>
+<dt>Parameters:</dt>
+<dd>bool - - True to store and return conflicting writes.</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 643</div>
+<h3 id="setDW()">setDW</h3>
+<code class="signature">public  $this <strong>setDW</strong>(integer dw)</code>
+<div class="details">
+<p>Set the DW-value for this bucket. See setR(...) for more information.</p><dl>
+<dt>Parameters:</dt>
+<dd>dw - - The new DW-value</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 711</div>
+<h3 id="setNVal()">setNVal</h3>
+<code class="signature">public  void <strong>setNVal</strong>(integer nval)</code>
+<div class="details">
+<p>Set the N-value for this bucket, which is the number of replicas
+that will be written of each object in the bucket. Set this once
+before you write any data to the bucket, and never change it
+again, otherwise unpredictable things could happen. This should
+only be used if you know what you are doing.</p><dl>
+<dt>Parameters:</dt>
+<dd>nval - - The new N-Val.</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 771</div>
+<h3 id="setProperties()">setProperties</h3>
+<code class="signature">public  void <strong>setProperties</strong>(array props)</code>
+<div class="details">
+<p>Set multiple bucket properties in one call. This should only be
+used if you know what you are doing.</p><dl>
+<dt>Parameters:</dt>
+<dd>props - - An associative array of $key=>$value.</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 748</div>
+<h3 id="setProperty()">setProperty</h3>
+<code class="signature">public  void <strong>setProperty</strong>(string key, mixed value)</code>
+<div class="details">
+<p>Set a bucket property. This should only be used if you know what
+you are doing.</p><dl>
+<dt>Parameters:</dt>
+<dd>key - - Property to set.</dd>
+<dd>value - - Property value.</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 601</div>
+<h3 id="setR()">setR</h3>
+<code class="signature">public  $this <strong>setR</strong>(integer r)</code>
+<div class="details">
+<p>Set the R-value for this bucket. get(...) and getBinary(...)
+operations that do not specify an R-value will use this value.</p><dl>
+<dt>Parameters:</dt>
+<dd>r - - The new R-value.</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="location">/riak.php at line 622</div>
+<h3 id="setW()">setW</h3>
+<code class="signature">public  $this <strong>setW</strong>(integer w)</code>
+<div class="details">
+<p>Set the W-value for this bucket. See setR(...) for more information.</p><dl>
+<dt>Parameters:</dt>
+<dd>w - - The new W-value.</dd>
+</dl>
+</div>
+
+<hr>
+
+<div class="header">
+<h1>RiakAPI</h1>
+<ul>
+<li><a href="../overview-summary.html">Overview</a></li>
+<li><a href="../riakbucket/package-summary.html">Package</a></li>
+<li class="active">Class</li>
+<li><a href="../riakbucket/package-tree.html">Tree</a></li>
+<li><a href="../deprecated-list.html">Deprecated</a></li>
+<li><a href="../index-all.html">Index</a></li>
+</ul>
+</div>
+
+<div class="small_links">
+<a href="../index.html" target="_top">Frames</a>
+<a href="../riakbucket/riakbucket.html" target="_top">No frames</a>
+</div>
+<div class="small_links">
+Summary: <a href="#summary_field">Field</a> | <a href="#summary_method">Method</a> | <a href="#summary_constr">Constr</a>
+Detail: <a href="#detail_field">Field</a> | <a href="#detail_method">Method</a> | <a href="#summary_constr">Constr</a>
+</div>
+<hr>
+
+<p id="footer">This document was generated by <a href="http://peej.github.com/phpdoctor/">PHPDoctor: The PHP Documentation Creator</a></p>
+
+</body>
+
+</html>
