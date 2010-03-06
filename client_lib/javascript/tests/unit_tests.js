@@ -39,7 +39,7 @@ function setupObject(createIfMissing, test) {
 
 function storeObject(test) {
   setupClient();
-  setupObject(true, function(obj, req) {
+  setupObject(true, function(status, obj, req) {
 		obj.store(test); } );
 }
 
@@ -47,22 +47,25 @@ function storeObject(test) {
 
 function lookupMissingObject() {
   stop();
-  setupObject(false, function(object, req) {
+  setupObject(false, function(status, object, req) {
+		ok(status === 'failed', 'Failed status for missing object');
 		ok(object == null, "Nonexistent object returns null");
 		start(); } );
 };
 
 function createMissingObject() {
   stop();
-  setupObject(true, function(object, req) {
+  setupObject(true, function(status, object, req) {
+		ok(status === 'ok', "'ok' status for object creation");
 		ok(object, "Nonexistent object created");
 		start(); } );
 };
 
 function storeMissingObject() {
   stop();
-  setupObject(true, function(object, req) {
-		object.store(function(object, req) {
+  setupObject(true, function(status, object, req) {
+		object.store(function(status, object, req) {
+			       ok(status === 'ok', "'ok' status for object save");
 			       ok(object !== null, "Object saved");
 			       ok(object.vclock !== null &&
 				  object.vclock.length > 0, "Object vclock set");
@@ -71,35 +74,60 @@ function storeMissingObject() {
 
 function updateObject() {
   stop();
-  storeObject(function(obj, req) {
-		ok(obj !== null, "Object saved");
-		ok(obj.vclock !== null &&
-		   obj.vclock.length > 0, "Object vclock set");
-		obj.body = "Testing";
-		obj.contentType = "text/plain";
-		obj.store(function(newObj, req) {
-			  ok(newObj != null, "Object updated");
-			  ok(newObj.vclock !== obj.vclock, "Vclock changed");
-			  start(); } ); } );
+  setupBucket(function(bucket, req) {
+		bucket.allowsMultiples(true);
+		bucket.store(function(nb, req) {
+			       nb.get_or_new('td1', function(status, obj, req) {
+					       ok(obj !== null, "Object saved");
+					       ok(obj.vclock !== null &&
+						  obj.vclock.length > 0, "Object vclock set");
+					       obj.body = "Testing";
+					       obj.contentType = "text/plain";
+					       obj.store(function(status, newObj, req) {
+							   ok(newObj != null, "Object updated");
+							   ok(newObj.vclock !== obj.vclock, "Vclock changed");
+							   start(); } ); } ); } ); } );
 };
 
 function deleteObject() {
   stop();
-  storeObject(function(obj, req) {
+  storeObject(function(status, obj, req) {
 		obj.remove(function(flag, req) {
 			     ok(flag === true, "Object deleted");
 			     start(); } ); } );
 };
 
+function resolveSiblings() {
+  stop();
+  setupObject(true, function(status, object, req) {
+		ok(status === 'ok', "'ok' status for object creation");
+		object.contentType = 'text/plain';
+		object.body = 'Hello';
+		object.store(function(status, newObject, req) {
+			       ok(status === 'ok', "'ok' status for object store");
+			       object.vclock = null;
+			       object.body = 'Goodbye';
+			       object.store(function(status, siblings, req) {
+					      ok(status === 'siblings', "Status reflects sibling creation");
+					      equals(siblings.length, 2, "2 siblings found");
+					      siblings[0].store(function(status, finalObj, req) {
+								  ok(status === 'ok', 'Final sibling stored');
+								  equals(finalObj.body, siblings[0].body, "Correct sibling stored");
+								  finalObj.client.bucket(TEST_BUCKET, function(bucket, req) {
+											   bucket.allowsMultiples(false);
+											   bucket.store();
+											   start(); } ); } ); } ); } ); } );
+}
+
 function storeLink() {
   stop();
   var link = '/riak/' + TEST_BUCKET + '/td1';
-  storeObject(function(object, req) {
-		object.store(function(object, req) {
+  storeObject(function(status, object, req) {
+		object.store(function(status, object, req) {
 			       ok(object !== null, "Object saved");
 			       ok(object.links.length == 1, "New object has 1 link");
 			       object.addLink(link, "testlink");
-			       object.store(function(newObj, req) {
+			       object.store(function(status, newObj, req) {
 					      ok(newObj !== null, "Object saved");
 					      ok(newObj.vclock !== object.vclock, "Vclock changed");
 					      ok(newObj.getLinks().length == 2, "Link was saved");
@@ -109,9 +137,9 @@ function storeLink() {
 
 function deleteLink() {
   stop();
-  setupObject(false, function(obj, req) {
+  setupObject(false, function(status, obj, req) {
 		obj.clearLinks();
-		obj.store(function(n, req) {
+		obj.store(function(status, n, req) {
 			    ok(n !== null, "Object saved");
 			    equals(n.links.length, 1, "Links collection reset");
 			    start(); } ); } );
@@ -189,7 +217,7 @@ function objectMap() {
   stop();
   setupClient();
   currentClient.bucket(MR_TEST_BUCKET, function(bucket, req) {
-			 bucket.get('first', function(obj, req) {
+			 bucket.get('first', function(status, obj, req) {
 				      ok(obj, 'M/R test object found');
 				      obj.map({language: 'javascript',
 					       source: function(obj)  { return Riak.mapValuesJson(obj); },
@@ -205,7 +233,7 @@ function objectMapReduce() {
   stop();
   setupClient();
   currentClient.bucket(MR_TEST_BUCKET, function(bucket, req) {
-			 bucket.get('first', function(obj, req) {
+			 bucket.get('first', function(status, obj, req) {
 				      ok(obj, 'M/R test object found');
 				      obj.map({language: 'javascript',
 					       source: function(obj)  { return Riak.mapValuesJson(obj); },
@@ -247,14 +275,15 @@ function badMap() {
 
 function runTests() {
   module("Storage");
-  /*test("Lookup missing object", 1, lookupMissingObject);*/
-  test("Create", 1, createMissingObject);
-  test("Store", 2, storeMissingObject);
+  test("Create", 2, createMissingObject);
+  test("Store", 3, storeMissingObject);
+  test("Create", 2, createMissingObject);
   test("Update", 4, updateObject);
   test("Delete", 1, deleteObject);
+  test("Siblings", resolveSiblings);
 
   module("Links");
-  test("Create", 1, createMissingObject);
+  test("Create", 2, createMissingObject);
   test("Update", 6, storeLink);
   test("Delete", 2, deleteLink);
 

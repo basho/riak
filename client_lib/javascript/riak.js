@@ -60,6 +60,39 @@ var RiakUtil = function() {
      */
     wasSuccessful: function(req) {
       return req.status > 199 && req.status < 300;
+    },
+    parseSiblings: function(vclock, text) {
+      var c = text.split('\n');
+      c = c.slice(1).slice(0, c.length - 2);
+      var separator = c[0];
+      c = c.slice(1);
+      var siblings = [];
+      var sibling = {};
+      for (var i = 0; i < c.length; i++) {
+        if (c[i] === '') {
+          continue;
+        }
+	if (c[i].substr(0, separator.length) == separator) {
+	  sibling.vclock = vclock;
+	  siblings.push(sibling);
+  	  sibling = {};
+        }
+	else {
+	  if (c[i].indexOf(':') > -1) {
+	    var bits = c[i].split(': ');
+	    if (bits[0] === 'Content-Type') {
+	      sibling.contentType = bits[1];
+	    }
+	    else if (bits[0] === 'Link') {
+	      sibling.linkHeader = bits[1];
+	    }
+	  }
+	  else {
+	    sibling.body = c[i];
+          }
+        }
+      }
+      return siblings;
     }
   };
 }();
@@ -244,6 +277,12 @@ RiakObject.fromRequest = function(bucket, key, client, req) {
   return retval;
 };
 
+RiakObject.fromMultipart = function(bucket, key, client, multipartChunk) {
+  var retval = new RiakObject(bucket, key, client, multipartChunk.body, multipartChunk.contentType, multipartChunk.vclock);
+  retval.setLinks(multipartChunk.linkHeader);
+  return retval;
+}
+
 /**
  * Begins building a map/reduce job which will
  * use the current object as input
@@ -393,7 +432,10 @@ RiakObject.prototype.remove = function(callback) {
   jQuery.ajax({url: this.client._buildPath('DELETE', this.bucket, this.key),
 	       type: 'DELETE',
 	       beforeSend: function(req) { req.setRequestHeader('X-Riak-ClientId', object.client.clientId);
-					   req.setRequestHeader('X-Riak-Vclock', object.vclock);
+					   req.setRequestHeader('Accept', 'multipart/mixed');
+					   if (object.vclock !== undefined && object.vclock !== null) {
+					     req.setRequestHeader('X-Riak-Vclock', object.vclock);
+					   }
 					 },
 	       complete: function(req, statusText) { if (callback !== undefined) {
 						      if (RiakUtil.wasSuccessful(req)) {
@@ -409,9 +451,13 @@ RiakObject.prototype.remove = function(callback) {
  * Store the object in Riak
  * @param callback - Function to call when op completes
  *
- * callback - function(object, request)
- * @param object - Updated RiakObject or null if store failed
- *                 NOTE: Use the updated version to prevent vector clock explosion
+ * callback - function(status, object, request)
+ * @param status - 'status' of the result: 'ok', 'failed', or 'siblings'
+ * @param object - If status is 'ok', object is an updated RiakObject instance
+ *                 If status is 'siblings', object is an array of RiakObject instances
+ *                 which the client can pick from to resolve the conflict
+ *                 If status is 'failed', object is null
+ *                 NOTE: Use the updated version to prevent siblings & vector clock explosion
  * @param request - XMLHttpRequest object
  */
 RiakObject.prototype.store = function(callback) {
@@ -437,7 +483,8 @@ RiakObject.prototype.store = function(callback) {
 	  contentType: this.contentType,
 	  dataType: 'text',
 	  beforeSend: function(req) { req.setRequestHeader('X-Riak-ClientId', object.client.clientId);
-				      if (object.vclock !== undefined) {
+				      req.setRequestHeader('Accept', 'multipart/mixed');
+				      if (object.vclock !== undefined && object.vclock !== null) {
 					req.setRequestHeader('X-Riak-Vclock', object.vclock);
 				      }
 				      var linkHeader = object.getLinkHeader();
@@ -455,10 +502,18 @@ RiakObject.prototype._store = function(req, callback) {
   }
   if (callback !== undefined && callback !== null) {
     if (req.status == 200 || req.status == 204) {
-      callback(RiakObject.fromRequest(this.bucket, this.key, this.client, req), req);
+      callback('ok', RiakObject.fromRequest(this.bucket, this.key, this.client, req), req);
+    }
+    /* Uh-oh, we've got siblings! */
+    else if (req.status == 300) {
+      var siblingData = RiakUtil.parseSiblings(req.getResponseHeader('X-Riak-Vclock'),
+					       req.responseText);
+      var thisObject = this;
+      var siblings = siblingData.map(function(sd) { return RiakObject.fromMultipart(thisObject.bucket, thisObject.key, thisObject.client, sd); });
+      callback('siblings', siblings, req);
     }
     else {
-      callback(null, req);
+      callback('failed', null, req);
     }
   }
 };
@@ -645,7 +700,7 @@ RiakBucket.prototype._handleGetObject = function(key, req, callback, createEmpty
     else if ((req.status == 0 || req.status == 404) && createEmpty === true) {
       object = new RiakObject(this.name, key, this.client);
     }
-    callback(object, req);
+    callback('ok', object, req);
   }
 };
 
