@@ -34,7 +34,7 @@ Welcome to Riak.
 
 #+BEGIN_EXAMPLE
    $ cd $RIAK
-   $ make all rel
+   $ make rel
 #+END_EXAMPLE
 
 ** Starting Riak
@@ -208,6 +208,8 @@ Welcome to Riak.
 
 *** bin/riak-admin
     This script provides access to general administration of the Riak server. 
+    The below commands assume you are running a default configuration for 
+    parameters such as cookie.
 
     To join a new Riak node to an existing cluster:
 
@@ -219,9 +221,30 @@ Welcome to Riak.
     (Note that you must have a local node already running for this to work)
     
     To verify that the local Riak node is able to read/write data:
-
     : $ bin/riak-admin test
 
+    To backup a node or cluster run the following:
+    : $ bin/riak-admin backup riak@X.X.X.X riak <directory/backup_file> node
+    : $ bin/riak-admin backup riak@X.X.X.X riak <directory/backup_file> all
+    
+    Restores can function in two ways, if the backup file was of a node the 
+    node will be restored and if the backup file contains the data for a 
+    cluster all nodes in the cluster will be restored.
+    
+    To restore from a backup file:
+    : $ riak-admin restore riak@X.X.X.X riak <directory/backup_file>
+    
+    To view the logs of from a node:
+    : $ bin/riak-admin logger riak@X.X.X.X riak
+    
+    If you would like to save the log to a file:
+    : $ bin/riak-admin logger riak@X.X.X.X riak <filename>
+    
+    To view the status of a node:
+    : $ bin/riak-admin status
+    
+    If you change the IP or node name you will need to use the reip command:
+    : $ bin/riak-admin reip <old_nodename> <new_nodename>
     
     
      
