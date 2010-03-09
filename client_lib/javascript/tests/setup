@@ -22,6 +22,7 @@ clear_mapred_data() {
 clear_test_data() {
     echo "Deleting test data"
     curl --silent -X DELETE http://$1:$2/riak/basho_test/td1 -o /dev/null
+    curl --silent -X DELETE http://$1:$2/riak/basho_sibs/td10 -o /dev/null
 }
 
 case $1 in

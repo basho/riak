@@ -180,7 +180,8 @@
               doc,          %% {ok, riak_object()}|{error, term()} - the object found
               vtag,         %% string() - vtag the user asked for
               bucketprops,  %% proplist() - properties of the bucket
-              links         %% [link()] - links of the object
+              links,        %% [link()] - links of the object
+              method        %% atom() - HTTP method for the request
              }).
 %% @type link() = {{Bucket::binary(), Key::binary()}, Tag::binary()}
 
@@ -207,6 +208,7 @@ service_available(RD, Ctx=#ctx{riak=RiakProps}) ->
             {true,
              RD,
              Ctx#ctx{
+               method=wrq:method(RD),
                client=C,
                bucket=list_to_binary(wrq:path_info(bucket, RD)),
                key=case wrq:path_info(key, RD) of
@@ -419,6 +421,15 @@ content_types_provided(RD, Ctx0) ->
 charsets_provided(RD, Ctx=#ctx{key=undefined}) ->
     %% default charset for bucket-level request
     {no_charset, RD, Ctx};
+charsets_provided(RD, #ctx{method=Method}=Ctx) when Method =:= 'PUT';
+                                                    Method =:= 'POST' ->
+    case extract_content_type(RD) of
+        {_, undefined} ->
+            {no_charset, RD, Ctx};
+        {_, Charset} ->
+            {[{Charset, fun(X) -> X end}], RD, Ctx}
+    end;
+
 charsets_provided(RD, Ctx0) ->
     DocCtx = ensure_doc(Ctx0),
     case DocCtx#ctx.doc of
