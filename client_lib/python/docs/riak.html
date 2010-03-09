@@ -1,0 +1,545 @@
+
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.0 Transitional//EN">
+<html><head><title>Python: module riak</title>
+</head><body bgcolor="#f0f0f8">
+
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="heading">
+<tr bgcolor="#7799ee">
+<td valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial">&nbsp;<br><big><big><strong>riak</strong></big></big></font></td
+><td align=right valign=bottom
+><font color="#ffffff" face="helvetica, arial"><a href=".">index</a><br><a href="file:/Users/rusty/Documents/Basho/Riak/client_lib/python/riak.py">/Users/rusty/Documents/Basho/Riak/client_lib/python/riak.py</a></font></td></tr></table>
+    <p><tt>#&nbsp;Import&nbsp;libraries.</tt></p>
+<p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#aa55cc">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Modules</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#aa55cc"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><table width="100%" summary="list"><tr><td width="25%" valign=top><a href="base64.html">base64</a><br>
+<a href="json.html">json</a><br>
+</td><td width="25%" valign=top><a href="logging.html">logging</a><br>
+<a href="pycurl.html">pycurl</a><br>
+</td><td width="25%" valign=top><a href="random.html">random</a><br>
+<a href="re.html">re</a><br>
+</td><td width="25%" valign=top><a href="sys.html">sys</a><br>
+<a href="urllib.html">urllib</a><br>
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ee77aa">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Classes</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#ee77aa"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl>
+<dt><font face="helvetica, arial"><a href="riak.html#RiakBucket">RiakBucket</a>
+</font></dt><dt><font face="helvetica, arial"><a href="riak.html#RiakClient">RiakClient</a>
+</font></dt><dt><font face="helvetica, arial"><a href="riak.html#RiakLink">RiakLink</a>
+</font></dt><dt><font face="helvetica, arial"><a href="riak.html#RiakLinkPhase">RiakLinkPhase</a>
+</font></dt><dt><font face="helvetica, arial"><a href="riak.html#RiakMapReduce">RiakMapReduce</a>
+</font></dt><dt><font face="helvetica, arial"><a href="riak.html#RiakMapReducePhase">RiakMapReducePhase</a>
+</font></dt><dt><font face="helvetica, arial"><a href="riak.html#RiakObject">RiakObject</a>
+</font></dt><dt><font face="helvetica, arial"><a href="riak.html#RiakUtils">RiakUtils</a>
+</font></dt></dl>
+ <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RiakBucket">class <strong>RiakBucket</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>The&nbsp;<a href="#RiakBucket">RiakBucket</a>&nbsp;object&nbsp;allows&nbsp;you&nbsp;to&nbsp;access&nbsp;and&nbsp;change&nbsp;information<br>
+about&nbsp;a&nbsp;Riak&nbsp;bucket,&nbsp;and&nbsp;provides&nbsp;methods&nbsp;to&nbsp;create&nbsp;or&nbsp;retrieve<br>
+objects&nbsp;within&nbsp;the&nbsp;bucket.<br>
+@package&nbsp;<a href="#RiakBucket">RiakBucket</a><br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="RiakBucket-__init__"><strong>__init__</strong></a>(self, client, name)</dt></dl>
+
+<dl><dt><a name="RiakBucket-get"><strong>get</strong></a>(self, key, r<font color="#909090">=None</font>)</dt><dd><tt>Retrieve&nbsp;a&nbsp;JSON-encoded&nbsp;object&nbsp;from&nbsp;Riak.<br>
+@param&nbsp;string&nbsp;key&nbsp;-&nbsp;Name&nbsp;of&nbsp;the&nbsp;key.<br>
+@param&nbsp;int&nbsp;r&nbsp;-&nbsp;R-Value&nbsp;of&nbsp;the&nbsp;request&nbsp;(defaults&nbsp;to&nbsp;bucket's&nbsp;R)<br>
+@return&nbsp;<a href="#RiakObject">RiakObject</a></tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-getAllowMultiples"><strong>getAllowMultiples</strong></a>(self)</dt><dd><tt>Retrieve&nbsp;the&nbsp;'allow&nbsp;multiples'&nbsp;setting.<br>
+@return&nbsp;Boolean</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-getBinary"><strong>getBinary</strong></a>(self, key, r<font color="#909090">=None</font>)</dt><dd><tt>Retrieve&nbsp;a&nbsp;binary/string&nbsp;object&nbsp;from&nbsp;Riak.<br>
+@param&nbsp;string&nbsp;key&nbsp;-&nbsp;Name&nbsp;of&nbsp;the&nbsp;key.<br>
+@param&nbsp;int&nbsp;r&nbsp;-&nbsp;R-Value&nbsp;of&nbsp;the&nbsp;request&nbsp;(defaults&nbsp;to&nbsp;bucket's&nbsp;R)<br>
+@return&nbsp;<a href="#RiakObject">RiakObject</a></tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-getDW"><strong>getDW</strong></a>(self, dw)</dt><dd><tt>Get&nbsp;the&nbsp;DW-value&nbsp;for&nbsp;this&nbsp;bucket,&nbsp;if&nbsp;it&nbsp;is&nbsp;set,&nbsp;otherwise&nbsp;return<br>
+the&nbsp;DW-value&nbsp;for&nbsp;the&nbsp;client.<br>
+@return&nbsp;integer</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-getNVal"><strong>getNVal</strong></a>(self)</dt><dd><tt>Retrieve&nbsp;the&nbsp;N-value&nbsp;for&nbsp;this&nbsp;bucket.<br>
+@return&nbsp;integer</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-getProperties"><strong>getProperties</strong></a>(self)</dt><dd><tt>Retrieve&nbsp;an&nbsp;associative&nbsp;array&nbsp;of&nbsp;all&nbsp;bucket&nbsp;properties.<br>
+@return&nbsp;Array</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-getProperty"><strong>getProperty</strong></a>(self, key)</dt><dd><tt>Retrieve&nbsp;a&nbsp;bucket&nbsp;property.<br>
+@param&nbsp;string&nbsp;key&nbsp;-&nbsp;The&nbsp;property&nbsp;to&nbsp;retrieve.<br>
+@return&nbsp;mixed</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-getR"><strong>getR</strong></a>(self, r<font color="#909090">=None</font>)</dt><dd><tt>Get&nbsp;the&nbsp;R-value&nbsp;for&nbsp;this&nbsp;bucket,&nbsp;if&nbsp;it&nbsp;is&nbsp;set,&nbsp;otherwise&nbsp;return<br>
+the&nbsp;R-value&nbsp;for&nbsp;the&nbsp;client.<br>
+@return&nbsp;integer</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-getW"><strong>getW</strong></a>(self, w)</dt><dd><tt>Get&nbsp;the&nbsp;W-value&nbsp;for&nbsp;this&nbsp;bucket,&nbsp;if&nbsp;it&nbsp;is&nbsp;set,&nbsp;otherwise&nbsp;return<br>
+the&nbsp;W-value&nbsp;for&nbsp;the&nbsp;client.<br>
+@return&nbsp;integer</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-newBinary"><strong>newBinary</strong></a>(self, key, data, content_type<font color="#909090">='text/json'</font>)</dt><dd><tt>Create&nbsp;a&nbsp;new&nbsp;Riak&nbsp;object&nbsp;that&nbsp;will&nbsp;be&nbsp;stored&nbsp;as&nbsp;plain&nbsp;text/binary.<br>
+@param&nbsp;string&nbsp;key&nbsp;-&nbsp;Name&nbsp;of&nbsp;the&nbsp;key.<br>
+@param&nbsp;object&nbsp;data&nbsp;-&nbsp;The&nbsp;data&nbsp;to&nbsp;store.<br>
+@param&nbsp;string&nbsp;content_type&nbsp;-&nbsp;The&nbsp;content&nbsp;type&nbsp;of&nbsp;the&nbsp;object.&nbsp;(default&nbsp;'text/json')<br>
+@return&nbsp;<a href="#RiakObject">RiakObject</a></tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-newObject"><strong>newObject</strong></a>(self, key, data<font color="#909090">=None</font>)</dt><dd><tt>Create&nbsp;a&nbsp;new&nbsp;Riak&nbsp;object&nbsp;that&nbsp;will&nbsp;be&nbsp;stored&nbsp;as&nbsp;JSON.<br>
+@param&nbsp;string&nbsp;key&nbsp;-&nbsp;Name&nbsp;of&nbsp;the&nbsp;key.<br>
+@param&nbsp;object&nbsp;data&nbsp;-&nbsp;The&nbsp;data&nbsp;to&nbsp;store.&nbsp;(default&nbsp;None)<br>
+@return&nbsp;<a href="#RiakObject">RiakObject</a></tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-setAllowMultiples"><strong>setAllowMultiples</strong></a>(self, bool)</dt><dd><tt>If&nbsp;set&nbsp;to&nbsp;True,&nbsp;then&nbsp;writes&nbsp;with&nbsp;conflicting&nbsp;data&nbsp;will&nbsp;be&nbsp;stored<br>
+and&nbsp;returned&nbsp;to&nbsp;the&nbsp;client.&nbsp;This&nbsp;situation&nbsp;can&nbsp;be&nbsp;detected&nbsp;by<br>
+calling&nbsp;hasSiblings()&nbsp;and&nbsp;getSiblings().&nbsp;This&nbsp;should&nbsp;only&nbsp;be&nbsp;used<br>
+if&nbsp;you&nbsp;know&nbsp;what&nbsp;you&nbsp;are&nbsp;doing.<br>
+@param&nbsp;boolean&nbsp;bool&nbsp;-&nbsp;True&nbsp;to&nbsp;store&nbsp;and&nbsp;return&nbsp;conflicting&nbsp;writes.</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-setDW"><strong>setDW</strong></a>(self, dw)</dt><dd><tt>Set&nbsp;the&nbsp;DW-value&nbsp;for&nbsp;this&nbsp;bucket.&nbsp;See&nbsp;<a href="#RiakBucket-setR">setR</a>(...)&nbsp;for&nbsp;more&nbsp;information.<br>
+@param&nbsp;integer&nbsp;dw&nbsp;-&nbsp;The&nbsp;new&nbsp;DW-value<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-setNVal"><strong>setNVal</strong></a>(self, nval)</dt><dd><tt>Set&nbsp;the&nbsp;N-value&nbsp;for&nbsp;this&nbsp;bucket,&nbsp;which&nbsp;is&nbsp;the&nbsp;number&nbsp;of&nbsp;replicas<br>
+that&nbsp;will&nbsp;be&nbsp;written&nbsp;of&nbsp;each&nbsp;object&nbsp;in&nbsp;the&nbsp;bucket.&nbsp;Set&nbsp;this&nbsp;once<br>
+before&nbsp;you&nbsp;write&nbsp;any&nbsp;data&nbsp;to&nbsp;the&nbsp;bucket,&nbsp;and&nbsp;never&nbsp;change&nbsp;it<br>
+again,&nbsp;otherwise&nbsp;unpredictable&nbsp;things&nbsp;could&nbsp;happen.&nbsp;This&nbsp;should<br>
+only&nbsp;be&nbsp;used&nbsp;if&nbsp;you&nbsp;know&nbsp;what&nbsp;you&nbsp;are&nbsp;doing.<br>
+@param&nbsp;integer&nbsp;nval&nbsp;-&nbsp;The&nbsp;new&nbsp;N-Val.</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-setProperties"><strong>setProperties</strong></a>(self, props)</dt><dd><tt>Set&nbsp;multiple&nbsp;bucket&nbsp;properties&nbsp;in&nbsp;one&nbsp;call.&nbsp;This&nbsp;should&nbsp;only&nbsp;be<br>
+used&nbsp;if&nbsp;you&nbsp;know&nbsp;what&nbsp;you&nbsp;are&nbsp;doing.<br>
+@param&nbsp;array&nbsp;props&nbsp;-&nbsp;An&nbsp;associative&nbsp;array&nbsp;of&nbsp;key:value.</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-setProperty"><strong>setProperty</strong></a>(self, key, value)</dt><dd><tt>Set&nbsp;a&nbsp;bucket&nbsp;property.&nbsp;This&nbsp;should&nbsp;only&nbsp;be&nbsp;used&nbsp;if&nbsp;you&nbsp;know&nbsp;what<br>
+you&nbsp;are&nbsp;doing.<br>
+@param&nbsp;string&nbsp;key&nbsp;-&nbsp;Property&nbsp;to&nbsp;set.<br>
+@param&nbsp;mixed&nbsp;value&nbsp;-&nbsp;Property&nbsp;value.</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-setR"><strong>setR</strong></a>(self, r)</dt><dd><tt>Set&nbsp;the&nbsp;R-value&nbsp;for&nbsp;this&nbsp;bucket.&nbsp;<a href="#RiakBucket-get">get</a>(...)&nbsp;and&nbsp;<a href="#RiakBucket-getBinary">getBinary</a>(...)<br>
+operations&nbsp;that&nbsp;do&nbsp;not&nbsp;specify&nbsp;an&nbsp;R-value&nbsp;will&nbsp;use&nbsp;this&nbsp;value.<br>
+@param&nbsp;integer&nbsp;r&nbsp;-&nbsp;The&nbsp;new&nbsp;R-value.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakBucket-setW"><strong>setW</strong></a>(self, w)</dt><dd><tt>Set&nbsp;the&nbsp;W-value&nbsp;for&nbsp;this&nbsp;bucket.&nbsp;See&nbsp;<a href="#RiakBucket-setR">setR</a>(...)&nbsp;for&nbsp;more&nbsp;information.<br>
+@param&nbsp;integer&nbsp;w&nbsp;-&nbsp;The&nbsp;new&nbsp;W-value.<br>
+@return&nbsp;self</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RiakClient">class <strong>RiakClient</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>The&nbsp;<a href="#RiakClient">RiakClient</a>&nbsp;object&nbsp;holds&nbsp;information&nbsp;necessary&nbsp;to&nbsp;connect&nbsp;to<br>
+Riak.&nbsp;The&nbsp;Riak&nbsp;API&nbsp;uses&nbsp;HTTP,&nbsp;so&nbsp;there&nbsp;is&nbsp;no&nbsp;persistent<br>
+connection,&nbsp;and&nbsp;the&nbsp;<a href="#RiakClient">RiakClient</a>&nbsp;object&nbsp;is&nbsp;extremely&nbsp;lightweight.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="RiakClient-__init__"><strong>__init__</strong></a>(self, host<font color="#909090">='127.0.0.1'</font>, port<font color="#909090">=8098</font>, prefix<font color="#909090">='riak'</font>, mapred_prefix<font color="#909090">='mapred'</font>)</dt><dd><tt>Construct&nbsp;a&nbsp;new&nbsp;<a href="#RiakClient">RiakClient</a>&nbsp;object.<br>
+@param&nbsp;string&nbsp;host&nbsp;-&nbsp;Hostname&nbsp;or&nbsp;IP&nbsp;address&nbsp;(default&nbsp;'127.0.0.1')<br>
+@param&nbsp;int&nbsp;port&nbsp;-&nbsp;Port&nbsp;number&nbsp;(default&nbsp;8098)<br>
+@param&nbsp;string&nbsp;prefix&nbsp;-&nbsp;Interface&nbsp;prefix&nbsp;(default&nbsp;'riak')<br>
+@param&nbsp;string&nbsp;mapred_prefix&nbsp;-&nbsp;MapReduce&nbsp;prefix&nbsp;(default&nbsp;'mapred')</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-add"><strong>add</strong></a>(self, *args)</dt><dd><tt>Start&nbsp;assembling&nbsp;a&nbsp;Map/Reduce&nbsp;operation.<br>
+@see&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a>.<a href="#RiakClient-add">add</a>()<br>
+@return&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a></tt></dd></dl>
+
+<dl><dt><a name="RiakClient-bucket"><strong>bucket</strong></a>(self, name)</dt><dd><tt>Get&nbsp;the&nbsp;bucket&nbsp;by&nbsp;the&nbsp;specified&nbsp;name.&nbsp;Since&nbsp;buckets&nbsp;always&nbsp;exist,<br>
+this&nbsp;will&nbsp;always&nbsp;return&nbsp;a&nbsp;BucketObject.<br>
+@return&nbsp;<a href="#RiakBucket">RiakBucket</a></tt></dd></dl>
+
+<dl><dt><a name="RiakClient-getClientID"><strong>getClientID</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;clientID&nbsp;for&nbsp;this&nbsp;ClientObject.<br>
+@return&nbsp;string</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-getDW"><strong>getDW</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;DW-value&nbsp;for&nbsp;this&nbsp;ClientOBject.&nbsp;(default&nbsp;2)<br>
+@return&nbsp;integer</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-getR"><strong>getR</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;R-value&nbsp;setting&nbsp;for&nbsp;this&nbsp;ClientObject.&nbsp;(default&nbsp;2)<br>
+@return&nbsp;integer</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-getW"><strong>getW</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;W-value&nbsp;setting&nbsp;for&nbsp;this&nbsp;ClientObject.&nbsp;(default&nbsp;2)<br>
+@return&nbsp;integer</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-isAlive"><strong>isAlive</strong></a>(self)</dt><dd><tt>Check&nbsp;if&nbsp;the&nbsp;Riak&nbsp;server&nbsp;for&nbsp;this&nbsp;ClientObject&nbsp;is&nbsp;alive.<br>
+@return&nbsp;boolean</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-link"><strong>link</strong></a>(self, args)</dt><dd><tt>Start&nbsp;assembling&nbsp;a&nbsp;Map/Reduce&nbsp;operation.<br>
+@see&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a>.<a href="#RiakClient-link">link</a>()</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-map"><strong>map</strong></a>(self, *args)</dt><dd><tt>Start&nbsp;assembling&nbsp;a&nbsp;Map/Reduce&nbsp;operation.<br>
+@see&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a>.<a href="#RiakClient-map">map</a>()</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-reduce"><strong>reduce</strong></a>(self, *args)</dt><dd><tt>Start&nbsp;assembling&nbsp;a&nbsp;Map/Reduce&nbsp;operation.<br>
+@see&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a>.<a href="#RiakClient-reduce">reduce</a>()</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-setClientID"><strong>setClientID</strong></a>(self, clientid)</dt><dd><tt>Set&nbsp;the&nbsp;clientID&nbsp;for&nbsp;this&nbsp;ClientObject.&nbsp;Should&nbsp;not&nbsp;be&nbsp;called<br>
+unless&nbsp;you&nbsp;know&nbsp;what&nbsp;you&nbsp;are&nbsp;doing.<br>
+@param&nbsp;string&nbsp;clientID&nbsp;-&nbsp;The&nbsp;new&nbsp;clientID.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-setDW"><strong>setDW</strong></a>(self, dw)</dt><dd><tt>Set&nbsp;the&nbsp;DW-value&nbsp;for&nbsp;this&nbsp;ClientObject.&nbsp;See&nbsp;<a href="#RiakClient-setR">setR</a>(...)&nbsp;for&nbsp;a<br>
+description&nbsp;of&nbsp;how&nbsp;these&nbsp;values&nbsp;are&nbsp;used.<br>
+@param&nbsp;integer&nbsp;dw&nbsp;-&nbsp;The&nbsp;DW&nbsp;value.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-setR"><strong>setR</strong></a>(self, r)</dt><dd><tt>Set&nbsp;the&nbsp;R-value&nbsp;for&nbsp;this&nbsp;ClientObject.&nbsp;This&nbsp;value&nbsp;will&nbsp;be&nbsp;used<br>
+for&nbsp;any&nbsp;calls&nbsp;to&nbsp;get(...)&nbsp;or&nbsp;getBinary(...)&nbsp;where&nbsp;where&nbsp;1)&nbsp;no<br>
+R-value&nbsp;is&nbsp;specified&nbsp;in&nbsp;the&nbsp;method&nbsp;call&nbsp;and&nbsp;2)&nbsp;no&nbsp;R-value&nbsp;has<br>
+been&nbsp;set&nbsp;in&nbsp;the&nbsp;BucketObject.<br>
+@param&nbsp;integer&nbsp;r&nbsp;-&nbsp;The&nbsp;R&nbsp;value.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakClient-setW"><strong>setW</strong></a>(self, w)</dt><dd><tt>Set&nbsp;the&nbsp;W-value&nbsp;for&nbsp;this&nbsp;ClientObject.&nbsp;See&nbsp;<a href="#RiakClient-setR">setR</a>(...)&nbsp;for&nbsp;a<br>
+description&nbsp;of&nbsp;how&nbsp;these&nbsp;values&nbsp;are&nbsp;used.<br>
+@param&nbsp;integer&nbsp;w&nbsp;-&nbsp;The&nbsp;W&nbsp;value.<br>
+@return&nbsp;self</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RiakLink">class <strong>RiakLink</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>The&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;object&nbsp;represents&nbsp;a&nbsp;link&nbsp;from&nbsp;one&nbsp;Riak&nbsp;object&nbsp;to<br>
+another.<br>
+@package&nbsp;<a href="#RiakLink">RiakLink</a><br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="RiakLink-__init__"><strong>__init__</strong></a>(self, bucket, key, tag<font color="#909090">=None</font>)</dt><dd><tt>Construct&nbsp;a&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;object.<br>
+@param&nbsp;string&nbsp;bucket&nbsp;-&nbsp;The&nbsp;bucket&nbsp;name.<br>
+@param&nbsp;string&nbsp;key&nbsp;-&nbsp;The&nbsp;key.<br>
+@param&nbsp;string&nbsp;tag&nbsp;-&nbsp;The&nbsp;tag.</tt></dd></dl>
+
+<dl><dt><a name="RiakLink-get"><strong>get</strong></a>(self, r<font color="#909090">=None</font>)</dt><dd><tt>Retrieve&nbsp;the&nbsp;<a href="#RiakObject">RiakObject</a>&nbsp;to&nbsp;which&nbsp;this&nbsp;link&nbsp;points.<br>
+@param&nbsp;integer&nbsp;r&nbsp;-&nbsp;The&nbsp;R-value&nbsp;to&nbsp;use.<br>
+@return&nbsp;<a href="#RiakObject">RiakObject</a></tt></dd></dl>
+
+<dl><dt><a name="RiakLink-getBinary"><strong>getBinary</strong></a>(self, r<font color="#909090">=None</font>)</dt><dd><tt>Retrieve&nbsp;the&nbsp;<a href="#RiakObject">RiakObject</a>&nbsp;to&nbsp;which&nbsp;this&nbsp;link&nbsp;points,&nbsp;as&nbsp;a&nbsp;binary.<br>
+@param&nbsp;integer&nbsp;r&nbsp;-&nbsp;The&nbsp;R-value&nbsp;to&nbsp;use.<br>
+@return&nbsp;<a href="#RiakObject">RiakObject</a></tt></dd></dl>
+
+<dl><dt><a name="RiakLink-getBucket"><strong>getBucket</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;bucket&nbsp;name&nbsp;of&nbsp;this&nbsp;link.<br>
+@return&nbsp;string</tt></dd></dl>
+
+<dl><dt><a name="RiakLink-getKey"><strong>getKey</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;key&nbsp;of&nbsp;this&nbsp;link.<br>
+@return&nbsp;string</tt></dd></dl>
+
+<dl><dt><a name="RiakLink-getTag"><strong>getTag</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;tag&nbsp;of&nbsp;this&nbsp;link.<br>
+@return&nbsp;string</tt></dd></dl>
+
+<dl><dt><a name="RiakLink-isEqual"><strong>isEqual</strong></a>(self, link)</dt><dd><tt>Return&nbsp;True&nbsp;if&nbsp;the&nbsp;links&nbsp;are&nbsp;equal.<br>
+@param&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;link&nbsp;-&nbsp;A&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;object.<br>
+@return&nbsp;boolean</tt></dd></dl>
+
+<dl><dt><a name="RiakLink-setBucket"><strong>setBucket</strong></a>(self, name)</dt><dd><tt>Set&nbsp;the&nbsp;bucket&nbsp;name&nbsp;of&nbsp;this&nbsp;link.<br>
+@param&nbsp;string&nbsp;name&nbsp;-&nbsp;The&nbsp;bucket&nbsp;name.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakLink-setKey"><strong>setKey</strong></a>(self, key)</dt><dd><tt>Set&nbsp;the&nbsp;key&nbsp;of&nbsp;this&nbsp;link.<br>
+@param&nbsp;string&nbsp;key&nbsp;-&nbsp;The&nbsp;key.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakLink-setTag"><strong>setTag</strong></a>(self, tag)</dt><dd><tt>Set&nbsp;the&nbsp;tag&nbsp;of&nbsp;this&nbsp;link.<br>
+@param&nbsp;string&nbsp;tag&nbsp;-&nbsp;The&nbsp;tag.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakLink-toLinkHeader"><strong>toLinkHeader</strong></a>(self, client)</dt><dd><tt>Convert&nbsp;this&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;object&nbsp;to&nbsp;a&nbsp;link&nbsp;header&nbsp;string.&nbsp;Used&nbsp;internally.</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RiakLinkPhase">class <strong>RiakLinkPhase</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>The&nbsp;<a href="#RiakLinkPhase">RiakLinkPhase</a>&nbsp;object&nbsp;holds&nbsp;information&nbsp;about&nbsp;a&nbsp;Link&nbsp;phase&nbsp;in&nbsp;a<br>
+map/reduce&nbsp;operation.<br>
+@package&nbsp;<a href="#RiakLinkPhase">RiakLinkPhase</a><br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="RiakLinkPhase-__init__"><strong>__init__</strong></a>(self, bucket, tag, keep)</dt><dd><tt>Construct&nbsp;a&nbsp;<a href="#RiakLinkPhase">RiakLinkPhase</a>&nbsp;object.<br>
+@param&nbsp;string&nbsp;bucket&nbsp;-&nbsp;The&nbsp;bucket&nbsp;name.<br>
+@param&nbsp;string&nbsp;tag&nbsp;-&nbsp;The&nbsp;tag.<br>
+@param&nbsp;boolean&nbsp;keep&nbsp;-&nbsp;True&nbsp;to&nbsp;return&nbsp;results&nbsp;of&nbsp;this&nbsp;phase.</tt></dd></dl>
+
+<dl><dt><a name="RiakLinkPhase-to_array"><strong>to_array</strong></a>(self)</dt><dd><tt>Convert&nbsp;the&nbsp;<a href="#RiakLinkPhase">RiakLinkPhase</a>&nbsp;to&nbsp;an&nbsp;associative&nbsp;array.&nbsp;Used<br>
+internally.</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RiakMapReduce">class <strong>RiakMapReduce</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>The&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a>&nbsp;object&nbsp;allows&nbsp;you&nbsp;to&nbsp;build&nbsp;up&nbsp;and&nbsp;run&nbsp;a<br>
+map/reduce&nbsp;operation&nbsp;on&nbsp;Riak.<br>
+@package&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a><br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="RiakMapReduce-__init__"><strong>__init__</strong></a>(self, client)</dt><dd><tt>Construct&nbsp;a&nbsp;Map/Reduce&nbsp;object.<br>
+@param&nbsp;<a href="#RiakClient">RiakClient</a>&nbsp;client&nbsp;-&nbsp;A&nbsp;<a href="#RiakClient">RiakClient</a>&nbsp;object.<br>
+@return&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a></tt></dd></dl>
+
+<dl><dt><a name="RiakMapReduce-add"><strong>add</strong></a>(self, arg1, arg2<font color="#909090">=None</font>, arg3<font color="#909090">=None</font>)</dt><dd><tt>Add&nbsp;inputs&nbsp;to&nbsp;a&nbsp;map/reduce&nbsp;operation.&nbsp;This&nbsp;method&nbsp;takes&nbsp;three<br>
+different&nbsp;forms,&nbsp;depending&nbsp;on&nbsp;the&nbsp;provided&nbsp;inputs.&nbsp;You&nbsp;can<br>
+specify&nbsp;either&nbsp;a&nbsp;<a href="#RiakObject">RiakObject</a>,&nbsp;a&nbsp;string&nbsp;bucket&nbsp;name,&nbsp;or&nbsp;a&nbsp;bucket,<br>
+key,&nbsp;and&nbsp;additional&nbsp;arg.<br>
+@param&nbsp;mixed&nbsp;arg1&nbsp;-&nbsp;<a href="#RiakObject">RiakObject</a>&nbsp;or&nbsp;Bucket<br>
+@param&nbsp;mixed&nbsp;arg2&nbsp;-&nbsp;Key&nbsp;or&nbsp;blank<br>
+@param&nbsp;mixed&nbsp;arg3&nbsp;-&nbsp;Arg&nbsp;or&nbsp;blank<br>
+@return&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a></tt></dd></dl>
+
+<dl><dt><a name="RiakMapReduce-add_bucket"><strong>add_bucket</strong></a>(self, bucket)</dt></dl>
+
+<dl><dt><a name="RiakMapReduce-add_bucket_key_data"><strong>add_bucket_key_data</strong></a>(self, bucket, key, data)</dt></dl>
+
+<dl><dt><a name="RiakMapReduce-add_object"><strong>add_object</strong></a>(self, obj)</dt></dl>
+
+<dl><dt><a name="RiakMapReduce-link"><strong>link</strong></a>(self, bucket<font color="#909090">='_'</font>, tag<font color="#909090">='_'</font>, keep<font color="#909090">=False</font>)</dt><dd><tt>Add&nbsp;a&nbsp;link&nbsp;phase&nbsp;to&nbsp;the&nbsp;map/reduce&nbsp;operation.<br>
+@param&nbsp;string&nbsp;bucket&nbsp;-&nbsp;Bucket&nbsp;name&nbsp;(default&nbsp;'_',&nbsp;which&nbsp;means&nbsp;all<br>
+buckets)<br>
+@param&nbsp;string&nbsp;tag&nbsp;-&nbsp;Tag&nbsp;(default&nbsp;'_',&nbsp;which&nbsp;means&nbsp;all&nbsp;buckets)<br>
+@param&nbsp;boolean&nbsp;keep&nbsp;-&nbsp;Flag&nbsp;whether&nbsp;to&nbsp;keep&nbsp;results&nbsp;from&nbsp;this<br>
+stage&nbsp;in&nbsp;the&nbsp;map/reduce.&nbsp;(default&nbsp;False,&nbsp;unless&nbsp;this&nbsp;is&nbsp;the&nbsp;last<br>
+step&nbsp;in&nbsp;the&nbsp;phase)<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakMapReduce-map"><strong>map</strong></a>(self, function, options<font color="#909090">=[]</font>)</dt><dd><tt>Add&nbsp;a&nbsp;map&nbsp;phase&nbsp;to&nbsp;the&nbsp;map/reduce&nbsp;operation.<br>
+@param&nbsp;mixed&nbsp;function&nbsp;-&nbsp;Either&nbsp;a&nbsp;named&nbsp;Javascript&nbsp;function&nbsp;(ie:<br>
+'Riak.mapValues'),&nbsp;or&nbsp;an&nbsp;anonymous&nbsp;javascript&nbsp;function&nbsp;(ie:<br>
+'function(...)&nbsp;&nbsp;...&nbsp;'&nbsp;or&nbsp;an&nbsp;array&nbsp;['erlang_module',<br>
+'function'].<br>
+@param&nbsp;array()&nbsp;options&nbsp;-&nbsp;An&nbsp;optional&nbsp;associative&nbsp;array<br>
+containing&nbsp;'language',&nbsp;'keep'&nbsp;flag,&nbsp;and/or&nbsp;'arg'.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakMapReduce-reduce"><strong>reduce</strong></a>(self, function, options<font color="#909090">=[]</font>)</dt><dd><tt>Add&nbsp;a&nbsp;reduce&nbsp;phase&nbsp;to&nbsp;the&nbsp;map/reduce&nbsp;operation.<br>
+@param&nbsp;mixed&nbsp;function&nbsp;-&nbsp;Either&nbsp;a&nbsp;named&nbsp;Javascript&nbsp;function&nbsp;(ie.<br>
+'Riak.mapValues'),&nbsp;or&nbsp;an&nbsp;anonymous&nbsp;javascript&nbsp;function(ie:<br>
+'function(...)&nbsp;{&nbsp;...&nbsp;}'&nbsp;or&nbsp;an&nbsp;array&nbsp;['erlang_module',&nbsp;'function'].<br>
+@param&nbsp;array()&nbsp;options&nbsp;-&nbsp;An&nbsp;optional&nbsp;associative&nbsp;array<br>
+containing&nbsp;'language',&nbsp;'keep'&nbsp;flag,&nbsp;and/or&nbsp;'arg'.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakMapReduce-run"><strong>run</strong></a>(self, timeout<font color="#909090">=None</font>)</dt><dd><tt>Run&nbsp;the&nbsp;map/reduce&nbsp;operation.&nbsp;Returns&nbsp;an&nbsp;array&nbsp;of&nbsp;results,&nbsp;or&nbsp;an<br>
+array&nbsp;of&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;objects&nbsp;if&nbsp;the&nbsp;last&nbsp;phase&nbsp;is&nbsp;a&nbsp;link&nbsp;phase.<br>
+@param&nbsp;integer&nbsp;timeout&nbsp;-&nbsp;Timeout&nbsp;in&nbsp;seconds.<br>
+@return&nbsp;array()</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RiakMapReducePhase">class <strong>RiakMapReducePhase</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>The&nbsp;<a href="#RiakMapReducePhase">RiakMapReducePhase</a>&nbsp;holds&nbsp;information&nbsp;about&nbsp;a&nbsp;Map&nbsp;phase&nbsp;or<br>
+Reduce&nbsp;phase&nbsp;in&nbsp;a&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a>&nbsp;operation.<br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="RiakMapReducePhase-__init__"><strong>__init__</strong></a>(self, type, function, language, keep, arg)</dt><dd><tt>Construct&nbsp;a&nbsp;<a href="#RiakMapReducePhase">RiakMapReducePhase</a>&nbsp;object.<br>
+@param&nbsp;string&nbsp;type&nbsp;-&nbsp;'map'placeholder149'reduce'<br>
+@param&nbsp;mixed&nbsp;function&nbsp;-&nbsp;string&nbsp;or&nbsp;array():<br>
+@param&nbsp;string&nbsp;language&nbsp;-&nbsp;'javascript'placeholder149'erlang'<br>
+@param&nbsp;boolean&nbsp;keep&nbsp;-&nbsp;True&nbsp;to&nbsp;return&nbsp;the&nbsp;output&nbsp;of&nbsp;this&nbsp;phase&nbsp;in<br>
+the&nbsp;results.<br>
+@param&nbsp;mixed&nbsp;arg&nbsp;-&nbsp;Additional&nbsp;value&nbsp;to&nbsp;pass&nbsp;into&nbsp;the&nbsp;map&nbsp;or<br>
+reduce&nbsp;function.</tt></dd></dl>
+
+<dl><dt><a name="RiakMapReducePhase-to_array"><strong>to_array</strong></a>(self)</dt><dd><tt>Convert&nbsp;the&nbsp;<a href="#RiakMapReducePhase">RiakMapReducePhase</a>&nbsp;to&nbsp;an&nbsp;associative&nbsp;array.&nbsp;Used<br>
+internally.</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RiakObject">class <strong>RiakObject</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>The&nbsp;<a href="#RiakObject">RiakObject</a>&nbsp;holds&nbsp;meta&nbsp;information&nbsp;about&nbsp;a&nbsp;Riak&nbsp;object,&nbsp;plus&nbsp;the<br>
+object's&nbsp;data.<br>
+@package&nbsp;<a href="#RiakObject">RiakObject</a><br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Methods defined here:<br>
+<dl><dt><a name="RiakObject-__init__"><strong>__init__</strong></a>(self, client, bucket, key<font color="#909090">=None</font>)</dt><dd><tt>Construct&nbsp;a&nbsp;new&nbsp;<a href="#RiakObject">RiakObject</a>.<br>
+@param&nbsp;<a href="#RiakClient">RiakClient</a>&nbsp;client&nbsp;-&nbsp;A&nbsp;<a href="#RiakClient">RiakClient</a>&nbsp;object.<br>
+@param&nbsp;<a href="#RiakBucket">RiakBucket</a>&nbsp;bucket&nbsp;-&nbsp;A&nbsp;<a href="#RiakBucket">RiakBucket</a>&nbsp;object.<br>
+@param&nbsp;string&nbsp;key&nbsp;-&nbsp;An&nbsp;optional&nbsp;key.&nbsp;If&nbsp;not&nbsp;specified,&nbsp;then&nbsp;key<br>
+is&nbsp;generated&nbsp;by&nbsp;server&nbsp;when&nbsp;<a href="#RiakObject-store">store</a>(...)&nbsp;is&nbsp;called.</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-add"><strong>add</strong></a>(self, *args)</dt><dd><tt>Start&nbsp;assembling&nbsp;a&nbsp;Map/Reduce&nbsp;operation.<br>
+@see&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a>.<a href="#RiakObject-add">add</a>()<br>
+@return&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a></tt></dd></dl>
+
+<dl><dt><a name="RiakObject-addLink"><strong>addLink</strong></a>(self, obj, tag<font color="#909090">=None</font>)</dt><dd><tt>Add&nbsp;a&nbsp;link&nbsp;to&nbsp;a&nbsp;<a href="#RiakObject">RiakObject</a>.<br>
+@param&nbsp;mixed&nbsp;obj&nbsp;-&nbsp;Either&nbsp;a&nbsp;<a href="#RiakObject">RiakObject</a>&nbsp;or&nbsp;a&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;object.<br>
+@param&nbsp;string&nbsp;tag&nbsp;-&nbsp;Optional&nbsp;link&nbsp;tag.&nbsp;(default&nbsp;is&nbsp;bucket&nbsp;name,<br>
+ignored&nbsp;if&nbsp;obj&nbsp;is&nbsp;a&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;object.)<br>
+@return&nbsp;<a href="#RiakObject">RiakObject</a></tt></dd></dl>
+
+<dl><dt><a name="RiakObject-clear"><strong>clear</strong></a>(self)</dt><dd><tt>Reset&nbsp;this&nbsp;object.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-delete"><strong>delete</strong></a>(self, dw<font color="#909090">=None</font>)</dt><dd><tt>Delete&nbsp;this&nbsp;object&nbsp;from&nbsp;Riak.<br>
+@param&nbsp;integer&nbsp;dw&nbsp;-&nbsp;DW-value.&nbsp;Wait&nbsp;until&nbsp;this&nbsp;many&nbsp;partitions&nbsp;have<br>
+deleted&nbsp;the&nbsp;object&nbsp;before&nbsp;responding.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-exists"><strong>exists</strong></a>(self)</dt><dd><tt>Return&nbsp;True&nbsp;if&nbsp;the&nbsp;object&nbsp;exists,&nbsp;False&nbsp;otherwise.&nbsp;Allows&nbsp;you&nbsp;to<br>
+detect&nbsp;a&nbsp;get(...)&nbsp;or&nbsp;getBinary(...)&nbsp;operation&nbsp;where&nbsp;the&nbsp;object&nbsp;is&nbsp;missing.<br>
+@return&nbsp;boolean</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-getContentType"><strong>getContentType</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;content&nbsp;type&nbsp;of&nbsp;this&nbsp;object.&nbsp;This&nbsp;is&nbsp;either&nbsp;text/json,&nbsp;or<br>
+the&nbsp;provided&nbsp;content&nbsp;type&nbsp;if&nbsp;the&nbsp;object&nbsp;was&nbsp;created&nbsp;via&nbsp;newBinary(...).<br>
+@return&nbsp;string</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-getData"><strong>getData</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;data&nbsp;stored&nbsp;in&nbsp;this&nbsp;object.&nbsp;Will&nbsp;return&nbsp;a&nbsp;associative<br>
+array,&nbsp;unless&nbsp;the&nbsp;object&nbsp;was&nbsp;constructed&nbsp;with&nbsp;newBinary(...)&nbsp;or<br>
+getBinary(...),&nbsp;in&nbsp;which&nbsp;case&nbsp;this&nbsp;will&nbsp;return&nbsp;a&nbsp;string.<br>
+@return&nbsp;array&nbsp;or&nbsp;string</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-getLinks"><strong>getLinks</strong></a>(self)</dt><dd><tt>Return&nbsp;an&nbsp;array&nbsp;of&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;objects.<br>
+@return&nbsp;array()</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-getSibling"><strong>getSibling</strong></a>(self, i, r<font color="#909090">=None</font>)</dt><dd><tt>Retrieve&nbsp;a&nbsp;sibling&nbsp;by&nbsp;sibling&nbsp;number.<br>
+@param&nbsp;&nbsp;integer&nbsp;i&nbsp;-&nbsp;Sibling&nbsp;number.<br>
+@param&nbsp;&nbsp;integer&nbsp;r&nbsp;-&nbsp;R-Value.&nbsp;Wait&nbsp;until&nbsp;this&nbsp;many&nbsp;partitions<br>
+have&nbsp;responded&nbsp;before&nbsp;returning&nbsp;to&nbsp;client.<br>
+@return&nbsp;<a href="#RiakObject">RiakObject</a>.</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-getSiblingCount"><strong>getSiblingCount</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;number&nbsp;of&nbsp;siblings&nbsp;that&nbsp;this&nbsp;object&nbsp;contains.<br>
+@return&nbsp;integer</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-getSiblings"><strong>getSiblings</strong></a>(self, r<font color="#909090">=None</font>)</dt><dd><tt>Retrieve&nbsp;an&nbsp;array&nbsp;of&nbsp;siblings.<br>
+@param&nbsp;integer&nbsp;r&nbsp;-&nbsp;R-Value.&nbsp;Wait&nbsp;until&nbsp;this&nbsp;many&nbsp;partitions&nbsp;have<br>
+responded&nbsp;before&nbsp;returning&nbsp;to&nbsp;client.<br>
+@return&nbsp;array&nbsp;of&nbsp;<a href="#RiakObject">RiakObject</a></tt></dd></dl>
+
+<dl><dt><a name="RiakObject-hasSiblings"><strong>hasSiblings</strong></a>(self)</dt><dd><tt>Return&nbsp;True&nbsp;if&nbsp;this&nbsp;object&nbsp;has&nbsp;siblings.<br>
+@return&nbsp;boolean</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-link"><strong>link</strong></a>(self, *args)</dt><dd><tt>Start&nbsp;assembling&nbsp;a&nbsp;Map/Reduce&nbsp;operation.<br>
+@see&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a>.<a href="#RiakObject-link">link</a>()<br>
+@return&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a></tt></dd></dl>
+
+<dl><dt><a name="RiakObject-map"><strong>map</strong></a>(self, *args)</dt><dd><tt>Start&nbsp;assembling&nbsp;a&nbsp;Map/Reduce&nbsp;operation.<br>
+@see&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a>.<a href="#RiakObject-map">map</a>()<br>
+@return&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a></tt></dd></dl>
+
+<dl><dt><a name="RiakObject-populate"><strong>populate</strong></a>(self, response, expected_statuses)</dt><dd><tt>Given&nbsp;the&nbsp;output&nbsp;of&nbsp;<a href="#RiakUtils">RiakUtils</a>.httpRequest&nbsp;and&nbsp;a&nbsp;list&nbsp;of<br>
+statuses,&nbsp;populate&nbsp;the&nbsp;object.&nbsp;Only&nbsp;for&nbsp;use&nbsp;by&nbsp;the&nbsp;Riak&nbsp;client<br>
+library.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-populateLinks"><strong>populateLinks</strong></a>(self, linkHeaders)</dt><dd><tt>Private.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-reduce"><strong>reduce</strong></a>(self, params)</dt><dd><tt>Start&nbsp;assembling&nbsp;a&nbsp;Map/Reduce&nbsp;operation.<br>
+@see&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a>.<a href="#RiakObject-reduce">reduce</a>()<br>
+@return&nbsp;<a href="#RiakMapReduce">RiakMapReduce</a></tt></dd></dl>
+
+<dl><dt><a name="RiakObject-reload"><strong>reload</strong></a>(self, r<font color="#909090">=None</font>)</dt><dd><tt>Reload&nbsp;the&nbsp;object&nbsp;from&nbsp;Riak.&nbsp;When&nbsp;this&nbsp;operation&nbsp;completes,&nbsp;the<br>
+object&nbsp;could&nbsp;contain&nbsp;new&nbsp;metadata&nbsp;and&nbsp;a&nbsp;new&nbsp;value,&nbsp;if&nbsp;the&nbsp;object<br>
+was&nbsp;updated&nbsp;in&nbsp;Riak&nbsp;since&nbsp;it&nbsp;was&nbsp;last&nbsp;retrieved.<br>
+@param&nbsp;integer&nbsp;r&nbsp;-&nbsp;R-Value,&nbsp;wait&nbsp;for&nbsp;this&nbsp;many&nbsp;partitions&nbsp;to&nbsp;respond<br>
+before&nbsp;returning&nbsp;to&nbsp;client.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-removeLink"><strong>removeLink</strong></a>(self, obj, tag<font color="#909090">=None</font>)</dt><dd><tt>Remove&nbsp;a&nbsp;link&nbsp;to&nbsp;a&nbsp;<a href="#RiakObject">RiakObject</a>.<br>
+@param&nbsp;mixed&nbsp;obj&nbsp;-&nbsp;Either&nbsp;a&nbsp;<a href="#RiakObject">RiakObject</a>&nbsp;or&nbsp;a&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;object.<br>
+@param&nbsp;string&nbsp;tag&nbsp;-<br>
+@param&nbsp;mixed&nbsp;obj&nbsp;-&nbsp;Either&nbsp;a&nbsp;<a href="#RiakObject">RiakObject</a>&nbsp;or&nbsp;a&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;object.<br>
+@param&nbsp;string&nbsp;tag&nbsp;-&nbsp;Optional&nbsp;link&nbsp;tag.&nbsp;(default&nbsp;is&nbsp;bucket&nbsp;name,<br>
+ignored&nbsp;if&nbsp;obj&nbsp;is&nbsp;a&nbsp;<a href="#RiakLink">RiakLink</a>&nbsp;object.)<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-setContentType"><strong>setContentType</strong></a>(self, content_type)</dt><dd><tt>Set&nbsp;the&nbsp;content&nbsp;type&nbsp;of&nbsp;this&nbsp;object.<br>
+@param&nbsp;string&nbsp;content_type&nbsp;-&nbsp;The&nbsp;new&nbsp;content&nbsp;type.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-setData"><strong>setData</strong></a>(self, data)</dt><dd><tt>Set&nbsp;the&nbsp;data&nbsp;stored&nbsp;in&nbsp;this&nbsp;object.&nbsp;This&nbsp;data&nbsp;will&nbsp;be<br>
+JSON&nbsp;encoded&nbsp;unless&nbsp;the&nbsp;object&nbsp;was&nbsp;constructed&nbsp;with<br>
+newBinary(...)&nbsp;or&nbsp;getBinary(...).<br>
+@param&nbsp;mixed&nbsp;data&nbsp;-&nbsp;The&nbsp;data&nbsp;to&nbsp;store.<br>
+@return&nbsp;data</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-status"><strong>status</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;HTTP&nbsp;status&nbsp;from&nbsp;the&nbsp;last&nbsp;operation&nbsp;on&nbsp;this&nbsp;object.<br>
+@return&nbsp;integer</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-store"><strong>store</strong></a>(self, w<font color="#909090">=None</font>, dw<font color="#909090">=None</font>)</dt><dd><tt>Store&nbsp;the&nbsp;object&nbsp;in&nbsp;Riak.&nbsp;When&nbsp;this&nbsp;operation&nbsp;completes,&nbsp;the<br>
+object&nbsp;could&nbsp;contain&nbsp;new&nbsp;metadata&nbsp;and&nbsp;possibly&nbsp;new&nbsp;data&nbsp;if&nbsp;Riak<br>
+contains&nbsp;a&nbsp;newer&nbsp;version&nbsp;of&nbsp;the&nbsp;object&nbsp;according&nbsp;to&nbsp;the&nbsp;object's<br>
+vector&nbsp;clock.<br>
+@param&nbsp;integer&nbsp;w&nbsp;-&nbsp;W-value,&nbsp;wait&nbsp;for&nbsp;this&nbsp;many&nbsp;partitions&nbsp;to&nbsp;respond<br>
+before&nbsp;returning&nbsp;to&nbsp;client.<br>
+@param&nbsp;integer&nbsp;dw&nbsp;-&nbsp;DW-value,&nbsp;wait&nbsp;for&nbsp;this&nbsp;many&nbsp;partitions&nbsp;to<br>
+confirm&nbsp;the&nbsp;write&nbsp;before&nbsp;returning&nbsp;to&nbsp;client.<br>
+@return&nbsp;self</tt></dd></dl>
+
+<dl><dt><a name="RiakObject-vclock"><strong>vclock</strong></a>(self)</dt><dd><tt>Get&nbsp;the&nbsp;vclock&nbsp;of&nbsp;this&nbsp;object.<br>
+@return&nbsp;string</tt></dd></dl>
+
+</td></tr></table> <p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#ffc8d8">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#000000" face="helvetica, arial"><a name="RiakUtils">class <strong>RiakUtils</strong></a></font></td></tr>
+    
+<tr bgcolor="#ffc8d8"><td rowspan=2><tt>&nbsp;&nbsp;&nbsp;</tt></td>
+<td colspan=2><tt>Utility&nbsp;functions&nbsp;used&nbsp;by&nbsp;Riak&nbsp;library.<br>
+@package&nbsp;<a href="#RiakUtils">RiakUtils</a><br>&nbsp;</tt></td></tr>
+<tr><td>&nbsp;</td>
+<td width="100%">Class methods defined here:<br>
+<dl><dt><a name="RiakUtils-buildRestPath"><strong>buildRestPath</strong></a>(self, client, bucket, key<font color="#909090">=None</font>, spec<font color="#909090">=None</font>, params<font color="#909090">=None</font>)<font color="#909090"><font face="helvetica, arial"> from __builtin__.classobj</font></font></dt><dd><tt>Given&nbsp;a&nbsp;ClientObject,&nbsp;BucketObject,&nbsp;Key,&nbsp;LinkSpec,&nbsp;and&nbsp;Params,<br>
+construct&nbsp;and&nbsp;return&nbsp;a&nbsp;URL.</tt></dd></dl>
+
+<dl><dt><a name="RiakUtils-build_headers"><strong>build_headers</strong></a>(self, headers)<font color="#909090"><font face="helvetica, arial"> from __builtin__.classobj</font></font></dt></dl>
+
+<dl><dt><a name="RiakUtils-get_value"><strong>get_value</strong></a>(self, key, array, defaultValue)<font color="#909090"><font face="helvetica, arial"> from __builtin__.classobj</font></font></dt></dl>
+
+<dl><dt><a name="RiakUtils-httpRequest"><strong>httpRequest</strong></a>(self, method, host, port, url, headers<font color="#909090">={}</font>, obj<font color="#909090">=''</font>)<font color="#909090"><font face="helvetica, arial"> from __builtin__.classobj</font></font></dt><dd><tt>Given&nbsp;a&nbsp;Method,&nbsp;URL,&nbsp;Headers,&nbsp;and&nbsp;Body,&nbsp;perform&nbsp;and&nbsp;HTTP&nbsp;request,<br>
+and&nbsp;return&nbsp;an&nbsp;array&nbsp;of&nbsp;arity&nbsp;2&nbsp;containing&nbsp;an&nbsp;associative&nbsp;array&nbsp;of<br>
+response&nbsp;headers&nbsp;and&nbsp;the&nbsp;response&nbsp;body.</tt></dd></dl>
+
+<dl><dt><a name="RiakUtils-httplibRequest"><strong>httplibRequest</strong></a>(self, method, host, port, uri, headers<font color="#909090">={}</font>, body<font color="#909090">=''</font>)<font color="#909090"><font face="helvetica, arial"> from __builtin__.classobj</font></font></dt></dl>
+
+<dl><dt><a name="RiakUtils-parseHttpHeaders"><strong>parseHttpHeaders</strong></a>(self, headers)<font color="#909090"><font face="helvetica, arial"> from __builtin__.classobj</font></font></dt><dd><tt>Parse&nbsp;an&nbsp;HTTP&nbsp;Header&nbsp;string&nbsp;into&nbsp;an&nbsp;asssociative&nbsp;array&nbsp;of<br>
+response&nbsp;headers.</tt></dd></dl>
+
+<dl><dt><a name="RiakUtils-pycurlRequest"><strong>pycurlRequest</strong></a>(self, method, host, port, uri, headers<font color="#909090">={}</font>, body<font color="#909090">=''</font>)<font color="#909090"><font face="helvetica, arial"> from __builtin__.classobj</font></font></dt></dl>
+
+</td></tr></table></td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#eeaa77">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Functions</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#eeaa77"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><dl><dt><a name="-StringIO"><strong>StringIO</strong></a>(...)</dt><dd><tt><a href="#-StringIO">StringIO</a>([s])&nbsp;--&nbsp;Return&nbsp;a&nbsp;StringIO-like&nbsp;stream&nbsp;for&nbsp;reading&nbsp;or&nbsp;writing</tt></dd></dl>
+</td></tr></table><p>
+<table width="100%" cellspacing=0 cellpadding=2 border=0 summary="section">
+<tr bgcolor="#55aa55">
+<td colspan=3 valign=bottom>&nbsp;<br>
+<font color="#ffffff" face="helvetica, arial"><big><strong>Data</strong></big></font></td></tr>
+    
+<tr><td bgcolor="#55aa55"><tt>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;</tt></td><td>&nbsp;</td>
+<td width="100%"><strong>HAS_PYCURL</strong> = True</td></tr></table>
+</body></html>
