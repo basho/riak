@@ -1190,6 +1190,7 @@ class RiakObject {
     
     # Respond with a new object...
     $obj = new RiakObject($this->client, $this->bucket, $this->key);
+    $obj->jsonize = $this->jsonize;
     $obj->populate($response, array(200));
     return $obj;
   }
