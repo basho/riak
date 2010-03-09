@@ -1,12 +1,28 @@
+"""
+Copyright 2010 Rusty Klophaus <rusty@basho.com>
+Copyright 2010 Justin Sheehy <justin@basho.com>
+Copyright 2009 Jay Baird <jay@mochimedia.com>
 
-import base64
-import random
-import logging
-import cgi
-import sys
-import urllib
-import re
+This file is provided to you under the Apache License,
+Version 2.0 (the "License"); you may not use this file
+except in compliance with the License.  You may obtain
+a copy of the License at
+
+  http://www.apache.org/licenses/LICENSE-2.0
+
+Unless required by applicable law or agreed to in writing,
+software distributed under the License is distributed on an
+"AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+KIND, either express or implied.  See the License for the
+specific language governing permissions and limitations
+under the License.
+"""
+
+# Import libraries.
+import sys, random, logging, base64, urllib, re
 from cStringIO import StringIO
+
+# Use pycurl as first choice, httplib as second choice.
 try:
         import pycurl
         HAS_PYCURL = True
@@ -14,18 +30,11 @@ except ImportError:
         import httplib
         HAS_PYCURL = False
 
-
+# Use json as first choice, simplejson as second choice.
 try: 
         import json
 except ImportError: 
         import simplejson as json
-
-
-
-# Debug - Always use HTTPLib
-import httplib
-HAS_PYCURL = False
-
 
 
 """
@@ -1254,9 +1263,10 @@ class RiakUtils :
         
         @classmethod
         def pycurlRequest(self, method, host, port, uri, headers={}, body=''):
+                url = "http://" + host + ":" + str(port) + uri
                 # Set up Curl...
                 client = pycurl.Curl()
-                client.setopt(pycurl.URL, uri)                
+                client.setopt(pycurl.URL, url)                
                 client.setopt(pycurl.HTTPHEADER, self.build_headers(headers))
                 if method == 'GET':
                         client.setopt(pycurl.HTTPGET, 1)
@@ -1284,41 +1294,43 @@ class RiakUtils :
                         client.close()
                         
                         # Get the headers...
-#                         $response_headers = self.parseHttpHeaders(response_headers_io.getvalue())
-                        response_headers = {}
+                        response_headers = self.parseHttpHeaders(response_headers_io.getvalue())
                         response_headers['http_code'] = http_code
                         
                         # Get the body...
                         response_body = response_body_io.getvalue()
 
                         return response_headers, response_body
-                except Error:
-                        client.close()
-                        logging.error('Error:', sys.exc_info()[0])
-                        return None
+                except:
+                        if (client != None) : client.close()
+                        raise
 
         @classmethod
-        def build_headers(self, h):
-                headers = []
-                for k,v in h:
-                        headers.append('%s: %s' % (k, v))
-                return headers
+        def build_headers(self, headers):
+                headers1 = []
+                for key in headers.keys():
+                        headers1.append('%s: %s' % (key, headers[key]))
+                return headers1
 
-#         def parseHttpHeaders(self, headers) :
-#                 """
-#                 Parse an HTTP Header string into an asssociative array of
-#                 response headers.		
-#                 """
-#                 cgi.
-#                 print headers
-#                 retVal = []
-#                 fields = explode('\r\n', preg_replace('/\x0D\x0A[\x09\x20]+/', ' ', headers))
-#                 for field in fields:
-#                         if (preg_match('/([^:]+): (.+)/m', field, match) ):
-#                                 match[1] = preg_replace('/(?<=^|[\x09\x20\x2D])./e', 'strtoupper(''placeholder185'')', strtolower(trim(match[1])))
-#                                 if (isset(retVal[match[1]]) ):
-#                                         retVal[match[1]] = array(retVal[match[1]], match[2])
-#                                 else:
-#                                         retVal[match[1]] = trim(match[2])
-#                 return retVal
+        @classmethod
+        def parseHttpHeaders(self, headers) :
+                """
+                Parse an HTTP Header string into an asssociative array of
+                response headers.		
+                """
+                retVal = {}
+                fields = headers.split("\n")
+                for field in fields:
+                        matches = re.match("([^:]+):(.+)", field)
+                        if (matches == None): continue
+                        key = matches.group(1).lower()
+                        value = matches.group(2).strip()
+                        if (key in retVal.keys()):
+                                if  isinstance(retVal[key], list):
+                                        retVal[key].append(value)
+                                else:
+                                        retVal[key] = [retVal[key]].append(value)
+                        else:
+                                retVal[key] = value
+                return retVal
                         
