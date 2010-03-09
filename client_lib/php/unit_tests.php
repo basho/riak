@@ -70,7 +70,7 @@ function testBinaryStoreAndGet() {
   $obj = $bucket->newObject('foo2', $data);
   $obj->store();
   $obj = $bucket->getBinary('foo2');
-  assert($data == json_decode($obj->getData()));
+  test_assert($data == json_decode($obj->getData()));
 }
 
 function testMissingObject() {
@@ -138,14 +138,14 @@ function testSiblings() {
   # Test getSibling()/getSiblings()...
   $siblings = $obj->getSiblings();
   $obj3 = $obj->getSibling(3);
-  assert($siblings[3]->getData() == $obj3->getData());
+  test_assert($siblings[3]->getData() == $obj3->getData());
 
   # Resolve the conflict, and then do a get...
   $obj3 = $obj->getSibling(3);
   $obj3->store();
   
   $obj->reload();
-  assert($obj->getData() == $obj3->getData());
+  test_assert($obj->getData() == $obj3->getData());
   
   # Clean up for next test...
   $obj->delete();
@@ -162,7 +162,7 @@ function testJavascriptSourceMap() {
     add("bucket", "foo")->
     map("function (v) { return [JSON.parse(v.values[0].data)]; }") ->
     run();
-  assert($result == array(2));
+  test_assert($result == array(2));
 }
 
 function testJavascriptNamedMap() {
@@ -176,7 +176,7 @@ function testJavascriptNamedMap() {
     add("bucket", "foo")->
     map("Riak.mapValuesJson") ->
     run();
-  assert($result == array(2));
+  test_assert($result == array(2));
 }
 
 function testJavascriptSourceMapReduce() {
@@ -195,7 +195,7 @@ function testJavascriptSourceMapReduce() {
     map("function (v) { return [1]; }") ->
     reduce("function (v) { return v.length; }")->
     run();
-  assert($result == 3);
+  test_assert($result == 3);
 }
 
 function testJavascriptNamedMapReduce() {
@@ -214,7 +214,7 @@ function testJavascriptNamedMapReduce() {
     map("Riak.mapValuesJson") ->
     reduce("Riak.reduceSum")->
     run();
-  assert($result == array(9));
+  test_assert($result == array(9));
 }
 
 function testJavascriptBucketMapReduce() {
@@ -231,7 +231,7 @@ function testJavascriptBucketMapReduce() {
     map("Riak.mapValuesJson") ->
     reduce("Riak.reduceSum")->
     run();
-  assert($result == array(9));
+  test_assert($result == array(9));
 }
 
 function testJavascriptArgMapReduce() {
@@ -250,7 +250,7 @@ function testJavascriptArgMapReduce() {
     map("function(v, arg) { return [arg]; }")-> 
     reduce("Riak.reduceSum")->
     run();
-  assert($result == array(10));
+  test_assert($result == array(10));
 }
 
 function testErlangMapReduce() {
@@ -269,8 +269,7 @@ function testErlangMapReduce() {
     map(array("riak_mapreduce", "map_object_value")) ->
     reduce(array("riak_mapreduce", "reduce_set_union"))->
     run();
-
-  assert(count($result) == 2);
+  test_assert(count($result) == 2);
 }
 
 function testMapReduceFromObject() {
@@ -281,7 +280,7 @@ function testMapReduceFromObject() {
  
   $obj = $bucket->get("foo");
   $result = $obj->map("Riak.mapValuesJson")->run();
-  assert($result = array(2));
+  test_assert($result = array(2));
 }
 
 
@@ -297,7 +296,7 @@ function testStoreAndGetLinks() {
 
   $obj = $bucket->get("foo");
   $links = $obj->getLinks();
-  assert(count($links) == 3);
+  test_assert(count($links) == 3);
 }
 
 function testLinkWalking() {
@@ -312,17 +311,14 @@ function testLinkWalking() {
   
   $obj = $bucket->get("foo");
   $results = $obj->link("bucket")->run();
-  assert(count($results) == 3);
+  test_assert(count($results) == 3);
 
   $results = $obj->link("bucket", "tag")->run();
-  assert(count($results) == 1);
+  test_assert(count($results) == 1);
 }
 
 
 /* BEGIN UNIT TEST FRAMEWORK */
-
-assert_options(ASSERT_ACTIVE,   true);
-assert_options(ASSERT_BAIL,     true);
 $test_pass = 0; $test_fail = 0;
 
 function test($method) {

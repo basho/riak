@@ -334,8 +334,9 @@ class RiakMapReduce {
     $query = array();
     for ($i = 0; $i < $num_phases; $i++) {
       $phase = $this->phases[$i];
-      if ($i == ($num_phases - 1) && !$keep_flag) 
+      if ($i == ($num_phases - 1) && !$keep_flag)
         $phase->keep = TRUE;
+      if ($phase->keep) $keep_flag = TRUE;
       $query[] = $phase->to_array();
     }
 
@@ -885,7 +886,7 @@ class RiakObject {
    * @return string
    */
   function getContentType() { 
-    return $this->headers['content_type']; 
+    return $this->headers['content-type']; 
   }
 
   /**
@@ -894,7 +895,7 @@ class RiakObject {
    * @return $this
    */
   function setContentType($content_type) {
-    $this->headers['content_type'] = $content_type;
+    $this->headers['content-type'] = $content_type;
     return $this;
   }
 
@@ -1066,8 +1067,8 @@ class RiakObject {
    * @return string
    */
   private function vclock() {
-    if (array_key_exists('X-Riak-Vclock', $this->headers)) {
-      return $this->headers['X-Riak-Vclock'];
+    if (array_key_exists('x-riak-vclock', $this->headers)) {
+      return $this->headers['x-riak-vclock'];
     } else {
       return NULL;
     }
@@ -1114,8 +1115,8 @@ class RiakObject {
     $this->exists = TRUE;
 
     # Parse the link header...
-    if (array_key_exists("Link", $this->headers)) {
-      $this->populateLinks($this->headers["Link"]);
+    if (array_key_exists("link", $this->headers)) {
+      $this->populateLinks($this->headers["link"]);
     }
 
     # If 300 (Siblings), then load the first sibling, and
@@ -1363,17 +1364,18 @@ class RiakUtils {
     try {
       # Run the request.
       curl_exec($ch);
-      $curl_headers = curl_getinfo($ch);
+      $http_code = curl_getinfo($ch, CURLINFO_HTTP_CODE);
       curl_close($ch);
 
-      # Merge the headers...
+      # Get the headers...
       $parsed_headers = RiakUtils::parseHttpHeaders($response_headers_io->contents());
-      $response_headers = array_merge($curl_headers, $parsed_headers);
+      $response_headers = array("http_code"=>$http_code);
+      foreach ($parsed_headers as $key=>$value) {
+        $response_headers[strtolower($key)] = $value;
+      }
       
-      # Pull out the body...
+      # Get the body...
       $response_body = $response_body_io->contents();
-      $array = array();
-      $success = mb_parse_str($response_body, $array);
 
       # Return a new RiakResponse object.
       return array($response_headers, $response_body);
