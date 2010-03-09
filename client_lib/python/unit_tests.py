@@ -13,49 +13,49 @@ VERBOSE = True
 
 # BEGIN UNIT TESTS
 
-def testIsAlive():
+def test_is_alive():
 	client = riak.RiakClient(HOST, PORT)
-	assert(client.isAlive())
+	assert(client.is_alive())
 
-def testStoreAndGet():
+def test_store_and_get():
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket('bucket')
         rand = randint()
-	obj = bucket.newObject('foo', rand)
+	obj = bucket.new('foo', rand)
 	obj.store()
 	obj = bucket.get('foo')
 	assert(obj.exists())
-	assert(obj.getData() == rand)
+	assert(obj.get_data() == rand)
 
-def testBinaryStoreAndGet():
+def test_binary_store_and_get():
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket('bucket')
 	# Store as binary, retrieve as binary, then compare...
         rand = str(randint())
-	obj = bucket.newBinary('foo1', rand)
+	obj = bucket.new_binary('foo1', rand)
 	obj.store()
-	obj = bucket.getBinary('foo1')
+	obj = bucket.get_binary('foo1')
 	assert(obj.exists())
-	assert(obj.getData() == rand)
+	assert(obj.get_data() == rand)
 	# Store as JSON, retrieve as binary, JSON-decode, then compare...
 	data = [randint(), randint(), randint()]
-	obj = bucket.newObject('foo2', data)
+	obj = bucket.new('foo2', data)
 	obj.store()
-	obj = bucket.getBinary('foo2')
-	assert(data == json.loads(obj.getData()))
+	obj = bucket.get_binary('foo2')
+	assert(data == json.loads(obj.get_data()))
 
-def testMissingObject():
+def test_missing_object():
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket('bucket')
 	obj = bucket.get("missing")
 	assert(not obj.exists())
-	assert(obj.getData() == None)
+	assert(obj.get_data() == None)
 
-def testDelete():
+def test_delete():
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket('bucket')
 	rand = randint()
-	obj = bucket.newObject('foo', rand)
+	obj = bucket.new('foo', rand)
 	obj.store()
 	obj = bucket.get('foo')
 	assert(obj.exists())
@@ -63,53 +63,53 @@ def testDelete():
 	obj.reload()
 	assert(not obj.exists())
 
-def testSetBucketProperties():
+def test_set_bucket_properties():
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket('bucket')
 	# Test setting allow mult...
-	bucket.setAllowMultiples(True)
-	assert(bucket.getAllowMultiples())
+	bucket.set_allow_multiples(True)
+	assert(bucket.get_allow_multiples())
 	# Test setting nval...
-	bucket.setNVal(3)
-	assert(bucket.getNVal() == 3)
+	bucket.set_n_val(3)
+	assert(bucket.get_n_val() == 3)
 	# Test setting multiple properties...
-	bucket.setProperties({"allow_mult":False, "n_val":2})
-	assert(not bucket.getAllowMultiples())
-	assert(bucket.getNVal() == 2)
+	bucket.set_properties({"allow_mult":False, "n_val":2})
+	assert(not bucket.get_allow_multiples())
+	assert(bucket.get_n_val() == 2)
 
-def testSiblings():
+def test_siblings():
 	# Set up the bucket, clear any existing object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket('multiBucket')
-	bucket.setAllowMultiples(True)
+	bucket.set_allow_multiples(True)
 	obj = bucket.get('foo')
 	obj.delete()
 	# Store the same object multiple times...
 	for i in range(5):
 		client = riak.RiakClient(HOST, PORT)
 		bucket = client.bucket('multiBucket')
-		obj = bucket.newObject('foo', randint())
+		obj = bucket.new('foo', randint())
 		obj.store()
 	# Make sure the object has 5 siblings...
-	assert(obj.hasSiblings())
-	assert(obj.getSiblingCount() == 5)
-	# Test getSibling()/getSiblings()...
-	siblings = obj.getSiblings()
-	obj3 = obj.getSibling(3)
-	assert(siblings[3].getData() == obj3.getData())
+	assert(obj.has_siblings())
+	assert(obj.get_sibling_count() == 5)
+	# Test get_sibling()/get_siblings()...
+	siblings = obj.get_siblings()
+	obj3 = obj.get_sibling(3)
+	assert(siblings[3].get_data() == obj3.get_data())
 	# Resolve the conflict, and then do a get...
-	obj3 = obj.getSibling(3)
+	obj3 = obj.get_sibling(3)
 	obj3.store()
 	obj.reload()
-	assert(obj.getData() == obj3.getData())
+	assert(obj.get_data() == obj3.get_data())
 	# Clean up for next test...
 	obj.delete()
 
-def testJavascriptSourceMap():
+def test_javascript_source_map():
 	# Create the object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket("bucket")
-	bucket.newObject("foo", 2).store()
+	bucket.new("foo", 2).store()
 	# Run the map...
 	result = client \
             .add("bucket", "foo") \
@@ -121,7 +121,7 @@ def testJavascriptNamedMap():
 	# Create the object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket("bucket")
-	bucket.newObject("foo", 2).store()
+	bucket.new("foo", 2).store()
 	# Run the map...
 	result = client \
             .add("bucket", "foo") \
@@ -129,13 +129,13 @@ def testJavascriptNamedMap():
             .run()
 	assert(result == [2])
 
-def testJavascriptSourceMapReduce():
+def test_javascript_source_mapReduce():
 	# Create the object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket("bucket")
-	bucket.newObject("foo", 2).store()
-	bucket.newObject("bar", 3).store()
-	bucket.newObject("baz", 4).store()
+	bucket.new("foo", 2).store()
+	bucket.new("bar", 3).store()
+	bucket.new("baz", 4).store()
 	# Run the map...
 	result = client \
             .add("bucket", "foo") \
@@ -146,13 +146,13 @@ def testJavascriptSourceMapReduce():
             .run()
 	assert(result == 3)
 
-def testJavascriptNamedMapReduce():
+def test_javascript_named_map_reduce():
 	# Create the object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket("bucket")
-	bucket.newObject("foo", 2).store()
-	bucket.newObject("bar", 3).store()
-	bucket.newObject("baz", 4).store()
+	bucket.new("foo", 2).store()
+	bucket.new("bar", 3).store()
+	bucket.new("baz", 4).store()
 	# Run the map...
 	result = client \
             .add("bucket", "foo") \
@@ -167,9 +167,9 @@ def testJavascriptBucketMapReduce():
 	# Create the object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket("bucket_" . randint())
-	bucket.newObject("foo", 2).store()
-	bucket.newObject("bar", 3).store()
-	bucket.newObject("baz", 4).store()
+	bucket.new("foo", 2).store()
+	bucket.new("bar", 3).store()
+	bucket.new("baz", 4).store()
 	# Run the map...
 	result = client \
             .add(bucket.name) \
@@ -178,11 +178,11 @@ def testJavascriptBucketMapReduce():
             .run()
 	assert(result == [9])
 
-def testJavascriptArgMapReduce():
+def test_javascript_arg_map_reduce():
 	# Create the object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket("bucket")
-	bucket.newObject("foo", 2).store()
+	bucket.new("foo", 2).store()
 	# Run the map...
 	result = client \
             .add("bucket", "foo", 5) \
@@ -195,13 +195,13 @@ def testJavascriptArgMapReduce():
             .run()
 	assert(result == [10])
 
-def testErlangMapReduce():
+def test_erlang_map_reduce():
 	# Create the object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket("bucket")
-	bucket.newObject("foo", 2).store()
-	bucket.newObject("bar", 2).store()
-	bucket.newObject("baz", 4).store()
+	bucket.new("foo", 2).store()
+	bucket.new("bar", 2).store()
+	bucket.new("baz", 4).store()
 	# Run the map...
 	result = client \
             .add("bucket", "foo") \
@@ -212,36 +212,36 @@ def testErlangMapReduce():
             .run()
 	assert(len(result) == 2)
 
-def testMapReduceFromObject():
+def test_map_reduce_from_object():
 	# Create the object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket("bucket")
-	bucket.newObject("foo", 2).store()
+	bucket.new("foo", 2).store()
 	obj = bucket.get("foo")
 	result = obj.map("Riak.mapValuesJson").run()
 	assert(result == [2])
 
-def testStoreAndGetLinks():
+def test_store_and_get_links():
 	# Create the object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket("bucket")
-	bucket.newObject("foo", 2) \
-            .addLink(bucket.newObject("foo1")) \
-            .addLink(bucket.newObject("foo2"), "tag") \
-            .addLink(bucket.newObject("foo3"), "tag2!@#%^&*)") \
+	bucket.new("foo", 2) \
+            .add_link(bucket.new("foo1")) \
+            .add_link(bucket.new("foo2"), "tag") \
+            .add_link(bucket.new("foo3"), "tag2!@#%^&*)") \
             .store()
 	obj = bucket.get("foo")
-	links = obj.getLinks()
+	links = obj.get_links()
 	assert(len(links) == 3)
 
-def testLinkWalking():
+def test_link_walking():
 	# Create the object...
 	client = riak.RiakClient(HOST, PORT)
 	bucket = client.bucket("bucket")
-	bucket.newObject("foo", 2) \
-            .addLink(bucket.newObject("foo1", "test1").store()) \
-            .addLink(bucket.newObject("foo2", "test2").store(), "tag") \
-            .addLink(bucket.newObject("foo3", "test3").store(), "tag2!@#%^&*)") \
+	bucket.new("foo", 2) \
+            .add_link(bucket.new("foo1", "test1").store()) \
+            .add_link(bucket.new("foo2", "test2").store(), "tag") \
+            .add_link(bucket.new("foo3", "test3").store(), "tag2!@#%^&*)") \
             .store()
 	obj = bucket.get("foo")
 	results = obj.link("bucket").run()
@@ -279,20 +279,20 @@ def randint():
 # CALL THE UNIT TESTS
 
 print("Starting Unit Tests\n---\n")
-test(testIsAlive)
-test(testStoreAndGet)
-test(testBinaryStoreAndGet)
-test(testMissingObject)
-test(testDelete)
-test(testSetBucketProperties)
-test(testSiblings)
-test(testJavascriptSourceMap)
+test(test_is_alive)
+test(test_store_and_get)
+test(test_binary_store_and_get)
+test(test_missing_object)
+test(test_delete)
+test(test_set_bucket_properties)
+test(test_siblings)
+test(test_javascript_source_map)
 test(testJavascriptNamedMap)
-test(testJavascriptSourceMapReduce)
-test(testJavascriptNamedMapReduce)
-test(testJavascriptArgMapReduce)
-test(testErlangMapReduce)
-test(testMapReduceFromObject)
-test(testStoreAndGetLinks)
-test(testLinkWalking)
+test(test_javascript_source_mapReduce)
+test(test_javascript_named_map_reduce)
+test(test_javascript_arg_map_reduce)
+test(test_erlang_map_reduce)
+test(test_map_reduce_from_object)
+test(test_store_and_get_links)
+test(test_link_walking)
 test_summary()

@@ -83,23 +83,23 @@ class RiakClient:
                 self._port = port
                 self._prefix = prefix
                 self._mapred_prefix = mapred_prefix
-                self._clientid = 'php_' + base64.b64encode(str(random.randint(1, 1073741824)))
+                self._client_id = 'php_' + base64.b64encode(str(random.randint(1, 1073741824)))
                 self._r = 2
                 self._w = 2
                 self._dw = 2
                 return None
 
-        def getR(self):
+        def get_r(self):
                 """
                 Get the R-value setting for this ClientObject. (default 2)
                 @return integer
                 """
                 return self._r
 
-        def setR(self, r):
+        def set_r(self, r):
                 """
                 Set the R-value for this ClientObject. This value will be used
-                for any calls to get(...) or getBinary(...) where where 1) no
+                for any calls to get(...) or get_binary(...) where where 1) no
                 R-value is specified in the method call and 2) no R-value has
                 been set in the BucketObject.
                 @param integer r - The R value.
@@ -108,16 +108,16 @@ class RiakClient:
                 self._r = r
                 return self
 
-        def getW(self):
+        def get_w(self):
                 """
                 Get the W-value setting for this ClientObject. (default 2)
                 @return integer
                 """
                 return self._w
 
-        def setW(self, w):
+        def set_w(self, w):
                 """
-                Set the W-value for this ClientObject. See setR(...) for a
+                Set the W-value for this ClientObject. See set_r(...) for a
                 description of how these values are used.
                 @param integer w - The W value.
                 @return self
@@ -125,16 +125,16 @@ class RiakClient:
                 self._w = w
                 return self
 
-        def getDW(self):
+        def get_dw(self):
                 """
                 Get the DW-value for this ClientOBject. (default 2)
                 @return integer
                 """
                 return self._dw
         
-        def setDW(self, dw):
+        def set_dw(self, dw):
                 """
-                Set the DW-value for this ClientObject. See setR(...) for a
+                Set the DW-value for this ClientObject. See set_r(...) for a
                 description of how these values are used.
                 @param integer dw - The DW value.
                 @return self
@@ -142,21 +142,21 @@ class RiakClient:
                 self._dw = dw
                 return self
         
-        def getClientID(self):
+        def get_client_id(self):
                 """
-                Get the clientID for this ClientObject.
+                Get the client_id for this ClientObject.
                 @return string
                 """
-                return self._clientid
+                return self._client_id
         
-        def setClientID(self, clientid):
+        def set_client_id(self, client_id):
                 """
-                Set the clientID for this ClientObject. Should not be called
+                Set the client_id for this ClientObject. Should not be called
                 unless you know what you are doing.
-                @param string clientID - The new clientID.
+                @param string client_id - The new client_id.
                 @return self
                 """
-                self._clientid = clientid
+                self._client_id = client_id
                 return self
 
         def bucket(self, name):
@@ -167,12 +167,12 @@ class RiakClient:
                 """
                 return RiakBucket(self, name)
         
-        def isAlive(self):
+        def is_alive(self):
                 """
                 Check if the Riak server for this ClientObject is alive.
                 @return boolean
                 """
-                response = RiakUtils.httpRequest('GET', self._host, self._port, '/ping')
+                response = RiakUtils.http_request('GET', self._host, self._port, '/ping')
                 return(response != None) and (response[1] == 'OK')
         
         def add(self, *args):
@@ -206,7 +206,6 @@ class RiakClient:
                 @see RiakMapReduce.reduce()
                 """
                 mr = RiakMapReduce(self)
-                args = func_get_args()
                 return apply(mr.reduce, args)
         
 class RiakMapReduce:
@@ -247,7 +246,7 @@ class RiakMapReduce:
                         return self.add_bucket_key_data(arg1, arg2, arg3)
                 
         def add_object(self, obj):
-                return self.add_bucket_key_data(obj._bucket._name, obj.key, None)
+                return self.add_bucket_key_data(obj._bucket._name, obj._key, None)
                 
         def add_bucket_key_data(self, bucket, key, data) :
                 if self._input_mode == 'bucket':
@@ -354,7 +353,7 @@ class RiakMapReduce:
                 host = self._client._host
                 port = self._client._port
                 url = "/" + self._client._mapred_prefix
-                response = RiakUtils.httpRequest('POST', host, port, url, {}, content)
+                response = RiakUtils.http_request('POST', host, port, url, {}, content)
                 result = json.loads(response[1])
                 
                 # If the last phase is NOT a link phase, then return the result.
@@ -477,22 +476,22 @@ class RiakLink :
                 """
                 return self._client._bucket(self._bucket).get(self._key, r)
 
-        def getBinary(self, r=None):
+        def get_binary(self, r=None):
                 """
                 Retrieve the RiakObject to which this link points, as a binary.
                 @param integer r - The R-value to use.
                 @return RiakObject
                 """
-                return self._client._bucket(self._bucket).getBinary(self._key, r)
+                return self._client._bucket(self._bucket).get_binary(self._key, r)
 
-        def getBucket(self):
+        def get_bucket(self):
                 """
                 Get the bucket name of this link.
                 @return string
                 """
                 return self._bucket
 
-        def setBucket(self, name):
+        def set_bucket(self, name):
                 """
                 Set the bucket name of this link.
                 @param string name - The bucket name.
@@ -501,14 +500,14 @@ class RiakLink :
                 self._bucket = bucket
                 return self
 
-        def getKey(self):
+        def get_key(self):
                 """
                 Get the key of this link.
                 @return string
                 """
                 return self._key
         
-        def setKey(self, key):
+        def set_key(self, key):
                 """
                 Set the key of this link.
                 @param string key - The key.
@@ -517,7 +516,7 @@ class RiakLink :
                 self._key = key
                 return self
 
-        def getTag(self):
+        def get_tag(self):
                 """
                 Get the tag of this link.
                 @return string
@@ -527,7 +526,7 @@ class RiakLink :
                 else:
                         return self._tag
 
-        def setTag(self, tag):
+        def set_tag(self, tag):
                 """
                 Set the tag of this link.
                 @param string tag - The tag.
@@ -536,7 +535,7 @@ class RiakLink :
                 self._tag = tag
                 return self
 
-        def toLinkHeader(self, client):
+        def to_link_header(self, client):
                 """
                 Convert this RiakLink object to a link header string. Used internally.
                 """
@@ -545,7 +544,7 @@ class RiakLink :
                 link += client._prefix + '/'
                 link += urllib.quote_plus(self._bucket) + '/'
                 link += urllib.quote_plus(self._key) + '>; riaktag="'
-                link += urllib.quote_plus(self.getTag()) + '"'
+                link += urllib.quote_plus(self.get_tag()) + '"'
                 return link
 
         def isEqual(self, link):
@@ -554,7 +553,7 @@ class RiakLink :
                 @param RiakLink link - A RiakLink object.
                 @return boolean
                 """
-                is_equal = (self._bucket == link._bucket) and (self._key == link._key) and (self.getTag() == link.getTag())
+                is_equal = (self._bucket == link._bucket) and (self._key == link._key) and (self.get_tag() == link.get_tag())
                 return is_equal
 
 class RiakBucket :
@@ -573,7 +572,7 @@ class RiakBucket :
                 self._dw = None
                 return None
 
-        def getR(self, r=None):
+        def get_r(self, r=None):
                 """
                 Get the R-value for this bucket, if it is set, otherwise return
                 the R-value for the client.
@@ -583,11 +582,11 @@ class RiakBucket :
                         return r
                 if (self._r != None):
                         return self._r
-                return self._client.getR()
+                return self._client.get_r()
 
-        def setR(self, r):
+        def set_r(self, r):
                 """
-                Set the R-value for this bucket. get(...) and getBinary(...)
+                Set the R-value for this bucket. get(...) and get_binary(...)
                 operations that do not specify an R-value will use this value.
                 @param integer r - The new R-value.
                 @return self
@@ -595,7 +594,7 @@ class RiakBucket :
                 self._r = r
                 return self
                                                          
-        def getW(self, w):
+        def get_w(self, w):
                 """
                 Get the W-value for this bucket, if it is set, otherwise return
                 the W-value for the client.
@@ -605,18 +604,18 @@ class RiakBucket :
                         return w
                 if (self._w != None):
                         return self._w
-                return self._client.getW()
+                return self._client.get_w()
         
-        def setW(self, w):
+        def set_w(self, w):
                 """
-                Set the W-value for this bucket. See setR(...) for more information.
+                Set the W-value for this bucket. See set_r(...) for more information.
                 @param integer w - The new W-value.
                 @return self
                 """
                 self._w = w
                 return self
 
-        def getDW(self, dw):
+        def get_dw(self, dw):
                 """
                 Get the DW-value for this bucket, if it is set, otherwise return
                 the DW-value for the client.
@@ -626,18 +625,18 @@ class RiakBucket :
                         return dw
                 if (self._dw != None):
                         return self._dw
-                return self._client.getDW()
+                return self._client.get_dw()
                                                          
-        def setDW(self, dw):
+        def set_dw(self, dw):
                 """
-                Set the DW-value for this bucket. See setR(...) for more information.
+                Set the DW-value for this bucket. See set_r(...) for more information.
                 @param integer dw - The new DW-value
                 @return self
                 """
                 self._dw = dw
                 return self
                                                          
-        def newObject(self, key, data=None):
+        def new(self, key, data=None):
                 """
                 Create a new Riak object that will be stored as JSON.
                 @param string key - Name of the key.
@@ -645,12 +644,12 @@ class RiakBucket :
                 @return RiakObject
                 """
                 obj = RiakObject(self._client, self, key)
-                obj.setData(data)
-                obj.setContentType('text/json')
+                obj.set_data(data)
+                obj.set_content_type('text/json')
                 obj._jsonize = True
                 return obj
         
-        def newBinary(self, key, data, content_type='text/json'):
+        def new_binary(self, key, data, content_type='text/json'):
                 """
                 Create a new Riak object that will be stored as plain text/binary.
                 @param string key - Name of the key.
@@ -659,8 +658,8 @@ class RiakBucket :
                 @return RiakObject
                 """
                 obj = RiakObject(self._client, self, key)
-                obj.setData(data)
-                obj.setContentType('text/json')
+                obj.set_data(data)
+                obj.set_content_type('text/json')
                 obj._jsonize = False
                 return obj
 
@@ -673,10 +672,10 @@ class RiakBucket :
                 """
                 obj = RiakObject(self._client, self, key)
                 obj._jsonize = True
-                r = self.getR(r)
+                r = self.get_r(r)
                 return obj.reload(r)
 
-        def getBinary(self, key, r=None):
+        def get_binary(self, key, r=None):
                 """
                 Retrieve a binary/string object from Riak.
                 @param string key - Name of the key.
@@ -685,10 +684,10 @@ class RiakBucket :
                 """
                 obj = RiakObject(self._client, self, key)
                 obj._jsonize = False
-                r = self.getR(r)
+                r = self.get_r(r)
                 return obj.reload(r)
 
-        def setNVal(self, nval):
+        def set_n_val(self, nval):
                 """
                 Set the N-value for this bucket, which is the number of replicas
                 that will be written of each object in the bucket. Set this once
@@ -697,54 +696,54 @@ class RiakBucket :
                 only be used if you know what you are doing.
                 @param integer nval - The new N-Val.
                 """
-                return self.setProperty('n_val', nval)
+                return self.set_property('n_val', nval)
 
-        def getNVal(self):
+        def get_n_val(self):
                 """
                 Retrieve the N-value for this bucket.
                 @return integer                                                         
                 """
-                return self.getProperty('n_val')
+                return self.get_property('n_val')
 
-        def setAllowMultiples(self, bool):
+        def set_allow_multiples(self, bool):
                 """
                 If set to True, then writes with conflicting data will be stored
                 and returned to the client. This situation can be detected by
-                calling hasSiblings() and getSiblings(). This should only be used
+                calling has_siblings() and get_siblings(). This should only be used
                 if you know what you are doing.
                 @param boolean bool - True to store and return conflicting writes.                                                         
                 """
-                return self.setProperty('allow_mult', bool)
+                return self.set_property('allow_mult', bool)
 
-        def getAllowMultiples(self):
+        def get_allow_multiples(self):
                 """
                 Retrieve the 'allow multiples' setting.
                 @return Boolean
                 """
-                return self.getProperty('allow_mult') == True
+                return self.get_property('allow_mult') == True
 
-        def setProperty(self, key, value):
+        def set_property(self, key, value):
                 """
                 Set a bucket property. This should only be used if you know what
                 you are doing.
                 @param string key - Property to set.
                 @param mixed value - Property value.                                                         
                 """
-                return self.setProperties({key : value})
+                return self.set_properties({key : value})
 
-        def getProperty(self, key):
+        def get_property(self, key):
                 """
                 Retrieve a bucket property.
                 @param string key - The property to retrieve.
                 @return mixed
                 """
-                props = self.getProperties()
+                props = self.get_properties()
                 if (key in props.keys()):
                         return props[key]
                 else:
                         return None
 
-        def setProperties(self, props):
+        def set_properties(self, props):
                 """
                 Set multiple bucket properties in one call. This should only be
                 used if you know what you are doing.
@@ -752,12 +751,12 @@ class RiakBucket :
                 """
 
                 #Construct the URL, Headers, and Content...
-                host, port, url = RiakUtils.buildRestPath(self._client, self)
+                host, port, url = RiakUtils.build_rest_path(self._client, self)
                 headers = {'Content-Type' : 'application/json'}
                 content = json.dumps({'props' : props})
 	
                 #Run the request...
-                response = RiakUtils.httpRequest('PUT', host, port, url, headers, content)
+                response = RiakUtils.http_request('PUT', host, port, url, headers, content)
 
                 # Handle the response...
                 if (response == None):
@@ -768,7 +767,7 @@ class RiakBucket :
                 if (status != 204):
                         raise Exception('Error setting bucket properties.')
 
-        def getProperties(self):
+        def get_properties(self):
                 """
                 Retrieve an associative array of all bucket properties.
                 @return Array		
@@ -776,8 +775,8 @@ class RiakBucket :
                 
                 # Run the request...
                 params = {'props' : 'True', 'keys' : 'False'}
-                host, port, url = RiakUtils.buildRestPath(self._client, self, None, None, params)
-                response = RiakUtils.httpRequest('GET', host, port, url)
+                host, port, url = RiakUtils.build_rest_path(self._client, self, None, None, params)
+                response = RiakUtils.http_request('GET', host, port, url)
                 
                 # Use a RiakObject to interpret the response, we are just interested in the value.
                 obj = RiakObject(self._client, self, None)
@@ -785,7 +784,7 @@ class RiakBucket :
                 if (not obj.exists()):
                         raise Exception('Error getting bucket properties.')
 
-                props = obj.getData()
+                props = obj.get_data()
                 props = props['props']
                 return props
 
@@ -814,20 +813,20 @@ class RiakObject :
                 self._exists = False
                 return None
 
-        def getData(self):
+        def get_data(self):
                 """
                 Get the data stored in this object. Will return a associative
-                array, unless the object was constructed with newBinary(...) or
-                getBinary(...), in which case this will return a string.
+                array, unless the object was constructed with new_binary(...) or
+                get_binary(...), in which case this will return a string.
                 @return array or string		
                 """
                 return self._data
         
-        def setData(self, data):
+        def set_data(self, data):
                 """
                 Set the data stored in this object. This data will be
                 JSON encoded unless the object was constructed with
-                newBinary(...) or getBinary(...).
+                new_binary(...) or get_binary(...).
                 @param mixed data - The data to store.
                 @return data		
                 """
@@ -844,20 +843,20 @@ class RiakObject :
         def exists(self):
                 """
                 Return True if the object exists, False otherwise. Allows you to
-                detect a get(...) or getBinary(...) operation where the object is missing.
+                detect a get(...) or get_binary(...) operation where the object is missing.
                 @return boolean
                 """
                 return self._exists
         
-        def getContentType(self):
+        def get_content_type(self):
                 """
                 Get the content type of this object. This is either text/json, or
-                the provided content type if the object was created via newBinary(...).
+                the provided content type if the object was created via new_binary(...).
                 @return string
                 """
                 return self._headers['content-type']
         
-        def setContentType(self, content_type):
+        def set_content_type(self, content_type):
                 """
                 Set the content type of this object.
                 @param string content_type - The new content type.
@@ -866,7 +865,7 @@ class RiakObject :
                 self._headers['content-type'] = content_type
                 return self
         
-        def addLink(self, obj, tag=None):
+        def add_link(self, obj, tag=None):
                 """
                 Add a link to a RiakObject.
                 @param mixed obj - Either a RiakObject or a RiakLink object.
@@ -879,11 +878,11 @@ class RiakObject :
                 else:
                         newlink = RiakLink(obj._bucket._name, obj._key, tag)
                         
-                self.removeLink(newlink)
+                self.remove_link(newlink)
                 self._links.append(newlink)
                 return self
                 
-        def removeLink(self, obj, tag=None):
+        def remove_link(self, obj, tag=None):
                 """
                 Remove a link to a RiakObject.
                 @param mixed obj - Either a RiakObject or a RiakLink object.
@@ -896,7 +895,7 @@ class RiakObject :
                 if isinstance(obj, RiakLink):
                         oldlink = obj
                 else:
-                        oldlink = RiakLink(obj._bucket._name, obj.key, tag)
+                        oldlink = RiakLink(obj._bucket._name, obj._key, tag)
                         
                 a = []
                 for link in self._links:
@@ -906,7 +905,7 @@ class RiakObject :
                 self._links = a
                 return self
 
-        def getLinks(self):
+        def get_links(self):
                 """
                 Return an array of RiakLink objects.
                 @return array()		
@@ -929,17 +928,17 @@ class RiakObject :
                 @return self		
                 """
                 # Use defaults if not specified...
-                w = self._bucket.getW(w)
-                dw = self._bucket.getDW(w)
+                w = self._bucket.get_w(w)
+                dw = self._bucket.get_dw(w)
                 
                 # Construct the URL...
                 params = {'returnbody' : 'true', 'w' : w, 'dw' : dw}
-                host, port, url = RiakUtils.buildRestPath(self._client, self._bucket, self._key, None, params)
+                host, port, url = RiakUtils.build_rest_path(self._client, self._bucket, self._key, None, params)
                 
                 # Construct the headers...
                 headers = {'Accept' : 'text/plain, */*; q=0.5',
-                           'Content-Type' : self.getContentType(),
-                           'X-Riak-ClientId' : self._client.getClientID()}
+                           'Content-Type' : self.get_content_type(),
+                           'X-Riak-ClientId' : self._client.get_client_id()}
                 
                 # Add the vclock if it exists...
                 if (self.vclock() != None):
@@ -949,15 +948,15 @@ class RiakObject :
                 headers['Link'] = ''
                 for link in self._links:
                         if headers['Link'] != '': headers['Link'] += ', '
-                        headers['Link'] += link.toLinkHeader(self._client)
+                        headers['Link'] += link.to_link_header(self._client)
                         
                 if (self._jsonize):
-                        content = json.dumps(self.getData())
+                        content = json.dumps(self.get_data())
                 else:
-                        content = self.getData()
+                        content = self.get_data()
                 
                 # Run the operation.
-                response = RiakUtils.httpRequest('PUT', host, port, url, headers, content)
+                response = RiakUtils.http_request('PUT', host, port, url, headers, content)
                 self.populate(response, [200, 300])
                 return self
 
@@ -971,16 +970,16 @@ class RiakObject :
                 @return self		
                 """
                 # Do the request...
-                r = self._bucket.getR(r)
+                r = self._bucket.get_r(r)
                 params = {'r' : r}
-                host, port, url = RiakUtils.buildRestPath(self._client, self._bucket, self._key, None, params)
-                response = RiakUtils.httpRequest('GET', host, port, url)
+                host, port, url = RiakUtils.build_rest_path(self._client, self._bucket, self._key, None, params)
+                response = RiakUtils.http_request('GET', host, port, url)
                 self.populate(response, [200, 300, 404])
                                 
                 # If there are siblings, load the data for the first one by default...
-                if (self.hasSiblings()):
-                        obj = self.getSibling(0)
-                        self.setData(obj.getData())
+                if (self.has_siblings()):
+                        obj = self.get_sibling(0)
+                        self.set_data(obj.get_data())
                         
                 return self
 
@@ -992,14 +991,14 @@ class RiakObject :
                 @return self		
                 """
                 # Use defaults if not specified...
-                dw = self._bucket.getDW(dw)
+                dw = self._bucket.get_dw(dw)
                 
                 # Construct the URL...
                 params = {'dw' : dw}
-                host, port, url = RiakUtils.buildRestPath(self._client, self._bucket, self._key, None, params)
+                host, port, url = RiakUtils.build_rest_path(self._client, self._bucket, self._key, None, params)
                 
                 # Run the operation...
-                response = RiakUtils.httpRequest('DELETE', host, port, url)
+                response = RiakUtils.http_request('DELETE', host, port, url)
                 self.populate(response, [204, 404])
                 return self
                         
@@ -1027,7 +1026,7 @@ class RiakObject :
 
         def populate(self, response, expected_statuses):
                 """
-                Given the output of RiakUtils.httpRequest and a list of
+                Given the output of RiakUtils.http_request and a list of
                 statuses, populate the object. Only for use by the Riak client
                 library.
                 @return self		
@@ -1045,7 +1044,7 @@ class RiakObject :
                                 
                 # Check if the server is down(status==0)
                 if (status == 0):
-                        m = 'Could not contact Riak Server: http://' + self._client._host + ':' + self(self._client._port) + '!'
+                        m = 'Could not contact Riak Server: http://' + self._client._host + ':' + str(self._client._port) + '!'
                         raise Exception(m)
 
                 # Verify that we got one of the expected statuses. Otherwise, raise an exception.
@@ -1063,7 +1062,7 @@ class RiakObject :
 	
                 # Parse the link header...
                 if ('link' in self._headers.keys()):
-                        self.populateLinks(self._headers['link'])
+                        self.populate_links(self._headers['link'])
 
                 # If 300(Siblings), then load the first sibling, and
                 # store the rest.
@@ -1082,7 +1081,7 @@ class RiakObject :
         
                 return self
 
-        def populateLinks(self, linkHeaders) :
+        def populate_links(self, linkHeaders) :
                 """
                 Private.
                 @return self		
@@ -1095,21 +1094,21 @@ class RiakObject :
                                 self._links.append(link)
                 return self
 
-        def hasSiblings(self):
+        def has_siblings(self):
                 """
                 Return True if this object has siblings.
                 @return boolean
                 """
-                return(self.getSiblingCount() > 0)
+                return(self.get_sibling_count() > 0)
         
-        def getSiblingCount(self):
+        def get_sibling_count(self):
                 """
                 Get the number of siblings that this object contains.
                 @return integer		
                 """
                 return len(self._siblings)
         
-        def getSibling(self, i, r=None):
+        def get_sibling(self, i, r=None):
                 """
                 Retrieve a sibling by sibling number.
                 @param  integer i - Sibling number.
@@ -1118,20 +1117,21 @@ class RiakObject :
                 @return RiakObject.		
                 """
                 # Use defaults if not specified.
-                r = self._bucket.getR(r)
+                r = self._bucket.get_r(r)
                 
                 # Run the request...
                 vtag = self._siblings[i]
                 params = {'r' : r, 'vtag' : vtag}
-                host, port, url = RiakUtils.buildRestPath(self._client, self._bucket, self._key, None, params)
-                response = RiakUtils.httpRequest('GET', host, port, url)
+                host, port, url = RiakUtils.build_rest_path(self._client, self._bucket, self._key, None, params)
+                response = RiakUtils.http_request('GET', host, port, url)
                 
                 # Respond with a new object...
                 obj = RiakObject(self._client, self._bucket, self._key)
+                obj._jsonize = self._jsonize
                 obj.populate(response, [200])
                 return obj
 
-        def getSiblings(self, r=None):
+        def get_siblings(self, r=None):
                 """
                 Retrieve an array of siblings.
                 @param integer r - R-Value. Wait until this many partitions have
@@ -1139,8 +1139,8 @@ class RiakObject :
                 @return array of RiakObject		
                 """
                 a = []
-                for i in range(self.getSiblingCount()):
-                        a.append(self.getSibling(i, r))
+                for i in range(self.get_sibling_count()):
+                        a.append(self.get_sibling(i, r))
                 return a
                 
         def add(self, *args):
@@ -1196,7 +1196,7 @@ class RiakUtils :
                         return defaultValue
 		
         @classmethod
-        def buildRestPath(self, client, bucket, key=None, spec=None, params=None) :
+        def build_rest_path(self, client, bucket, key=None, spec=None, params=None) :
                 """
                 Given a ClientObject, BucketObject, Key, LinkSpec, and Params,
                 construct and return a URL.		
@@ -1222,20 +1222,20 @@ class RiakUtils :
                 return client._host, client._port, path
 
         @classmethod
-        def httpRequest(self, method, host, port, url, headers = {}, obj = '') :
+        def http_request(self, method, host, port, url, headers = {}, obj = '') :
                 """
                 Given a Method, URL, Headers, and Body, perform and HTTP request,
                 and return an array of arity 2 containing an associative array of
                 response headers and the response body.
                 """
                 if HAS_PYCURL:
-                        return self.pycurlRequest(method, host, port, url, headers, obj)
+                        return self.pycurl_request(method, host, port, url, headers, obj)
                 else:
-                        return self.httplibRequest(method, host, port, url, headers, obj)
+                        return self.httplib_request(method, host, port, url, headers, obj)
 
 
         @classmethod
-        def httplibRequest(self, method, host, port, uri, headers={}, body=''):
+        def httplib_request(self, method, host, port, uri, headers={}, body=''):
                 # Run the request...
                 client = None
                 response = None
@@ -1262,7 +1262,7 @@ class RiakUtils :
 
         
         @classmethod
-        def pycurlRequest(self, method, host, port, uri, headers={}, body=''):
+        def pycurl_request(self, method, host, port, uri, headers={}, body=''):
                 url = "http://" + host + ":" + str(port) + uri
                 # Set up Curl...
                 client = pycurl.Curl()
@@ -1294,7 +1294,7 @@ class RiakUtils :
                         client.close()
                         
                         # Get the headers...
-                        response_headers = self.parseHttpHeaders(response_headers_io.getvalue())
+                        response_headers = self.parse_http_headers(response_headers_io.getvalue())
                         response_headers['http_code'] = http_code
                         
                         # Get the body...
@@ -1313,7 +1313,7 @@ class RiakUtils :
                 return headers1
 
         @classmethod
-        def parseHttpHeaders(self, headers) :
+        def parse_http_headers(self, headers) :
                 """
                 Parse an HTTP Header string into an asssociative array of
                 response headers.		
