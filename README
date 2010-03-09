@@ -1,7 +1,7 @@
                            Welcome to Riak.
                            ================
 
-Date: 2010-03-03 11:40:28 EST
+Date: 2010-03-09 15:01:47 EST
 
 
 
@@ -52,9 +52,9 @@ Table of Contents
    Assuming you have a working Erlang (R13B03 or later) installation,
    building Riak should be as simple as:
 
-
   $ cd $RIAK
-  $ make all rel
+  $ make rel
+
 
 2.2 Starting Riak 
 ==================
@@ -62,9 +62,9 @@ Table of Contents
    Once you have successfully built Riak, you can start the server with the
    following commands:
 
-
   $ cd $RIAK/rel/riak
   $ bin/riak start
+
 
    Now, verify that the server started up cleanly and is working:
 
@@ -80,33 +80,32 @@ Table of Contents
    Now that you have a functional server, let's try storing some data in
    it. First, start up a erlang node using our embedded version of erlang:
 
-
-  $ erts-<vsn>/bin/erl -name riaktest -setcookie riak
+  $ erts-<vsn>/bin/erl -name riaktest@127.0.0.1 -setcookie riak
   
   Eshell V5.7.4  (abort with ^G)
-  (riaktest@example.com)1>
+  (riaktest@127.0.0.1)1>
+
 
    Now construct the node name of Riak server and make sure we can talk to it:
 
-
-  (riaktest@example.com)4> RiakNode = riak_util:str_to_node(riak).
+  (riaktest@127.0.0.1)4> RiakNode = 'riak@127.0.0.1'.
   
-  (riaktest@example.com)2> net_adm:ping(RiakNode).
+  (riaktest@127.0.0.1)2> net_adm:ping(RiakNode).
   pong
-  (riaktest@example.com)2>
+  (riaktest@127.0.0.1)2>
+
    
    We are now ready to start the Riak client:
 
+  (riaktest@127.0.0.1)2> {ok, C} = riak:client_connect(RiakNode).
+  {ok,{riak_client,'riak@127.0.0.1',4,136,81,151}}
 
-  (riaktest@example.com)2> {ok, C} = riak:client_connect(RiakNode).
-  {ok,{riak_client,'riak@example.com',<<4,136,81,151>>}}
 
    Let's create a shopping list for bread at /groceries/mine:
 
-
-  (riaktest@example.com)6> O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
-  O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
-  {r_object,<<"groceries">>,<<"mine">>,
+  (riaktest@127.0.0.1)6> O0 = riak_object:new("groceries", "mine", ["bread"]).
+  O0 = riak_object:new("groceries", "mine", ["bread"]).
+  {r_object,"groceries","mine",
          [{r_content,{dict,0,16,16,8,80,48,
                            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                            {{[],[],[],[],[],[],[],[],[],[],[],[],...}}},
@@ -117,58 +116,59 @@ Table of Contents
                {{[],[],[],[],[],[],[],[],[],[],[],[],[],...}}},
          undefined}
   
-   (riaktest@example.com)3> C:put(O0, 1).
+   (riaktest@127.0.0.1)3> C:put(O0, 1).
+
     
     Now, read the list back from the Riak server and extract the value
 
-
-  (riaktest@example.com)4> {ok, O1} = C:get(<<"groceries">>, <<"mine">>, 1).
-  {ok,{r_object,<<"groceries">>,<<"mine">>,
+  (riaktest@127.0.0.1)4> {ok, O1} = C:get("groceries", "mine", 1).
+  {ok,{r_object,"groceries","mine",
             [{r_content,{dict,2,16,16,8,80,48,
                               {[],[],[],[],[],[],[],[],[],[],[],[],...},
                               {{[],[],[],[],[],[],
                                 ["X-Riak-Last-Modified",87|...],
                                 [],[],[],...}}},
                         ["bread"]}],
-            [{"20090722191020-riaktest@example.com-riakdemo@example.com-266664",
+            [{"20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664",
               {1,63415509105}}],
             {dict,0,16,16,8,80,48,
                   {[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                   {{[],[],[],[],[],[],[],[],[],[],[],...}}},
             undefined}}
   
-   (riaktest@example.com)5> %% extract the value
-   (riaktest@example.com)5> V = riak_object:get_value(O1).
+   (riaktest@127.0.0.1)5> %% extract the value
+   (riaktest@127.0.0.1)5> V = riak_object:get_value(O1).
    ["bread"]
+
 
      Add milk to our list of groceries and write the new value to Riak:
 
-
-  (riaktest@example.com)6> %% add milk to the list
-  (riaktest@example.com)6> O2 = riak_object:update_value(O1, ["milk" | V]).
-  {r_object,<<"groceries">>,<<"mine">>,
+  (riaktest@127.0.0.1)6> %% add milk to the list
+  (riaktest@127.0.0.1)6> O2 = riak_object:update_value(O1, ["milk" | V]).
+  {r_object,"groceries","mine",
        [{r_content,{dict,2,16,16,8,80,48,
                          {[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
                          {{[],[],[],[],[],[],
                            ["X-Riak-Last-Modified",87,101,100|...],
                            [],[],[],[],[],...}}},
                    ["bread"]}],
-       [{"20090722191020-riaktest@example.com-riakdemo@example.com-266664",
+       [{"20090722191020-riaktest@127.0.0.1-riakdemo@127.0.0.1-266664",
          {1,63415509105}}],
        {dict,0,16,16,8,80,48,
              {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],...},
              {{[],[],[],[],[],[],[],[],[],[],[],[],[],...}}},
        ["milk","bread"]}
   
-  (riaktest@example.com)7> %% store the new list
-  (riaktest@example.com)7> C:put(O2, 1).
+  (riaktest@127.0.0.1)7> %% store the new list
+  (riaktest@127.0.0.1)7> C:put(O2, 1).
   ok
+
 
      Finally, see what other keys are available in groceries bucket:
 
+  (riaktest@127.0.0.1)8> C:list_keys("groceries").
+  {ok,["mine"]}
 
-  (riaktest@example.com)8> C:list_keys(<<"groceries">>).
-  {ok,[<<"mine">>]}
 
 
 3 Server Management 
@@ -218,7 +218,7 @@ Table of Contents
 
     Or if you are attached/on the Erlang console:
 
-    (riak@example.com)1> q().
+    (riak@127.0.0.1)1> q().
 
     You can determine if the server is running by:
 
@@ -227,19 +227,42 @@ Table of Contents
 3.2.2 bin/riak-admin 
 ---------------------
     This script provides access to general administration of the Riak server. 
+    The below commands assume you are running a default configuration for 
+    parameters such as cookie.
 
     To join a new Riak node to an existing cluster:
-
 
   $ bin/riak start # If a local server is not already running
   $ bin/riak-admin join <node in cluster>
 
+
     (Note that you must have a local node already running for this to work)
     
     To verify that the local Riak node is able to read/write data:
-
     $ bin/riak-admin test
 
+    To backup a node or cluster run the following:
+    $ bin/riak-admin backup riak@X.X.X.X riak <directory/backup_file> node
+    $ bin/riak-admin backup riak@X.X.X.X riak <directory/backup_file> all
+    
+    Restores can function in two ways, if the backup file was of a node the 
+    node will be restored and if the backup file contains the data for a 
+    cluster all nodes in the cluster will be restored.
+    
+    To restore from a backup file:
+    $ riak-admin restore riak@X.X.X.X riak <directory/backup_file>
+    
+    To view the logs of from a node:
+    $ bin/riak-admin logger riak@X.X.X.X riak
+    
+    If you would like to save the log to a file:
+    $ bin/riak-admin logger riak@X.X.X.X riak <filename>
+    
+    To view the status of a node:
+    $ bin/riak-admin status
+    
+    If you change the IP or node name you will need to use the reip command:
+    $ bin/riak-admin reip <old_nodename> <new_nodename>
     
     
      
