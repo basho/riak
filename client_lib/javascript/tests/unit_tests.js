@@ -1,5 +1,6 @@
 var TEST_BUCKET = "basho_test";
 var MR_TEST_BUCKET = 'mr_test';
+var SIBLING_BUCKET = 'basho_sibs';
 
 var currentClient = null;
 
@@ -23,6 +24,11 @@ function setupClient() {
 function setupBucket(test) {
   setupClient();
   currentClient.bucket(TEST_BUCKET, test);
+}
+
+function setupSiblingBucket(test) {
+  setupClient();
+  currentClient.bucket(SIBLING_BUCKET, test);
 }
 
 function setupObject(createIfMissing, test) {
@@ -64,6 +70,8 @@ function createMissingObject() {
 function storeMissingObject() {
   stop();
   setupObject(true, function(status, object, req) {
+		object.body = "testing";
+		object.contentType = "text/plain";
 		object.store(function(status, object, req) {
 			       ok(status === 'ok', "'ok' status for object save");
 			       ok(object !== null, "Object saved");
@@ -75,7 +83,6 @@ function storeMissingObject() {
 function updateObject() {
   stop();
   setupBucket(function(bucket, req) {
-		bucket.allowsMultiples(true);
 		bucket.store(function(nb, req) {
 			       nb.get_or_new('td1', function(status, obj, req) {
 					       ok(obj !== null, "Object saved");
@@ -91,33 +98,37 @@ function updateObject() {
 
 function deleteObject() {
   stop();
-  storeObject(function(status, obj, req) {
+  setupObject(false, function(status, obj, req) {
+		equals(status, "ok", "Object retrieved");
 		obj.remove(function(flag, req) {
-			     ok(flag === true, "Object deleted");
+			     equals(flag, true, "Object deleted");
 			     start(); } ); } );
 };
 
 function resolveSiblings() {
   stop();
-  setupObject(true, function(status, object, req) {
-		ok(status === 'ok', "'ok' status for object creation");
-		object.contentType = 'text/plain';
-		object.body = 'Hello';
-		object.store(function(status, newObject, req) {
-			       ok(status === 'ok', "'ok' status for object store");
-			       object.vclock = null;
-			       object.body = 'Goodbye';
-			       object.store(function(status, siblings, req) {
-					      ok(status === 'siblings', "Status reflects sibling creation");
-					      equals(siblings.length, 2, "2 siblings found");
-					      siblings[0].store(function(status, finalObj, req) {
-								  ok(status === 'ok', 'Final sibling stored');
-								  equals(finalObj.body, siblings[0].body, "Correct sibling stored");
-								  finalObj.client.bucket(TEST_BUCKET, function(bucket, req) {
-											   bucket.allowsMultiples(false);
-											   bucket.store();
-											   start(); } ); } ); } ); } ); } );
-}
+  setupSiblingBucket(function(bucket, req) {
+		bucket.allowsMultiples(true);
+		bucket.store(function(newBucket, req) {
+			       newBucket.get_or_new('td10', function(status, object, req) {
+						      ok(status === 'ok', "'ok' status for object creation");
+						      object.contentType = 'text/plain';
+						      object.body = 'Hello';
+						      object.store(function(status, newObject, req) {
+								     ok(status === 'ok', "'ok' status for object store");
+								     object.vclock = null;
+								     object.body = 'Goodbye';
+								     object.store(function(status, siblings, req) {
+										    ok(status === 'siblings', "Status reflects sibling creation");
+										    equals(siblings.length, 2, "2 siblings found");
+										    siblings[0].store(function(status, finalObj, req) {
+													ok(status === 'ok', 'Final sibling stored');
+													equals(finalObj.body, siblings[0].body, "Correct sibling stored");
+													finalObj.client.bucket(TEST_BUCKET, function(bucket, req) {
+																 bucket.allowsMultiples(false);
+																 bucket.store();
+																 start(); } ); } ); } ); } ); } ); } ); } );
+};
 
 function storeLink() {
   stop();
@@ -163,10 +174,11 @@ function updateNValue() {
   stop();
   setupBucket(function(bucket, req) {
 		var old = bucket.nValue();
-		bucket.nValue(bucket.nValue() + 1);
+		var newValue = old + 1;
+		bucket.nValue(newValue);
 		bucket.store(function(nb, req) {
-			       equals(nb.nValue(), 4, "N-Value updated");
-		               nb.nValue(nb.nValue() - 1);
+			       equals(nb.nValue(), newValue, "N-Value updated");
+		               nb.nValue(old);
 		               nb.store(function(b, req) {
 					  equals(b.nValue(), old);
 					  start(); } ); } ); } );
@@ -175,9 +187,11 @@ function updateNValue() {
 function updateAllowMult() {
   stop();
   setupBucket(function(bucket, req) {
-		bucket.allowsMultiples(true);
+		var old = bucket.allowsMultiples();
+		var newValue = !old;
+		bucket.allowsMultiples(newValue);
 		bucket.store(function(nb, req) {
-			       equals(nb.allowsMultiples(), true, "allowsMultiples updated");
+			       equals(nb.allowsMultiples(), newValue, "allowsMultiples updated");
 			       nb.allowsMultiples(false);
 			       nb.store(function(b, req) {
 					  equals(b.allowsMultiples(), false, "allowsMultiples reset to default");
@@ -279,8 +293,8 @@ function runTests() {
   test("Store", 3, storeMissingObject);
   test("Create", 2, createMissingObject);
   test("Update", 4, updateObject);
-  test("Delete", 1, deleteObject);
   test("Siblings", resolveSiblings);
+  test("Delete", 2, deleteObject);
 
   module("Links");
   test("Create", 2, createMissingObject);

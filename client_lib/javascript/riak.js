@@ -432,7 +432,7 @@ RiakObject.prototype.remove = function(callback) {
   jQuery.ajax({url: this.client._buildPath('DELETE', this.bucket, this.key),
 	       type: 'DELETE',
 	       beforeSend: function(req) { req.setRequestHeader('X-Riak-ClientId', object.client.clientId);
-					   req.setRequestHeader('Accept', 'multipart/mixed');
+					   req.setRequestHeader('Accept', 'multipart/mixed,*/*');
 					   if (object.vclock !== undefined && object.vclock !== null) {
 					     req.setRequestHeader('X-Riak-Vclock', object.vclock);
 					   }
@@ -483,7 +483,7 @@ RiakObject.prototype.store = function(callback) {
 	  contentType: this.contentType,
 	  dataType: 'text',
 	  beforeSend: function(req) { req.setRequestHeader('X-Riak-ClientId', object.client.clientId);
-				      req.setRequestHeader('Accept', 'multipart/mixed');
+				      req.setRequestHeader('Accept', 'multipart/mixed,*/*');
 				      if (object.vclock !== undefined && object.vclock !== null) {
 					req.setRequestHeader('X-Riak-Vclock', object.vclock);
 				      }
@@ -693,7 +693,7 @@ RiakBucket.prototype._handleGetObject = function(key, req, callback, createEmpty
     return;
   }
   var object = null;
-  if (callback !== null) {
+  if (callback !== null && callback !== undefined) {
     if (req.status == 200) {
       object = RiakObject.fromRequest(this.name, key, this.client, req);
     }
