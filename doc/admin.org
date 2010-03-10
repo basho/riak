@@ -28,7 +28,7 @@
     innostore at http://hg.basho.com/innostore/.
 
     Currently Riak is offered in binary form for rpm and deb based
-    Linux systems.
+    Linux systems and as a compiled tarball for OS X.
 
 *** RPM Based Linux Distributions
     
@@ -49,6 +49,13 @@
    binaries in deb format here:
    32bit: http://downloads.basho.com/riak_0.9.0-1_i386.deb
    64bit: http://downloads.basho.com/riak_0.9.0-1_amd64.deb
+
+*** Mac OS X
+
+  Riak can be downloaded and ran from a precompiled tarball for OS X.
+  The download is only available for 64bit based OS X installs. Riak
+  can be downloaded in this format here:
+  64bit:  http://downloads.basho.com/riak_0.9.0.osx.tar.gz
 
 ** Source Releases
 *** Prerequisites
