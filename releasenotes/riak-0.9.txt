@@ -1,0 +1,52 @@
+----------------------
+Riak 0.9 Release Notes
+----------------------
+
+Riak 0.9 deprecates the "Jiak" interface.  The HTTP interface will now
+be managed fully through the raw_http_resource.  In line with making
+this the official interface, the default base URL has moved from
+"/raw" to "/riak".
+
+New client libraries for several languages are included in the
+client_lib directory.  These libraries include support for advanced
+features like sibling object versions and map/reduce.
+
+The build system has been greatly improved:
+  - 32/64-bit, and other system properties, are now properly detected
+  - developers: "rel/data" is no longer copied during "make dev"
+  - developers: repeated runs of "make" should behave better
+
+Map/reduce handling has seen some reworking:
+  - processing flows are now more cleanly described, thanks to the new
+    'luke' aplication
+  - reduce phases can now be computed in parallel
+  - better bubbling of errors encountered during phase execution
+  - ability to specify timeout in HTTP request
+  - ability to end an HTTP map/reduce query with a 'link' phase
+  - ability to use a Javascript 'reduce' phase immediately after a
+    'link' phase
+  - lists of lists returned from map/reduce phases are now preserved
+    as such, instead of being flattened
+  - better character-set protection (client-visible errors for
+    non-Unicode data)
+
+Riak 0.9 also includes a number of minor improvements and bug fixes:
+  - Webmachine 1.6
+    - better handling of pipelined requests
+    - proper 100 Continue format
+  - man pages for the riak and riak-admin scripts are included in the
+    doc/man directory
+  - validity checking for some bucket-property HTTP requests
+  - better handling of vnode errors during read requests
+  - initial POST to /Bucket/Key now works just like initial PUT,
+    instead of returning 404
+  - better handling of whitespace in Link headers
+  - the 'match anything' link URL "_,_,_" is now supported
+  - add 'total' get/put stats to riak_stat
+  - more unit test coverage
+  - fix fold/3 in riak_ets_backend
+  - case-insensitivity for X-Riak-Meta-* headers (Thanks, Jonathan.)
+  - removal of bogus "unable to read *.ez" errors on startup
+  - fixed a bug around using the "charset" parameter in the
+    content-type header
+  - fixed a bug around changing the content-type of an object
