@@ -4,7 +4,7 @@
 <head>
 
 <meta name="generator" content="PHPDoctor 2RC4 (http://phpdoctor.sourceforge.net/)">
-<meta name="when" content="Fri, 05 Mar 2010 15:26:37 -0500">
+<meta name="when" content="Wed, 10 Mar 2010 17:01:22 -0500">
 
 <link rel="stylesheet" type="text/css" href="../stylesheet.css">
 <link rel="start" href="../overview-summary.html">
@@ -37,7 +37,7 @@ Detail: <a href="#detail_field">Field</a> | <a href="#detail_method">Method</a> 
 <hr>
 
 <div class="qualifiedName">RiakUtils.RiakUtils</div>
-<div class="location">/riak.php at line 1282</div>
+<div class="location">/riak.php at line 1307</div>
 
 <h1>Class RiakUtils</h1>
 
@@ -55,7 +55,7 @@ Detail: <a href="#detail_field">Field</a> | <a href="#detail_method">Method</a> 
 <tr><th colspan="2">Method Summary</th></tr>
 <tr>
 <td class="type">static  void</td>
-<td class="description"><p class="name"><a href="#buildRestPath()">buildRestPath</a>(mixed client, mixed bucket, mixed key, mixed spec, mixed params)</p><p class="description">Given a ClientObject, BucketObject, Key, LinkSpec, and Params,
+<td class="description"><p class="name"><a href="#buildRestPath()">buildRestPath</a>(mixed client, mixed bucket, mixed key, mixed spec, mixed params)</p><p class="description">Given a RiakClient, RiakBucket, Key, LinkSpec, and Params,
 construct and return a URL.</p></td>
 </tr>
 <tr>
@@ -76,16 +76,16 @@ response headers.</p></td>
 </table>
 
 <h2 id="detail_method">Method Detail</h2>
-<div class="location">/riak.php at line 1296</div>
+<div class="location">/riak.php at line 1321</div>
 <h3 id="buildRestPath()">buildRestPath</h3>
 <code class="signature">public static  void <strong>buildRestPath</strong>(mixed client, mixed bucket, mixed key, mixed spec, mixed params)</code>
 <div class="details">
-<p>Given a ClientObject, BucketObject, Key, LinkSpec, and Params,
+<p>Given a RiakClient, RiakBucket, Key, LinkSpec, and Params,
 construct and return a URL.</p></div>
 
 <hr>
 
-<div class="location">/riak.php at line 1284</div>
+<div class="location">/riak.php at line 1309</div>
 <h3 id="get_value()">get_value</h3>
 <code class="signature">public static  void <strong>get_value</strong>(mixed key, mixed array, mixed defaultValue)</code>
 <div class="details">
@@ -93,7 +93,7 @@ construct and return a URL.</p></div>
 
 <hr>
 
-<div class="location">/riak.php at line 1337</div>
+<div class="location">/riak.php at line 1362</div>
 <h3 id="httpRequest()">httpRequest</h3>
 <code class="signature">public static  void <strong>httpRequest</strong>(mixed method, mixed url, mixed request_headers)</code>
 <div class="details">
@@ -103,7 +103,7 @@ response headers and the response body.</p></div>
 
 <hr>
 
-<div class="location">/riak.php at line 1391</div>
+<div class="location">/riak.php at line 1417</div>
 <h3 id="parseHttpHeaders()">parseHttpHeaders</h3>
 <code class="signature">public static  void <strong>parseHttpHeaders</strong>(mixed headers)</code>
 <div class="details">
