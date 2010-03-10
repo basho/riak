@@ -34,7 +34,7 @@ verify_results(FlowId, none) ->
     receive
         {flow_results, FlowId, done} ->
             throw({error, unexpected_done});
-        {flow_results, FlowId, Results} ->
+        {flow_results, _PhaseId, FlowId, Results} ->
             throw({error, unexpected_results, Results})
     after 100 ->
             ok
@@ -43,7 +43,7 @@ verify_results(FlowId, results) ->
     receive
         {flow_results, FlowId, done} ->
             throw({error, unexpected_done});
-        {flow_results, FlowId, Results} ->
+        {flow_results, _PhaseId, FlowId, Results} ->
             {ok, Results}
     after 100 ->
             throw({error, no_results})
@@ -52,7 +52,7 @@ verify_results(FlowId, done) ->
     receive
         {flow_results, FlowId, done} ->
             ok;
-        {flow_results, FlowId, Results} ->
+        {flow_results, _PhaseId, FlowId, Results} ->
             throw({error, unexpected_results, Results})
     after 100 ->
             throw({error, no_results})

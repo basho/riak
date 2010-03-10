@@ -131,8 +131,8 @@ stream_mapred_results(RD, ReqId, #state{timeout=Timeout}=State) ->
             {format_error(Error), done};
         {flow_error, ReqId, Error} ->
             {format_error({error, Error}), done};
-        {flow_results, ReqId, Res} ->
-            Data = mochijson2:encode(Res),
+        {flow_results, PhaseId, ReqId, Res} ->
+            Data = mochijson2:encode({struct, [{phase, PhaseId}, {data, Res}]}),
             Body = ["\n--", State#state.boundary, "\n",
                     "Content-Type: application/json\n\n",
                     Data],

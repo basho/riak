@@ -15,6 +15,11 @@
 -define(TWO_PHASE_FLOW, [{simple_phase, [], []},
                          {simple_phase, [accumulate], []}]).
 
+-define(THREE_PHASE_NESTED_FLOW, [{nested_phase, [accumulate], []},
+                                  {simple_phase, [accumulate], []},
+                                  {simple_phase, [accumulate], []}]).
+
+
 -define(TWO_ASYNC_FLOW, [{async_phase, [], []},
                          {async_phase, [accumulate], []}]).
 
