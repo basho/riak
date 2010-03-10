@@ -25,6 +25,8 @@ def test_store_and_get():
 	obj.store()
 	obj = bucket.get('foo')
 	assert(obj.exists())
+        assert(obj.get_bucket().get_name() == 'bucket')
+        assert(obj.get_key() == 'foo')
 	assert(obj.get_data() == rand)
 
 def test_binary_store_and_get():

@@ -56,7 +56,7 @@ class RiakClient {
   }
 
   /**
-   * Get the R-value setting for this ClientObject. (default 2)
+   * Get the R-value setting for this RiakClient. (default 2)
    * @return integer
    */
   function getR() { 
@@ -64,10 +64,10 @@ class RiakClient {
   }
 
   /**
-   * Set the R-value for this ClientObject. This value will be used
+   * Set the R-value for this RiakClient. This value will be used
    * for any calls to get(...) or getBinary(...) where where 1) no
    * R-value is specified in the method call and 2) no R-value has
-   * been set in the BucketObject.  
+   * been set in the RiakBucket.  
    * @param integer $r - The R value.
    * @return $this
    */
@@ -77,7 +77,7 @@ class RiakClient {
   }
 
   /**
-   * Get the W-value setting for this ClientObject. (default 2)
+   * Get the W-value setting for this RiakClient. (default 2)
    * @return integer
    */
   function getW() { 
@@ -85,7 +85,7 @@ class RiakClient {
   }
 
   /**
-   * Set the W-value for this ClientObject. See setR(...) for a
+   * Set the W-value for this RiakClient. See setR(...) for a
    * description of how these values are used.
    * @param integer $w - The W value.
    * @return $this
@@ -104,7 +104,7 @@ class RiakClient {
   }
 
   /**
-   * Set the DW-value for this ClientObject. See setR(...) for a
+   * Set the DW-value for this RiakClient. See setR(...) for a
    * description of how these values are used.
    * @param  integer $dw - The DW value.
    * @return $this
@@ -115,7 +115,7 @@ class RiakClient {
   }
 
   /**
-   * Get the clientID for this ClientObject.
+   * Get the clientID for this RiakClient.
    * @return string
    */
   function getClientID() { 
@@ -123,7 +123,7 @@ class RiakClient {
   }
 
   /**
-   * Set the clientID for this ClientObject. Should not be called
+   * Set the clientID for this RiakClient. Should not be called
    * unless you know what you are doing.
    * @param string $clientID - The new clientID.
    * @return $this
@@ -135,7 +135,7 @@ class RiakClient {
 
   /**
    * Get the bucket by the specified name. Since buckets always exist,
-   * this will always return a BucketObject.
+   * this will always return a RiakBucket.
    * @return RiakBucket
    */
   function bucket($name) {
@@ -143,7 +143,7 @@ class RiakClient {
   }
 
   /**
-   * Check if the Riak server for this ClientObject is alive.
+   * Check if the Riak server for this RiakClient is alive.
    * @return boolean
    */
   function isAlive() {
@@ -583,6 +583,13 @@ class RiakBucket {
     $this->dw = NULL;
   }
 
+  /**
+   * Get the bucket name.
+   */
+  function getName() {
+    return $this->name;
+  }
+
   /** 
    * Get the R-value for this bucket, if it is set, otherwise return
    * the R-value for the client.
@@ -839,6 +846,22 @@ class RiakObject {
     $this->links = array();
     $this->siblings = NULL;
     $this->exists = FALSE;
+  }
+
+  /**
+   * Get the bucket of this object.
+   * @return RiakBucket
+   */
+  function getBucket() {
+    return $this->bucket;
+  }
+
+  /**
+   * Get the key of this object.
+   * @return string
+   */
+  function getKey() {
+    return $this->key;
   }
 
   /**
@@ -1292,7 +1315,7 @@ class RiakUtils {
   }
 
   /**
-   * Given a ClientObject, BucketObject, Key, LinkSpec, and Params,
+   * Given a RiakClient, RiakBucket, Key, LinkSpec, and Params,
    * construct and return a URL.
    */
   public static function buildRestPath($client, $bucket, $key=NULL, $spec=NULL, $params=NULL) {
