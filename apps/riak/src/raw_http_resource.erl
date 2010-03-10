@@ -395,6 +395,10 @@ malformed_link_headers(RD, Ctx) ->
 content_types_provided(RD, Ctx=#ctx{key=undefined}) ->
     %% bucket-level: JSON description only
     {[{"application/json", produce_bucket_body}], RD, Ctx};
+content_types_provided(RD, Ctx=#ctx{method=Method}=Ctx) when Method =:= 'PUT';
+                                                             Method =:= 'POST' ->
+    {ContentType, _} = extract_content_type(RD),
+    {[{ContentType, produce_doc_body}], RD, Ctx};
 content_types_provided(RD, Ctx0) ->
     DocCtx = ensure_doc(Ctx0),
     case DocCtx#ctx.doc of
