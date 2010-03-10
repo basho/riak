@@ -160,14 +160,14 @@ reduce_sort(Acc) ->
 reduce_sort(List, _) ->
     lists:sort(List).
 
-%% @spec reduce_sort(boolean()) -> reduce_phase_spec()
+%% @spec reduce_string_to_integer(boolean()) -> reduce_phase_spec()
 %% @doc Produces a spec for a reduce phase that converts
 %%      its inputs to integers. Inputs can be either Erlang
 %%      strings or binaries.
 reduce_string_to_integer(Acc) ->
     {reduce, {modfun, riak_mapreduce, reduce_string_to_integer}, none, Acc}.
 
-%% @spec reduce_sort([number()], term()) -> [number()]
+%% @spec reduce_string_to_integer([number()], term()) -> [number()]
 %% @doc reduce phase function for reduce_sort/1
 reduce_string_to_integer(List, _) ->
     [value_to_integer(I) || I <- List].
