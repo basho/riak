@@ -33,6 +33,14 @@ all_test_() ->
              ?assertMatch(["hello"], Results),
              test_util:assertDead([Pid|Phases]) end,
      fun() ->
+             {FlowId, Pid, Phases} = test_util:start_flow(?THREE_PHASE_NESTED_FLOW),
+             luke_flow:add_inputs(Pid, ["hello", "goodbye"]),
+             luke_flow:finish_inputs(Pid),
+             ?assertMatch({ok, [["hello", "goodbye"], ["hello", "goodbye"], ["hello", "goodbye"]]}, luke_flow:collect_output(FlowId, 100)),
+             test_util:verify_results(FlowId, none),
+             test_util:assertDead([Pid|Phases]) end,
+
+     fun() ->
              {FlowId, Pid, Phases} = test_util:start_flow(?TWO_ASYNC_FLOW),
              luke_flow:add_inputs(Pid, "testing"),
              {ok, "testing"} = test_util:verify_results(FlowId, results),
@@ -64,7 +72,7 @@ all_test_() ->
              {FlowId, Pid, Phases} = test_util:start_flow(?MAP_DBL_FLOW),
              luke_flow:add_inputs(Pid, [a,b]),
              luke_flow:add_inputs(Pid, [a,b]),
-             ?assertMatch({ok, [5,5,5,5,5,5,5,5]}, luke_flow:collect_output(FlowId, 100)),
+             ?assertMatch({ok, [[5,5,5,5],[5,5,5,5]]}, luke_flow:collect_output(FlowId, 100)),
              test_util:verify_results(FlowId, none),
              luke_flow:finish_inputs(Pid),
              test_util:verify_results(FlowId, done),

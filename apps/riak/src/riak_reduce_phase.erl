@@ -38,7 +38,7 @@ init([QTerm]) ->
 
 handle_input(Inputs, #state{reduced=Reduced}=State0, _Timeout) ->
     State = State0#state{reduced=Inputs ++ Reduced, new_input=true},
-    {no_output, State, 50}.
+    {no_output, State, 250}.
 
 handle_input_done(#state{qterm=QTerm, reduced=Reduced0, new_input=NewInput}=State) ->
     case NewInput of
