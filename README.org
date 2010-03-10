@@ -13,10 +13,16 @@ Welcome to Riak.
   * LICENSE: the license under which Riak is released
   * apps/    the source tree for Riak and all its dependencies
   * doc/
-    - basic-setup.txt:  slightly more detail on setting up Riak
-    - basic-client.txt: slightly more detail on using Riak
+    - admin.org: Riak Administration Guide
     - architecture.txt: details about the underlying design of Riak
-    - index.html:       the root of the edoc output of 'make docs'
+    - basic-client.txt: slightly more detail on using Riak
+    - basic-setup.txt:  slightly more detail on setting up Riak
+    - basic-mapreduce.txt: introduction to map/reduce on Riak
+    - js-mapreduce.org: using Javascript with Riak map/reduce
+    - man/riak.1.gz: manual page for the riak(1) command
+    - man/riak-admin.1.gz manual page for the riak-admin(1) command
+    - raw-http-howto.txt: using the Riak HTTP interface
+
 
 
 * Quick Start
