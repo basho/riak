@@ -1,7 +1,7 @@
                            Welcome to Riak.
                            ================
 
-Date: 2010-03-10 01:18:20 CST
+Date: 2010-03-10 09:25:33 EST
 
 
 
@@ -31,10 +31,16 @@ Table of Contents
   * LICENSE: the license under which Riak is released
   * apps/    the source tree for Riak and all its dependencies
   * doc/
-    - basic-setup.txt:  slightly more detail on setting up Riak
-    - basic-client.txt: slightly more detail on using Riak
+    - admin.org: Riak Administration Guide
     - architecture.txt: details about the underlying design of Riak
-    - index.html:       the root of the edoc output of 'make docs'
+    - basic-client.txt: slightly more detail on using Riak
+    - basic-setup.txt:  slightly more detail on setting up Riak
+    - basic-mapreduce.txt: introduction to map/reduce on Riak
+    - js-mapreduce.org: using Javascript with Riak map/reduce
+    - man/riak.1.gz: manual page for the riak(1) command
+    - man/riak-admin.1.gz manual page for the riak-admin(1) command
+    - raw-http-howto.txt: using the Riak HTTP interface
+
 
 
 2 Quick Start 
@@ -52,9 +58,9 @@ Table of Contents
    Assuming you have a working Erlang (R13B03 or later) installation,
    building Riak should be as simple as:
 
-
   $ cd $RIAK
   $ make rel
+
 
 2.2 Starting Riak 
 ==================
@@ -62,9 +68,9 @@ Table of Contents
    Once you have successfully built Riak, you can start the server with the
    following commands:
 
-
   $ cd $RIAK/rel/riak
   $ bin/riak start
+
 
    Now, verify that the server started up cleanly and is working:
 
@@ -80,29 +86,28 @@ Table of Contents
    Now that you have a functional server, let's try storing some data in
    it. First, start up a erlang node using our embedded version of erlang:
 
-
   $ erts-<vsn>/bin/erl -name riaktest@127.0.0.1 -setcookie riak
   
   Eshell V5.7.4  (abort with ^G)
   (riaktest@127.0.0.1)1>
 
-   Now construct the node name of Riak server and make sure we can talk to it:
 
+   Now construct the node name of Riak server and make sure we can talk to it:
 
   (riaktest@127.0.0.1)4> RiakNode = 'riak@127.0.0.1'.
   
   (riaktest@127.0.0.1)2> net_adm:ping(RiakNode).
   pong
   (riaktest@127.0.0.1)2>
+
    
    We are now ready to start the Riak client:
-
 
   (riaktest@127.0.0.1)2> {ok, C} = riak:client_connect(RiakNode).
   {ok,{riak_client,'riak@127.0.0.1',<<4,136,81,151>>}}
 
-   Let's create a shopping list for bread at /groceries/mine:
 
+   Let's create a shopping list for bread at /groceries/mine:
 
   (riaktest@127.0.0.1)6> O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
   O0 = riak_object:new(<<"groceries">>, <<"mine">>, ["bread"]).
@@ -118,9 +123,9 @@ Table of Contents
          undefined}
   
    (riaktest@127.0.0.1)3> C:put(O0, 1).
+
     
     Now, read the list back from the Riak server and extract the value
-
 
   (riaktest@127.0.0.1)4> {ok, O1} = C:get(<<"groceries">>, <<"mine">>, 1).
   {ok,{r_object,<<"groceries">>,<<"mine">>,
@@ -141,8 +146,8 @@ Table of Contents
    (riaktest@127.0.0.1)5> V = riak_object:get_value(O1).
    ["bread"]
 
-     Add milk to our list of groceries and write the new value to Riak:
 
+     Add milk to our list of groceries and write the new value to Riak:
 
   (riaktest@127.0.0.1)6> %% add milk to the list
   (riaktest@127.0.0.1)6> O2 = riak_object:update_value(O1, ["milk" | V]).
@@ -164,11 +169,12 @@ Table of Contents
   (riaktest@127.0.0.1)7> C:put(O2, 1).
   ok
 
-     Finally, see what other keys are available in groceries bucket:
 
+     Finally, see what other keys are available in groceries bucket:
 
   (riaktest@127.0.0.1)8> C:list_keys(<<"groceries">>).
   {ok,[<<"mine">>]}
+
 
 
 3 Server Management 
@@ -232,9 +238,9 @@ Table of Contents
 
     To join a new Riak node to an existing cluster:
 
-
   $ bin/riak start # If a local server is not already running
   $ bin/riak-admin join <node in cluster>
+
 
     (Note that you must have a local node already running for this to work)
     
