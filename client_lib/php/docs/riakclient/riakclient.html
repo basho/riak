@@ -4,7 +4,7 @@
 <head>
 
 <meta name="generator" content="PHPDoctor 2RC4 (http://phpdoctor.sourceforge.net/)">
-<meta name="when" content="Fri, 05 Mar 2010 15:26:37 -0500">
+<meta name="when" content="Wed, 10 Mar 2010 17:01:22 -0500">
 
 <link rel="stylesheet" type="text/css" href="../stylesheet.css">
 <link rel="start" href="../overview-summary.html">
@@ -72,7 +72,7 @@ connection, and the RiakClient object is extremely lightweight.</p></div>
 </tr>
 <tr>
 <td class="type"> string</td>
-<td class="description"><p class="name"><a href="#getClientID()">getClientID</a>()</p><p class="description">Get the clientID for this ClientObject.</p></td>
+<td class="description"><p class="name"><a href="#getClientID()">getClientID</a>()</p><p class="description">Get the clientID for this RiakClient.</p></td>
 </tr>
 <tr>
 <td class="type"> integer</td>
@@ -80,15 +80,15 @@ connection, and the RiakClient object is extremely lightweight.</p></div>
 </tr>
 <tr>
 <td class="type"> integer</td>
-<td class="description"><p class="name"><a href="#getR()">getR</a>()</p><p class="description">Get the R-value setting for this ClientObject. </p></td>
+<td class="description"><p class="name"><a href="#getR()">getR</a>()</p><p class="description">Get the R-value setting for this RiakClient. </p></td>
 </tr>
 <tr>
 <td class="type"> integer</td>
-<td class="description"><p class="name"><a href="#getW()">getW</a>()</p><p class="description">Get the W-value setting for this ClientObject. </p></td>
+<td class="description"><p class="name"><a href="#getW()">getW</a>()</p><p class="description">Get the W-value setting for this RiakClient. </p></td>
 </tr>
 <tr>
 <td class="type"> boolean</td>
-<td class="description"><p class="name"><a href="#isAlive()">isAlive</a>()</p><p class="description">Check if the Riak server for this ClientObject is alive.</p></td>
+<td class="description"><p class="name"><a href="#isAlive()">isAlive</a>()</p><p class="description">Check if the Riak server for this RiakClient is alive.</p></td>
 </tr>
 <tr>
 <td class="type"> void</td>
@@ -104,19 +104,19 @@ connection, and the RiakClient object is extremely lightweight.</p></div>
 </tr>
 <tr>
 <td class="type"> $this</td>
-<td class="description"><p class="name"><a href="#setClientID()">setClientID</a>(mixed clientid, string clientID)</p><p class="description">Set the clientID for this ClientObject. </p></td>
+<td class="description"><p class="name"><a href="#setClientID()">setClientID</a>(mixed clientid, string clientID)</p><p class="description">Set the clientID for this RiakClient. </p></td>
 </tr>
 <tr>
 <td class="type"> $this</td>
-<td class="description"><p class="name"><a href="#setDW()">setDW</a>(integer dw)</p><p class="description">Set the DW-value for this ClientObject. </p></td>
+<td class="description"><p class="name"><a href="#setDW()">setDW</a>(integer dw)</p><p class="description">Set the DW-value for this RiakClient. </p></td>
 </tr>
 <tr>
 <td class="type"> $this</td>
-<td class="description"><p class="name"><a href="#setR()">setR</a>(integer r)</p><p class="description">Set the R-value for this ClientObject. </p></td>
+<td class="description"><p class="name"><a href="#setR()">setR</a>(integer r)</p><p class="description">Set the R-value for this RiakClient. </p></td>
 </tr>
 <tr>
 <td class="type"> $this</td>
-<td class="description"><p class="name"><a href="#setW()">setW</a>(integer w)</p><p class="description">Set the W-value for this ClientObject. </p></td>
+<td class="description"><p class="name"><a href="#setW()">setW</a>(integer w)</p><p class="description">Set the W-value for this RiakClient. </p></td>
 </tr>
 </table>
 
@@ -154,7 +154,7 @@ connection, and the RiakClient object is extremely lightweight.</p></div>
 <code class="signature">public  <a href="../riakbucket/riakbucket.html">RiakBucket</a> <strong>bucket</strong>(mixed name)</code>
 <div class="details">
 <p>Get the bucket by the specified name. Since buckets always exist,
-this will always return a BucketObject.</p></div>
+this will always return a RiakBucket.</p></div>
 
 <hr>
 
@@ -162,7 +162,7 @@ this will always return a BucketObject.</p></div>
 <h3 id="getClientID()">getClientID</h3>
 <code class="signature">public  string <strong>getClientID</strong>()</code>
 <div class="details">
-<p>Get the clientID for this ClientObject.</p></div>
+<p>Get the clientID for this RiakClient.</p></div>
 
 <hr>
 
@@ -178,7 +178,7 @@ this will always return a BucketObject.</p></div>
 <h3 id="getR()">getR</h3>
 <code class="signature">public  integer <strong>getR</strong>()</code>
 <div class="details">
-<p>Get the R-value setting for this ClientObject. (default 2)</p></div>
+<p>Get the R-value setting for this RiakClient. (default 2)</p></div>
 
 <hr>
 
@@ -186,7 +186,7 @@ this will always return a BucketObject.</p></div>
 <h3 id="getW()">getW</h3>
 <code class="signature">public  integer <strong>getW</strong>()</code>
 <div class="details">
-<p>Get the W-value setting for this ClientObject. (default 2)</p></div>
+<p>Get the W-value setting for this RiakClient. (default 2)</p></div>
 
 <hr>
 
@@ -194,7 +194,7 @@ this will always return a BucketObject.</p></div>
 <h3 id="isAlive()">isAlive</h3>
 <code class="signature">public  boolean <strong>isAlive</strong>()</code>
 <div class="details">
-<p>Check if the Riak server for this ClientObject is alive.</p></div>
+<p>Check if the Riak server for this RiakClient is alive.</p></div>
 
 <hr>
 
@@ -238,7 +238,7 @@ this will always return a BucketObject.</p></div>
 <h3 id="setClientID()">setClientID</h3>
 <code class="signature">public  $this <strong>setClientID</strong>(mixed clientid, string clientID)</code>
 <div class="details">
-<p>Set the clientID for this ClientObject. Should not be called
+<p>Set the clientID for this RiakClient. Should not be called
 unless you know what you are doing.</p><dl>
 <dt>Parameters:</dt>
 <dd>clientID - - The new clientID.</dd>
@@ -251,7 +251,7 @@ unless you know what you are doing.</p><dl>
 <h3 id="setDW()">setDW</h3>
 <code class="signature">public  $this <strong>setDW</strong>(integer dw)</code>
 <div class="details">
-<p>Set the DW-value for this ClientObject. See setR(...) for a
+<p>Set the DW-value for this RiakClient. See setR(...) for a
 description of how these values are used.</p><dl>
 <dt>Parameters:</dt>
 <dd>dw - - The DW value.</dd>
@@ -264,10 +264,10 @@ description of how these values are used.</p><dl>
 <h3 id="setR()">setR</h3>
 <code class="signature">public  $this <strong>setR</strong>(integer r)</code>
 <div class="details">
-<p>Set the R-value for this ClientObject. This value will be used
+<p>Set the R-value for this RiakClient. This value will be used
 for any calls to get(...) or getBinary(...) where where 1) no
 R-value is specified in the method call and 2) no R-value has
-been set in the BucketObject.</p><dl>
+been set in the RiakBucket.</p><dl>
 <dt>Parameters:</dt>
 <dd>r - - The R value.</dd>
 </dl>
@@ -279,7 +279,7 @@ been set in the BucketObject.</p><dl>
 <h3 id="setW()">setW</h3>
 <code class="signature">public  $this <strong>setW</strong>(integer w)</code>
 <div class="details">
-<p>Set the W-value for this ClientObject. See setR(...) for a
+<p>Set the W-value for this RiakClient. See setR(...) for a
 description of how these values are used.</p><dl>
 <dt>Parameters:</dt>
 <dd>w - - The W value.</dd>

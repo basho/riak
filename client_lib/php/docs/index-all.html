@@ -4,7 +4,7 @@
 <head>
 
 <meta name="generator" content="PHPDoctor 2RC4 (http://phpdoctor.sourceforge.net/)">
-<meta name="when" content="Fri, 05 Mar 2010 15:26:37 -0500">
+<meta name="when" content="Wed, 10 Mar 2010 17:01:22 -0500">
 
 <link rel="stylesheet" type="text/css" href="stylesheet.css">
 <link rel="start" href="overview-summary.html">
@@ -62,7 +62,7 @@
 <dt><a href="riakclient/riakclient.html#bucket()">bucket()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
 <dd>Get the bucket by the specified name. </dd>
 <dt><a href="riakutils/riakutils.html#buildRestPath()">buildRestPath()</a> - Method in class <a href="riakutils/riakutils.html">RiakUtils.RiakUtils</a></dt>
-<dd>Given a ClientObject, BucketObject, Key, LinkSpec, and Params,
+<dd>Given a RiakClient, RiakBucket, Key, LinkSpec, and Params,
 construct and return a URL.</dd>
 </dl>
 <h1 id="letterC">C</h1>
@@ -94,8 +94,10 @@ construct and return a URL.</dd>
 <dd>Retrieve a binary/string object from Riak.</dd>
 <dt><a href="riaklink/riaklink.html#getBucket()">getBucket()</a> - Method in class <a href="riaklink/riaklink.html">RiakLink.RiakLink</a></dt>
 <dd>Get the bucket name of this link.</dd>
+<dt><a href="riakobject/riakobject.html#getBucket()">getBucket()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
+<dd>Get the bucket of this object.</dd>
 <dt><a href="riakclient/riakclient.html#getClientID()">getClientID()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
-<dd>Get the clientID for this ClientObject.</dd>
+<dd>Get the clientID for this RiakClient.</dd>
 <dt><a href="riakobject/riakobject.html#getContentType()">getContentType()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
 <dd>Get the content type of this object. </dd>
 <dt><a href="riakobject/riakobject.html#getData()">getData()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
@@ -105,21 +107,25 @@ construct and return a URL.</dd>
 the DW-value for the client.</dd>
 <dt><a href="riakclient/riakclient.html#getDW()">getDW()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
 <dd>Get the DW-value for this ClientOBject. </dd>
+<dt><a href="riakobject/riakobject.html#getKey()">getKey()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
+<dd>Get the key of this object.</dd>
 <dt><a href="riaklink/riaklink.html#getKey()">getKey()</a> - Method in class <a href="riaklink/riaklink.html">RiakLink.RiakLink</a></dt>
 <dd>Get the key of this link.</dd>
 <dt><a href="riakobject/riakobject.html#getLinks()">getLinks()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
 <dd>Return an array of RiakLink objects.</dd>
+<dt><a href="riakbucket/riakbucket.html#getName()">getName()</a> - Method in class <a href="riakbucket/riakbucket.html">RiakBucket.RiakBucket</a></dt>
+<dd>Get the bucket name.</dd>
 <dt><a href="riakbucket/riakbucket.html#getNVal()">getNVal()</a> - Method in class <a href="riakbucket/riakbucket.html">RiakBucket.RiakBucket</a></dt>
 <dd>Retrieve the N-value for this bucket.</dd>
 <dt><a href="riakbucket/riakbucket.html#getProperties()">getProperties()</a> - Method in class <a href="riakbucket/riakbucket.html">RiakBucket.RiakBucket</a></dt>
 <dd>Retrieve an associative array of all bucket properties.</dd>
 <dt><a href="riakbucket/riakbucket.html#getProperty()">getProperty()</a> - Method in class <a href="riakbucket/riakbucket.html">RiakBucket.RiakBucket</a></dt>
 <dd>Retrieve a bucket property.</dd>
+<dt><a href="riakclient/riakclient.html#getR()">getR()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
+<dd>Get the R-value setting for this RiakClient. </dd>
 <dt><a href="riakbucket/riakbucket.html#getR()">getR()</a> - Method in class <a href="riakbucket/riakbucket.html">RiakBucket.RiakBucket</a></dt>
 <dd>Get the R-value for this bucket, if it is set, otherwise return
 the R-value for the client.</dd>
-<dt><a href="riakclient/riakclient.html#getR()">getR()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
-<dd>Get the R-value setting for this ClientObject. </dd>
 <dt><a href="riakobject/riakobject.html#getSibling()">getSibling()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
 <dd>Retrieve a sibling by sibling number.</dd>
 <dt><a href="riakobject/riakobject.html#getSiblingCount()">getSiblingCount()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
@@ -128,11 +134,11 @@ the R-value for the client.</dd>
 <dd>Retrieve an array of siblings.</dd>
 <dt><a href="riaklink/riaklink.html#getTag()">getTag()</a> - Method in class <a href="riaklink/riaklink.html">RiakLink.RiakLink</a></dt>
 <dd>Get the tag of this link.</dd>
-<dt><a href="riakclient/riakclient.html#getW()">getW()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
-<dd>Get the W-value setting for this ClientObject. </dd>
 <dt><a href="riakbucket/riakbucket.html#getW()">getW()</a> - Method in class <a href="riakbucket/riakbucket.html">RiakBucket.RiakBucket</a></dt>
 <dd>Get the W-value for this bucket, if it is set, otherwise return
 the W-value for the client.</dd>
+<dt><a href="riakclient/riakclient.html#getW()">getW()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
+<dd>Get the W-value setting for this RiakClient. </dd>
 </dl>
 <h1 id="letterH">H</h1>
 <dl>
@@ -146,27 +152,27 @@ response headers and the response body.</dd>
 <h1 id="letterI">I</h1>
 <dl>
 <dt><a href="riakclient/riakclient.html#isAlive()">isAlive()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
-<dd>Check if the Riak server for this ClientObject is alive.</dd>
+<dd>Check if the Riak server for this RiakClient is alive.</dd>
 <dt><a href="riaklink/riaklink.html#isEqual()">isEqual()</a> - Method in class <a href="riaklink/riaklink.html">RiakLink.RiakLink</a></dt>
 <dd>Return true if the links are equal.</dd>
 </dl>
 <h1 id="letterL">L</h1>
 <dl>
+<dt><a href="riakclient/riakclient.html#link()">link()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
+<dd>Start assembling a Map/Reduce operation.</dd>
 <dt><a href="riakmapreduce/riakmapreduce.html#link()">link()</a> - Method in class <a href="riakmapreduce/riakmapreduce.html">RiakMapReduce.RiakMapReduce</a></dt>
 <dd>Add a link phase to the map/reduce operation.</dd>
 <dt><a href="riakobject/riakobject.html#link()">link()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
-<dd>Start assembling a Map/Reduce operation.</dd>
-<dt><a href="riakclient/riakclient.html#link()">link()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
 <dd>Start assembling a Map/Reduce operation.</dd>
 </dl>
 <h1 id="letterM">M</h1>
 <dl>
 <dt><a href="riakobject/riakobject.html#map()">map()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
 <dd>Start assembling a Map/Reduce operation.</dd>
-<dt><a href="riakmapreduce/riakmapreduce.html#map()">map()</a> - Method in class <a href="riakmapreduce/riakmapreduce.html">RiakMapReduce.RiakMapReduce</a></dt>
-<dd>Add a map phase to the map/reduce operation.</dd>
 <dt><a href="riakclient/riakclient.html#map()">map()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
 <dd>Start assembling a Map/Reduce operation.</dd>
+<dt><a href="riakmapreduce/riakmapreduce.html#map()">map()</a> - Method in class <a href="riakmapreduce/riakmapreduce.html">RiakMapReduce.RiakMapReduce</a></dt>
+<dd>Add a map phase to the map/reduce operation.</dd>
 </dl>
 <h1 id="letterN">N</h1>
 <dl>
@@ -186,11 +192,11 @@ statuses, populate the object. </dd>
 </dl>
 <h1 id="letterR">R</h1>
 <dl>
-<dt><a href="riakclient/riakclient.html#reduce()">reduce()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
+<dt><a href="riakobject/riakobject.html#reduce()">reduce()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
 <dd>Start assembling a Map/Reduce operation.</dd>
 <dt><a href="riakmapreduce/riakmapreduce.html#reduce()">reduce()</a> - Method in class <a href="riakmapreduce/riakmapreduce.html">RiakMapReduce.RiakMapReduce</a></dt>
 <dd>Add a reduce phase to the map/reduce operation.</dd>
-<dt><a href="riakobject/riakobject.html#reduce()">reduce()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
+<dt><a href="riakclient/riakclient.html#reduce()">reduce()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
 <dd>Start assembling a Map/Reduce operation.</dd>
 <dt><a href="riakobject/riakobject.html#reload()">reload()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
 <dd>Reload the object from Riak. </dd>
@@ -233,7 +239,7 @@ and returned to the client. </dd>
 <dt><a href="riaklink/riaklink.html#setBucket()">setBucket()</a> - Method in class <a href="riaklink/riaklink.html">RiakLink.RiakLink</a></dt>
 <dd>Set the bucket name of this link.</dd>
 <dt><a href="riakclient/riakclient.html#setClientID()">setClientID()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
-<dd>Set the clientID for this ClientObject. </dd>
+<dd>Set the clientID for this RiakClient. </dd>
 <dt><a href="riakobject/riakobject.html#setContentType()">setContentType()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
 <dd>Set the content type of this object.</dd>
 <dt><a href="riakobject/riakobject.html#setData()">setData()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
@@ -241,7 +247,7 @@ and returned to the client. </dd>
 <dt><a href="riakbucket/riakbucket.html#setDW()">setDW()</a> - Method in class <a href="riakbucket/riakbucket.html">RiakBucket.RiakBucket</a></dt>
 <dd>Set the DW-value for this bucket. </dd>
 <dt><a href="riakclient/riakclient.html#setDW()">setDW()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
-<dd>Set the DW-value for this ClientObject. </dd>
+<dd>Set the DW-value for this RiakClient. </dd>
 <dt><a href="riaklink/riaklink.html#setKey()">setKey()</a> - Method in class <a href="riaklink/riaklink.html">RiakLink.RiakLink</a></dt>
 <dd>Set the key of this link.</dd>
 <dt><a href="riakbucket/riakbucket.html#setNVal()">setNVal()</a> - Method in class <a href="riakbucket/riakbucket.html">RiakBucket.RiakBucket</a></dt>
@@ -254,11 +260,11 @@ that will be written of each object in the bucket. </dd>
 <dt><a href="riakbucket/riakbucket.html#setR()">setR()</a> - Method in class <a href="riakbucket/riakbucket.html">RiakBucket.RiakBucket</a></dt>
 <dd>Set the R-value for this bucket. </dd>
 <dt><a href="riakclient/riakclient.html#setR()">setR()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
-<dd>Set the R-value for this ClientObject. </dd>
+<dd>Set the R-value for this RiakClient. </dd>
 <dt><a href="riaklink/riaklink.html#setTag()">setTag()</a> - Method in class <a href="riaklink/riaklink.html">RiakLink.RiakLink</a></dt>
 <dd>Set the tag of this link.</dd>
 <dt><a href="riakclient/riakclient.html#setW()">setW()</a> - Method in class <a href="riakclient/riakclient.html">RiakClient.RiakClient</a></dt>
-<dd>Set the W-value for this ClientObject. </dd>
+<dd>Set the W-value for this RiakClient. </dd>
 <dt><a href="riakbucket/riakbucket.html#setW()">setW()</a> - Method in class <a href="riakbucket/riakbucket.html">RiakBucket.RiakBucket</a></dt>
 <dd>Set the W-value for this bucket. </dd>
 <dt><a href="riakobject/riakobject.html#status()">status()</a> - Method in class <a href="riakobject/riakobject.html">RiakObject.RiakObject</a></dt>
