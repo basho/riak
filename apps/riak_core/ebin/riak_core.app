@@ -31,7 +31,8 @@
                   kernel,
                   stdlib,
                   sasl,
-                  crypto
+                  crypto,
+                  webmachine
                  ]},
   {mod, { riak_core_app, []}},
   {env, [
