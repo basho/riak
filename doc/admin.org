@@ -19,8 +19,36 @@
   platforms supporting [[http://erlang.org/][Erlang]] releases R13B03 and later.
 
 ** Binary Releases
-*** TODO where do binary releases come from?
-*** TODO List of OS packages
+*** Overview
+
+    Riak can be downloaded in a binary form negating the need to 
+    to install the latest Erlang and compile from source. The binary
+    distribution of Riak doesn't include innostore. Innostore must
+    be compiled and installed manually. You can find out more about
+    innostore at http://hg.basho.com/innostore/.
+
+    Currently Riak is offered in binary form for rpm and deb based
+    Linux systems.
+
+*** RPM Based Linux Distributions
+    
+    Riak can be installed in binary form on many RPM based systems,
+    the current target platforms are RHEL and Centos. Riak can be
+    download in both 64bit and 32bit binaries in rpm format here:
+    32bit: http://downloads.basho.com/riak-0.9.0-1.i386.rpm
+    64bit: http://downloads.basho.com/riak-0.9.0-1.x86_64.rpm
+    
+    Note: On 32bit systems you may need to disable SE Linux if 
+    it is enabled.
+
+*** Deb Based Linux Distributions
+
+   Riak can be installed in binary form on many systems that use the
+   Debian packaging system, the current target platforms are
+   Ubuntu and Debian.  Riak can be download in both 64bit and 32bit
+   binaries in deb format here:
+   32bit: http://downloads.basho.com/riak_0.9.0-1_i386.deb
+   64bit: http://downloads.basho.com/riak_0.9.0-1_amd64.deb
 
 ** Source Releases
 *** Prerequisites
