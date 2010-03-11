@@ -33,7 +33,7 @@
 *** RPM Based Linux Distributions
     
     Riak can be installed in binary form on many RPM based systems,
-    the current target platforms are RHEL and Centos. Riak can be
+    the current target platforms are RHEL and CentOS. Riak can be
     download in both 64bit and 32bit binaries in rpm format here:
     32bit: http://downloads.basho.com/riak/riak-0.9/riak-0.9.1-1.i386.rpm
     64bit: http://downloads.basho.com/riak/riak-0.9/riak-0.9.1-1.x86_64.rpm
@@ -66,7 +66,7 @@
 *** Obtaining Riak Source
 
     The source for tagged Riak releases is available as tarballs at
-    [[http://hg.basho.com/riak/downloads/riak-0.9.1.tar.gz]].  Once downloaded, unpack the
+    http://hg.basho.com/riak/get/riak-0.9.1.tar.gz.  Once downloaded, unpack the
     tarball in a convenient location.
 
     If you prefer to follow the latest Riak development, use Mercurial
