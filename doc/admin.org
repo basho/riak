@@ -33,10 +33,10 @@
 *** RPM Based Linux Distributions
     
     Riak can be installed in binary form on many RPM based systems,
-    the current target platforms are RHEL and Centos. Riak can be
+    the current target platforms are RHEL and CentOS. Riak can be
     download in both 64bit and 32bit binaries in rpm format here:
-    32bit: http://downloads.basho.com/riak/riak-0.9/riak-0.9.0-1.i386.rpm
-    64bit: http://downloads.basho.com/riak/riak-0.9/riak-0.9.0-1.x86_64.rpm
+    32bit: http://downloads.basho.com/riak/riak-0.9/riak-0.9.1-1.i386.rpm
+    64bit: http://downloads.basho.com/riak/riak-0.9/riak-0.9.1-1.x86_64.rpm
     
     Note: On 32bit systems you may need to disable SE Linux if 
     it is enabled.
@@ -47,15 +47,15 @@
    Debian packaging system, the current target platforms are
    Ubuntu and Debian.  Riak can be download in both 64bit and 32bit
    binaries in deb format here:
-   32bit: http://downloads.basho.com/riak/riak-0.9/riak_0.9.0-1_i386.deb
-   64bit: http://downloads.basho.com/riak/riak-0.9/riak_0.9.0-1_amd64.deb
+   32bit: http://downloads.basho.com/riak/riak-0.9/riak_0.9.1-1_i386.deb
+   64bit: http://downloads.basho.com/riak/riak-0.9/riak_0.9.1-1_amd64.deb
 
 *** Mac OS X
 
   Riak can be downloaded and ran from a precompiled tarball for OS X.
   You can download the 32bit and 64bit builds here:
-  32bit:  http://downloads.basho.com/riak/riak-0.9/riak-0.9.0.osx.i386.tar.gz
-  64bit:  http://downloads.basho.com/riak/riak-0.9/riak_0.9.0.osx.x86_64.tar.gz
+  32bit:  http://downloads.basho.com/riak/riak-0.9/riak-0.9.1.osx.i386.tar.gz
+  64bit:  http://downloads.basho.com/riak/riak-0.9/riak_0.9.1.osx.x86_64.tar.gz
 
 ** Source Releases
 *** Prerequisites
@@ -66,7 +66,7 @@
 *** Obtaining Riak Source
 
     The source for tagged Riak releases is available as tarballs at
-    [[http://hg.basho.com/riak/downloads/]].  Once downloaded, unpack the
+    http://hg.basho.com/riak/get/riak-0.9.1.tar.gz.  Once downloaded, unpack the
     tarball in a convenient location.
 
     If you prefer to follow the latest Riak development, use Mercurial
