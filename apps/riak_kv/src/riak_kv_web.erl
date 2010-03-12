@@ -64,7 +64,7 @@ dispatch_table() ->
        {["ping"], riak_kv_wm_ping, []}]).
 
 raw_dispatch() ->
-    case apps_helper:get_env(riak_kv, raw_name) of
+    case app_helper:get_env(riak_kv, raw_name) of
         undefined -> raw_dispatch("riak");
         Name -> lists:append(raw_dispatch(Name), raw_dispatch("riak"))
     end.
