@@ -1,16 +1,24 @@
+%% -------------------------------------------------------------------
+%%
+%% riak_get_fsm: coordination of Riak GET requests
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
 %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
 %% except in compliance with the License.  You may obtain
 %% a copy of the License at
-
+%%
 %%   http://www.apache.org/licenses/LICENSE-2.0
-
+%%
 %% Unless required by applicable law or agreed to in writing,
 %% software distributed under the License is distributed on an
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
+%%
+%% -------------------------------------------------------------------
 
 -module(riak_kv_get_fsm).
 -behaviour(gen_fsm).
@@ -95,10 +103,12 @@ waiting_vnode_r({r, {error, notfound}, Idx, ReqId},
                                    replied_notfound=Replied0}) ->
     Replied = [Idx|Replied0],
     NewStateData = StateData#state{replied_notfound=Replied},
-    case (N - length(Replied) - length(Fails)) >= R of
-        true ->
-            {next_state,waiting_vnode_r,NewStateData};
+    FailThreshold = erlang:min(trunc((N/2.0)+1), % basic quorum, or
+                               (N-R+1)), % cannot ever get R 'ok' replies
+    case (length(Replied) + length(Fails)) >= FailThreshold of
         false ->
+            {next_state,waiting_vnode_r,NewStateData};
+        true ->
             update_stats(StateData),
             Client ! {ReqId, {error,notfound}},
             {stop,normal,NewStateData}
@@ -109,10 +119,12 @@ waiting_vnode_r({r, {error, Err}, Idx, ReqId},
                                    replied_notfound=NotFound}) ->
     Replied = [{Err,Idx}|Replied0],
     NewStateData = StateData#state{replied_fail=Replied},
-    case (N - length(Replied) - length(NotFound)) >= R of
-        true ->
-            {next_state,waiting_vnode_r,NewStateData};
+    FailThreshold = erlang:min(trunc((N/2.0)+1), % basic quorum, or
+                               (N-R+1)), % cannot ever get R 'ok' replies
+    case (length(Replied) + length(NotFound)) >= FailThreshold of
         false ->
+            {next_state,waiting_vnode_r,NewStateData};
+        true ->
             case length(NotFound) of
                 0 ->
                     FullErr = [E || {E,_I} <- Replied],

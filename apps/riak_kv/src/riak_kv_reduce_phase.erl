@@ -1,16 +1,26 @@
+%% -------------------------------------------------------------------
+%%
+%% riak_reduce_phase: manage the mechanics of a reduce phase of a MR job
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
 %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
 %% except in compliance with the License.  You may obtain
 %% a copy of the License at
-
+%%
 %%   http://www.apache.org/licenses/LICENSE-2.0
-
+%%
 %% Unless required by applicable law or agreed to in writing,
 %% software distributed under the License is distributed on an
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
+%%
+%% -------------------------------------------------------------------
+
+%% @doc manage the mechanics of a reduce phase of a MR job
 
 -module(riak_kv_reduce_phase).
 
@@ -27,7 +37,7 @@ init([QTerm]) ->
 
 handle_input(Inputs, #state{reduced=Reduced}=State0, _Timeout) ->
     State = State0#state{reduced=Inputs ++ Reduced, new_input=true},
-    {no_output, State, 50}.
+    {no_output, State, 250}.
 
 handle_input_done(#state{qterm=QTerm, reduced=Reduced0, new_input=NewInput}=State) ->
     case NewInput of
@@ -75,6 +85,6 @@ perform_reduce({Lang,{reduce,FunTerm,Arg,_Acc}},
                 riak_kv_js_manager:blocking_dispatch({FunTerm, Reduced, Arg})
         end
     catch _:R ->
-            error_logger:error_msg("Failed reduce: ~p~n", R),
+            error_logger:error_msg("Failed reduce: ~p~n", [R]),
             {error, failed_reduce}
     end.

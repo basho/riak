@@ -34,3 +34,4 @@ c_src/(nsprpub|js|mozilla|nspr_release|system)/.*
 c_src/include/js/.*
 c_src/.*(\.o|\.a)$
 erlang_js/priv/.*.so$
+client_lib/python/.*.pyc

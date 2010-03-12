@@ -1,3 +1,27 @@
+%% -------------------------------------------------------------------
+%%
+%% mapred_resource: webmachine resource for mapreduce requests
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
+%% This file is provided to you under the Apache License,
+%% Version 2.0 (the "License"); you may not use this file
+%% except in compliance with the License.  You may obtain
+%% a copy of the License at
+%%
+%%   http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing,
+%% software distributed under the License is distributed on an
+%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+%% KIND, either express or implied.  See the License for the
+%% specific language governing permissions and limitations
+%% under the License.
+%%
+%% -------------------------------------------------------------------
+
+%% @doc webmachine resource for mapreduce requests
+
 -module(riak_kv_wm_mapred).
 
 -export([init/1, service_available/2, allowed_methods/2]).
@@ -107,8 +131,8 @@ stream_mapred_results(RD, ReqId, #state{timeout=Timeout}=State) ->
             {format_error(Error), done};
         {flow_error, ReqId, Error} ->
             {format_error({error, Error}), done};
-        {flow_results, ReqId, Res} ->
-            Data = mochijson2:encode(Res),
+        {flow_results, PhaseId, ReqId, Res} ->
+            Data = mochijson2:encode({struct, [{phase, PhaseId}, {data, Res}]}),
             Body = ["\n--", State#state.boundary, "\n",
                     "Content-Type: application/json\n\n",
                     Data],

@@ -15,16 +15,25 @@
 -define(TWO_PHASE_FLOW, [{simple_phase, [], []},
                          {simple_phase, [accumulate], []}]).
 
+-define(THREE_PHASE_NESTED_FLOW, [{nested_phase, [accumulate], []},
+                                  {simple_phase, [accumulate], []},
+                                  {simple_phase, [accumulate], []}]).
+
+
 -define(TWO_ASYNC_FLOW, [{async_phase, [], []},
                          {async_phase, [accumulate], []}]).
 
 -define(MAP_FLOW, [{map_phase, [accumulate], []}]).
+
 -define(MAP_DBL_FLOW, [{map_phase, [accumulate], []},
                        {map_phase, [accumulate], []}]).
+
 -define(MAPRED_FLOW, [{map_phase, [], []},
                       {reduce_phase, [{converge, 3}], []},
                       {reduce_phase, [accumulate], []}]).
+
 -define(MAPRED_FLOW1, [{map_phase, [], []},
                        {reduce_phase, [{converge, 1}, accumulate], []}]).
+
 -define(MAPRED_EMPTY, [{map_phase, [], []},
                        {reduce_phase, [{converge, 1}], []}]).

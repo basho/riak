@@ -20,11 +20,11 @@
 -record(ctx, {trace_dir, trace}).
 
 -define(MAP_EXTERNAL, "static/map.png").
--define(MAP_INTERNAL, "docs/http-headers-status-v3.png").
+-define(MAP_INTERNAL, "http-headers-status-v3.png").
 -define(SCRIPT_EXTERNAL, "static/wmtrace.js").
--define(SCRIPT_INTERNAL, "trace/wmtrace.js").
+-define(SCRIPT_INTERNAL, "wmtrace.js").
 -define(STYLE_EXTERNAL, "static/wmtrace.css").
--define(STYLE_INTERNAL, "trace/wmtrace.css").
+-define(STYLE_INTERNAL, "wmtrace.css").
 
 %%
 %% Dispatch Modifiers
@@ -99,7 +99,7 @@ resource_exists(RD, Ctx) ->
     end.
 
 wm_path(File) ->
-    filename:join(code:lib_dir(webmachine), File).
+    filename:join([code:priv_dir(webmachine), "trace", File]).
 
 content_types_provided(RD, Ctx) ->
     case wrq:disp_path(RD) of

@@ -1,16 +1,26 @@
+%% -------------------------------------------------------------------
+%%
+%% riak_vnode: a single node's management of a single partition of data
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
 %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
 %% except in compliance with the License.  You may obtain
 %% a copy of the License at
-
+%%
 %%   http://www.apache.org/licenses/LICENSE-2.0
-
+%%
 %% Unless required by applicable law or agreed to in writing,
 %% software distributed under the License is distributed on an
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
+%%
+%% -------------------------------------------------------------------
+
+%% @doc a single node's management of a single partition of data
 
 -module(riak_kv_vnode).
 -behaviour(gen_fsm).
@@ -83,11 +93,11 @@ do_list_handoff(TargetNode, BKeyList, StateData=#state{idx=Idx}) ->
         [] ->
             delete_and_exit(StateData);
         _ ->
-            {HQ,TO} = case riak_kv_handoff_sender:start_link(TargetNode, Idx, all) of
-                {ok, _Pid} -> {[], ?TIMEOUT};
-                {error, locked} -> {not_in_handoff, ?LOCK_RETRY_TIMEOUT}
+            {HQ,TO,HT} = case riak_kv_handoff_sender:start_link(TargetNode, Idx, all) of
+                {ok, _Pid, HandoffToken} -> {[], ?TIMEOUT, HandoffToken};
+                {error, locked} -> {not_in_handoff, ?LOCK_RETRY_TIMEOUT, undefined}
             end,
-            {next_state,active,StateData#state{handoff_q=HQ},TO}
+            {next_state,active,StateData#state{handoff_q=HQ,handoff_token=HT},TO}
     end.
 
 %% @private
