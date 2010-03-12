@@ -178,7 +178,7 @@ simple_test() ->
     % Set some buckets...
     riak_core_bucket:set_bucket(<<"b1">>, [{backend, first_backend}]),
     riak_core_bucket:set_bucket(<<"b2">>, [{backend, second_backend}]),
-    
+
     % Run the standard backend test...
     Config = sample_config(),
     riak_kv_test_util:standard_backend_test(riak_kv_multi_backend, Config).

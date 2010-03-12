@@ -21,6 +21,7 @@
              riak_core_ring_events,
              riak_core_ring_manager,
              riak_core_sup,
+             riak_core_test_util,
              riak_core_util,
              slide,
              spiraltime,

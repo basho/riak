@@ -23,7 +23,7 @@
 %% @doc utilities for test scripts
 
 -module(riak_kv_test_util).
--export([standard_backend_test/2,setup_mockring1/0]).
+-export([standard_backend_test/2]).
 -include_lib("eunit/include/eunit.hrl").
 
 standard_backend_test(BackendMod, Config) ->
@@ -58,17 +58,3 @@ standard_backend_test(BackendMod, Config) ->
     ?assertEqual(ok, BackendMod:delete(S,{<<"b1">>,<<"k1">>})),
     ?assertEqual(true, BackendMod:is_empty(S)),
     ok = BackendMod:stop(S).
-
-setup_mockring1() ->
-    % requires a running riak_core_ring_manager, in test-mode is ok
-    Ring0 = lists:foldl(fun(_,R) ->
-                               riak_core_ring:transfer_node(
-                                 hd(riak_core_ring:my_indices(R)),
-                                 othernode@otherhost, R) end,
-                       riak_core_ring:fresh(16,node()),[1,2,3,4,5,6]),
-    Ring = lists:foldl(fun(_,R) ->
-                               riak_core_ring:transfer_node(
-                                 hd(riak_core_ring:my_indices(R)),
-                                 othernode2@otherhost2, R) end,
-                       Ring0,[1,2,3,4,5,6]),
-    riak_core_ring_manager:set_my_ring(Ring).
