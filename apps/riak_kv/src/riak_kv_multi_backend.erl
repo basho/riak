@@ -176,6 +176,7 @@ simple_test() ->
     riak_core_ring_manager:start_link(test),
     
     % Set some buckets...
+    application:load(riak_core), % make sure default_bucket_props is set
     riak_core_bucket:set_bucket(<<"b1">>, [{backend, first_backend}]),
     riak_core_bucket:set_bucket(<<"b2">>, [{backend, second_backend}]),
 
@@ -189,6 +190,7 @@ get_backend_test() ->
     riak_core_ring_manager:start_link(test),
     
     % Set some buckets...
+    application:load(riak_core), % make sure default_bucket_props is set
     riak_core_bucket:set_bucket(<<"b1">>, [{backend, first_backend}]),
     riak_core_bucket:set_bucket(<<"b2">>, [{backend, second_backend}]),
     
