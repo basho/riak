@@ -734,17 +734,20 @@ accept_doc_body(RD, Ctx=#ctx{bucket=B, key=K, client=C, links=L}) ->
     UserMetaMD = dict:store(?MD_USERMETA, UserMeta, LinkMD),
     MDDoc = riak_object:update_metadata(VclockDoc, UserMetaMD),
     Doc = riak_object:update_value(MDDoc, wrq:req_body(RD)),
-    ok = C:put(Doc, Ctx#ctx.w, Ctx#ctx.dw),
-
-    %% If returnbody=true is specified, then send the body back.
-    case wrq:get_qs_value(?Q_RETURNBODY, RD) of
-        ?Q_TRUE ->
-            R = Ctx#ctx.w, % R won't be available, use the same setting as W.
-            DocCtx = Ctx#ctx{doc=C:get(B, K, R)},
-            HasSiblings = (select_doc(DocCtx) == multiple_choices),
-            send_returnbody(RD, DocCtx, HasSiblings);
-        _ ->
-            {true, RD, Ctx#ctx{doc = {ok, Doc}}}
+    case C:put(Doc, Ctx#ctx.w, Ctx#ctx.dw) of
+        {error, precommit_fail} ->
+            {{halt, 403}, send_precommit_error(RD), Ctx};
+        ok ->
+            %% If returnbody=true is specified, then send the body back.
+            case wrq:get_qs_value(?Q_RETURNBODY, RD) of
+                ?Q_TRUE ->
+                    R = Ctx#ctx.w, % R won't be available, use the same setting as W.
+                    DocCtx = Ctx#ctx{doc=C:get(B, K, R)},
+                    HasSiblings = (select_doc(DocCtx) == multiple_choices),
+                    send_returnbody(RD, DocCtx, HasSiblings);
+                _ ->
+                    {true, RD, Ctx#ctx{doc = {ok, Doc}}}
+            end
     end.
 
 %% Handle the no-sibling case. Just send the object.
@@ -981,8 +984,12 @@ ensure_doc(Ctx) -> Ctx.
 %% @spec delete_resource(reqdata(), context()) -> {true, reqdata(), context()}
 %% @doc Delete the document specified.
 delete_resource(RD, Ctx=#ctx{bucket=B, key=K, client=C, rw=RW}) ->
-    ok = C:delete(B, K, RW),
-    {true, RD, Ctx}.
+    case C:delete(B, K, RW) of
+        {error, precommit_fail} ->
+            {{halt, 403}, send_precommit_error(RD), Ctx};
+        ok ->
+            {true, RD, Ctx}
+    end.
 
 %% @spec generate_etag(reqdata(), context()) ->
 %%          {undefined|string(), reqdata(), context()}
@@ -1091,3 +1098,9 @@ any_to_bool(V) when is_integer(V) ->
     V /= 0;
 any_to_bool(V) when is_boolean(V) ->
     V.
+
+send_precommit_error(RD) ->
+    RD1 = wrq:set_resp_header("Content-Type", "text/plain", RD),
+    Error = list_to_binary([atom_to_binary(wrq:method(RD1), utf8),
+                            <<" aborted by pre-commit hook.">>]),
+    wrq:append_to_response_body(Error, RD1).
