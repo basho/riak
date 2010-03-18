@@ -60,6 +60,7 @@ init([Manager]) ->
             {stop, Error}
     end.
 
+%% Reduce phase with anonymous function
 handle_call({dispatch, _JobId, {{jsanon, JS}, Reduced, Arg}}, _From, #state{ctx=Ctx}=State) ->
     {Result, NewState} = case define_anon_js(reduce, JS, State) of
                              {ok, State1} ->
@@ -73,8 +74,12 @@ handle_call({dispatch, _JobId, {{jsanon, JS}, Reduced, Arg}}, _From, #state{ctx=
                                  {Error, State1}
                          end,
     {reply, Result, NewState};
+%% Reduce phase with named function
 handle_call({dispatch, _JobId, {{jsfun, JS}, Reduced, Arg}}, _From, #state{ctx=Ctx}=State) ->
     {reply, invoke_js(Ctx, JS, [Reduced, Arg]), State};
+%% Pre-commit hook with named function
+handle_call({dispatch, _JobId, {{jsfun, JS}, Obj}}, _From, #state{ctx=Ctx}=State) ->
+    {reply, invoke_js(Ctx, JS, [riak_object:to_json(Obj)]), State};
 handle_call(_Request, _From, State) ->
     {reply, ignore, State}.
 
@@ -83,12 +88,13 @@ handle_cast(reload, #state{ctx=Ctx}=State) ->
     error_logger:info_msg("Spidermonkey VM host reloaded (~p)~n", [self()]),
     {noreply, State};
 
+%% Map phase with anonymous function
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc},
                                             Value,
                                             KeyData, _BKey}}, #state{ctx=Ctx}=State) ->
     {Result, NewState} = case define_anon_js(map, JS, State) of
                              {ok, State1} ->
-                                 JsonValue = jsonify_object(Value),
+                                 JsonValue = riak_object:to_json(Value),
                                  JsonArg = jsonify_arg(Arg),
                                  case invoke_js(Ctx, <<"riakMapper">>, [JsonValue, KeyData, JsonArg]) of
                                      {ok, R} ->
@@ -107,10 +113,11 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc
             gen_fsm:send_event(FsmPid, {mapexec_error_noretry, Requestor, ErrorResult}),
             {noreply, State}
     end;
+%% Map phase with named function
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsfun, JS}, Arg, _Acc},
                                             Value,
                                             KeyData, BKey}}, #state{ctx=Ctx}=State) ->
-    JsonValue = jsonify_object(Value),
+    JsonValue = riak_object:to_json(Value),
     JsonArg = jsonify_arg(Arg),
     case invoke_js(Ctx, JS, [JsonValue, KeyData, JsonArg]) of
         {ok, R} ->
@@ -219,59 +226,6 @@ load_user_builtins(Ctx) ->
 load_mapred_builtins(Ctx) ->
     {ok, Contents} = file:read_file(filename:join([priv_dir(), "mapred_builtins.js"])),
     js:define(Ctx, Contents).
-
-jsonify_object({error, notfound}=Obj) ->
-    {struct, [Obj]};
-jsonify_object(Obj) ->
-    {_,Vclock} = riak_kv_wm_raw:vclock_header(Obj),
-    {struct, [{<<"bucket">>, riak_object:bucket(Obj)},
-              {<<"key">>, riak_object:key(Obj)},
-              {<<"vclock">>, list_to_binary(Vclock)},
-              {<<"values">>,
-               [{struct,
-                 [{<<"metadata">>, jsonify_metadata(MD)},
-                  {<<"data">>, V}]}
-                || {MD, V} <- riak_object:get_contents(Obj)
-                      ]}]}.
-
-jsonify_metadata(MD) ->
-    MDJS = fun({LastMod, Now={_,_,_}}) ->
-                   % convert Now to JS-readable time string
-                   {LastMod, list_to_binary(
-                               httpd_util:rfc1123_date(
-                                 calendar:now_to_local_time(Now)))};
-              ({<<"Links">>, Links}) ->
-                   {<<"Links">>, [ [B, K, T] || {{B, K}, T} <- Links ]};
-              ({Name, List=[_|_]}) ->
-                   {Name, jsonify_metadata_list(List)};
-              ({Name, Value}) ->
-                   {Name, Value}
-           end,
-    {struct, lists:map(MDJS, dict:to_list(MD))}.
-
-%% @doc convert strings to binaries, and proplists to JSON objects
-jsonify_metadata_list([]) -> [];
-jsonify_metadata_list(List) ->
-    Classifier = fun({Key,_}, Type) when (is_binary(Key) orelse is_list(Key)),
-                                         Type /= array, Type /= string ->
-                         struct;
-                    (C, Type) when is_integer(C), C >= 0, C =< 256,
-                                   Type /= array, Type /= struct ->
-                         string;
-                    (_, _) ->
-                         array
-                 end,
-    case lists:foldl(Classifier, undefined, List) of
-        struct -> {struct, [ {if is_list(Key) -> list_to_binary(Key);
-                                 true         -> Key
-                              end,
-                              if is_list(Value) -> jsonify_metadata_list(Value);
-                                 true           -> Value
-                              end}
-                             || {Key, Value} <- List]};
-        string -> list_to_binary(List);
-        array -> List
-    end.
 
 jsonify_arg({Bucket,Tag}) when (Bucket == '_' orelse is_binary(Bucket)),
                                (Tag == '_' orelse is_binary(Tag)) ->

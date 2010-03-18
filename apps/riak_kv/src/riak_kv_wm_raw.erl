@@ -296,16 +296,28 @@ is_bucket_put(RD, Ctx) ->
 %%        &lt;/Prefix/Bucket/Key&gt;; riaktag="Tag",...
 %%      The parsed links are stored in the context()
 %%      at this time.
-malformed_request(RD, Ctx) ->
+malformed_request(RD, Ctx) when Ctx#ctx.method =:= 'POST'
+                                orelse Ctx#ctx.method =:= 'PUT' ->
     case is_bucket_put(RD, Ctx) of
         true ->
             malformed_bucket_put(RD, Ctx);
         false ->
-            case malformed_rw_params(RD, Ctx) of
-                Result={true, _, _} -> Result;
-                {false, RWRD, RWCtx} ->
-                    malformed_link_headers(RWRD, RWCtx)
+            case wrq:get_req_header("Content-Type", RD) of
+                undefined ->
+                    {true, missing_content_type(RD), Ctx};
+                _ ->
+                    case malformed_rw_params(RD, Ctx) of
+                        Result={true, _, _} -> Result;
+                        {false, RWRD, RWCtx} ->
+                            malformed_link_headers(RWRD, RWCtx)
+                    end
             end
+    end;
+malformed_request(RD, Ctx) ->
+    case malformed_rw_params(RD, Ctx) of
+        Result={true, _, _} -> Result;
+        {false, RWRD, RWCtx} ->
+            malformed_link_headers(RWRD, RWCtx)
     end.
 
 %% @spec malformed_bucket_put(reqdata(), context()) ->
@@ -774,10 +786,14 @@ send_returnbody(RD, DocCtx, _HasSiblings = true) ->
 %%      This function extracts the content type and charset for use
 %%      in subsequent GET requests.
 extract_content_type(RD) ->
-    RawCType = wrq:get_req_header(?HEAD_CTYPE, RD),
-    [CType|RawParams] = string:tokens(RawCType, "; "),
-    Params = [ list_to_tuple(string:tokens(P, "=")) || P <- RawParams],
-    {CType, proplists:get_value("charset", Params)}.
+    case wrq:get_req_header(?HEAD_CTYPE, RD) of
+        undefined ->
+            undefined;
+        RawCType ->
+            [CType|RawParams] = string:tokens(RawCType, "; "),
+            Params = [ list_to_tuple(string:tokens(P, "=")) || P <- RawParams],
+            {CType, proplists:get_value("charset", Params)}
+    end.
 
 %% @spec extract_user_meta(reqdata()) -> proplist()
 %% @doc Extract headers prefixed by X-Riak-Meta- in the client's PUT request
@@ -1098,6 +1114,10 @@ any_to_bool(V) when is_integer(V) ->
     V /= 0;
 any_to_bool(V) when is_boolean(V) ->
     V.
+
+missing_content_type(RD) ->
+    RD1 = wrq:set_resp_header("Content-Type", "text/plain", RD),
+    wrq:append_to_response_body(<<"Missing Content-Type request header">>, RD1).
 
 send_precommit_error(RD) ->
     RD1 = wrq:set_resp_header("Content-Type", "text/plain", RD),

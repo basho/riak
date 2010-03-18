@@ -67,18 +67,17 @@ init([ReqId,RObj0,W,DW,Timeout,Client]) ->
 %% @private
 initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
                                       timeout=Timeout, ring=Ring, rclient=RClient}) ->
-    StartNow = now(),
-    case invoke_precommit(RClient, RObj0) of
+    case invoke_precommit(RClient, update_metadata(RObj0)) of
         fail ->
             Client ! {ReqId, {error, precommit_fail}},
-            {stop, {error, {precommit, fail}}, StateData0};
-        RObj ->
+            {stop, normal, StateData0};
+        RObj1 ->
+            StartNow = now(),
             TRef = erlang:send_after(Timeout, self(), timeout),
-            RObj1 = update_metadata(RObj0),
             RealStartTime = riak_core_util:moment(),
             Bucket = riak_object:bucket(RObj1),
             BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
-            Key = riak_object:key(RObj),
+            Key = riak_object:key(RObj1),
             DocIdx = riak_core_util:chash_key({Bucket, Key}),
             Msg = {self(), {Bucket,Key}, RObj1, ReqId, RealStartTime},
             N = proplists:get_value(n_val,BucketProps),
@@ -229,7 +228,25 @@ invoke_precommit(RClient, RObj) ->
         none ->
             RObj;
         {struct, Hook} ->
-            Mod = binary_to_atom(proplists:get_value(<<"mod">>, Hook), utf8),
-            Fun = binary_to_atom(proplists:get_value(<<"fun">>, Hook), utf8),
-            Mod:Fun(RObj)
+            Mod0 = proplists:get_value(<<"mod">>, Hook),
+            Fun0 = proplists:get_value(<<"fun">>, Hook),
+            JSName = proplists:get_value(<<"name">>, Hook),
+            invoke_precommit(Mod0, Fun0, JSName, RObj)
     end.
+
+invoke_precommit(Mod0, Fun0, undefined, RObj) ->
+    Mod = binary_to_atom(Mod0, utf8),
+    Fun = binary_to_atom(Fun0, utf8),
+    Mod:Fun(RObj);
+invoke_precommit(undefined, undefined, JSName, RObj) ->
+    case riak_kv_js_manager:blocking_dispatch({{jsfun, JSName}, RObj}) of
+        {ok, <<"fail">>} ->
+            fail;
+        {ok, NewObj} ->
+            riak_object:from_json(NewObj);
+        {error, Error} ->
+            error_log:error_msg("Error executing hook: ~s", [proplists:get_value(<<"message">>, Error)]),
+            fail
+    end;
+invoke_precommit(_, _, _, RObj) ->
+    RObj.
