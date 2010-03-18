@@ -67,9 +67,12 @@ init([ReqId,RObj0,W,DW,Timeout,Client]) ->
 %% @private
 initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
                                       timeout=Timeout, ring=Ring, rclient=RClient}) ->
-    case invoke_precommit(RClient, update_metadata(RObj0)) of
+    case invoke_hook(precommit, RClient, update_metadata(RObj0)) of
         fail ->
             Client ! {ReqId, {error, precommit_fail}},
+            {stop, normal, StateData0};
+        {fail, Reason} ->
+            Client ! {ReqId, {error, {precommit_fail, Reason}}},
             {stop, normal, StateData0};
         RObj1 ->
             StartNow = now(),
@@ -98,13 +101,15 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
 
 waiting_vnode_w({w, Idx, ReqId},
                 StateData=#state{w=W,dw=DW,req_id=ReqId,client=Client,
-                                 replied_w=Replied0}) ->
+                                 replied_w=Replied0, rclient=RClient,
+                                 robj=RObj}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= W of
         true ->
             case DW of
                 0 ->
                     Client ! {ReqId, ok},
+                    invoke_hook(postcommit, RClient, RObj),
                     update_stats(StateData),
                     {stop,normal,StateData};
                 _ ->
@@ -143,11 +148,13 @@ waiting_vnode_dw({w, _Idx, ReqId},
           StateData=#state{req_id=ReqId}) ->
     {next_state,waiting_vnode_dw,StateData};
 waiting_vnode_dw({dw, Idx, ReqId},
-                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0}) ->
+                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0,
+                                  rclient=RClient, robj=RObj}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of
         true ->
             update_stats(StateData),
+            invoke_hook(postcommit, RClient, RObj),
             Client ! {ReqId, ok},
             {stop,normal,StateData};
         false ->
@@ -219,34 +226,45 @@ update_stats(#state{startnow=StartNow}) ->
     riak_kv_stat:update({put_fsm_time, timer:now_diff(EndNow, StartNow)}).
 
 %% Internal functions
-invoke_precommit(RClient, RObj) ->
+invoke_hook(HookType, RClient, RObj) ->
     Bucket = riak_object:bucket(RObj),
     BucketProps = RClient:get_bucket(Bucket),
-    case proplists:get_value(precommit, BucketProps) of
+    R = proplists:get_value(HookType, BucketProps),
+    case R of
         undefined ->
             RObj;
-        none ->
+        <<"none">> ->
             RObj;
         {struct, Hook} ->
-            Mod0 = proplists:get_value(<<"mod">>, Hook),
-            Fun0 = proplists:get_value(<<"fun">>, Hook),
+            Mod = proplists:get_value(<<"mod">>, Hook),
+            Fun = proplists:get_value(<<"fun">>, Hook),
             JSName = proplists:get_value(<<"name">>, Hook),
-            invoke_precommit(Mod0, Fun0, JSName, RObj)
+            invoke_hook(HookType, Mod, Fun, JSName, RObj)
     end.
 
-invoke_precommit(Mod0, Fun0, undefined, RObj) ->
+invoke_hook(precommit, Mod0, Fun0, undefined, RObj) ->
     Mod = binary_to_atom(Mod0, utf8),
     Fun = binary_to_atom(Fun0, utf8),
     Mod:Fun(RObj);
-invoke_precommit(undefined, undefined, JSName, RObj) ->
+invoke_hook(precommit, undefined, undefined, JSName, RObj) ->
     case riak_kv_js_manager:blocking_dispatch({{jsfun, JSName}, RObj}) of
         {ok, <<"fail">>} ->
             fail;
+        {ok, [{<<"fail">>, Message}]} ->
+            {fail, Message};
         {ok, NewObj} ->
             riak_object:from_json(NewObj);
         {error, Error} ->
-            error_log:error_msg("Error executing hook: ~s", [proplists:get_value(<<"message">>, Error)]),
+            error_logger:error_msg("Error executing pre-commit hook: ~s",
+                                   [Error]),
             fail
     end;
-invoke_precommit(_, _, _, RObj) ->
+invoke_hook(postcommit, Mod0, Fun0, undefined, Obj) ->
+    Mod = binary_to_atom(Mod0, utf8),
+    Fun = binary_to_atom(Fun0, utf8),
+    proc_lib:spawn(fun() -> Mod:Fun(Obj) end);
+invoke_hook(postcommit, undefined, undefined, _JSName, _Obj) ->
+    error_logger:warning_msg("Javascript post-commit hooks aren't implemented");
+%% NOP to handle all other cases
+invoke_hook(_, _, _, _, RObj) ->
     RObj.

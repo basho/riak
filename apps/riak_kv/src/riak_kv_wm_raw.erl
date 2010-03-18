@@ -748,7 +748,9 @@ accept_doc_body(RD, Ctx=#ctx{bucket=B, key=K, client=C, links=L}) ->
     Doc = riak_object:update_value(MDDoc, wrq:req_body(RD)),
     case C:put(Doc, Ctx#ctx.w, Ctx#ctx.dw) of
         {error, precommit_fail} ->
-            {{halt, 403}, send_precommit_error(RD), Ctx};
+            {{halt, 403}, send_precommit_error(RD, undefined), Ctx};
+        {error, {precommit_fail, Reason}} ->
+            {{halt, 403}, send_precommit_error(RD, Reason), Ctx};
         ok ->
             %% If returnbody=true is specified, then send the body back.
             case wrq:get_qs_value(?Q_RETURNBODY, RD) of
@@ -1002,7 +1004,9 @@ ensure_doc(Ctx) -> Ctx.
 delete_resource(RD, Ctx=#ctx{bucket=B, key=K, client=C, rw=RW}) ->
     case C:delete(B, K, RW) of
         {error, precommit_fail} ->
-            {{halt, 403}, send_precommit_error(RD), Ctx};
+            {{halt, 403}, send_precommit_error(RD, undefined), Ctx};
+        {error, {precommit_fail, Reason}} ->
+            {{halt, 403}, send_precommit_error(RD, Reason), Ctx};
         ok ->
             {true, RD, Ctx}
     end.
@@ -1119,8 +1123,13 @@ missing_content_type(RD) ->
     RD1 = wrq:set_resp_header("Content-Type", "text/plain", RD),
     wrq:append_to_response_body(<<"Missing Content-Type request header">>, RD1).
 
-send_precommit_error(RD) ->
+send_precommit_error(RD, Reason) ->
     RD1 = wrq:set_resp_header("Content-Type", "text/plain", RD),
-    Error = list_to_binary([atom_to_binary(wrq:method(RD1), utf8),
-                            <<" aborted by pre-commit hook.">>]),
+    Error = if
+                Reason =:= undefined ->
+                    list_to_binary([atom_to_binary(wrq:method(RD1), utf8),
+                                    <<" aborted by pre-commit hook.">>]);
+                true ->
+                    Reason
+            end,
     wrq:append_to_response_body(Error, RD1).
