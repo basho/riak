@@ -45,6 +45,8 @@ create(Method,Version,RawPath,Headers) ->
       peer="defined_in_wm_req_srv_init",
       req_body=not_fetched_yet,
       max_recv_body=(1024*(1024*1024)),
+      % Stolen from R13B03 inet_drv.c's TCP_MAX_PACKET_SIZE definition
+      max_recv_hunk=(64*(1024*1024)),
       app_root="defined_in_load_dispatch_data",
       path_info=dict:new(),
       path_tokens=defined_in_load_dispatch_data,
