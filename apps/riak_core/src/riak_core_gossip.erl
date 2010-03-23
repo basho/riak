@@ -99,8 +99,8 @@ handle_cast({reconcile_ring, OtherRing}, RingChanged) ->
             BalancedRing = claim_until_balanced(ReconciledRing),
             riak_core_ring_manager:set_my_ring(BalancedRing),
 
-            % Finally, push it out to another node
-            RandomNode = riak_core_ring:random_node(BalancedRing),
+            % Finally, push it out to another node - expect at least two nodes now
+            RandomNode = riak_core_ring:random_other_node(BalancedRing),
             send_ring(node(), RandomNode),
             {noreply, true}
     end;
@@ -121,9 +121,12 @@ handle_cast(gossip_ring, RingChanged) ->
 
     % Finally, gossip the ring to some random other node...
     {ok, MyRing} = riak_core_ring_manager:get_my_ring(),
-    RandomIdx = riak_core_ring:random_other_index(MyRing),
-    RandomNode = riak_core_ring:index_owner(MyRing, RandomIdx),
-    send_ring(node(), RandomNode),
+    case riak_core_ring:random_other_node(MyRing) of
+        no_node -> % must be single node cluster
+            ok;
+        RandomNode ->
+            send_ring(node(), RandomNode)
+    end,
     {noreply, false};
 
 handle_cast(_, State) ->
