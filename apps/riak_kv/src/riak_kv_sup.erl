@@ -63,9 +63,8 @@ init([]) ->
                  permanent, infinity, supervisor, [riak_kv_js_sup]},
     % Figure out which processes we should run...
     IsWebConfigured = (app_helper:get_env(riak_kv, web_ip) /= undefined)
-        andalso (app_helper:get_env(riak_kv, web_ip) /= undefined),
-    HasStorageBackend = (app_helper:get_env(riak_kv, storage_backend) /= undefined)
-        andalso (app_helper:get_env(riak_kv, storage_backend) /= undefined),
+        andalso (app_helper:get_env(riak_kv, web_port) /= undefined),
+    HasStorageBackend = (app_helper:get_env(riak_kv, storage_backend) /= undefined),
     IsStatEnabled = (app_helper:get_env(riak_kv, riak_kv_stat) == true),
 
     % Build the process list...
