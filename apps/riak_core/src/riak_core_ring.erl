@@ -34,6 +34,7 @@
          transfer_node/3, rename_node/3, reconcile/2, my_indices/1,
 	 index_owner/2,diff_nodes/2,random_node/1, random_other_node/1, random_other_index/1,
          random_other_index/2,
+         all_preflists/2,
          get_meta/2, update_meta/3, equal_rings/2]).	 
 
 % @type riak_core_ring(). The opaque data type used for partition ownership.
@@ -150,6 +151,15 @@ num_partitions(State) ->
 % @spec preflist(Key :: binary(), State :: chstate()) ->
 %                                 [{Index :: integer(), Node :: term()}]
 preflist(Key, State) -> chash:successors(Key, State#chstate.chring).
+
+% @doc Provide every preflist in the ring, truncated at N.
+% @spec all_preflists(State :: chstate(), N :: integer()) ->
+%                                 [[{Index :: integer(), Node :: term()}]]
+all_preflists(State, N) ->
+    [lists:sublist(preflist(Key, State),N) ||
+        Key <- [<<(I+1):160/integer>> ||
+                   {I,_Owner} <- ?MODULE:all_owners(State)]].
+
 
 % @spec transfer_node(Idx :: integer(), Node :: term(), MyState :: chstate()) ->
 %           chstate()
