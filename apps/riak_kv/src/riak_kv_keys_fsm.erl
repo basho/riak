@@ -74,7 +74,11 @@ waiting_kl({kl, Keys, Idx, ReqId},
                             bucket=Bucket,client_type=ClientType}) ->
     Bloom = process_keys(Keys,Bucket,ClientType,Bloom0,ReqId,Client),
     WPL = [{W_Idx,W_Node,W_PL} || {W_Idx,W_Node,W_PL} <- WPL0, W_Idx /= Idx],
-    [Node] = [W_Node || {W_Idx,W_Node,_W_PL} <- WPL0, W_Idx =:= Idx],
+    WNs = [W_Node || {W_Idx,W_Node,_W_PL} <- WPL0, W_Idx =:= Idx],
+    Node = case WNs of
+        [WN] -> WN;
+        _ -> undefined
+    end,
     VNS = sets:add_element({Idx,Node},VNS0),
     StateData = StateData0#state{bloom=Bloom,wait_pls=WPL,vns=VNS},
     case PLS of
