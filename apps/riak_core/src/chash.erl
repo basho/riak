@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% riak_core: Core Riak Application
+%% chash: basic consistent hashing
 %%
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 %%

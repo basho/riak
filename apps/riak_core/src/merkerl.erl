@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% riak_core: Core Riak Application
+%% merkerl: simple in-memory Merkle Trees
 %%
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -48,7 +48,6 @@
 %% 1987
 
 -module(merkerl).
--author("Justin Sheehy <justin@basho.com>").
 -export([insert/2,delete/2,build_tree/1,diff/2,allkeys/1]).
 
 -include_lib("eunit/include/eunit.hrl").

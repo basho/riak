@@ -79,8 +79,8 @@
 -include_lib("include/wm_reqstate.hrl").
 -include_lib("include/wm_reqdata.hrl").
 
--define(WMVSN, "1.5.2").
--define(QUIP, "that tip is the fix").
+-define(WMVSN, "1.6").
+-define(QUIP, "eat around the stinger").
 -define(IDLE_TIMEOUT, infinity).
 
 trim_state() ->

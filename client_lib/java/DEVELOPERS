@@ -1,0 +1,67 @@
+
+
+This document contains a technical overview of this project for development.  For instructions on using this client, see the [README](/jonjlee/riak-java-client/wiki/Home).
+
+# Javadocs #
+
+The Javadocs contain detailed information about each class.  They can be built using:
+
+    mvn javadoc:javadoc
+
+Then open `target/site/apidocs/index.html`.
+
+# Overview #
+
+The most important classes are:
+
+*   **ClientHelper**: executes HTTP methods
+
+*   **RiakObject**: Java representations of a Riak object capable of serializing to an HTTP request
+
+*   **--Response** classes: parse HTTP responses from Riak
+
+*   **RiakClient**: calls ClientHelper and wraps responses in `--Response` classes
+
+# Classes #
+
+## Example ##
+
+A typical fetch for an object from the Riak HTTP interface is handled as follows:
+
+1.  User calls `RiakClient.fetch(...)`
+
+2.  Calls `ClientHelper.fetch(...)` which builds the `HttpMethod`
+
+3.  Calls `ClientHelper.executeMethod(...)` which executes the method and fetches the response with `getResponseBodyAsString()`
+
+4.  `RiakClient.fetch(...)` constructs a `FetchResponse` from the response
+
+5.  `FetchResponse` parses the response and constructs a `RiakObject`
+
+The other operations follow the same basic flow: Client -> ClientHelper -> Response.
+
+## Executing HTTP Methods ##
+
+The heart of the client is `ClientHelper`.  It builds and executes the HTTP methods corresponding to each operation.  The `executeMethod()` method performs the HTTP operation using Commons HttpClient and retrieves the response.
+
+## Serialization/Parsing ##
+
+While the HTTP operations are performed by ClientHelper, the majority of the work actually consists of serializing objects and parsing the HTTP responses from Riak. Serialization of objects to send to Riak is performed by `RiakObject.writeToHttpMethod(...)`. Responses are parsed by the `--Response` classes which read the `HttpResponse` returned by `ClientHelper` and construct the appropriate domain objects.
+
+## Client Interface ##
+
+Users primarily use `RiakClient`/`RiakObject`.  `RiakClient` is a simple adapter from `ClientHelper` to the `RiakClient` interface. It uses `ClientHelper` to execute the HTTP methods and wraps the resulting response with the proper `--Response`.
+
+# Development #
+
+## Integration Tests ##
+
+The integration tests perform each of the basic operations (store bucket schema, list bucket, store, fetch, modify, walk, map/reduce) against a running Riak instance.  They can be run using:
+
+    mvn -Pitest clean verify
+
+Riak must be running on `127.0.0.1:8098` with the HTTP interface located at `/riak`.  Note that prior to Riak 0.9, the HTTP interface was located at `/raw` by default.
+
+## Code Format ##
+
+The files `eclipse-cleanup-profile.xml` and `eclipse-format-profile.xml` are provided to be used with Eclipse.  Import them using Preferences > Java > Code Style > Clean Up and ... > Formatter.  New code can be formatted like the current code using the Source > Clean Up... feature.

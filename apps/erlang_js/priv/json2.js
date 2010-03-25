@@ -440,6 +440,12 @@ if (!this.JSON) {
                 });
             }
 
+// Detect if we're parsing a non-string and throw a descriptive
+// error
+	  if (text.replace === undefined) {
+	    throw new SyntaxError('Cannot JSON parse a non-String');
+	  }
+
 // In the second stage, we run the text against regular expressions that look
 // for non-JSON patterns. We are especially concerned with '()' and 'new'
 // because they can cause invocation, and '=' because it can cause mutation.
@@ -454,8 +460,8 @@ if (!this.JSON) {
 // ',' or ':' or '{' or '}'. If that is so, then the text is safe for eval.
 
             if (/^[\],:{}\s]*$/.
-test(text.replace(/\\(?:["\\\/bfnrt]|u[0-9a-fA-F]{4})/g, '@').
-replace(/"[^"\\\n\r]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').
+test(text.replace(/\\(?:["\\\/bfnt]|u[0-9a-fA-F]{4})/g, '@').
+replace(/"[^"\\\n]*"|true|false|null|-?\d+(?:\.\d*)?(?:[eE][+\-]?\d+)?/g, ']').
 replace(/(?:^|:|,)(?:\s*\[)+/g, ''))) {
 
 // In the third stage we use the eval function to compile the text into a

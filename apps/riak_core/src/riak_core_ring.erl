@@ -32,8 +32,9 @@
 -export([fresh/0,fresh/1,fresh/2,preflist/2,
 	 owner_node/1,all_members/1,num_partitions/1,all_owners/1,
          transfer_node/3, rename_node/3, reconcile/2, my_indices/1,
-	 index_owner/2,diff_nodes/2,random_node/1, random_other_index/1,
+	 index_owner/2,diff_nodes/2,random_node/1, random_other_node/1, random_other_index/1,
          random_other_index/2,
+         all_preflists/2,
          get_meta/2, update_meta/3, equal_rings/2]).	 
 
 % @type riak_core_ring(). The opaque data type used for partition ownership.
@@ -118,6 +119,16 @@ random_node(State) ->
     L = all_members(State),
     lists:nth(crypto:rand_uniform(1, length(L)+1), L).
 
+% @doc Return a randomly-chosen node from amongst the owners other than this one.
+% @spec random_node(State :: chstate()) -> Node :: term() | no_node
+random_other_node(State) ->
+    case lists:delete(node(), all_members(State)) of
+        [] ->
+            no_node;
+        L ->
+            lists:nth(crypto:rand_uniform(1, length(L)+1), L)
+    end.
+
 % @doc Provide all ownership information in the form of {Index,Node} pairs.
 % @spec all_owners(State :: chstate()) -> [{Index :: integer(), Node :: term()}]
 all_owners(State) ->
@@ -140,6 +151,15 @@ num_partitions(State) ->
 % @spec preflist(Key :: binary(), State :: chstate()) ->
 %                                 [{Index :: integer(), Node :: term()}]
 preflist(Key, State) -> chash:successors(Key, State#chstate.chring).
+
+% @doc Provide every preflist in the ring, truncated at N.
+% @spec all_preflists(State :: chstate(), N :: integer()) ->
+%                                 [[{Index :: integer(), Node :: term()}]]
+all_preflists(State, N) ->
+    [lists:sublist(preflist(Key, State),N) ||
+        Key <- [<<(I+1):160/integer>> ||
+                   {I,_Owner} <- ?MODULE:all_owners(State)]].
+
 
 % @spec transfer_node(Idx :: integer(), Node :: term(), MyState :: chstate()) ->
 %           chstate()
@@ -340,3 +360,9 @@ exclusion_test() ->
     ?assertEqual(no_indices, random_other_index(Ring1, [0])),
     ?assertEqual([{730750818665451459101842416358141509827966271488,nonode@nohost},{0,x}],
                  preflist(<<1:160/integer>>, Ring1)).
+
+random_other_node_test() ->
+    Ring0 = fresh(2, node()),
+    ?assertEqual(no_node, random_other_node(Ring0)),
+    Ring1 = transfer_node(0, 'new@new', Ring0),
+    ?assertEqual('new@new', random_other_node(Ring1)).

@@ -1,0 +1,19 @@
+----------------------
+Riak 0.9.1 Release Notes
+----------------------
+
+Riak 0.9.1 addresses a few minor issues:
+
+ - raw_link_walker_resource no longer returns errors when linked
+   objects are missing (the missing objects are just not included in
+   the response) [http://issues.basho.com/show_bug.cgi?id=40]
+
+ - if multiple map/reduce phases specify "keep":true, the results from
+   each phase are grouped into their own list; streameing responses
+   with multiple "keep":true phases include a "phase":<integer index>
+   field [http://issues.basho.com/show_bug.cgi?id=66]
+
+ - the bucket name and key can now be extracted from objects in the
+   Python and PHP clients
+
+ - links to binary downloads in admin.org were updated

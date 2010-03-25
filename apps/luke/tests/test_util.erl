@@ -16,7 +16,14 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
--export([verify_phases/2, verify_results/2, assertDead/1]).
+-export([start_flow/1, verify_phases/2, verify_results/2, assertDead/1]).
+
+start_flow(FlowDesc) ->
+    FlowId = make_ref(),
+    {ok, Pid} = luke:new_flow(FlowId, FlowDesc),
+    Phases = test_util:verify_phases(Pid, length(FlowDesc)),
+    {FlowId, Pid, Phases}.
+
 
 verify_phases(Pid, Size) ->
     Phases = luke_flow:get_phases(Pid),
@@ -27,7 +34,7 @@ verify_results(FlowId, none) ->
     receive
         {flow_results, FlowId, done} ->
             throw({error, unexpected_done});
-        {flow_results, FlowId, Results} ->
+        {flow_results, _PhaseId, FlowId, Results} ->
             throw({error, unexpected_results, Results})
     after 100 ->
             ok
@@ -36,7 +43,7 @@ verify_results(FlowId, results) ->
     receive
         {flow_results, FlowId, done} ->
             throw({error, unexpected_done});
-        {flow_results, FlowId, Results} ->
+        {flow_results, _PhaseId, FlowId, Results} ->
             {ok, Results}
     after 100 ->
             throw({error, no_results})
@@ -45,7 +52,7 @@ verify_results(FlowId, done) ->
     receive
         {flow_results, FlowId, done} ->
             ok;
-        {flow_results, FlowId, Results} ->
+        {flow_results, _PhaseId, FlowId, Results} ->
             throw({error, unexpected_results, Results})
     after 100 ->
             throw({error, no_results})

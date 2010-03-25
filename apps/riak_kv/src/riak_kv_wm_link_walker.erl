@@ -1,21 +1,29 @@
+%% -------------------------------------------------------------------
+%%
+%% riak_kv_wm_link_walker: HTTP access to Riak link traversal
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
 %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
 %% except in compliance with the License.  You may obtain
 %% a copy of the License at
-
+%%
 %%   http://www.apache.org/licenses/LICENSE-2.0
-
+%%
 %% Unless required by applicable law or agreed to in writing,
 %% software distributed under the License is distributed on an
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
 %% under the License.
+%%
+%% -------------------------------------------------------------------
 
 %% @doc Raw link walker resource provides an interface to riak object
 %%      linkwalking over HTTP.  The interface exposed is:
 %%
-%%      /raw/Bucket/Key[/b,t,acc]
+%%      /riak/Bucket/Key[/b,t,acc]
 %%
 %%      where:
 %%
@@ -41,7 +49,7 @@
 %%
 %%      so:
 %%
-%%      /raw/foo/123/bar,_,_ : returns all bar objects
+%%      /riak/foo/123/bar,_,_ : returns all bar objects
 %%      attached to foo 123:
 %%        Content-type: multipart/mixed; boundary=ABC
 %%
@@ -59,7 +67,7 @@
 %%        --XYZ--
 %%      --ABC--
 %%
-%%      /raw/foo/123/bar,_,1/_,_,_ : returns all
+%%      /riak/foo/123/bar,_,1/_,_,_ : returns all
 %%      bar objects attached to foo 123, and all objects attached
 %%      to those bar objects:
 %%        Content-type: multipart/mixed; boundary=ABC
@@ -94,13 +102,13 @@
 %%
 %%  {["raw", bucket, key, '*'],
 %%   riak_kv_wm_raw,
-%%   [{prefix, "raw"},
+%%   [{prefix, "riak"},
 %%    {riak, local}, %% or {riak, {'riak@127.0.0.1', riak_cookie}}
 %%    {cache_secs, 60}
 %%   ]}.
 %%
 %% These example dispatch lines will expose this resource at
-%% /raw/Bucket/Key/*.  The resource will attempt to
+%% /riak/Bucket/Key/*.  The resource will attempt to
 %% connect to Riak on the same Erlang node one which the resource
 %% is executing.  Using the alternate {riak, {Node, Cookie}} form
 %% will cause the resource to connect to riak on the specified
@@ -305,11 +313,14 @@ execute_segment(C, Start, Steps) ->
         ++[riak_kv_mapreduce:reduce_set_union(false),
            riak_kv_mapreduce:map_identity(true)],
     {ok, Objects} = C:mapred(Start, MR),
-    %% strip link tags from objects
-    lists:map(fun({O,_Tag}) -> O;
-                 (O)        -> O
-              end,
-              Objects).
+    %% remove notfounds and strip link tags from objects
+    lists:reverse(
+      lists:foldl(fun({error, notfound}, Acc) -> Acc;
+                     ({O, _Tag}, Acc)         -> [O|Acc];
+                     (O, Acc)                 -> [O|Acc]
+                  end,
+                  [],
+                  Objects)).
 
 %% @spec extract_query(reqdata()) -> [linkquery()]
 %% @doc Extract the link-walking query from the URL chunk after the

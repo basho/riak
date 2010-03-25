@@ -1,16 +1,26 @@
+%% -------------------------------------------------------------------
+%%
+%% riak_put_fsm: coordination of Riak PUT requests
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
 %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
 %% except in compliance with the License.  You may obtain
 %% a copy of the License at
-
+%%
 %%   http://www.apache.org/licenses/LICENSE-2.0
-
+%%
 %% Unless required by applicable law or agreed to in writing,
 %% software distributed under the License is distributed on an
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
+%%
+%% -------------------------------------------------------------------
+
+%% @doc coordination of Riak PUT requests
 
 -module(riak_kv_put_fsm).
 -include_lib("eunit/include/eunit.hrl").
@@ -21,20 +31,21 @@
          handle_info/3, terminate/3, code_change/4]).
 -export([initialize/2,waiting_vnode_w/2,waiting_vnode_dw/2]).
 
--record(state, {robj :: riak_object:riak_object(), 
-                client :: {pid(), reference()}, 
-                n :: pos_integer(), 
-                w :: pos_integer(), 
-                dw :: non_neg_integer(), 
-                preflist :: [{pos_integer(), atom()}], 
+-record(state, {robj :: riak_object:riak_object(),
+                client :: {pid(), reference()},
+                rclient :: riak_client:riak_client(),
+                n :: pos_integer(),
+                w :: pos_integer(),
+                dw :: non_neg_integer(),
+                preflist :: [{pos_integer(), atom()}],
                 bkey :: {riak_object:bucket(), riak_object:key()},
                 waiting_for :: list(),
-                req_id :: pos_integer(), 
-                starttime :: pos_integer(), 
-                replied_w :: list(), 
-                replied_dw :: list(), 
+                req_id :: pos_integer(),
+                starttime :: pos_integer(),
+                replied_w :: list(),
+                replied_dw :: list(),
                 replied_fail :: list(),
-                timeout :: pos_integer(), 
+                timeout :: pos_integer(),
                 tref    :: reference(),
                 ring :: riak_core_ring:riak_core_ring(),
                 startnow :: {pos_integer(), pos_integer(), pos_integer()}
@@ -46,47 +57,59 @@ start(ReqId,RObj,W,DW,Timeout,From) ->
 %% @private
 init([ReqId,RObj0,W,DW,Timeout,Client]) ->
     {ok,Ring} = riak_core_ring_manager:get_my_ring(),
+    {ok, RClient} = riak:local_client(),
     StateData = #state{robj=RObj0, client=Client, w=W, dw=DW,
-                       req_id=ReqId, timeout=Timeout, ring=Ring},
-    
+                       req_id=ReqId, timeout=Timeout, ring=Ring,
+                       rclient=RClient},
+
     {ok,initialize,StateData,0}.
 
 %% @private
-initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
-                                      timeout=Timeout, ring=Ring}) ->
-    StartNow = now(),
-    TRef = erlang:send_after(Timeout, self(), timeout),
-    RObj = update_metadata(RObj0),
-    RealStartTime = riak_core_util:moment(),
-    Bucket = riak_object:bucket(RObj),
-    BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
-    Key = riak_object:key(RObj),
-    DocIdx = riak_core_util:chash_key({Bucket, Key}),
-    Msg = {self(), {Bucket,Key}, RObj, ReqId, RealStartTime},
-    N = proplists:get_value(n_val,BucketProps),
-    Preflist = riak_core_ring:preflist(DocIdx, Ring),
-    {Targets, Fallbacks} = lists:split(N, Preflist),
-    {Sent1, Pangs1} = riak_kv_util:try_cast(vnode_put, Msg, nodes(), Targets),
-    Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
-        true -> Sent1;
-        false -> Sent1 ++ riak_kv_util:fallback(vnode_put,Msg,Pangs1,Fallbacks)
-    end,
-    StateData = StateData0#state{
-                  robj=RObj, n=N, preflist=Preflist, bkey={Bucket,Key},
-                  waiting_for=Sent, starttime=riak_core_util:moment(),
-                  replied_w=[], replied_dw=[], replied_fail=[],
-                  tref=TRef,startnow=StartNow},
-    {next_state,waiting_vnode_w,StateData}.
+initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
+                                      timeout=Timeout, ring=Ring, rclient=RClient}) ->
+    case invoke_hook(precommit, RClient, update_metadata(RObj0)) of
+        fail ->
+            Client ! {ReqId, {error, precommit_fail}},
+            {stop, normal, StateData0};
+        {fail, Reason} ->
+            Client ! {ReqId, {error, {precommit_fail, Reason}}},
+            {stop, normal, StateData0};
+        RObj1 ->
+            StartNow = now(),
+            TRef = erlang:send_after(Timeout, self(), timeout),
+            RealStartTime = riak_core_util:moment(),
+            Bucket = riak_object:bucket(RObj1),
+            BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
+            Key = riak_object:key(RObj1),
+            DocIdx = riak_core_util:chash_key({Bucket, Key}),
+            Msg = {self(), {Bucket,Key}, RObj1, ReqId, RealStartTime},
+            N = proplists:get_value(n_val,BucketProps),
+            Preflist = riak_core_ring:preflist(DocIdx, Ring),
+            {Targets, Fallbacks} = lists:split(N, Preflist),
+            {Sent1, Pangs1} = riak_kv_util:try_cast(vnode_put, Msg, nodes(), Targets),
+            Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
+                       true -> Sent1;
+                       false -> Sent1 ++ riak_kv_util:fallback(vnode_put,Msg,Pangs1,Fallbacks)
+                   end,
+            StateData = StateData0#state{
+                          robj=RObj1, n=N, preflist=Preflist, bkey={Bucket,Key},
+                          waiting_for=Sent, starttime=riak_core_util:moment(),
+                          replied_w=[], replied_dw=[], replied_fail=[],
+                          tref=TRef,startnow=StartNow},
+            {next_state,waiting_vnode_w,StateData}
+    end.
 
 waiting_vnode_w({w, Idx, ReqId},
                 StateData=#state{w=W,dw=DW,req_id=ReqId,client=Client,
-                                 replied_w=Replied0}) ->
+                                 replied_w=Replied0, rclient=RClient,
+                                 robj=RObj}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= W of
         true ->
             case DW of
                 0 ->
                     Client ! {ReqId, ok},
+                    invoke_hook(postcommit, RClient, RObj),
                     update_stats(StateData),
                     {stop,normal,StateData};
                 _ ->
@@ -125,11 +148,13 @@ waiting_vnode_dw({w, _Idx, ReqId},
           StateData=#state{req_id=ReqId}) ->
     {next_state,waiting_vnode_dw,StateData};
 waiting_vnode_dw({dw, Idx, ReqId},
-                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0}) ->
+                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0,
+                                  rclient=RClient, robj=RObj}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of
         true ->
             update_stats(StateData),
+            invoke_hook(postcommit, RClient, RObj),
             Client ! {ReqId, ok},
             {stop,normal,StateData};
         false ->
@@ -193,9 +218,53 @@ make_vtag(RObj) ->
 
 make_vtag_test() ->
     Obj = riak_object:new(<<"b">>,<<"k">>,<<"v1">>),
-    ?assertNot(make_vtag(Obj) =:= 
+    ?assertNot(make_vtag(Obj) =:=
                make_vtag(riak_object:increment_vclock(Obj,<<"client_id">>))).
 
 update_stats(#state{startnow=StartNow}) ->
     EndNow = now(),
     riak_kv_stat:update({put_fsm_time, timer:now_diff(EndNow, StartNow)}).
+
+%% Internal functions
+invoke_hook(HookType, RClient, RObj) ->
+    Bucket = riak_object:bucket(RObj),
+    BucketProps = RClient:get_bucket(Bucket),
+    R = proplists:get_value(HookType, BucketProps, none),
+    case R of
+        <<"none">> ->
+            RObj;
+        none ->
+            RObj;
+        {struct, Hook} ->
+            Mod = proplists:get_value(<<"mod">>, Hook),
+            Fun = proplists:get_value(<<"fun">>, Hook),
+            JSName = proplists:get_value(<<"name">>, Hook),
+            invoke_hook(HookType, Mod, Fun, JSName, RObj)
+    end.
+
+invoke_hook(precommit, Mod0, Fun0, undefined, RObj) ->
+    Mod = binary_to_atom(Mod0, utf8),
+    Fun = binary_to_atom(Fun0, utf8),
+    Mod:Fun(RObj);
+invoke_hook(precommit, undefined, undefined, JSName, RObj) ->
+    case riak_kv_js_manager:blocking_dispatch({{jsfun, JSName}, RObj}) of
+        {ok, <<"fail">>} ->
+            fail;
+        {ok, [{<<"fail">>, Message}]} ->
+            {fail, Message};
+        {ok, NewObj} ->
+            riak_object:from_json(NewObj);
+        {error, Error} ->
+            error_logger:error_msg("Error executing pre-commit hook: ~s",
+                                   [Error]),
+            fail
+    end;
+invoke_hook(postcommit, Mod0, Fun0, undefined, Obj) ->
+    Mod = binary_to_atom(Mod0, utf8),
+    Fun = binary_to_atom(Fun0, utf8),
+    proc_lib:spawn(fun() -> Mod:Fun(Obj) end);
+invoke_hook(postcommit, undefined, undefined, _JSName, _Obj) ->
+    error_logger:warning_msg("Javascript post-commit hooks aren't implemented");
+%% NOP to handle all other cases
+invoke_hook(_, _, _, _, RObj) ->
+    RObj.

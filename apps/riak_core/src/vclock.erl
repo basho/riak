@@ -165,10 +165,10 @@ timestamp() ->
 equal(VA,VB) ->
     VSet1 = sets:from_list(VA),
     VSet2 = sets:from_list(VB),
-    case length(sets:to_list(sets:subtract(VSet1,VSet2))) > 0 of
+    case sets:size(sets:subtract(VSet1,VSet2)) > 0 of
         true -> false;
         false ->
-            case length(sets:to_list(sets:subtract(VSet2,VSet1))) > 0 of
+            case sets:size(sets:subtract(VSet2,VSet1)) > 0 of
                 true -> false;
                 false -> true
             end

@@ -1,16 +1,24 @@
+%% -------------------------------------------------------------------
+%%
+%% riak_mapreduce: convenience functions for defining common map/reduce phases
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
 %% This file is provided to you under the Apache License,
 %% Version 2.0 (the "License"); you may not use this file
 %% except in compliance with the License.  You may obtain
 %% a copy of the License at
-
+%%
 %%   http://www.apache.org/licenses/LICENSE-2.0
-
+%%
 %% Unless required by applicable law or agreed to in writing,
 %% software distributed under the License is distributed on an
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
 %% KIND, either express or implied.  See the License for the
 %% specific language governing permissions and limitations
-%% under the License.    
+%% under the License.
+%%
+%% -------------------------------------------------------------------
 
 %% @doc Convenience functions for defining common map/reduce phases.
 -module(riak_kv_mapreduce).
@@ -20,6 +28,8 @@
          map_object_value/1,
          map_object_value_list/1]).
 -export([reduce_set_union/1,
+         reduce_sort/1,
+         reduce_string_to_integer/1,
          reduce_sum/1,
          reduce_plist_sum/1]).
 
@@ -28,6 +38,8 @@
          map_object_value/3,
          map_object_value_list/3]).
 -export([reduce_set_union/2,
+         reduce_sort/2,
+         reduce_string_to_integer/2,
          reduce_sum/2,
          reduce_plist_sum/2]).
 
@@ -45,7 +57,7 @@
 map_identity(Acc) ->
     {map, {modfun, riak_kv_mapreduce, map_identity}, none, Acc}.
 
-%% @spec map_identity(riak_object:riak_object(), term(), term()) -> 
+%% @spec map_identity(riak_object:riak_object(), term(), term()) ->
 %%                   [riak_object:riak_object()]
 %% @doc map phase function for map_identity/1
 map_identity(RiakObject, _, _) -> [RiakObject].
@@ -76,7 +88,7 @@ map_object_value(RiakObject, _, _) ->
 map_object_value_list(Acc) ->
     {map, {modfun, riak_kv_mapreduce, map_object_value_list}, none, Acc}.
 
-%% @spec map_object_value_list(riak_object:riak_object(), term(), term()) -> 
+%% @spec map_object_value_list(riak_object:riak_object(), term(), term()) ->
 %%                            [term()]
 %% @doc map phase function for map_object_value_list/1
 map_object_value_list(RiakObject, _, _) ->
@@ -136,6 +148,36 @@ reduce_plist_sum(PList, _) ->
            true -> lists:flatten(PList)
         end)).
 
+%% @spec reduce_sort(boolean()) -> reduce_phase_spec()
+%% @doc Produces a spec for a reduce phase that sorts its
+%%      inputs in ascending order using lists:sort/1.
+reduce_sort(Acc) ->
+    {reduce, {modfun, riak_mapreduce, reduce_sort}, none, Acc}.
+
+%% @spec reduce_sort([term()], term()) -> [term()]
+%% @doc reduce phase function for reduce_sort/1
+reduce_sort(List, _) ->
+    lists:sort(List).
+
+%% @spec reduce_string_to_integer(boolean()) -> reduce_phase_spec()
+%% @doc Produces a spec for a reduce phase that converts
+%%      its inputs to integers. Inputs can be either Erlang
+%%      strings or binaries.
+reduce_string_to_integer(Acc) ->
+    {reduce, {modfun, riak_mapreduce, reduce_string_to_integer}, none, Acc}.
+
+%% @spec reduce_string_to_integer([number()], term()) -> [number()]
+%% @doc reduce phase function for reduce_sort/1
+reduce_string_to_integer(List, _) ->
+    [value_to_integer(I) || I <- List].
+
+value_to_integer(V) when is_list(V) ->
+    list_to_integer(V);
+value_to_integer(V) when is_binary(V) ->
+    value_to_integer(binary_to_list(V));
+value_to_integer(V) when is_integer(V) ->
+    V.
+
 %% unit tests %%
 
 map_identity_test() ->
@@ -176,3 +218,15 @@ reduce_spec_form_test_() ->
          ?_assertMatch({reduce, {modfun, riak_kv_mapreduce, F}, _, false},
                        riak_kv_mapreduce:F(false))]
         || F <- [reduce_set_union, reduce_sum, reduce_plist_sum] ]).
+
+reduce_sort_test() ->
+    [a,b,c] = reduce_sort([b,a,c], none),
+    [1,2,3,4,5] = reduce_sort([4,2,1,3,5], none),
+    ["a", "b", "c"] = reduce_sort(["c", "b", "a"], none),
+    [<<"a">>, <<"is">>, <<"test">>, <<"this">>] = reduce_sort([<<"this">>, <<"is">>, <<"a">>, <<"test">>], none).
+
+reduce_string_to_integer_test() ->
+    [1,2,3] = reduce_string_to_integer(["1", "2", "3"], none),
+    [1,2,3] = reduce_string_to_integer([<<"1">>, <<"2">>, <<"3">>], none),
+    [1,2,3,4,5] = reduce_string_to_integer(["1", <<"2">>, <<"3">>, "4", "5"], none),
+    [1,2,3,4,5] = reduce_string_to_integer(["1", <<"2">>, <<"3">>, 4, 5], none).

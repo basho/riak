@@ -20,7 +20,7 @@
 %%
 %% -------------------------------------------------------------------
 
-%% @doc this owns the local view of the cluster's ring configuration
+%% @doc the local view of the cluster's ring configuration
 
 -module(riak_core_ring_manager).
 -include_lib("eunit/include/eunit.hrl").

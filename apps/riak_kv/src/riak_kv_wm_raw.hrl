@@ -42,6 +42,8 @@
 -define(JSON_JSANON,   <<"jsanon">>).
 -define(JSON_JSBUCKET, <<"bucket">>).
 -define(JSON_JSKEY,    <<"key">>).
+-define(JSON_ALLOW_MULT, <<"allow_mult">>).
+
 
 %% Names of HTTP query parameters
 -define(Q_PROPS, "props").
