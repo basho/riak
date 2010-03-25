@@ -1,4 +1,0 @@
-.eunit/.*$
-c_src/.*\.o$
-priv/.*\.so$
-ebin/.*\.beam$
