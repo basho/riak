@@ -379,8 +379,8 @@ wait_for_listkeys(ReqId, Timeout) ->
 %% @private
 wait_for_listkeys(ReqId,Timeout,Acc) ->
     receive
-        {ReqId, done} -> {ok, Acc};
-        {ReqId,{keys,Res}} -> wait_for_listkeys(ReqId,Timeout,Acc++Res)
+        {ReqId, done} -> {ok, lists:flatten(Acc)};
+        {ReqId,{keys,Res}} -> wait_for_listkeys(ReqId,Timeout,[Res|Acc])
     after Timeout ->
             {error, timeout, Acc}
     end.
