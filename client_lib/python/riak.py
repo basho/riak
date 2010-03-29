@@ -91,17 +91,17 @@ class RiakClient:
 
         def get_r(self):
                 """
-                Get the R-value setting for this ClientObject. (default 2)
+                Get the R-value setting for this RiakClient. (default 2)
                 @return integer
                 """
                 return self._r
 
         def set_r(self, r):
                 """
-                Set the R-value for this ClientObject. This value will be used
+                Set the R-value for this RiakClient. This value will be used
                 for any calls to get(...) or get_binary(...) where where 1) no
                 R-value is specified in the method call and 2) no R-value has
-                been set in the BucketObject.
+                been set in the RiakBucket.
                 @param integer r - The R value.
                 @return self
                 """
@@ -110,14 +110,14 @@ class RiakClient:
 
         def get_w(self):
                 """
-                Get the W-value setting for this ClientObject. (default 2)
+                Get the W-value setting for this RiakClient. (default 2)
                 @return integer
                 """
                 return self._w
 
         def set_w(self, w):
                 """
-                Set the W-value for this ClientObject. See set_r(...) for a
+                Set the W-value for this RiakClient. See set_r(...) for a
                 description of how these values are used.
                 @param integer w - The W value.
                 @return self
@@ -134,7 +134,7 @@ class RiakClient:
         
         def set_dw(self, dw):
                 """
-                Set the DW-value for this ClientObject. See set_r(...) for a
+                Set the DW-value for this RiakClient. See set_r(...) for a
                 description of how these values are used.
                 @param integer dw - The DW value.
                 @return self
@@ -144,14 +144,14 @@ class RiakClient:
         
         def get_client_id(self):
                 """
-                Get the client_id for this ClientObject.
+                Get the client_id for this RiakClient.
                 @return string
                 """
                 return self._client_id
         
         def set_client_id(self, client_id):
                 """
-                Set the client_id for this ClientObject. Should not be called
+                Set the client_id for this RiakClient. Should not be called
                 unless you know what you are doing.
                 @param string client_id - The new client_id.
                 @return self
@@ -162,14 +162,14 @@ class RiakClient:
         def bucket(self, name):
                 """
                 Get the bucket by the specified name. Since buckets always exist,
-                this will always return a BucketObject.
+                this will always return a RiakBucket.
                 @return RiakBucket
                 """
                 return RiakBucket(self, name)
         
         def is_alive(self):
                 """
-                Check if the Riak server for this ClientObject is alive.
+                Check if the Riak server for this RiakClient is alive.
                 @return boolean
                 """
                 response = RiakUtils.http_request('GET', self._host, self._port, '/ping')
@@ -474,7 +474,7 @@ class RiakLink :
                 @param integer r - The R-value to use.
                 @return RiakObject
                 """
-                return self._client._bucket(self._bucket).get(self._key, r)
+                return self._client.bucket(self._bucket).get(self._key, r)
 
         def get_binary(self, r=None):
                 """
@@ -482,7 +482,7 @@ class RiakLink :
                 @param integer r - The R-value to use.
                 @return RiakObject
                 """
-                return self._client._bucket(self._bucket).get_binary(self._key, r)
+                return self._client.bucket(self._bucket).get_binary(self._key, r)
 
         def get_bucket(self):
                 """
@@ -571,6 +571,12 @@ class RiakBucket :
                 self._w = None
                 self._dw = None
                 return None
+
+        def get_name(self):
+                """
+                Get the bucket name.
+                """
+                return self._name
 
         def get_r(self, r=None):
                 """
@@ -812,6 +818,21 @@ class RiakObject :
                 self._siblings = []
                 self._exists = False
                 return None
+
+        def get_bucket(self):
+                """
+                Get the bucket of this object.
+                @return RiakBucket
+                """
+                return self._bucket;
+
+        def get_key(self):
+                """
+                Get the key of this object.
+                @return string
+                """
+                return self._key
+
 
         def get_data(self):
                 """
@@ -1198,7 +1219,7 @@ class RiakUtils :
         @classmethod
         def build_rest_path(self, client, bucket, key=None, spec=None, params=None) :
                 """
-                Given a ClientObject, BucketObject, Key, LinkSpec, and Params,
+                Given a RiakClient, RiakBucket, Key, LinkSpec, and Params,
                 construct and return a URL.		
                 """
                 # Build 'http://hostname:port/prefix/bucket'

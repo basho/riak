@@ -24,7 +24,7 @@
 -export([send_inputs/2,
          send_inputs_done/1,
          send_flow_complete/1]).
--export([send_flow_results/2]).
+-export([send_flow_results/3]).
 
 %% @doc Sends inputs to a phase process
 %%      If a phase has multiple processes, inputs
@@ -55,5 +55,5 @@ send_flow_complete(FlowPid) ->
 %%      This is sent by phases which are configured
 %%      to accumulate their results
 %% @spec send_flow_results(pid(), any()) -> ok
-send_flow_results(FlowPid, Results) ->
-    gen_fsm:send_event(FlowPid, {results, Results}).
+send_flow_results(FlowPid, Id, Results) ->
+    gen_fsm:send_event(FlowPid, {results, Id, Results}).

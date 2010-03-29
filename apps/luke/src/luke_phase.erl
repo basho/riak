@@ -17,7 +17,7 @@
 -behaviour(gen_fsm).
 
 %% API
--export([start_link/6,
+-export([start_link/7,
          complete/0,
          partners/3]).
 
@@ -35,7 +35,8 @@
          terminate/3,
          code_change/4]).
 
--record(state, {mod,
+-record(state, {id,
+                mod,
                 modstate,
                 converge=false,
                 accumulate=false,
@@ -57,8 +58,8 @@ behaviour_info(callbacks) ->
 behaviour_info(_) ->
     undefined.
 
-start_link(PhaseMod, Behaviors, NextPhases, Flow, Timeout, PhaseArgs) ->
-    gen_fsm:start_link(?MODULE, [PhaseMod, Behaviors, NextPhases, Flow, Timeout, PhaseArgs], []).
+start_link(PhaseMod, Id, Behaviors, NextPhases, Flow, Timeout, PhaseArgs) ->
+    gen_fsm:start_link(?MODULE, [Id, PhaseMod, Behaviors, NextPhases, Flow, Timeout, PhaseArgs], []).
 
 complete() ->
     gen_fsm:send_event(self(), complete).
@@ -66,12 +67,12 @@ complete() ->
 partners(PhasePid, Leader, Partners) ->
     gen_fsm:send_event(PhasePid, {partners, Leader, Partners}).
 
-init([PhaseMod, Behaviors, NextPhases, Flow, Timeout, PhaseArgs]) ->
+init([Id, PhaseMod, Behaviors, NextPhases, Flow, Timeout, PhaseArgs]) ->
     case PhaseMod:init(PhaseArgs) of
         {ok, ModState} ->
             Accumulate = lists:member(accumulate, Behaviors),
             Converge = lists:member(converge, Behaviors),
-            {ok, executing, #state{mod=PhaseMod, modstate=ModState, next_phases=NextPhases,
+            {ok, executing, #state{id=Id, mod=PhaseMod, modstate=ModState, next_phases=NextPhases,
                                    flow=Flow, accumulate=Accumulate, converge=Converge, flow_timeout=Timeout}};
         {stop, Reason} ->
             {stop, Reason}
@@ -167,11 +168,11 @@ route_output(Output, #state{converge=true, lead_partner=Lead}=State) when is_pid
 %% Send output to flow for accumulation and propagate as inputs
 %% to the next phase. Accumulation is only true for the lead
 %% process of a converging phase
-route_output(Output, #state{converge=true, accumulate=Accumulate, lead_partner=undefined,
+route_output(Output, #state{id=Id, converge=true, accumulate=Accumulate, lead_partner=undefined,
                             flow=Flow, next_phases=Next}=State) ->
     if
         Accumulate =:= true ->
-            luke_phases:send_flow_results(Flow, Output);
+            luke_phases:send_flow_results(Flow, Id, Output);
         true ->
             ok
     end,
@@ -180,10 +181,10 @@ route_output(Output, #state{converge=true, accumulate=Accumulate, lead_partner=u
 
 %% Route output to the next phase. Accumulate output
 %% to the flow if accumulation is turned on.
-route_output(Output, #state{converge=false, accumulate=Accumulate, flow=Flow, next_phases=Next} = State) ->
+route_output(Output, #state{id=Id, converge=false, accumulate=Accumulate, flow=Flow, next_phases=Next} = State) ->
     if
         Accumulate =:= true ->
-            luke_phases:send_flow_results(Flow, Output);
+            luke_phases:send_flow_results(Flow, Id, Output);
         true ->
             ok
     end,
