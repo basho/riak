@@ -50,7 +50,7 @@ start(ReqId,Bucket,Timeout,ClientType,ErrorTolerance,From) ->
 %% @private
 init([ReqId,Bucket,Timeout,ClientType,ErrorTolerance,Client]) ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-    Bloom = bloom:sbf(10000000,ErrorTolerance),
+    {ok, Bloom} = ebloom:new(10000000,ErrorTolerance,ReqId),
     StateData = #state{client=Client, client_type=ClientType, timeout=Timeout,
                        bloom=Bloom, req_id=ReqId, bucket=Bucket, ring=Ring},
     {ok,initialize,StateData,0}.
@@ -69,10 +69,10 @@ initialize(timeout, StateData0=#state{bucket=Bucket, ring=Ring}) ->
     reduce_pls(StateData).
 
 waiting_kl({kl, Keys, Idx, ReqId},
-           StateData0=#state{pls=PLS,vns=VNS0,wait_pls=WPL0,bloom=Bloom0,
+           StateData0=#state{pls=PLS,vns=VNS0,wait_pls=WPL0,bloom=Bloom,
                             req_id=ReqId,client=Client,timeout=Timeout,
                             bucket=Bucket,client_type=ClientType}) ->
-    Bloom = process_keys(Keys,Bucket,ClientType,Bloom0,ReqId,Client),
+    process_keys(Keys,Bucket,ClientType,Bloom,ReqId,Client),
     WPL = [{W_Idx,W_Node,W_PL} || {W_Idx,W_Node,W_PL} <- WPL0, W_Idx /= Idx],
     WNs = [W_Node || {W_Idx,W_Node,_W_PL} <- WPL0, W_Idx =:= Idx],
     Node = case WNs of
@@ -80,7 +80,7 @@ waiting_kl({kl, Keys, Idx, ReqId},
         _ -> undefined
     end,
     VNS = sets:add_element({Idx,Node},VNS0),
-    StateData = StateData0#state{bloom=Bloom,wait_pls=WPL,vns=VNS},
+    StateData = StateData0#state{wait_pls=WPL,vns=VNS},
     case PLS of
         [] ->
             case WPL of
@@ -155,20 +155,21 @@ check_pl(PL,VNS,WPL) ->
 process_keys(Keys,Bucket,ClientType,Bloom,ReqId,Client) ->
     process_keys(Keys,Bucket,ClientType,Bloom,ReqId,Client,[]).
 %% @private
-process_keys([],Bucket,ClientType,Bloom,ReqId,Client,Acc) ->
+process_keys([],Bucket,ClientType,_Bloom,ReqId,Client,Acc) ->
     case ClientType of
         mapred -> luke_flow:add_inputs(Client, [{Bucket,K} || K <- Acc]);
         plain -> Client ! {ReqId, {keys, Acc}}
     end,
-    lists:foldl(fun(E,A) -> bloom:add(E,A) end, Bloom, Acc);
+    ok;
 process_keys([K|Rest],Bucket,ClientType,Bloom,ReqId,Client,Acc) ->
-    case bloom:member(K,Bloom) of
+    case ebloom:contains(Bloom,K) of
         true -> 
             process_keys(Rest,Bucket,ClientType,
                          Bloom,ReqId,Client,Acc);
         false ->
+            ebloom:insert(Bloom,K),
             process_keys(Rest,Bucket,ClientType,
-                         bloom:add(K,Bloom),ReqId,Client,[K|Acc])
+                         Bloom,ReqId,Client,[K|Acc])
     end.
 
 %% @private

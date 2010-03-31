@@ -93,7 +93,7 @@ do_list_handoff(TargetNode, BKeyList, StateData=#state{idx=Idx}) ->
         [] ->
             delete_and_exit(StateData);
         _ ->
-            {HQ,TO,HT} = case riak_kv_handoff_sender:start_link(TargetNode, Idx, all) of
+            {HQ,TO,HT} = case riak_kv_handoff_sender:start_link(TargetNode, Idx, BKeyList) of
                 {ok, _Pid, HandoffToken} -> {[], ?TIMEOUT, HandoffToken};
                 {error, locked} -> {not_in_handoff, ?LOCK_RETRY_TIMEOUT, undefined}
             end,

@@ -236,11 +236,30 @@ invoke_hook(HookType, RClient, RObj) ->
         none ->
             RObj;
         {struct, Hook} ->
-            Mod = proplists:get_value(<<"mod">>, Hook),
-            Fun = proplists:get_value(<<"fun">>, Hook),
-            JSName = proplists:get_value(<<"name">>, Hook),
-            invoke_hook(HookType, Mod, Fun, JSName, RObj)
+            run_hooks(HookType, RObj, [{struct, Hook}]);
+        Hooks when is_list(Hooks) ->
+            run_hooks(HookType, RObj, Hooks)
     end.
+
+run_hooks(_HookType, RObj, []) ->
+    RObj;
+run_hooks(HookType, RObj, [{struct, Hook}|T]) ->
+    Mod = proplists:get_value(<<"mod">>, Hook),
+    Fun = proplists:get_value(<<"fun">>, Hook),
+    JSName = proplists:get_value(<<"name">>, Hook),
+    Result = invoke_hook(HookType, Mod, Fun, JSName, RObj),
+    case HookType of
+        precommit ->
+            case Result of
+                fail ->
+                    Result;
+                _ ->
+                    run_hooks(HookType, Result, T)
+            end;
+        postcommit ->
+            run_hooks(HookType, RObj, T)
+    end.
+
 
 invoke_hook(precommit, Mod0, Fun0, undefined, RObj) ->
     Mod = binary_to_atom(Mod0, utf8),

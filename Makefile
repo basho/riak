@@ -1,15 +1,18 @@
-.PHONY: rel
+.PHONY: rel deps
 
-all: compile
+all: deps compile
 
 compile:
 	./rebar compile
+
+deps:
+	./rebar get-deps
 
 clean:
 	./rebar clean
 
 distclean: clean devclean relclean
-	@cd apps/erlang_js;make clean
+	./rebar delete-deps
 
 test: 
 	./rebar eunit
