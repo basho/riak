@@ -497,7 +497,7 @@ class RiakLink :
                 @param string name - The bucket name.
                 @return self
                 """
-                self._bucket = bucket
+                self._bucket = name
                 return self
 
         def get_key(self):
@@ -1194,7 +1194,7 @@ class RiakObject :
                 mr.add(self._bucket._name, self._key)
                 return apply(mr.map, args)
         
-        def reduce(self, params):
+        def reduce(self, *args):
                 """
                 Start assembling a Map/Reduce operation.
                 @see RiakMapReduce.reduce()
