@@ -132,24 +132,24 @@ list_bucket(State, Bucket) ->
     Module:list_bucket(SubState, Bucket).
 
 is_empty(State) ->
-    F = fun({_, Module, SubState}, Acc) ->
-                [Module:is_empty(SubState)|Acc]
-        end,
-    lists:all(fun(I) -> I end, lists:foldl(F, [], State#state.backends)).
+    F = fun({_, Module, SubState}) ->
+        Module:is_empty(SubState)
+    end,
+    lists:all(F, State#state.backends).
 
 drop(State) ->
-    F = fun({_, Module, SubState}, Acc) ->
-                [Module:drop(SubState)|Acc]
-        end,
-    lists:foldl(F, [], State#state.backends),
+    F = fun({_, Module, SubState}) ->
+        Module:drop(SubState)
+    end,
+    [F(X) || X <- State#state.backends],
     ok.
 
-fold(State, Fun0, Acc) ->    
-    F = fun({_, Module, SubState}, AccIn) ->
-                [Module:fold(SubState, Fun0, AccIn)|AccIn]
-        end,
-    lists:flatten(lists:foldl(F, Acc, State#state.backends)).
-
+fold(State, Fun, Extra) ->    
+    F = fun({_, Module, SubState}) ->
+        Module:fold(SubState, Fun, Extra)
+    end,
+    [F(X) || X <- State#state.backends],
+    Extra.
 
 % Given a Bucket name and the State, return the
 % backend definition. (ie: {Name, Module, SubState})
