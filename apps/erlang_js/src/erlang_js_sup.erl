@@ -45,7 +45,7 @@ init([]) ->
 
     case js_driver:load_driver() of
         false ->
-            throw({error, {load_error, "Failed to load spidermonkey_drv.so"}});
+            throw({error, {load_error, "Failed to load erlang_js_drv.so"}});
         true ->
             Cache = {cache, {js_cache, start_link, []},
                      Restart, Shutdown, Type, [js_cache]},
