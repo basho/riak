@@ -51,6 +51,13 @@ init([]) ->
     RiakWeb = {webmachine_mochiweb,
                  {webmachine_mochiweb, start, [riak_kv_web:config()]},
                   permanent, 5000, worker, dynamic},
+    RiakPb = [{riak_kv_pb_listener,
+               {riak_kv_pb_listener, start_link, []},
+               permanent, 5000, worker, [riak_kv_pb_listener]},
+              {riak_kv_pb_socket_sup,
+               {riak_kv_pb_socket_sup, start_link, []},
+               permanent, infinity, supervisor, [riak_kv_pb_socket_sup]}
+              ],
     RiakStat = {riak_kv_stat,
                 {riak_kv_stat, start_link, []},
                 permanent, 5000, worker, [riak_kv_stat]},
@@ -64,6 +71,8 @@ init([]) ->
     % Figure out which processes we should run...
     IsWebConfigured = (app_helper:get_env(riak_kv, web_ip) /= undefined)
         andalso (app_helper:get_env(riak_kv, web_port) /= undefined),
+    IsPbConfigured = (app_helper:get_env(riak_kv, pb_ip) /= undefined)
+        andalso (app_helper:get_env(riak_kv, pb_port) /= undefined),
     HasStorageBackend = (app_helper:get_env(riak_kv, storage_backend) /= undefined),
     IsStatEnabled = (app_helper:get_env(riak_kv, riak_kv_stat) == true),
 
@@ -73,6 +82,7 @@ init([]) ->
         ?IF(HasStorageBackend, VMaster, []),
         HandoffListen,
         ?IF(IsWebConfigured, RiakWeb, []),
+        ?IF(IsPbConfigured, RiakPb, []),
         ?IF(IsStatEnabled, RiakStat, []),
         RiakJsSup,
         RiakJsMgr
