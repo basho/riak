@@ -1,6 +1,6 @@
 .PHONY: rel deps
 
-all: compile
+all: deps compile
 
 compile:
 	./rebar compile
@@ -50,6 +50,12 @@ dev1 dev2 dev3: dev
 
 devclean: clean
 	rm -rf dev
+
+stage : rel
+	cd rel/riak/lib && \
+	rm -rf riak_core-* riak_kv-* && \
+	ln -s ../../../apps/riak_core && \
+	ln -s ../../../apps/riak_kv
 
 ##
 ## Doc targets
