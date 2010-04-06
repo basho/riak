@@ -950,7 +950,7 @@ class RiakObject :
                 """
                 # Use defaults if not specified...
                 w = self._bucket.get_w(w)
-                dw = self._bucket.get_dw(w)
+                dw = self._bucket.get_dw(dw)
                 
                 # Construct the URL...
                 params = {'returnbody' : 'true', 'w' : w, 'dw' : dw}
