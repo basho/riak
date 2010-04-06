@@ -2,6 +2,7 @@
  [{description, "MochiMedia Web Server"},
   {vsn, "0.9"},
   {modules, [
+        mochiglobal,            
         mochihex,
         mochijson,
         mochijson2,
@@ -10,7 +11,7 @@
         mochiweb_app,
         mochiweb_charref,
         mochiweb_cookies,
-	    mochiweb_cover,
+        mochiweb_cover,
         mochiweb_echo,
         mochiweb_headers,
         mochiweb_html,
