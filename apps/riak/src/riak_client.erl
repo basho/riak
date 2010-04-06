@@ -46,6 +46,8 @@
 -export ([add_event_handler/2, add_event_handler/3, add_event_handler/4]).
 -export ([remove_event_handler/3]).
 -export([get_stats/1]).
+-export([get_client_id/0]).
+
 %% @type default_timeout() = 60000
 -define(DEFAULT_TIMEOUT, 60000).
 -define(DEFAULT_ERRTOL, 0.00003).
@@ -414,3 +416,8 @@ wait_for_listkeys(ReqId,Timeout,Acc) ->
     after Timeout ->
             {error, timeout, Acc}
     end.
+
+%% @doc Return the client id beign used for this client
+get_client_id() ->
+    ClientId.
+ 
