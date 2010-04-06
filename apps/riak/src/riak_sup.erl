@@ -60,6 +60,13 @@ init([]) ->
     LocalLogger = {riak_local_logger,
                    {riak_local_logger, start_link, []},
                    permanent, 5000, worker, [riak_local_logger]},
+    RiakPb  = [{riak_pb_listener,
+                {riak_pb_listener, start_link, []},
+                permanent, 5000, worker, [riak_pb_listener]},
+               {riak_pb_socket_sup, 
+                {riak_pb_socket_sup, start_link, []},
+                permanent, infinity, supervisor, [riak_pb_socket_sup]}
+               ],
     RiakWeb = {webmachine_mochiweb,
                  {webmachine_mochiweb, start, [riak_web:config()]},
                   permanent, 5000, worker, dynamic},
@@ -74,6 +81,8 @@ init([]) ->
                  permanent, infinity, supervisor, [riak_js_sup]},
     % Figure out which processes we should run...
     IsWebConfigured = (riak:get_app_env(riak_web_ip) /= undefined) andalso (riak:get_app_env(riak_web_ip) /= "undefined"),
+    IsPbConfigured = (riak:get_app_env(pb_ip) /= undefined)
+        andalso (riak:get_app_env(pb_port) /= undefined),
     HasStorageBackend = (riak:get_app_env(storage_backend) /= undefined) andalso (riak:get_app_env(storage_backend) /= "undefined"),
     IsStatEnabled = (riak:get_app_env(riak_stat) == true),
 
@@ -87,6 +96,7 @@ init([]) ->
         Connect,
         LocalLogger,
         ?IF(IsWebConfigured, RiakWeb, []),
+        ?IF(IsPbConfigured, RiakPb, []),
         ?IF(IsStatEnabled, RiakStat, []),
         RiakJsSup,
         RiakJsMgr
