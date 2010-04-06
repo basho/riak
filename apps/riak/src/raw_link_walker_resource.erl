@@ -313,11 +313,14 @@ execute_segment(C, Start, Steps) ->
         ++[riak_mapreduce:reduce_set_union(false),
            riak_mapreduce:map_identity(true)],
     {ok, Objects} = C:mapred(Start, MR),
-    %% strip link tags from objects
-    lists:map(fun({O,_Tag}) -> O;
-                 (O)        -> O
-              end,
-              Objects).
+    %% remove notfounds and strip link tags from objects
+    lists:reverse(
+      lists:foldl(fun({error, notfound}, Acc) -> Acc;
+                     ({O, _Tag}, Acc)         -> [O|Acc];
+                     (O, Acc)                 -> [O|Acc]
+                  end,
+                  [],
+                  Objects)).
 
 %% @spec extract_query(reqdata()) -> [linkquery()]
 %% @doc Extract the link-walking query from the URL chunk after the

@@ -50,8 +50,9 @@ function testStoreAndGet() {
   $obj->store();
 
   $obj = $bucket->get('foo');
-  
   test_assert($obj->exists());
+  test_assert($obj->getBucket()->getName() == 'bucket');
+  test_assert($obj->getKey() == 'foo');
   test_assert($obj->getData() == $rand);
 }
 

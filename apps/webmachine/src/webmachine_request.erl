@@ -359,8 +359,9 @@ body_length() ->
 %% @doc Receive the body of the HTTP request (defined by Content-Length).
 %%      Will only receive up to the default max-body length
 do_recv_body(PassedState=#wm_reqstate{reqdata=RD}) ->
+    MRH = RD#wm_reqdata.max_recv_hunk,
     MRB = RD#wm_reqdata.max_recv_body,
-    read_whole_stream(recv_stream_body(PassedState, MRB), [], MRB, 0).
+    read_whole_stream(recv_stream_body(PassedState, MRH), [], MRB, 0).
 
 read_whole_stream({Hunk,_}, _, MaxRecvBody, SizeAcc)
   when SizeAcc + byte_size(Hunk) > MaxRecvBody -> 

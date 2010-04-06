@@ -1,7 +1,7 @@
 % -*- mode: erlang -*-
 {application, riak,
  [{description, "riak"},
-  {vsn, "0.9"},
+  {vsn, "0.9.1"},
   {modules, [
              bloom,
              chash,
@@ -47,6 +47,10 @@
              riak_mapreduce,
              riak_multi_backend,
              riak_object,
+             riak_pb,
+             riak_pb_listener,
+             riak_pb_socket,
+             riak_pb_socket_sup,
              riak_phase_proto,
              riak_put_fsm,
              riak_reduce_phase,
@@ -60,6 +64,7 @@
              riak_vnode_master,
              riak_vnode_sup,
              riak_web,
+             riakclient_pb,
              riakserver_pb,
              slide,
              spiraltime,
@@ -93,6 +98,9 @@
 
          %% Number of VNodes allowed to do handoff concurrently.
          {handoff_concurrency, 4},
+
+         {pb_port, 8087},
+         {pb_ip, "0.0.0.0"},
 
          %% Endpoint for system stats HTTP provider
          {stats_urlpath, "stats"},
