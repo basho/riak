@@ -61,7 +61,8 @@
                   kernel,
                   stdlib,
                   sasl,
-                  crypto
+                  crypto,
+                  riak_core
                  ]},
   {registered, []},
   {mod, {riak_kv_app, []}},

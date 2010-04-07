@@ -23,6 +23,7 @@
              riak_core_sup,
              riak_core_test_util,
              riak_core_util,
+             riak_core_web,
              slide,
              spiraltime,
              vclock
