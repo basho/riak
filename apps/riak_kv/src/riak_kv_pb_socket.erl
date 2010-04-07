@@ -265,10 +265,10 @@ send_put_return_body(B, K, Opts, State=#state{client = C}) ->
         {ok, O} ->
             PbContents = riakc_pb:pbify_rpbcontents(riak_object:get_contents(O), []),
             PutResp = #rpbputresp{contents = PbContents,
-                                  vclock = riakc_pb:pbify_rpbvc(riak_object:vclock(O))},
+                                  vclock = pbify_rpbvc(riak_object:vclock(O))},
             send_msg(PutResp, State);
         {error, notfound} ->
-            %% TODO: Decide what to do in this case - user may have NRW set so this is possible
+            %% User may have NRW set so this is possible - send the same as a get not found
             send_msg(#rpbputresp{}, State);
         {error, Reason} ->
             send_error("~p", [Reason], State)
