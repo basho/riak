@@ -40,7 +40,7 @@ start_link() ->
 %% @doc supervisor callback.
 init([]) ->
     [ webmachine_router:add_route(R)
-      || R <- riak_kv_web:dispatch_table() ],
+      || R <- lists:reverse(riak_kv_web:dispatch_table()) ],
 
     VSup = {riak_kv_vnode_sup,
             {riak_kv_vnode_sup, start_link, []},
