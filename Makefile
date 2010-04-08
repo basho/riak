@@ -45,6 +45,8 @@ dev1 dev2 dev3: dev
 	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
 	perl -pi -e 's/web_port, \d+/web_port, 809$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
+	perl -pi -e 's/pb_port, \d+/web_port, 808$(subst dev,,$@)/g' \
+                    dev/$@/etc/app.config
 	perl -pi -e 's/handoff_port, \d+/handoff_port, 810$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
 

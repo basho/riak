@@ -72,10 +72,6 @@
          {handoff_port, 8099},
          {handoff_ip, "0.0.0.0"},
 
-         %% Pbclient IP/port
-         {pb_port, 8087},
-         {pb_ip,   "0.0.0.0"},
-
          %% Endpoint for system stats HTTP provider
          {stats_urlpath, "stats"},
 
