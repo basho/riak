@@ -24,7 +24,7 @@
 
 -module(riak_core_ring_manager).
 -include_lib("eunit/include/eunit.hrl").
-
+-define(RING_KEY, riak_ring).
 -behaviour(gen_server2).
 
 -export([start_link/0,
@@ -61,9 +61,9 @@ start_link(test) ->
 
 %% @spec get_my_ring() -> {ok, riak_core_ring:riak_core_ring()} | {error, Reason}
 get_my_ring() ->
-    case ets:match(nodelocal_ring, {ring, '$1'}) of
-        [[Ring]] -> {ok, Ring};
-        [] -> {error, no_ring}
+    case mochiglobal:get(?RING_KEY) of
+        Ring when is_tuple(Ring) -> {ok, Ring};
+        undefined -> {error, no_ring}
     end.
 
 
@@ -170,8 +170,7 @@ init([Mode]) ->
         test ->
             Ring = riak_core_ring:fresh(16,node())
     end,
-    ets:new(nodelocal_ring, [protected, named_table]),
-    ets:insert(nodelocal_ring, {ring, Ring}),
+    mochiglobal:put(?RING_KEY, Ring),
 
     % Initial notification to local observers that ring has changed
     riak_core_ring_events:ring_update(Ring),
@@ -180,7 +179,7 @@ init([Mode]) ->
 
 handle_call({set_my_ring, Ring}, _From, State) ->
     % Update ETS with the new ring
-    ets:insert(nodelocal_ring, {ring, Ring}),
+    mochiglobal:put(?RING_KEY, Ring),
 
     % Notify any local observers that the ring has changed (async)
     riak_core_ring_events:ring_update(Ring),

@@ -520,9 +520,23 @@ content_types_accepted(RD, Ctx) ->
                     %% user must specify content type of the data
                     {[], RD, Ctx};
                 CType ->
-                    %% accept whatever the user says
-                    {[{hd(string:tokens(CType, ";")), accept_doc_body}],
-                     RD, Ctx}
+                    Media = hd(string:tokens(CType, ";")),
+                    case string:tokens(Media, "/") of
+                        [_Type, _Subtype] ->
+                            %% accept whatever the user says
+                            {[{Media, accept_doc_body}], RD, Ctx};
+                        _ ->
+                            {[],
+                             wrq:set_resp_header(
+                               ?HEAD_CTYPE,
+                               "text/plain",
+                               wrq:set_resp_body(
+                                 ["\"", Media, "\""
+                                  " is not a valid media type"
+                                  " for the Content-type header.\n"],
+                                 RD)),
+                             Ctx}
+                    end
             end
     end.
 
