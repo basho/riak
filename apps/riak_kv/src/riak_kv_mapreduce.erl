@@ -1,6 +1,6 @@
 %% -------------------------------------------------------------------
 %%
-%% riak_mapreduce: convenience functions for defining common map/reduce phases
+%% riak_kv_mapreduce: convenience functions for defining common map/reduce phases
 %%
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 %%
@@ -152,7 +152,7 @@ reduce_plist_sum(PList, _) ->
 %% @doc Produces a spec for a reduce phase that sorts its
 %%      inputs in ascending order using lists:sort/1.
 reduce_sort(Acc) ->
-    {reduce, {modfun, riak_mapreduce, reduce_sort}, none, Acc}.
+    {reduce, {modfun, riak_kv_mapreduce, reduce_sort}, none, Acc}.
 
 %% @spec reduce_sort([term()], term()) -> [term()]
 %% @doc reduce phase function for reduce_sort/1
@@ -164,7 +164,7 @@ reduce_sort(List, _) ->
 %%      its inputs to integers. Inputs can be either Erlang
 %%      strings or binaries.
 reduce_string_to_integer(Acc) ->
-    {reduce, {modfun, riak_mapreduce, reduce_string_to_integer}, none, Acc}.
+    {reduce, {modfun, riak_kv_mapreduce, reduce_string_to_integer}, none, Acc}.
 
 %% @spec reduce_string_to_integer([number()], term()) -> [number()]
 %% @doc reduce phase function for reduce_sort/1
