@@ -229,14 +229,12 @@ update_stats(#state{startnow=StartNow}) ->
 invoke_hook(HookType, RClient, RObj) ->
     Bucket = riak_object:bucket(RObj),
     BucketProps = RClient:get_bucket(Bucket),
-    R = proplists:get_value(HookType, BucketProps, none),
+    R = proplists:get_value(HookType, BucketProps, []),
     case R of
         <<"none">> ->
             RObj;
-        none ->
+        [] ->
             RObj;
-        {struct, Hook} ->
-            run_hooks(HookType, RObj, [{struct, Hook}]);
         Hooks when is_list(Hooks) ->
             run_hooks(HookType, RObj, Hooks)
     end.
