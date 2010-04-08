@@ -33,6 +33,9 @@
              riak_kv_mapred_query,
              riak_kv_mapreduce,
              riak_kv_multi_backend,
+             riak_kv_pb_listener,
+             riak_kv_pb_socket,
+             riak_kv_pb_socket_sup,
              riak_kv_phase_proto,
              riak_kv_put_fsm,
              riak_kv_reduce_phase,
@@ -57,7 +60,8 @@
                   kernel,
                   stdlib,
                   sasl,
-                  crypto
+                  crypto,
+                  riak_core
                  ]},
   {registered, []},
   {mod, {riak_kv_app, []}},

@@ -1063,7 +1063,6 @@ add_container_link(RD, #ctx{prefix=Prefix, bucket=Bucket}) ->
 %% @doc Add a Link header specifying the given Bucket and Key
 %%      with the given Tag to the response.
 add_link_head(Bucket, Key, Tag, RD, #ctx{prefix=Prefix}) ->
-    io:format("add_link_head: ~p, ~p, ~p~n", [Bucket, Key, Tag]),
     Val = format_link(Prefix, Bucket, Key, Tag),
     wrq:merge_resp_headers([{?HEAD_LINK,Val}], RD).
 

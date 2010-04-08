@@ -1,71 +1,124 @@
 #+OPTIONS: author:nil timestamp:nil
 
-Notes on Riak Source Tree Restructuring
+Migrating from Riak 0.9.x to 0.10
 
 * Overview
-  The Riak source tree has undergone a major restructuring as part of a
-  transition to a new build tool -- rebar. This tool enforces OTP compliant
-  directory structures for the riak application and its dependencies and
-  provides an easy-to-use wrapper around the new reltool system available in
-  Erlang R1303+. Using reltool makes it possible to construct a standalone
-  server instance that can be used on machines without Erlang installed. This
-  transition has also enabled us to introduce a standardized script for
-  starting/stopping and other server management tasks.
+  Riak has undergone significant restructuring in the transition from
+  version 0.9.x to version 0.10.  If you are using the binary builds,
+  please skip directly to the Configuration and Clients sections.  If
+  you are building from source yourself, please review the whole of
+  this document.
 
+* Requirements
 
-* Summary of changes
+** Erlang/OTP R13B04
+** Mercurial
 
-** Building
-   The source code can still be compiled using a single invocation of make at
-   the top-level $RIAK directory:
+* Dependencies
 
-   $ make
+** Mochiweb, Webmachine, Erlang_js
+   mochiweb, webmachine, and erlang_js are now pulled into the "deps"
+   subdirectory, instead of being included in the "apps" subdirectory.
+   If you are pulling 0.10 code into a repository that formerly had
+   0.9.x in it, please remove the apps/mochiweb, apps/webmachine, and
+   apps/erlang_js directories from your source tree.
 
-   However, if you want a runnable, redistributable server you need to make sure
-   the "rel" target gets built:
+** make deps
+   The "all" make target (and, by extension, the "rel" target as
+   well), depend on a new "deps" target, which handles the fetching
+   the dependencies (mochiweb, webmachine, erlang_js).
 
-   $ make rel
+* Source
 
-   This will place a full server install in the $RIAK/rel/riak directory. You
-   can safely copy this riak directory to any other machine with the SAME
-   operating system and architecture and run riak.  See the README for more
-   information about how to start/stop the server.
+** Core/KV Split
+   We've drawn a line through 0.9.x Riak, and divided it into two
+   things, one called "riak_core", and the other called "riak_kv".
 
-   As an alternative to the "rel" target, if you are doing active development on
-   the Riak source code you may want to try the "devrel" target. This will
-   generate three runnable nodes in $RIAK/dev and symlink them in such a way
-   that recompiles of the Riak source code (i.e. simple invocation of "make") is
-   automatically available to those nodes. These three nodes, (dev1, dev2, dev2)
-   are NOT suitable for redistribution. They simply make it easy to quickly test
-   changes to the Riak source code in a development environment.
+   The things that live in riak_core are those that deal with cluster
+   membership.  Ring-claiming and the like.
 
-   NOTE: If you have just pulled the 0.7 version of Riak into an existing
-   clone of a previous Riak version, you will need to remove the old "ebin"
-   and "src" directories before running "make".
+   The things that live in riak_kv are those that deal with storing
+   data.  Get and Put FSMs, backends, etc.
 
-** Server scripts
-   start-*.sh and debug-*.sh have all been replaced with the bin/riak and
-   bin/riak-admin scripts that are generated as part of the "rel" or "devrel"
-   targets.
+** Clients
+   We've also moved the clients out of the client_lib subdirectory,
+   and into their own language-specific repositories on BitBucket.  At
+   http://bitbucket.org/basho/, you should find:
 
-*** riak_demo.escript 
-    The functionality of this script is now available via:
+   + riak-python-client
+   + riak-php-client
+   + riak-erlang-client
+   + riak-java-client
+   + riak-javascript-client
+   + riak-ruby-client
 
-    $ bin/riak-admin test
+* Configuration
 
+** app.config
 
-*** start-backup/restore/logger.sh
-    The functionality of these scripts is now available via the bin/riak-admin
-    script.
+  Splitting the "riak" Erlang application into the "riak_core" and
+  "riak_kv" Erlang applications means that configuration options for
+  each component need to move around in etc/app.config.
 
-** Configuration
-   The config/ directory has been removed; you can now find default
-   configuration in $RIAK/rel/overlay/etc directory -- the app.config and
-   vm.args files are copied from that location when running the "rel" or
-   "devrel" targets. If you already have run the release targets you can just
-   edit the files in the $RIAK/rel/riak/etc or $RIAK/dev/dev*/etc directories
-   respectively.
+  Where before etc/app.config would have contained a section like:
 
-*** riak-env.sh
-    This file has been replaced with vm.args. 
+  {riak, [
+           %% many settings here
+         ]},
 
+  Now, etc/app.config should contain two sections like:
+
+  {riak_core, [
+               %% core-specific settings
+              ]},
+  {riak_kv, [
+             %% kv-specific settings
+            ]},
+
+  The list of settings that moved to the riak_core section are:
+
+  + choose_claim_fun 
+  + cluster_name - string, defaults to "default"
+  + default_bucket_props 
+  + gossip_interval - integer, defaults to 60k msec
+  + ring_creation_size - integer, defaults to 64
+  + ring_state_dir - string
+  + target_n_val - integer, defaults to 3
+  + wants_claim_fun
+  + web_ip - string. Used to be "riak_web_ip"
+  + web_logdir - string.
+  + web_port - integer. Used to be "riak_web_port"
+
+  IMPORTANT: Note the rename of "riak_web_*" to just "web_*"
+
+  The list of settings that moved to the riak_kv section are:
+
+  + add_paths - list, defaults to []
+  + handoff_concurrency - integer, defaults to 4
+  + js_source_dir - string
+  + js_vm_count - integer
+  + mapred_name - string
+  + raw_name - string
+  + riak_kv_stat - boolean.
+  + stats_urlpath - string
+  + storage_backend - atom. Backend names are now prefixed as "riak_kv_" instead of just "riak_".
+  + pb_ip - string
+  + pb_port - integer
+
+  IMPORTANT: The default backend has changed names from
+  riak_dets_backend to riak_kv_dets_bakend.  Other backends have
+  changed names as well.  This rename does not affect you if you are
+  using the Innostore backend.
+
+  If you did not have any of these settings defined in etc/app.config,
+  you still do not need to define them in your new etc/app.config.
+
+** Ring Storage
+   Periodically, Riak nodes save the state of their ring to disk.  In
+   0.9, these files were named "data/ring/riak_ring.*", but in 0.10,
+   they're named "data/ring/riak_core_ring.*".  Renaming the old files
+   to the new scheme is all you need to do to make the switch.
+
+   If you referenced any Riak modules in your bucket properties, you
+   will also need to change those references to point to the new
+   module names after your cluster is running.

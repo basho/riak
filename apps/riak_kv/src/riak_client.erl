@@ -43,6 +43,7 @@
 -export([reload_all/1]).
 -export([remove_from_cluster/1]).
 -export([get_stats/1]).
+-export([get_client_id/0]).
 %% @type default_timeout() = 60000
 -define(DEFAULT_TIMEOUT, 60000).
 -define(DEFAULT_ERRTOL, 0.00003).
@@ -359,6 +360,10 @@ get_stats(global) ->
     Nodes = riak_core_ring:all_members(Ring),
     [{N, rpc:call(N, gen_server, call, [riak_kv_stat, get_stats])}
      || N <- Nodes].
+
+%% @doc Return the client id beign used for this client
+get_client_id() ->
+    ClientId.
 
 %% @private
 mk_reqid() -> erlang:phash2(erlang:now()). % only has to be unique per-pid

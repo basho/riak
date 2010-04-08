@@ -45,11 +45,19 @@ dev1 dev2 dev3: dev
 	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
 	perl -pi -e 's/web_port, \d+/web_port, 809$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
+	perl -pi -e 's/pb_port, \d+/web_port, 808$(subst dev,,$@)/g' \
+                    dev/$@/etc/app.config
 	perl -pi -e 's/handoff_port, \d+/handoff_port, 810$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
 
 devclean: clean
 	rm -rf dev
+
+stage : rel
+	cd rel/riak/lib && \
+	rm -rf riak_core-* riak_kv-* && \
+	ln -s ../../../apps/riak_core && \
+	ln -s ../../../apps/riak_kv
 
 ##
 ## Doc targets

@@ -39,6 +39,9 @@ start_link() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->
+    [ webmachine_router:add_route(R)
+      || R <- lists:reverse(riak_kv_web:dispatch_table()) ],
+
     VSup = {riak_kv_vnode_sup,
             {riak_kv_vnode_sup, start_link, []},
             permanent, infinity, supervisor, [riak_kv_vnode_sup]},
@@ -48,9 +51,13 @@ init([]) ->
     HandoffListen = {riak_kv_handoff_listener,
                {riak_kv_handoff_listener, start_link, []},
                permanent, 5000, worker, [riak_kv_handoff_listener]},
-    RiakWeb = {webmachine_mochiweb,
-                 {webmachine_mochiweb, start, [riak_kv_web:config()]},
-                  permanent, 5000, worker, dynamic},
+    RiakPb = [{riak_kv_pb_listener,
+               {riak_kv_pb_listener, start_link, []},
+               permanent, 5000, worker, [riak_kv_pb_listener]},
+              {riak_kv_pb_socket_sup,
+               {riak_kv_pb_socket_sup, start_link, []},
+               permanent, infinity, supervisor, [riak_kv_pb_socket_sup]}
+              ],
     RiakStat = {riak_kv_stat,
                 {riak_kv_stat, start_link, []},
                 permanent, 5000, worker, [riak_kv_stat]},
@@ -62,10 +69,9 @@ init([]) ->
                  {riak_kv_js_sup, start_link, []},
                  permanent, infinity, supervisor, [riak_kv_js_sup]},
     % Figure out which processes we should run...
-    IsWebConfigured = (app_helper:get_env(riak_kv, web_ip) /= undefined)
-        andalso (app_helper:get_env(riak_kv, web_ip) /= undefined),
-    HasStorageBackend = (app_helper:get_env(riak_kv, storage_backend) /= undefined)
-        andalso (app_helper:get_env(riak_kv, storage_backend) /= undefined),
+    IsPbConfigured = (app_helper:get_env(riak_kv, pb_ip) /= undefined)
+        andalso (app_helper:get_env(riak_kv, pb_port) /= undefined),
+    HasStorageBackend = (app_helper:get_env(riak_kv, storage_backend) /= undefined),
     IsStatEnabled = (app_helper:get_env(riak_kv, riak_kv_stat) == true),
 
     % Build the process list...
@@ -73,7 +79,7 @@ init([]) ->
         VSup,
         ?IF(HasStorageBackend, VMaster, []),
         HandoffListen,
-        ?IF(IsWebConfigured, RiakWeb, []),
+        ?IF(IsPbConfigured, RiakPb, []),
         ?IF(IsStatEnabled, RiakStat, []),
         RiakJsSup,
         RiakJsMgr

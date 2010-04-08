@@ -32,6 +32,7 @@
 
 %% Helper macro for declaring children of supervisor
 -define(CHILD(I, Type), {I, {I, start_link, []}, permanent, 5000, Type, [I]}).
+-define (IF (Bool, A, B), if Bool -> A; true -> B end).
 
 %% ===================================================================
 %% API functions
@@ -45,9 +46,18 @@ start_link() ->
 %% ===================================================================
 
 init([]) ->
-    Children = [?CHILD(riak_core_ring_events, worker),
-                ?CHILD(riak_core_ring_manager, worker),
-                ?CHILD(riak_core_gossip, worker)],
+    RiakWeb = {webmachine_mochiweb,
+                 {webmachine_mochiweb, start, [riak_core_web:config()]},
+                  permanent, 5000, worker, dynamic},
+    IsWebConfigured = (app_helper:get_env(riak_core, web_ip) /= undefined)
+        andalso (app_helper:get_env(riak_core, web_port) /= undefined),
+
+    Children = lists:flatten(
+                 [?CHILD(riak_core_ring_events, worker),
+                  ?CHILD(riak_core_ring_manager, worker),
+                  ?CHILD(riak_core_gossip, worker),
+                  ?IF(IsWebConfigured, RiakWeb, [])
+                 ]),
 
     {ok, {{one_for_one, 10, 10}, Children}}.
 
