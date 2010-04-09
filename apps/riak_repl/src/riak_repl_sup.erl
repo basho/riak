@@ -41,8 +41,5 @@ init([]) ->
                   permanent, 5000, worker, dynamic},
                  {riak_repl_server,
                   {riak_repl_server, start_link, []},
-                  permanent, 5000, worker, dynamic},
-                 {riak_repl_eventer,
-                  {riak_repl_eventer, start_link, []},
                   permanent, 5000, worker, dynamic}],
     {ok, {{one_for_one, 9, 10}, Processes}}.
