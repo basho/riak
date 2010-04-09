@@ -178,7 +178,6 @@ init([Mode]) ->
 
 
 handle_call({set_my_ring, Ring}, _From, State) ->
-    % Update ETS with the new ring
     mochiglobal:put(?RING_KEY, Ring),
 
     % Notify any local observers that the ring has changed (async)
