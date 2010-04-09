@@ -42,10 +42,11 @@ dev1 dev2 dev3: dev
 	rm -rf dev/$@/data
 	mkdir -p dev/$@/data/ring
 	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
+	$(foreach dep,$(wildcard deps/*), rm -rf dev/$@/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$@/lib;)
 	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
 	perl -pi -e 's/web_port, \d+/web_port, 809$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
-	perl -pi -e 's/pb_port, \d+/web_port, 808$(subst dev,,$@)/g' \
+	perl -pi -e 's/pb_port, \d+/pb_port, 808$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
 	perl -pi -e 's/handoff_port, \d+/handoff_port, 810$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config

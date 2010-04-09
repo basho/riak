@@ -369,14 +369,14 @@ do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData,
     CacheVal = cache_fetch(BKey, CacheKey, Cache),
     case CacheVal of
         not_cached ->
-            V = case Mod:get(ModState, BKey) of
-                    {ok, Binary} ->
-                        binary_to_term(Binary);
-                    {error, notfound} ->
-                        {error, notfound}
-                end,
-            riak_kv_js_manager:dispatch({ClientPid, QTerm, V, KeyData, BKey}),
-            map_executing;
+            case Mod:get(ModState, BKey) of
+                {ok, Binary} ->
+                    V = binary_to_term(Binary),
+                    riak_kv_js_manager:dispatch({ClientPid, QTerm, V, KeyData, BKey}),
+                    map_executing;
+                {error, notfound} ->
+                    {error, notfound}
+            end;
         CV ->
             {ok, CV}
     end.
