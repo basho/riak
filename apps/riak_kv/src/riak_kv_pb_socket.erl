@@ -26,7 +26,7 @@
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
--include("riakclient_pb.hrl").
+-include_lib("riakc/include/riakclient_pb.hrl").
 -behaviour(gen_server2).
 
 -export([start_link/1]).
@@ -67,7 +67,7 @@ handle_info({tcp_closed, Socket}, State=#state{sock=Socket}) ->
     {stop, normal, State};
 handle_info({tcp, _Sock, Data}, State=#state{sock=Socket}) ->
     [MsgCode|MsgData] = Data,
-    Msg = riak_kv_pb:decode(MsgCode, MsgData),
+    Msg = riakc_pb:decode(MsgCode, MsgData),
     case process_message(Msg, State) of
         {pause, NewState} ->
             ok;
@@ -102,7 +102,7 @@ handle_info({flow_results, ReqId, {error, Reason}},
 
 handle_info({flow_results, PhaseId, ReqId, Res},
             State=#state{req=#rpbmapredreq{}, req_ctx=ReqId}) ->
-    {noreply, send_msg(#rpbmapredresp{phase=PhaseId, data = riak_kv_pb:pbify_rpbterm(Res)}, State)};
+    {noreply, send_msg(#rpbmapredresp{phase=PhaseId, data = riakc_pb:pbify_rpbterm(Res)}, State)};
 
 handle_info({flow_error, ReqId, Error},
             State=#state{sock = Socket, req=#rpbmapredreq{}, req_ctx=ReqId}) ->
@@ -153,9 +153,9 @@ process_message(#rpbgetreq{bucket=B, key=K, options=RpbOptions0},
     Opts = default_rpboptions(RpbOptions0),
     case C:get(B, K, Opts#rpboptions.r) of
         {ok, O} ->
-            PbContent = riak_kv_pb:pbify_rpbcontents(riak_object:get_contents(O), []),
+            PbContent = riakc_pb:pbify_rpbcontents(riak_object:get_contents(O), []),
             GetResp = #rpbgetresp{content = PbContent,
-                                  vclock = riak_kv_pb:pbify_rpbvc(riak_object:vclock(O))},
+                                  vclock = pbify_rpbvc(riak_object:vclock(O))},
             send_msg(GetResp, State);
         {error, notfound} ->
             send_msg(#rpbgetresp{}, State);
@@ -207,13 +207,13 @@ process_message(#rpbdelreq{bucket=B, key=K, options=RpbOptions0},
 process_message(#rpbgetbucketpropsreq{bucket=B, names = Names}, 
                 #state{client=C} = State) ->
     Props = C:get_bucket(B),
-    PbProps = riak_kv_pb:pbify_bucket_props(filter_props(Names, Props)),
+    PbProps = riakc_pb:pbify_bucket_props(filter_props(Names, Props)),
     Resp = #rpbgetbucketpropsresp{properties = PbProps},
     send_msg(Resp, State);
 
 process_message(#rpbsetbucketpropsreq{bucket=B, properties = RpbTerm}, 
                 #state{client=C} = State) ->
-    ErlProps = riak_kv_pb:erlify_bucket_props(RpbTerm),
+    ErlProps = riakc_pb:erlify_bucket_props(RpbTerm),
     C:set_bucket(B, ErlProps),
     send_msg(rpbsetbucketpropsresp, State);
 
@@ -237,7 +237,7 @@ process_message(#rpblistkeysreq{bucket=B}=Req,
 %% Start map/reduce job - results will be processed in handle_info
 process_message(#rpbmapredreq{input_bucket=B, input_keys=PbKeys, phases=PbQuery}=Req, 
                 #state{client=C} = State) ->
-    case riak_kv_pb:erlify_mapred_query(PbQuery) of
+    case riakc_pb:erlify_mapred_query(PbQuery) of
         {error, Reason} ->
             send_error("~p", [Reason], State);
 
@@ -247,7 +247,7 @@ process_message(#rpbmapredreq{input_bucket=B, input_keys=PbKeys, phases=PbQuery}
                     {ok, ReqId} = C:mapred_bucket_stream(B, Query, self(), ?DEFAULT_TIMEOUT),
                     {pause, State#state{req = Req, req_ctx = ReqId}};
                 (B =:= undefined andalso PbKeys =/= undefined) -> %
-                    Inputs = [riak_kv_pb:erlify_mapred_input(PbKey) || PbKey <- PbKeys],
+                    Inputs = [riakc_pb:erlify_mapred_input(PbKey) || PbKey <- PbKeys],
                     {ok, {ReqId, FSM}} = C:mapred_stream(Query, self(), ?DEFAULT_TIMEOUT),
                     luke_flow:add_inputs(FSM, Inputs),
                     luke_flow:finish_inputs(FSM),
@@ -263,12 +263,12 @@ process_message(#rpbmapredreq{input_bucket=B, input_keys=PbKeys, phases=PbQuery}
 send_put_return_body(B, K, Opts, State=#state{client = C}) ->
     case C:get(B, K, Opts#rpboptions.r) of
         {ok, O} ->
-            PbContents = riak_kv_pb:pbify_rpbcontents(riak_object:get_contents(O), []),
+            PbContents = riakc_pb:pbify_rpbcontents(riak_object:get_contents(O), []),
             PutResp = #rpbputresp{contents = PbContents,
-                                  vclock = riak_kv_pb:pbify_rpbvc(riak_object:vclock(O))},
+                                  vclock = pbify_rpbvc(riak_object:vclock(O))},
             send_msg(PutResp, State);
         {error, notfound} ->
-            %% TODO: Decide what to do in this case - user may have NRW set so this is possible
+            %% User may have NRW set so this is possible - send the same as a get not found
             send_msg(#rpbputresp{}, State);
         {error, Reason} ->
             send_error("~p", [Reason], State)
@@ -277,7 +277,7 @@ send_put_return_body(B, K, Opts, State=#state{client = C}) ->
 %% Send a message to the client
 -spec send_msg(msg(), #state{}) -> #state{}.
 send_msg(Msg, State) ->
-    Pkt = riak_kv_pb:encode(Msg),
+    Pkt = riakc_pb:encode(Msg),
     ok = gen_tcp:send(State#state.sock, Pkt),
     State.
     
@@ -289,13 +289,13 @@ send_error(Msg, Fmt, State) ->
 
 %% Update riak_object with the pbcontent provided
 update_rpbcontent(O0, RpbContent) -> 
-    {MetaData, Value} = riak_kv_pb:erlify_rpbcontent(RpbContent),
+    {MetaData, Value} = riakc_pb:erlify_rpbcontent(RpbContent),
     O1 = riak_object:update_metadata(O0, MetaData),
     riak_object:update_value(O1, Value).
 
 %% Update riak_object with vector clock 
 update_pbvc(O0, PbVc) ->
-    Vclock = riak_kv_pb:erlify_rpbvc(PbVc),
+    Vclock = erlify_rpbvc(PbVc),
     riak_object:set_vclock(O0, Vclock).
 
 %% Set default values in the options record if none are provided.
@@ -345,4 +345,15 @@ make_bucket_prop_names([Name|Rest], Acc) when is_atom(Name) ->
 get_riak_version() ->
     Apps = application:which_applications(),
     {value,{riak_kv,_,Vsn}} = lists:keysearch(riak_kv, 1, Apps),
-    riak_kv_pb:to_binary(Vsn).
+    riakc_pb:to_binary(Vsn).
+
+%% Convert a vector clock to erlang
+erlify_rpbvc(undefined) ->
+    vclock:fresh();
+erlify_rpbvc(PbVc) ->
+    binary_to_term(zlib:unzip(PbVc)).
+
+%% Convert a vector clock to protocol buffers
+pbify_rpbvc(Vc) ->
+    zlib:zip(term_to_binary(Vc)).
+

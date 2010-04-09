@@ -32,7 +32,6 @@
              riak_kv_mapred_query,
              riak_kv_mapreduce,
              riak_kv_multi_backend,
-             riak_kv_pb,
              riak_kv_pb_listener,
              riak_kv_pb_socket,
              riak_kv_pb_socket_sup,
@@ -54,14 +53,14 @@
              riak_kv_wm_raw,
              riak_kv_wm_stats,
              riak_object,
-             riakclient_pb,
              riakserver_pb
             ]},
   {applications, [
                   kernel,
                   stdlib,
                   sasl,
-                  crypto
+                  crypto,
+                  riak_core
                  ]},
   {registered, []},
   {mod, {riak_kv_app, []}},
@@ -72,10 +71,6 @@
          %% Handoff IP/port
          {handoff_port, 8099},
          {handoff_ip, "0.0.0.0"},
-
-         %% Pbclient IP/port
-         {pb_port, 8087},
-         {pb_ip,   "0.0.0.0"},
 
          %% Endpoint for system stats HTTP provider
          {stats_urlpath, "stats"},
