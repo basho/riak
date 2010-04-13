@@ -130,7 +130,16 @@
 %%
 %%</dd><dt> disk
 %%</dt><dd> Value returned by {@link disksup:get_disk_data/0}.
+%%
+%%</dd><dt> pbc_connects_total
+%%</dt><dd> Total number of pb socket connections since start
+%%
+%%</dd><dt> pbc_active
+%%</dt><dd> Number of active pb socket connections
+%%
 %%</dd></dl>
+%%
+%%
 -module(riak_kv_stat).
 
 -behaviour(gen_server2).
@@ -144,7 +153,8 @@
 
 -record(state,{vnode_gets,vnode_puts,vnode_gets_total,vnode_puts_total,
                node_gets_total, node_puts_total,
-               get_fsm_time,put_fsm_time}).
+               get_fsm_time,put_fsm_time,
+               pbc_connects,pbc_connects_total}).
 
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
 %% @doc Start the server.  Also start the os_mon application, if it's
@@ -176,7 +186,9 @@ init([]) ->
                 node_gets_total=0,
                 node_puts_total=0,
                 get_fsm_time=slide:fresh(),
-                put_fsm_time=slide:fresh()}}.
+                put_fsm_time=slide:fresh(),
+                pbc_connects=spiraltime:fresh(),
+                pbc_connects_total=0}}.
 
 %% @private
 handle_call(get_stats, _From, State) ->
@@ -217,6 +229,8 @@ update({get_fsm_time, Microsecs}, Moment, State=#state{node_gets_total=NGT}) ->
     slide_incr(#state.get_fsm_time, Microsecs, Moment, State#state{node_gets_total=NGT+1});
 update({put_fsm_time, Microsecs}, Moment, State=#state{node_puts_total=NPT}) ->
     slide_incr(#state.put_fsm_time, Microsecs, Moment, State#state{node_puts_total=NPT+1});
+update(pbc_connect, Moment, State=#state{pbc_connects_total=NCT}) ->
+    spiral_incr(#state.pbc_connects, Moment, State#state{pbc_connects_total=NCT+1});
 update(_, _, State) ->
     State.
 
@@ -247,7 +261,8 @@ produce_stats(State) ->
        disk_stats(),
        system_stats(),
        ring_stats(),
-       config_stats()
+       config_stats(),
+       pbc_stats(Moment, State)
       ]).
 
 %% @spec spiral_minute(integer(), integer(), state()) -> integer()
@@ -366,3 +381,14 @@ config_stats() ->
     [{ring_creation_size, app_helper:get_env(riak_core, ring_creation_size)},
      {storage_backend, app_helper:get_env(riak_kv, storage_backend)}].
 
+%% @spec pbc_stats(state()) -> proplist()
+%% @doc Get stats on the disk, as given by the disksup module
+%%      of the os_mon application.
+pbc_stats(Moment, State=#state{pbc_connects_total=NCT}) ->
+    case whereis(riak_kv_pb_socket_sup) of
+        undefined ->
+            [];
+        _ -> [{pbc_connects_total, NCT},
+              {pbc_connects, spiral_minute(Moment, #state.pbc_connects, State)},
+              {pbc_active, riak_kv_pb_socket_sup:active_connections()}]
+    end.

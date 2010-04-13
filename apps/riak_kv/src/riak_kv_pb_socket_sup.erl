@@ -26,6 +26,7 @@
 -behaviour(supervisor).
 -export([start_link/0, init/1, stop/1]).
 -export([start_socket/1]).
+-export([active_connections/0]).
 
 start_socket(Socket) -> 
     supervisor:start_child(?MODULE, [Socket]).
@@ -34,6 +35,9 @@ start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
 
 stop(_S) -> ok.
+
+active_connections() ->
+    length(supervisor:which_children(?MODULE)).
 
 %% @private
 init([]) ->
