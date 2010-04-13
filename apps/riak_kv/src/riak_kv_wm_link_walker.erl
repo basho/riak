@@ -100,7 +100,7 @@
 %%
 %% Webmachine dispatch line for this resource should look like:
 %%
-%%  {["raw", bucket, key, '*'],
+%%  {["riak", bucket, key, '*'],
 %%   riak_kv_wm_raw,
 %%   [{prefix, "riak"},
 %%    {riak, local}, %% or {riak, {'riak@127.0.0.1', riak_cookie}}
@@ -363,9 +363,9 @@ process_post(RD, Ctx) ->
 %% @doc Encode the list of result lists, or a single result list in a
 %%      multipart body.
 multipart_mixed_encode(WalkResults, Boundary, Ctx) ->
-    [[["\n--",Boundary,"\n",multipart_encode_body(R, Ctx)]
+    [[["\r\n--",Boundary,"\r\n",multipart_encode_body(R, Ctx)]
       || R <- WalkResults],
-     "\n--",Boundary,"--\n"].
+     "\r\n--",Boundary,"--\r\n"].
 
 %% @spec multipart_encode_body(riak_object()|[riak_object()], context()) -> iolist()
 %% @doc Encode a riak object (as an HTTP response much like what riak_kv_wm_raw
@@ -375,12 +375,12 @@ multipart_mixed_encode(WalkResults, Boundary, Ctx) ->
 %%      (arbitrary choice), with an included vtag query param in the Location header.
 multipart_encode_body(NestedResults, Ctx) when is_list(NestedResults) ->
     Boundary = riak_core_util:unique_id_62(),
-    [?HEAD_CTYPE, ": multipart/mixed; boundary=",Boundary,"\n",
+    [?HEAD_CTYPE, ": multipart/mixed; boundary=",Boundary,"\r\n",
      multipart_mixed_encode(NestedResults, Boundary, Ctx)];
 multipart_encode_body(RiakObject, #ctx{prefix=Prefix}) ->
     [{MD, V}|Rest] = riak_object:get_contents(RiakObject),
     {VHead, Vclock} = riak_kv_wm_raw:vclock_header(RiakObject),
-    [VHead,": ",Vclock,"\n",
+    [VHead,": ",Vclock,"\r\n",
 
      "Location: /",Prefix,"/",
      mochiweb_util:quote_plus(riak_object:bucket(RiakObject)),"/",
@@ -390,14 +390,14 @@ multipart_encode_body(RiakObject, #ctx{prefix=Prefix}) ->
         true ->
              []
      end,
-     "\n",
+     "\r\n",
 
      if Rest /= [] ->
              ["X-Riak-Sibling-VTags: ",
               dict:fetch(?MD_VTAG, element(1, hd(Rest))),
               [[",", dict:fetch(?MD_VTAG, SMD)]
                || {SMD,_} <- tl(Rest)],
-              "\n"];
+              "\r\n"];
         true ->
              []
      end|
