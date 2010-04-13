@@ -24,7 +24,7 @@
 
 -module(riak_ring_manager).
 -include_lib("eunit/include/eunit.hrl").
-
+-define(RING_KEY, riak_ring).
 -behaviour(gen_server2).
 -export([start_link/0,start_link/1,stop/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -39,21 +39,20 @@ start_link(test) -> % when started this way, run a mock server (no disk, etc)
 %% @private
 init([]) ->
     Ring = riak_ring:fresh(),
-    ets:new(nodelocal_ring, [protected, named_table]),
-    ets:insert(nodelocal_ring, {ring, Ring}),
+    mochiglobal:put(?RING_KEY, Ring),
     {ok, stateless_server};
 init([test]) ->
     Ring = riak_ring:fresh(16,node()),
-    ets:new(nodelocal_ring, [protected, named_table]),
-    ets:insert(nodelocal_ring, {ring, Ring}),
+    mochiglobal:put(?RING_KEY, Ring),
     {ok, test}.
 
 %% @spec get_my_ring() -> {ok, riak_ring:riak_ring()} | {error, Reason}
 get_my_ring() ->
-    case ets:match(nodelocal_ring, {ring, '$1'}) of
-        [[Ring]] -> {ok, Ring};
-        [] -> {error, no_ring}
+    case mochiglobal:get(?RING_KEY) of
+        Ring when is_tuple(Ring) -> {ok, Ring};
+        undefined -> {error, no_ring}
     end.
+
 %% @spec set_my_ring(riak_ring:riak_ring()) -> ok
 set_my_ring(Ring) -> gen_server2:call(?MODULE, {set_my_ring, Ring}).
 %% @spec write_ringfile() -> ok
@@ -74,7 +73,7 @@ handle_info(_Info, State) -> {noreply, State}.
 
 %% @private
 handle_call({set_my_ring, Ring}, _From, State) -> 
-    ets:insert(nodelocal_ring, {ring, Ring}),
+    mochiglobal:put(?RING_KEY, Ring),
     {reply,ok,State}.
 
 %% @private
