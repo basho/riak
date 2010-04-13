@@ -47,14 +47,12 @@ standard_backend_test(BackendMod, Config) ->
     ?assertEqual({error, notfound}, BackendMod:get(S, {<<"b2">>, <<"k2">>})),
     ?assertEqual([{<<"b1">>, <<"k1">>}], BackendMod:list(S)),
     Folder = fun(K, V, A) -> [{K,V}|A] end,
-    case BackendMod of
-        riak_kv_multi_backend ->
-            ?assertEqual([{{<<"b1">>,<<"k1">>},<<"v1">>},
-                          {{<<"b1">>,<<"k1">>},<<"v1">>}], BackendMod:fold(S, Folder, []));
-        _ ->
-            ?assertEqual([{{<<"b1">>,<<"k1">>},<<"v1">>}], BackendMod:fold(S, Folder, []))
-    end,
+    ?assertEqual([{{<<"b1">>,<<"k1">>},<<"v1">>}], BackendMod:fold(S, Folder, [])),
+    ?assertEqual(ok, BackendMod:put(S,{<<"b3">>,<<"k3">>},<<"v3">>)),
+    ?assertEqual([{{<<"b1">>,<<"k1">>},<<"v1">>},
+                  {{<<"b3">>,<<"k3">>},<<"v3">>}], lists:sort(BackendMod:fold(S, Folder, []))),
     ?assertEqual(false, BackendMod:is_empty(S)),
     ?assertEqual(ok, BackendMod:delete(S,{<<"b1">>,<<"k1">>})),
+    ?assertEqual(ok, BackendMod:delete(S,{<<"b3">>,<<"k3">>})),
     ?assertEqual(true, BackendMod:is_empty(S)),
     ok = BackendMod:stop(S).
