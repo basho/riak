@@ -42,5 +42,5 @@ add_sup_handler(Handler, Args) ->
     gen_event:add_sup_handler(?MODULE, Handler, Args).
 
 ring_update(Ring) ->
-    gen_event:notify({?MODULE, local}, {ring_update, Ring}).
+    gen_event:notify(?MODULE, {ring_update, Ring}).
 
