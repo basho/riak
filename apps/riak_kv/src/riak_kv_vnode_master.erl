@@ -66,6 +66,8 @@ handle_cast({vnode_list_bucket, {Partition,_Node},
     gen_fsm:send_event(Pid, {list_bucket, FSM_pid, Bucket, ReqID}),
     {noreply, State};
 handle_cast({add_exclusion, Partition}, State=#state{excl=Excl}) ->
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    riak_core_ring_manager:set_my_ring(Ring),
     {noreply, State#state{excl=ordsets:add_element(Partition, Excl)}}.
 
 %% @private
