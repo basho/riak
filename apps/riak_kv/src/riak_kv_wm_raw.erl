@@ -116,12 +116,12 @@
 %%
 %%  {["riak", bucket],
 %%   riak_kv_wm_raw,
-%%   [{prefix, "raw"},
+%%   [{prefix, "riak"},
 %%    {riak, local} %% or {riak, {'riak@127.0.0.1', riak_cookie}}
 %%   ]}.
 %%  {["riak", bucket, key],
 %%   riak_kv_wm_raw,
-%%   [{prefix, "raw"},
+%%   [{prefix, "riak"},
 %%    {riak, local} %% or {riak, {'riak@127.0.0.1', riak_cookie}}
 %%   ]}.
 %%
@@ -900,10 +900,10 @@ produce_sibling_message_body(RD, Ctx=#ctx{doc={ok, Doc}}) ->
 %%      document.
 produce_multipart_body(RD, Ctx=#ctx{doc={ok, Doc}, bucket=B, prefix=P}) ->
     Boundary = riak_core_util:unique_id_62(),
-    {[[["\n--",Boundary,"\n",
+    {[[["\r\n--",Boundary,"\r\n",
         multipart_encode_body(P, B, Content)]
        || Content <- riak_object:get_contents(Doc)],
-      "\n--",Boundary,"--\n"],
+      "\r\n--",Boundary,"--\r\n"],
      wrq:set_resp_header(?HEAD_CTYPE,
                          "multipart/mixed; boundary="++Boundary,
                          encode_vclock_header(RD, Ctx)),
@@ -927,13 +927,13 @@ multipart_encode_body(Prefix, Bucket, {MD, V}) ->
          {ok, CS} -> ["; charset=",CS];
          error -> []
      end,
-     "\n",
+     "\r\n",
      case dict:find(?MD_ENCODING, MD) of
-         {ok, Enc} -> [?HEAD_ENCODING,": ",Enc,"\n"];
+         {ok, Enc} -> [?HEAD_ENCODING,": ",Enc,"\r\n"];
          error -> []
      end,
-     LHead,": ",Links,"\n",
-     "Etag: ",dict:fetch(?MD_VTAG, MD),"\n",
+     LHead,": ",Links,"\r\n",
+     "Etag: ",dict:fetch(?MD_VTAG, MD),"\r\n",
      "Last-Modified: ",
      case dict:fetch(?MD_LASTMOD, MD) of
          Now={_,_,_} ->
@@ -942,16 +942,16 @@ multipart_encode_body(Prefix, Bucket, {MD, V}) ->
          Rfc1123 when is_list(Rfc1123) ->
              Rfc1123
      end,
-     "\n",
+     "\r\n",
      case dict:find(?MD_USERMETA, MD) of
          {ok, M} ->
             lists:foldl(fun({Hdr,Val},Acc) ->
-                            [Acc|[Hdr,": ",Val,"\n"]]
+                            [Acc|[Hdr,": ",Val,"\r\n"]]
                         end,
                         [], M);
          error -> []
      end,
-     "\n",V].
+     "\r\n",V].
 
 
 %% @spec select_doc(context()) -> {metadata(), value()}|multiple_choices

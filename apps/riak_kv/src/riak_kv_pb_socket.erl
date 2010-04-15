@@ -36,7 +36,6 @@
 -type msg() ::  atom() | tuple().
 
 -record(state, {sock,      % protocol buffers socket
-                hello,     % hello message from client
                 client,    % local client
                 req,       % current request (for multi-message requests like list keys)
                 req_ctx}). % context to go along with request (partial results, request ids etc)
@@ -55,7 +54,8 @@ start_link(Socket) ->
 
 init([Socket]) -> 
     inet:setopts(Socket, [{active, once}, {packet, 4}, {header, 1}]),
-    {ok, #state{sock = Socket}}.
+    {ok, C} = riak:local_client(),
+    {ok, #state{sock = Socket, client = C}}.
 
 handle_call(_Request, _From, State) ->
     {reply, not_implemented, State}.
@@ -87,29 +87,6 @@ handle_info({ReqId, {keys, []}}, State=#state{req=#rpblistkeysreq{}, req_ctx=Req
 handle_info({ReqId, {keys, Keys}}, State=#state{req=#rpblistkeysreq{}, req_ctx=ReqId}) ->
     {noreply, send_msg(#rpblistkeysresp{keys = Keys}, State)};
 
-%% Handle response from mapred_stream/mapred_bucket_stream
-handle_info({flow_results, ReqId, done},
-            State=#state{sock = Socket, req=#rpbmapredreq{}, req_ctx=ReqId}) ->
-    NewState = send_msg(#rpbmapredresp{done = 1}, State),
-    inet:setopts(Socket, [{active, once}]),
-    {noreply, NewState#state{req = undefined, req_ctx = undefined}};
-
-handle_info({flow_results, ReqId, {error, Reason}},
-            State=#state{sock = Socket, req=#rpbmapredreq{}, req_ctx=ReqId}) ->
-    NewState = send_error("~p", [Reason], State),
-    inet:setopts(Socket, [{active, once}]),
-    {noreply, NewState#state{req = undefined, req_ctx = undefined}};
-
-handle_info({flow_results, PhaseId, ReqId, Res},
-            State=#state{req=#rpbmapredreq{}, req_ctx=ReqId}) ->
-    {noreply, send_msg(#rpbmapredresp{phase=PhaseId, data = riakc_pb:pbify_rpbterm(Res)}, State)};
-
-handle_info({flow_error, ReqId, Error},
-            State=#state{sock = Socket, req=#rpbmapredreq{}, req_ctx=ReqId}) ->
-    NewState = send_error("~p", [Error], State),
-    inet:setopts(Socket, [{active, once}]),
-    {noreply, NewState#state{req = undefined, req_ctx = undefined}};
-
 handle_info(_, State) -> % Ignore any late replies from gen_servers/messages from fsms
     {noreply, State}.
 
@@ -130,23 +107,21 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %% callbacks are waiting for it.
 %%
 -spec process_message(msg(), #state{}) ->  #state{} | {pause, #state{}}.
-process_message(#rpbhelloreq{proto_major = 1, client_id = ClientId} = Hello, State) ->
-    {ok, Client} = riak:local_client(ClientId), % optional, will be undefined if not given
-    send_msg(#rpbhelloresp{proto_major = ?PROTO_MAJOR, 
-                           proto_minor = ?PROTO_MINOR,
-                           node = list_to_binary(atom_to_list(node())),
-                           client_id = Client:get_client_id(),
-                           server_version = get_riak_version()},
-             State#state{hello = Hello, client = Client});
-
-process_message(#rpbhelloreq{}, State) ->
-    send_error("Only proto_major 1 currently supported", [], State);
-
-process_message(_Req, #state{hello = undefined} = State) ->
-    send_error("Please say Hello first", [], State);
-
 process_message(rpbpingreq, State) ->
     send_msg(rpbpingresp, State);
+
+process_message(rpbgetclientidreq, #state{client=C} = State) ->
+    Resp = #rpbgetclientidresp{client_id = C:get_client_id()},
+    send_msg(Resp, State);
+
+process_message(#rpbsetclientidreq{client_id = ClientId}, State) ->
+    {ok, C} = riak:local_client(ClientId),
+    send_msg(rpbsetclientidresp, State#state{client = C});
+
+process_message(rpbgetserverinforeq, State) ->
+    Resp = #rpbgetserverinforesp{node = riakc_pb:to_binary(node()), 
+                                 server_version = get_riak_version()},
+    send_msg(Resp, State);
 
 process_message(#rpbgetreq{bucket=B, key=K, options=RpbOptions0}, 
                 #state{client=C} = State) ->
@@ -204,19 +179,6 @@ process_message(#rpbdelreq{bucket=B, key=K, options=RpbOptions0},
             send_error("~p", [Reason], State)
     end;
 
-process_message(#rpbgetbucketpropsreq{bucket=B, names = Names}, 
-                #state{client=C} = State) ->
-    Props = C:get_bucket(B),
-    PbProps = riakc_pb:pbify_bucket_props(filter_props(Names, Props)),
-    Resp = #rpbgetbucketpropsresp{properties = PbProps},
-    send_msg(Resp, State);
-
-process_message(#rpbsetbucketpropsreq{bucket=B, properties = RpbTerm}, 
-                #state{client=C} = State) ->
-    ErlProps = riakc_pb:erlify_bucket_props(RpbTerm),
-    C:set_bucket(B, ErlProps),
-    send_msg(rpbsetbucketpropsresp, State);
-
 process_message(rpblistbucketsreq, 
                 #state{client=C} = State) ->
     case C:list_buckets() of
@@ -232,30 +194,6 @@ process_message(#rpblistkeysreq{bucket=B}=Req,
     case C:stream_list_keys(B) of
         {ok, ReqId} ->
             {pause, State#state{req = Req, req_ctx = ReqId}}
-    end;
-
-%% Start map/reduce job - results will be processed in handle_info
-process_message(#rpbmapredreq{input_bucket=B, input_keys=PbKeys, phases=PbQuery}=Req, 
-                #state{client=C} = State) ->
-    case riakc_pb:erlify_mapred_query(PbQuery) of
-        {error, Reason} ->
-            send_error("~p", [Reason], State);
-
-        {ok, Query} ->
-            if %% Check we have B or PbKeys
-                (B =/= undefined andalso PbKeys =:= undefined) ->
-                    {ok, ReqId} = C:mapred_bucket_stream(B, Query, self(), ?DEFAULT_TIMEOUT),
-                    {pause, State#state{req = Req, req_ctx = ReqId}};
-                (B =:= undefined andalso PbKeys =/= undefined) -> %
-                    Inputs = [riakc_pb:erlify_mapred_input(PbKey) || PbKey <- PbKeys],
-                    {ok, {ReqId, FSM}} = C:mapred_stream(Query, self(), ?DEFAULT_TIMEOUT),
-                    luke_flow:add_inputs(FSM, Inputs),
-                    luke_flow:finish_inputs(FSM),
-                    {pause, State#state{req = Req, req_ctx = ReqId}};
-                true ->
-                    send_error("map/reduce takes either an input_bucket or input_keys, not both", 
-                               [], State)
-            end
     end.
 
 %% @private
@@ -316,37 +254,7 @@ default_rpboption({Idx, Default}, RpbOptions) ->
         _ ->
             RpbOptions
     end.
-            
-%% Filter out the requested properties
-filter_props(undefined, Props) ->
-    Props;
-filter_props(Names, Props) ->
-    Atoms = make_bucket_prop_names(Names, []),
-    [Prop || {Name,_Value}=Prop <- Props, lists:member(Name, Atoms)].
         
-%% Make bucket prop names - converting any binaries/lists to atoms   
-%% Drop any unknown names
-make_bucket_prop_names([], Acc) ->
-    Acc;
-make_bucket_prop_names([Name|Rest], Acc) when is_binary(Name) ->   
-    make_bucket_prop_names([binary_to_list(Name) | Rest], Acc);
-make_bucket_prop_names([Name|Rest], Acc) when is_list(Name) ->
-    case catch list_to_existing_atom(Name) of
-        {'EXIT', _} ->
-            make_bucket_prop_names(Rest, Acc);
-        Atom ->
-            make_bucket_prop_names(Rest, [Atom | Acc])
-    end;
-make_bucket_prop_names([Name|Rest], Acc) when is_atom(Name) ->
-    make_bucket_prop_names(Rest, [Name | Acc]).
-
-%% Return the current version of riak_kv
--spec get_riak_version() -> binary().
-get_riak_version() ->
-    Apps = application:which_applications(),
-    {value,{riak_kv,_,Vsn}} = lists:keysearch(riak_kv, 1, Apps),
-    riakc_pb:to_binary(Vsn).
-
 %% Convert a vector clock to erlang
 erlify_rpbvc(undefined) ->
     vclock:fresh();
@@ -356,4 +264,12 @@ erlify_rpbvc(PbVc) ->
 %% Convert a vector clock to protocol buffers
 pbify_rpbvc(Vc) ->
     zlib:zip(term_to_binary(Vc)).
+
+%% Return the current version of riak_kv
+-spec get_riak_version() -> binary().
+get_riak_version() ->
+    Apps = application:which_applications(),
+    {value,{riak_kv,_,Vsn}} = lists:keysearch(riak_kv, 1, Apps),
+    riakc_pb:to_binary(Vsn).
+
 

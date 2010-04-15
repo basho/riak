@@ -145,11 +145,9 @@ drop(State) ->
     ok.
 
 fold(State, Fun, Extra) ->    
-    F = fun({_, Module, SubState}) ->
-        Module:fold(SubState, Fun, Extra)
-    end,
-    [F(X) || X <- State#state.backends],
-    Extra.
+    lists:foldl(fun({_, Module, SubState}, Acc) ->
+                        Module:fold(SubState, Fun, Acc)
+                end, Extra, State#state.backends).
 
 % Given a Bucket name and the State, return the
 % backend definition. (ie: {Name, Module, SubState})

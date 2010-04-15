@@ -49,6 +49,8 @@ get_handoff_lock(Partition, Count) ->
     end.
 
 start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
+    error_logger:info_msg("Starting handoff of partition ~p to ~p~n", 
+                          [Partition, TargetNode]),
     [_Name,Host] = string:tokens(atom_to_list(TargetNode), "@"),
     {ok, Port} = get_handoff_port(TargetNode),
     {ok, Socket} = gen_tcp:connect(Host, Port, 
@@ -66,6 +68,8 @@ start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
         _ ->
             inner_fold({Socket,ParentPid,[]},BKeyList)
     end,
+    error_logger:info_msg("Handoff of partition ~p to ~p completed~n", 
+                          [Partition, TargetNode]),
     gen_fsm:send_event(ParentPid, handoff_complete).
 
 inner_fold(_FoldArg,[]) -> ok;

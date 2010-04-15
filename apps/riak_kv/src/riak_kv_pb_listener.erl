@@ -41,8 +41,8 @@ init([PortNum]) ->
 
 sock_opts() -> [binary, {packet, 4}, {reuseaddr, true}, {backlog, 64}].
 
-handle_call(handoff_port, _From, State=#state{portnum=P}) -> 
-    {reply, {ok, P}, State}.
+handle_call(_Req, _From, State) -> 
+    {reply, not_implemented, State}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
 
@@ -54,6 +54,7 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 new_connection(Socket, State) ->
     {ok, Pid} = riak_kv_pb_socket_sup:start_socket(Socket),
+    riak_kv_stat:update(pbc_connect),
     ok = gen_tcp:controlling_process(Socket, Pid),
     {ok, State}.
 

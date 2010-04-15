@@ -30,16 +30,18 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {sock, partition, vnode}).
+-record(state, {sock, partition, vnode, count}).
 
 start_link(Socket) ->
     gen_server2:start_link(?MODULE, [Socket], []).
 
 init([Socket]) -> 
     inet:setopts(Socket, [{active, once}, {packet, 4}, {header, 1}]),
-    {ok, #state{sock=Socket}}.
+    {ok, #state{sock=Socket, count=0}}.
 
-handle_info({tcp_closed, Socket}, State=#state{sock=Socket}) ->
+handle_info({tcp_closed,Socket},State=#state{sock=Socket,partition=Partition,count=Count}) ->
+    error_logger:info_msg("Handoff receiver for partition ~p exiting after processing ~p"
+                          " objects~n", [Partition, Count]),
     {stop, normal, State};
 handle_info({tcp, _Sock, Data}, State=#state{sock=Socket}) ->
     [MsgType|MsgData] = Data,
@@ -49,15 +51,16 @@ handle_info({tcp, _Sock, Data}, State=#state{sock=Socket}) ->
 
 process_message(0, MsgData, State) ->
     <<Partition:160/integer>> = MsgData,
+    error_logger:info_msg("Receiving handoff data for partition ~p~n", [Partition]),
     {ok, VNode} = gen_server2:call(riak_kv_vnode_master, {get_vnode, Partition}, 60000),  
     State#state{partition=Partition, vnode=VNode};
-process_message(1, MsgData, State=#state{vnode=VNode}) ->
+process_message(1, MsgData, State=#state{vnode=VNode, count=Count}) ->
     % header of 1 is a riakobject_pb
     RO_PB = riakserver_pb:decode_riakobject_pb(zlib:unzip(MsgData)),
     BKey = {RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key},
     Msg = {diffobj, {BKey, RO_PB#riakobject_pb.val}},
     ok = gen_fsm:sync_send_all_state_event(VNode, Msg, 60000),
-    State;
+    State#state{count=Count+1};
 process_message(2, _MsgData, State=#state{sock=Socket}) ->
     ok = gen_tcp:send(Socket, <<2:8,"sync">>),
     State.
