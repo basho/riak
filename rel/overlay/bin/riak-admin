@@ -84,6 +84,19 @@ case "$1" in
         $NODETOOL rpc riak_console leave $@
         ;;
 
+    leave)
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+
+        shift
+
+        $NODETOOL rpc riak_console leave $@
+        ;;
+
     status)
         # Make sure the local node IS running
         RES=`$NODETOOL ping`
