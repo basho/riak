@@ -29,40 +29,53 @@
 -export([init/1, handle_input/3, handle_input_done/1, handle_event/2,
          handle_timeout/1, handle_info/2, terminate/2]).
 
--record(state, {new_input=false, qterm, reduced=[]}).
+-record(state, {qterm, reduced=[], new_inputs=[]}).
 
 %% @private
 init([QTerm]) ->
     {ok, #state{qterm=QTerm}}.
 
-handle_input(Inputs, #state{reduced=Reduced}=State0, _Timeout) ->
-    State = State0#state{reduced=Inputs ++ Reduced, new_input=true},
-    {no_output, State, 250}.
-
-handle_input_done(#state{qterm=QTerm, reduced=Reduced0, new_input=NewInput}=State) ->
-    case NewInput of
+handle_input(Inputs, #state{reduced=Reduced0, qterm=QTerm, new_inputs=New0}=State0, _Timeout) ->
+    New1 = New0 ++ Inputs,
+    if
+        length(New1) > 20 ->
+            case perform_reduce(QTerm, New1) of
+                {ok, Reduced} ->
+                    {no_output, State0#state{reduced=Reduced0 ++ Reduced, new_inputs=[]}, 250};
+                Error ->
+                    {stop, Error, State0#state{reduced=[], new_inputs=[]}}
+            end;
         true ->
-            case perform_reduce(QTerm, Reduced0) of
+            {no_output, State0#state{new_inputs=New1}, 250}
+    end.
+
+handle_input_done(#state{qterm=QTerm, reduced=Reduced0, new_inputs=New0}=State) ->
+    if
+        length(New0) > 0 ->
+            case perform_reduce(QTerm, Reduced0 ++ New0) of
                 {ok, Reduced} ->
                     luke_phase:complete(),
                     {output, Reduced, State#state{reduced=Reduced}};
                 Error ->
                     {stop, Error, State#state{reduced=[]}}
             end;
-        false ->
+        true ->
             luke_phase:complete(),
-            {no_output, State}
+            {output, Reduced0, State}
     end.
 
-handle_timeout(#state{new_input=true, reduced=Reduced0, qterm=QTerm}=State) ->
-    case perform_reduce(QTerm, Reduced0) of
-        {ok, Reduced} ->
-            {no_output, State#state{reduced=Reduced, new_input=false}};
-        Error ->
-            {stop, Error, State#state{reduced=[]}}
-    end;
-handle_timeout(#state{new_input=false}=State) ->
-    {no_output, State}.
+handle_timeout(#state{qterm=QTerm, reduced=Reduced0, new_inputs=New0}=State) ->
+    if
+        length(New0) > 0 ->
+            case perform_reduce(QTerm, New0) of
+                {ok, Reduced} ->
+                    {no_output, State#state{reduced=Reduced0 ++ Reduced, new_inputs=[]}, 250};
+                Error ->
+                    {stop, Error, State#state{reduced=[], new_inputs=[]}}
+            end;
+        true ->
+            {no_output, State, 250}
+    end.
 
 handle_event(_Event, State) ->
     {no_output, State}.
