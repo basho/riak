@@ -123,10 +123,9 @@ process_message(rpbgetserverinforeq, State) ->
                                  server_version = get_riak_version()},
     send_msg(Resp, State);
 
-process_message(#rpbgetreq{bucket=B, key=K, options=RpbOptions0}, 
+process_message(#rpbgetreq{bucket=B, key=K, r=R}, 
                 #state{client=C} = State) ->
-    Opts = default_rpboptions(RpbOptions0),
-    case C:get(B, K, Opts#rpboptions.r) of
+    case C:get(B, K, default_r(R)) of
         {ok, O} ->
             PbContent = riakc_pb:pbify_rpbcontents(riak_object:get_contents(O), []),
             GetResp = #rpbgetresp{content = PbContent,
@@ -138,20 +137,19 @@ process_message(#rpbgetreq{bucket=B, key=K, options=RpbOptions0},
             send_error("~p", [Reason], State)
     end;
 
-process_message(#rpbputreq{bucket=B, key=K, vclock=PbVC, 
-                           content = RpbContent, options=RpbOptions0}, 
+process_message(#rpbputreq{bucket=B, key=K, vclock=PbVC, content=RpbContent,
+                           w=W, dw=DW, return_body=ReturnBody}, 
                 #state{client=C} = State) ->
 
-    Opts = default_rpboptions(RpbOptions0),
     O0 = riak_object:new(B, K, <<>>),  
     O1 = update_rpbcontent(O0, RpbContent),
     O  = update_pbvc(O1, PbVC),
 
-    case C:put(O, Opts#rpboptions.w, Opts#rpboptions.dw) of
+    case C:put(O, default_w(W), default_dw(DW)) of
         ok ->
-            case Opts#rpboptions.return_body of % erlang_protobuffs encodes as 1/0/undefined
+            case ReturnBody of % erlang_protobuffs encodes as 1/0/undefined
                 1 ->
-                    send_put_return_body(B, K, Opts, State);
+                    send_put_return_body(B, K, State);
                 _ ->
                     send_msg(#rpbputresp{}, State)
             end;
@@ -163,10 +161,9 @@ process_message(#rpbputreq{bucket=B, key=K, vclock=PbVC,
             send_error("~p", [Reason], State)
     end;
 
-process_message(#rpbdelreq{bucket=B, key=K, options=RpbOptions0}, 
+process_message(#rpbdelreq{bucket=B, key=K, rw=RW}, 
                 #state{client=C} = State) ->
-    Opts = default_rpboptions(RpbOptions0),
-    case C:delete(B, K, Opts#rpboptions.rw) of
+    case C:delete(B, K, default_rw(RW)) of
         ok ->
             send_msg(rpbdelresp, State);
         {error, notfound} ->  %% delete succeeds if already deleted
@@ -198,8 +195,8 @@ process_message(#rpblistkeysreq{bucket=B}=Req,
 
 %% @private
 %% @doc if return_body was requested, call the client to get it and return
-send_put_return_body(B, K, Opts, State=#state{client = C}) ->
-    case C:get(B, K, Opts#rpboptions.r) of
+send_put_return_body(B, K, State=#state{client = C}) ->
+    case C:get(B, K, default_r(undefined)) of
         {ok, O} ->
             PbContents = riakc_pb:pbify_rpbcontents(riak_object:get_contents(O), []),
             PutResp = #rpbputresp{contents = PbContents,
@@ -238,22 +235,25 @@ update_pbvc(O0, PbVc) ->
 
 %% Set default values in the options record if none are provided.
 %% Erlang protobuffs does not support default, so have to do it here.
-default_rpboptions(undefined) ->
-    #rpboptions{r = 2, w = 2, dw = 0, rw = 2};
-default_rpboptions(RpbOptions) ->
-    lists:foldl(fun default_rpboption/2, RpbOptions, 
-                [{#rpboptions.r, 2},
-                 {#rpboptions.w, 2},
-                 {#rpboptions.dw, 0},
-                 {#rpboptions.rw, 2}]).
+default_r(undefined) ->
+    2;
+default_r(R) ->
+    R.
 
-default_rpboption({Idx, Default}, RpbOptions) ->
-    case element(Idx, RpbOptions) of
-        undefined ->
-            setelement(Idx, RpbOptions, Default);
-        _ ->
-            RpbOptions
-    end.
+default_w(undefined) ->
+    2;
+default_w(W) ->
+    W.
+
+default_dw(undefined) ->
+    0;
+default_dw(DW) ->
+    DW.
+
+default_rw(undefined) ->
+    2;
+default_rw(RW) ->
+    RW.
         
 %% Convert a vector clock to erlang
 erlify_rpbvc(undefined) ->
