@@ -110,6 +110,14 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 process_message(rpbpingreq, State) ->
     send_msg(rpbpingresp, State);
 
+process_message(rpbgetclientidreq, #state{client=C} = State) ->
+    Resp = #rpbgetclientidresp{client_id = C:get_client_id()},
+    send_msg(Resp, State);
+
+process_message(#rpbsetclientidreq{client_id = ClientId}, State) ->
+    {ok, C} = riak:local_client(ClientId),
+    send_msg(rpbsetclientidresp, State#state{client = C});
+
 process_message(#rpbgetreq{bucket=B, key=K, options=RpbOptions0}, 
                 #state{client=C} = State) ->
     Opts = default_rpboptions(RpbOptions0),
