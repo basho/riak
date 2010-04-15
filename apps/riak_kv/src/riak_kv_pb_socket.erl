@@ -118,6 +118,11 @@ process_message(#rpbsetclientidreq{client_id = ClientId}, State) ->
     {ok, C} = riak:local_client(ClientId),
     send_msg(rpbsetclientidresp, State#state{client = C});
 
+process_message(rpbgetserverinforeq, State) ->
+    Resp = #rpbgetserverinforesp{node = riakc_pb:to_binary(node()), 
+                                 server_version = get_riak_version()},
+    send_msg(Resp, State);
+
 process_message(#rpbgetreq{bucket=B, key=K, options=RpbOptions0}, 
                 #state{client=C} = State) ->
     Opts = default_rpboptions(RpbOptions0),
@@ -259,4 +264,12 @@ erlify_rpbvc(PbVc) ->
 %% Convert a vector clock to protocol buffers
 pbify_rpbvc(Vc) ->
     zlib:zip(term_to_binary(Vc)).
+
+%% Return the current version of riak_kv
+-spec get_riak_version() -> binary().
+get_riak_version() ->
+    Apps = application:which_applications(),
+    {value,{riak_kv,_,Vsn}} = lists:keysearch(riak_kv, 1, Apps),
+    riakc_pb:to_binary(Vsn).
+
 
