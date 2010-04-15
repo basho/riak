@@ -50,18 +50,12 @@ handle_input(Inputs, #state{reduced=Reduced0, qterm=QTerm, new_inputs=New0}=Stat
     end.
 
 handle_input_done(#state{qterm=QTerm, reduced=Reduced0, new_inputs=New0}=State) ->
-    if
-        length(New0) > 0 ->
-            case perform_reduce(QTerm, Reduced0 ++ New0) of
-                {ok, Reduced} ->
-                    luke_phase:complete(),
-                    {output, Reduced, State#state{reduced=Reduced}};
-                Error ->
-                    {stop, Error, State#state{reduced=[]}}
-            end;
-        true ->
+    case perform_reduce(QTerm, Reduced0 ++ New0) of
+        {ok, Reduced} ->
             luke_phase:complete(),
-            {output, Reduced0, State}
+            {output, Reduced, State#state{reduced=Reduced}};
+        Error ->
+            {stop, Error, State#state{reduced=[]}}
     end.
 
 handle_timeout(#state{qterm=QTerm, reduced=Reduced0, new_inputs=New0}=State) ->
