@@ -19,6 +19,7 @@ Table of Contents
 5 Configuration 
     5.1 app.config 
     5.2 Ring Storage 
+    5.3 Your Data 
 
 
 1 Overview 
@@ -29,14 +30,30 @@ Table of Contents
   you are building from source yourself, please review the whole of
   this document.
 
+  NOTE: If the only files you have changed in your Riak source clone
+  are those underneath the "rel" directory
+  ("rel/overlay/etc/app.config", for example), the safest way to
+  update is to make a fresh clone of the Riak repository, and then
+  skip to the Configuration and Clients sections of this document for
+  details about migrating your configurations and data.
+
 2 Requirements 
 ~~~~~~~~~~~~~~~
 
 2.1 Erlang/OTP R13B04 
 ======================
 
+   Riak 0.10 uses new features ("NIFs") provided by the latest
+   Erlang/OTP release, R13B04.  If you are building from source, you
+   will need this release or a newer one.
+
 2.2 Mercurial 
 ==============
+
+   Riak 0.10 has moved several of its components into external
+   repositories.  If you are building from source, you will need
+   Mercurial installed to allow the Rebar build system to retrieve
+   code from these external repositories.
 
 3 Dependencies 
 ~~~~~~~~~~~~~~~
@@ -48,6 +65,11 @@ Table of Contents
    If you are pulling 0.10 code into a repository that formerly had
    0.9.x in it, please remove the apps/mochiweb, apps/webmachine, and
    apps/erlang_js directories from your source tree.
+
+   There is a chance that your update will also leave an "apps/riak"
+   directory hanging around.  If it does, please remove this directory
+   (Riak code has moved into the "apps/riak_core" and "apps/riak_kv"
+   directories).
 
 3.2 make deps 
 ==============
@@ -155,3 +177,10 @@ Table of Contents
    If you referenced any Riak modules in your bucket properties, you
    will also need to change those references to point to the new
    module names after your cluster is running.
+
+5.3 Your Data 
+==============
+   The rest of your cluster's data, stored in the "data" directory
+   ("data/dets" or "data/innodb", for example)
+   should be safe to either leave in place, or copy to your new
+   install location, depending on how you upgraded.
