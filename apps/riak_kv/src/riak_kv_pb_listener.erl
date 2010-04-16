@@ -36,10 +36,9 @@ start_link() ->
     gen_nb_server:start_link(?MODULE, IpAddr, PortNum, [PortNum]).
 
 init([PortNum]) -> 
-    register(?MODULE, self()),
     {ok, #state{portnum=PortNum}}.
 
-sock_opts() -> [binary, {packet, 4}, {reuseaddr, true}, {backlog, 64}].
+sock_opts() -> [binary, {packet, 4}, {reuseaddr, true}].
 
 handle_call(_Req, _From, State) -> 
     {reply, not_implemented, State}.
