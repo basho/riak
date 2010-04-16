@@ -27,7 +27,8 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 -include_lib("riakc/include/riakclient_pb.hrl").
--behaviour(gen_server2).
+-include_lib("riakc/include/riakc_pb.hrl").
+-behaviour(gen_server).
 
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -153,10 +154,6 @@ process_message(#rpbputreq{bucket=B, key=K, vclock=PbVC, content=RpbContent,
                 _ ->
                     send_msg(#rpbputresp{}, State)
             end;
-        {error, precommit_fail} ->
-            send_error("precommit fail", [], State);
-        {error, {precommit_fail, Reason}} ->
-            send_error("precommit fail - ~p", [Reason], State);
         {error, Reason} ->
             send_error("~p", [Reason], State)
     end;
@@ -168,10 +165,6 @@ process_message(#rpbdelreq{bucket=B, key=K, rw=RW},
             send_msg(rpbdelresp, State);
         {error, notfound} ->  %% delete succeeds if already deleted
             send_msg(rpbdelresp, State);
-        {error, precommit_fail} ->
-            send_error("precommit fail", [], State);
-        {error, {precommit_fail, Reason}} ->
-            send_error("precommit fail - ~p", [Reason], State);
         {error, Reason} ->
             send_error("~p", [Reason], State)
     end;
@@ -180,18 +173,19 @@ process_message(rpblistbucketsreq,
                 #state{client=C} = State) ->
     case C:list_buckets() of
         {ok, Buckets} ->
-            send_msg(#rpblistbucketsresp{buckets = Buckets, done = 1}, State);
+            send_msg(#rpblistbucketsresp{buckets = Buckets}, State);
         {error, Reason} ->
             send_error("~p", [Reason], State)
     end;
 
-%% Start streaming in list keys - results will be processed in handle_info
+%% Start streaming in list keys 
 process_message(#rpblistkeysreq{bucket=B}=Req, 
                 #state{client=C} = State) ->
-    case C:stream_list_keys(B) of
-        {ok, ReqId} ->
-            {pause, State#state{req = Req, req_ctx = ReqId}}
-    end.
+    %% Pause incoming packets - stream_list_keys results
+    %% will be processed by handle_info, it will 
+    %% set socket active again on completion of streaming.
+    {ok, ReqId} = C:stream_list_keys(B),
+    {pause, State#state{req = Req, req_ctx = ReqId}}.
 
 %% @private
 %% @doc if return_body was requested, call the client to get it and return
@@ -213,14 +207,19 @@ send_put_return_body(B, K, State=#state{client = C}) ->
 -spec send_msg(msg(), #state{}) -> #state{}.
 send_msg(Msg, State) ->
     Pkt = riakc_pb:encode(Msg),
-    ok = gen_tcp:send(State#state.sock, Pkt),
+    gen_tcp:send(State#state.sock, Pkt),
     State.
     
 %% Send an error to the client
 -spec send_error(string(), list(), #state{}) -> #state{}.
 send_error(Msg, Fmt, State) ->
-    ErrMsg = lists:flatten(io_lib:format(Msg, Fmt)),
-    send_msg(#rpberrorresp{errmsg = ErrMsg}, State).
+    send_error(Msg, Fmt, ?RIAKC_ERR_GENERAL, State).
+
+-spec send_error(string(), list(), non_neg_integer(), #state{}) -> #state{}.
+send_error(Msg, Fmt, ErrCode, State) ->
+    %% protocol buffers accepts nested lists for binaries so no need to flatten the list
+    ErrMsg = io_lib:format(Msg, Fmt),
+    send_msg(#rpberrorresp{errmsg=ErrMsg, errcode=ErrCode}, State).
 
 %% Update riak_object with the pbcontent provided
 update_rpbcontent(O0, RpbContent) -> 
@@ -268,8 +267,6 @@ pbify_rpbvc(Vc) ->
 %% Return the current version of riak_kv
 -spec get_riak_version() -> binary().
 get_riak_version() ->
-    Apps = application:which_applications(),
-    {value,{riak_kv,_,Vsn}} = lists:keysearch(riak_kv, 1, Apps),
+    {ok, Vsn} = application:get_key(riak_kv, vsn),
     riakc_pb:to_binary(Vsn).
-
 
