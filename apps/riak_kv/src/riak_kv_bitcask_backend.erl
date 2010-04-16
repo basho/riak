@@ -123,7 +123,15 @@ fold(_BitcaskRoot, Fun0, Acc0) ->
                  end,
                  Acc0).
 
-drop(_) -> ok.
+drop(BitcaskRoot) ->
+    %% todo: once bitcask has a more friendly drop function
+    %%  of its own, use that instead.
+    State = erlang:get(?MODULE),
+    bitcask:close(State),
+    {ok, FNs} = file:list_dir(BitcaskRoot),
+    [file:delete(FN) || FN <- FNs],
+    file:del_dir(BitcaskRoot),
+    ok.
 
 is_empty(_BitcaskRoot) ->
     %% Determining if a bitcask is empty requires us to find at least
