@@ -171,6 +171,7 @@ assert(false, Error) -> throw({?MODULE, Error}).
 simple_test() ->    
     % Start the ring manager...
     crypto:start(),
+    riak_core_ring_events:start_link(),
     riak_core_ring_manager:start_link(test),
     
     % Set some buckets...
@@ -185,6 +186,7 @@ simple_test() ->
 get_backend_test() ->
     % Start the ring manager...
     crypto:start(),
+    riak_core_ring_events:start_link(),
     riak_core_ring_manager:start_link(test),
     
     % Set some buckets...

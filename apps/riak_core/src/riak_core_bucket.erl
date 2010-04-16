@@ -91,6 +91,7 @@ get_bucket(Name, Ring) ->
 
 simple_set_test() ->
     application:load(riak_core),
+    riak_core_ring_events:start_link(),
     riak_core_ring_manager:start_link(test),
     ok = set_bucket(a_bucket,[{key,value}]),
     Bucket = get_bucket(a_bucket),
