@@ -1,73 +1,155 @@
--module(riak_kv_bitcask_backend).
--author('Andy Gross <andy@basho.com').
+%% -------------------------------------------------------------------
+%%
+%% riak_kv_bitcask_backend: Bitcask Driver for Riak
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
+%% This file is provided to you under the Apache License,
+%% Version 2.0 (the "License"); you may not use this file
+%% except in compliance with the License.  You may obtain
+%% a copy of the License at
+%%
+%%   http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing,
+%% software distributed under the License is distributed on an
+%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+%% KIND, either express or implied.  See the License for the
+%% specific language governing permissions and limitations
+%% under the License.
+%%
+%% -------------------------------------------------------------------
 
--export([start/2, stop/1, get/2, put/3, list/1, list_bucket/2, delete/2]).
--export([drop/1, is_empty/1, fold/3]).
--record(state, {partition, bcstate}).
+-module(riak_kv_bitcask_backend).
+-author('Andy Gross <andy@basho.com>').
+-author('Dave Smith <dizzyd@basho.com>').
+
+-export([start/2,
+         stop/1,
+         get/2,
+         put/3,
+         delete/2,
+         list/1,
+         list_bucket/2,
+         fold/3,
+         drop/1,
+         is_empty/1]).
+
+
+-ifdef(TEST).
+-include_lib("eunit/include/eunit.hrl").
+-endif.
 
 start(Partition, Config) ->
-    BackendRoot = proplists:get_value(riak_kv_bitcask_backend_root, Config),
-    if BackendRoot =:= undefined ->
-            riak:stop("riak_kv_bitcask_backend_root undefined, failing.~n");
-       true -> ok
-    end,
-    BackendDir = filename:join([BackendRoot, integer_to_list(Partition)]),
-    case filelib:ensure_dir(BackendDir) of
-        ok -> ok;
-        _Error ->
-            riak:stop("riak_kv_bitcask_backend could not ensure"
-                      " the existence of its root directory")
-    end,
-    {ok, BCState} = bitcask:open(BackendDir, [{read_write, true}]),
-    erlang:put(?MODULE, #state{partition=Partition, bcstate=BCState}),
-    {ok, none}.    
+    BitcaskRoot = filename:join([proplists:get_value(data_root, Config),
+                                 "bitcask",
+                                 integer_to_list(Partition)]),
+    case bitcask:open(BitcaskRoot, [{read_write, true}]) of
+        {ok, State} ->
+            %% We need to store the state of bitcask in the process dictionary
+            %% as each request mutates it.
+            erlang:put(?MODULE, State),
+            {ok, none};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
-get(_, BKey) ->
-    State = erlang:get(?MODULE),
+
+stop(none) ->
+    bitcask:close(erlang:get(?MODULE)).
+
+
+get(none, BKey) ->
+    State0 = erlang:get(?MODULE),
     Key = term_to_binary(BKey),
-    case bitcask:get(State#state.bcstate, Key) of
-        {ok, Value, NewBCState} ->
-            erlang:put(?MODULE, State#state{bcstate=NewBCState}),
+    case bitcask:get(State0, Key) of
+        {ok, Value, State} ->
+            erlang:put(?MODULE, State),
             {ok, Value};
-        {not_found, NewBCState} ->
-            erlang:put(?MODULE, State#state{bcstate=NewBCState}),
-            {error, notfound}
+        {not_found, State} ->
+            erlang:put(?MODULE, State),
+            {error, notfound};
+        {error, Reason} ->
+            {error, Reason}
     end.
 
-put(_, BKey, Val) ->
-    State = erlang:get(?MODULE),
+put(none, BKey, Val) ->
+    State0 = erlang:get(?MODULE),
     Key = term_to_binary(BKey),
-    {Reply, NewBCState} = bitcask:put(State#state.bcstate, Key, Val),
-    erlang:put(?MODULE, State#state{bcstate=NewBCState}),
-    Reply.
-    
-list(_) -> 
-    State = erlang:get(?MODULE),
-    case bitcask:list_keys(State#state.bcstate) of
-        [KeyList] ->
-            [binary_to_term(K) || K <- KeyList];
-        Other -> Other
+    case bitcask:put(State0, Key, Val) of
+        {ok, State} ->
+            erlang:put(?MODULE, State),
+            ok;
+        {error, Reason} ->
+            {error, Reason}
     end.
 
-list_bucket(_, Bucket) ->  [{B,K} || {B,K} <- ?MODULE:list(none), B =:= Bucket].
+delete(none, BKey) ->
+    State0 = erlang:get(?MODULE),
+    case bitcask:delete(State0, term_to_binary(BKey)) of
+        {ok, State} ->
+            erlang:put(?MODULE, State),
+            ok;
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
-delete(_, BKey) -> 
-    State = erlang:get(?MODULE),
-    {Reply, NewBCState} = bitcask:delete(State#state.bcstate, term_to_binary(BKey)),
-    erlang:put(?MODULE, State#state{bcstate=NewBCState}),
-    Reply.
+list(none) ->
+    State0 = erlang:get(?MODULE),
+    case bitcask:list_keys(State0) of
+        KeyList when is_list(KeyList) ->
+            [binary_to_term(K) || K <- KeyList];
+        Other ->
+            Other
+    end.
+
+list_bucket(none, {filter, Bucket, Fun}) ->
+    [K || {B, K} <- ?MODULE:list(none),
+          B =:= Bucket,
+          Fun(K)];
+list_bucket(none, '_') ->
+    [B || {B, _K} <- ?MODULE:list(none)];
+list_bucket(none, Bucket) ->
+    [K || {B, K} <- ?MODULE:list(none), B =:= Bucket].
+
+
+fold(none, Fun0, Acc0) ->
+    %% When folding across the bitcask, the bucket/key tuple must
+    %% be decoded. The intermediate binary_to_term call handles this
+    %% and yields the expected fun({B, K}, Value, Acc)
+    bitcask:fold(erlang:get(?MODULE),
+                 fun(K, V, Acc) ->
+                         Fun0(binary_to_term(K), V, Acc)
+                 end,
+                 Acc0).
 
 drop(_) -> ok.
 
-is_empty(_) -> false.
+is_empty(none) ->
+    %% Determining if a bitcask is empty requires us to find at least
+    %% one value that is NOT a tombstone. Accomplish this by doing a fold
+    %% that forcibly bails on the very first k/v encountered.
+    F = fun(_K, _V, _Acc0) ->
+                throw(found_one_value)
+        end,
+    case catch(bitcask:fold(erlang:get(?MODULE), F, undefined)) of
+        found_one_value ->
+            false;
+        _ ->
+            true
+    end.
 
-fold(_, _Fun, _InitAcc) -> [].
-
-stop(_) -> 
-    State = erlang:get(?MODULE),
-    bitcask:close(State#state.bcstate).
 
 
 
+%% ===================================================================
+%% EUnit tests
+%% ===================================================================
+-ifdef(TEST).
 
+simple_test() ->
+    ?assertCmd("rm -rf test/bitcask-backend"),
+    Config = [{data_root, "test/bitcask-backend"}],
+    riak_kv_test_util:standard_backend_test(?MODULE, Config).
 
+-endif.
