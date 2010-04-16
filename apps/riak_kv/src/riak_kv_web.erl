@@ -54,7 +54,7 @@ raw_dispatch(Name) ->
     Props = raw_props(Name),
     [{[Name, bucket], riak_kv_wm_raw, Props},
      {[Name, bucket, key], riak_kv_wm_raw, Props},
-     {[Name, bucket, key, '*'], rial_kv_wm_link_walker, Props}].
+     {[Name, bucket, key, '*'], riak_kv_wm_link_walker, Props}].
 
 raw_props(Prefix) ->
     [{prefix, Prefix}, {riak, local}].
