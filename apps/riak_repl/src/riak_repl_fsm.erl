@@ -166,7 +166,7 @@ code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
 make_vtag(RObj) ->
     <<HashAsNum:128/integer>> = crypto:md5(term_to_binary(riak_object:vclock(RObj))),
-    riak_util:integer_to_list(HashAsNum,62).
+    riak_core_util:integer_to_list(HashAsNum,62).
 
 make_vtag_test() ->
     Obj = riak_object:new(<<"b">>,<<"k">>,<<"v1">>),
