@@ -185,7 +185,21 @@ process_message(#rpblistkeysreq{bucket=B}=Req,
     %% will be processed by handle_info, it will 
     %% set socket active again on completion of streaming.
     {ok, ReqId} = C:stream_list_keys(B),
-    {pause, State#state{req = Req, req_ctx = ReqId}}.
+    {pause, State#state{req = Req, req_ctx = ReqId}};
+
+%% Get bucket properties
+process_message(#rpbgetbucketreq{bucket=B}, 
+                #state{client=C} = State) ->
+    Props = C:get_bucket(B),
+    PbProps = riakc_pb:pbify_rpbbucketprops(Props),
+    send_msg(#rpbgetbucketresp{props = PbProps}, State);
+
+%% Set bucket properties
+process_message(#rpbsetbucketreq{bucket=B, props = PbProps}, 
+                #state{client=C} = State) ->
+    Props = riakc_pb:erlify_rpbbucketprops(PbProps),
+    ok = C:set_bucket(B, Props),
+    send_msg(rpbsetbucketresp, State).
 
 %% @private
 %% @doc if return_body was requested, call the client to get it and return
