@@ -49,17 +49,17 @@ start(Partition, Config) ->
             %% We need to store the state of bitcask in the process dictionary
             %% as each request mutates it.
             erlang:put(?MODULE, State),
-            {ok, none};
+            {ok, BitcaskRoot};
         {error, Reason} ->
             {error, Reason}
     end.
 
 
-stop(none) ->
+stop(_BitcaskRoot) ->
     bitcask:close(erlang:get(?MODULE)).
 
 
-get(none, BKey) ->
+get(_BitcaskRoot, BKey) ->
     State0 = erlang:get(?MODULE),
     Key = term_to_binary(BKey),
     case bitcask:get(State0, Key) of
@@ -73,7 +73,7 @@ get(none, BKey) ->
             {error, Reason}
     end.
 
-put(none, BKey, Val) ->
+put(_BitcaskRoot, BKey, Val) ->
     State0 = erlang:get(?MODULE),
     Key = term_to_binary(BKey),
     case bitcask:put(State0, Key, Val) of
@@ -84,7 +84,7 @@ put(none, BKey, Val) ->
             {error, Reason}
     end.
 
-delete(none, BKey) ->
+delete(_BitcaskRoot, BKey) ->
     State0 = erlang:get(?MODULE),
     case bitcask:delete(State0, term_to_binary(BKey)) of
         {ok, State} ->
@@ -94,7 +94,7 @@ delete(none, BKey) ->
             {error, Reason}
     end.
 
-list(none) ->
+list(_BitcaskRoot) ->
     State0 = erlang:get(?MODULE),
     case bitcask:list_keys(State0) of
         KeyList when is_list(KeyList) ->
@@ -103,17 +103,17 @@ list(none) ->
             Other
     end.
 
-list_bucket(none, {filter, Bucket, Fun}) ->
+list_bucket(_BitcaskRoot, {filter, Bucket, Fun}) ->
     [K || {B, K} <- ?MODULE:list(none),
           B =:= Bucket,
           Fun(K)];
-list_bucket(none, '_') ->
+list_bucket(_BitcaskRoot, '_') ->
     [B || {B, _K} <- ?MODULE:list(none)];
-list_bucket(none, Bucket) ->
+list_bucket(_BitcaskRoot, Bucket) ->
     [K || {B, K} <- ?MODULE:list(none), B =:= Bucket].
 
 
-fold(none, Fun0, Acc0) ->
+fold(_BitcaskRoot, Fun0, Acc0) ->
     %% When folding across the bitcask, the bucket/key tuple must
     %% be decoded. The intermediate binary_to_term call handles this
     %% and yields the expected fun({B, K}, Value, Acc)
@@ -123,9 +123,17 @@ fold(none, Fun0, Acc0) ->
                  end,
                  Acc0).
 
-drop(_) -> ok.
+drop(BitcaskRoot) ->
+    %% todo: once bitcask has a more friendly drop function
+    %%  of its own, use that instead.
+    State = erlang:get(?MODULE),
+    bitcask:close(State),
+    {ok, FNs} = file:list_dir(BitcaskRoot),
+    [file:delete(FN) || FN <- FNs],
+    file:del_dir(BitcaskRoot),
+    ok.
 
-is_empty(none) ->
+is_empty(_BitcaskRoot) ->
     %% Determining if a bitcask is empty requires us to find at least
     %% one value that is NOT a tombstone. Accomplish this by doing a fold
     %% that forcibly bails on the very first k/v encountered.
