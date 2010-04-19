@@ -36,10 +36,13 @@ upgrade() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->
-    Processes = [{riak_repl_connector,
+    Processes = [{riak_repl_leader,
+                  {riak_repl_leader, start_link, []},
+                  permanent, 5000, worker, [riak_repl_leader]},
+                 {riak_repl_connector,
                   {riak_repl_connector, start_link, []},
-                  permanent, 5000, worker, dynamic},
+                  permanent, 5000, worker, [riak_repl_connector]},
                  {riak_repl_server,
                   {riak_repl_server, start_link, []},
-                  permanent, 5000, worker, dynamic}],
+                  permanent, 5000, worker, [riak_repl_server]}],
     {ok, {{one_for_one, 9, 10}, Processes}}.
