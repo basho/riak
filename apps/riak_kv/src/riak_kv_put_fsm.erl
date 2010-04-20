@@ -153,9 +153,9 @@ waiting_vnode_dw({dw, Idx, ReqId},
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of
         true ->
-            update_stats(StateData),
-            invoke_hook(postcommit, RClient, RObj),
             Client ! {ReqId, ok},
+            invoke_hook(postcommit, RClient, RObj),
+            update_stats(StateData),
             {stop,normal,StateData};
         false ->
             NewStateData = StateData#state{replied_dw=Replied},
