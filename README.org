@@ -266,12 +266,6 @@ Welcome to Riak.
     To restore from a backup file:
     : $ riak-admin restore riak@X.X.X.X riak <directory/backup_file>
     
-    To view the logs of from a node:
-    : $ bin/riak-admin logger riak@X.X.X.X riak
-    
-    If you would like to save the log to a file:
-    : $ bin/riak-admin logger riak@X.X.X.X riak <filename>
-    
     To view the status of a node:
     : $ bin/riak-admin status
     
