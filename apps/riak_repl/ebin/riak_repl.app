@@ -9,6 +9,7 @@
                   'riak_repl_connector', 
                   'riak_repl_fsm', 
                   'riak_repl_leader',
+                  'riak_repl_logger',
                   'riak_repl_peer', 
                   'riak_repl_server', 
                   'riak_repl_sup', 
