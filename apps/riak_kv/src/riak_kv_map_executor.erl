@@ -114,9 +114,8 @@ wait({mapexec_error_noretry, _VN, ErrMsg}, #state{phase_pid=PhasePid, vnode_time
     timer:cancel(TRef),
     riak_kv_phase_proto:mapexec_error(PhasePid, ErrMsg),
     {stop, normal, StateData};
-wait({mapexec_error, _VN, _ErrMsg},StateData=
-     #state{vnodes=VNodes,qterm=QTerm,bkey=BKey,keydata=KeyData,timeout=Timeout, vnode_timer=TRef0}) ->
-    timer:cancel(TRef0),
+wait({mapexec_error, _VN, _ErrMsg}, #state{timeout=Timeout, vnode_timer=TRef}=StateData) ->
+    timer:cancel(TRef),
     case try_vnode(StateData) of
         {error, no_vnodes} ->
             {stop, normal, StateData};
