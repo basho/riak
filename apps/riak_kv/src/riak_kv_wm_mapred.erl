@@ -104,6 +104,8 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query, timeout=Timeout}=State) ->
                       end,
             RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
             case Results of
+                "all nodes failed" ->
+                    {{halt, 500}, wrq:set_resp_body("All nodes failed", RD), State};
                 {error, _} ->
                     {{halt, 500}, send_error(Results, RD1), State};
                 {ok, Result} ->
