@@ -33,7 +33,8 @@
          list_bucket/2,
          fold/3,
          drop/1,
-         is_empty/1]).
+         is_empty/1,
+         handle_info/2]).
 
 
 -ifdef(TEST).
@@ -41,6 +42,26 @@
 -endif.
 
 start(Partition, Config) ->
+    %% Schedule sync interval
+    case application:get_env(bitcask, sync_interval) of
+        {ok, SyncInterval} ->
+            SyncIntervalMs = timer:seconds(SyncInterval),
+            erlang:send_after(SyncIntervalMs, self(),
+                              {?MODULE, {sync, SyncIntervalMs}});
+        undefined ->
+            undefined
+    end,
+
+    %% Schedule merge interval
+    case application:get_env(bitcask, merge_interval) of
+        {ok, MergeInterval} ->
+            MergeIntervalMs = timer:minutes(MergeInterval),
+            erlang:send_after(MergeIntervalMs, self(),
+                              {?MODULE, {merge, MergeIntervalMs}});
+        undefined ->
+            undefined
+    end,
+
     BitcaskRoot = filename:join([proplists:get_value(data_root, Config),
                                  "bitcask",
                                  integer_to_list(Partition)]),
@@ -147,7 +168,15 @@ is_empty(_BitcaskRoot) ->
             true
     end.
 
-
+handle_info(_BitcaskRoot, {sync, SyncInterval}) ->
+    State = erlang:get(?MODULE),
+    bitcask:sync(State),
+    erlang:send_after(SyncInterval, self(),
+                      {?MODULE, {sync, SyncInterval}});
+handle_info(BitcaskRoot, {merge, MergeInterval}) ->
+    bitcask_merge_worker:merge(BitcaskRoot),
+    erlang:send_after(MergeInterval, self(),
+                      {?MODULE, {merge, MergeInterval}}).
 
 
 %% ===================================================================
