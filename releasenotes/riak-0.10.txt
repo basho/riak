@@ -1,0 +1,64 @@
+-----------------------
+Riak 0.10 Release Notes
+-----------------------
+
+IMPORTANT: If you are upgrading an earlier version of Riak, please read
+           the TRANSITION file in the directory above this
+           (http://bitbucket.org/basho/riak/src/55a7f83c2ae2/TRANSITION)
+
+Riak 0.10 brings many new features and improvements.
+
+In addition to the existing HTTP interface, Riak 0.10 exposes a
+protocol buffers interface.  This interface allows for basic put/get
+operations, and has client libraries in Python and Erlang.  Support
+for map/reduce operations, and additional language libraries will be
+added soon.  Read more about the interface on the wiki:
+https://wiki.basho.com/display/RIAK/PBC+API
+
+Riak 0.10 exposes the ability to tie into an object's update
+lifecycle, via pre-commit and post-commit hooks.  Hook functions can
+be implemented in Erlang or Javascript.  More detail on the wiki:
+https://wiki.basho.com/display/RIAK/Pre-+and+Post-Commit+Hooks
+
+Listing the keys stored in a bucket is faster an more reliable in 0.10.
+
+The "eventer" subsystem has been removed from Riak.  It was found to
+be a bottleneck, as well as the main source of non-modularity in the
+code.  This should not affect client code, unless it was explicitly
+calling 'riak_eventer:add_handler' function.
+
+Chunks of Riak have been rearranged for cleanliness and modularity.
+If you are upgrading an existing cluster to 0.10, please carefully
+read and follow the instructions in the TRANSITION file, referenced at
+the top of these release notes.  Some filenames and app.config
+settings have changed, which you will want to account for in your
+installation.
+
+Erlang applications that Riak depends on (webmachine, erlang_js, etc.)
+have been moved out of the Riak repository, and into their own
+repositories.  If you install a prebuilt Riak, this change will not
+affect you.  If you build Riak from the source tarball, this change
+will not affect you.  If you build Riak by cloning from the Bitbucket
+repository, your first "make" will download the additional source
+needed from Bitbucket.
+
+Client libraries have been moved into their own repositories.  Instead
+of finding them under the client_lib subdirectory, please visit the
+appropriate repo:
+ - http://bitbucket.org/basho/riak-javascript-client
+ - http://bitbucket.org/basho/riak-python-client
+ - http://bitbucket.org/basho/riak-ruby-client
+   (same as) http://github.com/seancribbs/ripple/
+ - http://bitbucket.org/basho/riak-java-client
+ - http://bitbucket.org/basho/riak-php-client
+ - http://bitbucket.org/basho/riak-erlang-client
+   (using protocol buffers instead of distributed Erlang)
+
+Riak 0.10 also includes a number of minor improvements and bug fixes:
+ - multipart/mixed responses from the HTTP interface now use proper
+   line termination (\r\n, instead of just \n)
+ - fixed the "fold" functionality (used during handoff) for the
+   multi-backend.
+ - improvements to gossip corner cases
+ - improvements to shell scripts for cross-platform compatibility
+ - improvements for running map/reduce jobs on a degraded cluster
