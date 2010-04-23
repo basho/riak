@@ -160,7 +160,7 @@ Table of Contents
   + pb_port - integer
 
   IMPORTANT: The default backend has changed names from
-  riak_dets_backend to riak_kv_dets_bakend.  Other backends have
+  riak_dets_backend to riak_kv_dets_backend.  Other backends have
   changed names as well.  This rename does not affect you if you are
   using the Innostore backend.
 
