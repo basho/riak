@@ -84,7 +84,7 @@ try_vnode(#state{vnodes=[], bkey=BKey, phase_pid=PhasePid}) ->
     riak_kv_phase_proto:mapexec_error(PhasePid, "all nodes failed"),
     {error, {no_vnodes, BKey}};
 try_vnode(#state{qterm=QTerm, bkey=BKey, keydata=KeyData, vnodes=[{P, VN}|VNs]}=StateData) ->
-    case lists:member(VN, nodes()) of
+    case lists:member(VN, nodes() ++ [node()]) of
         false ->
             try_vnode(StateData#state{vnodes=VNs});
         true ->
