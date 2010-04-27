@@ -87,6 +87,8 @@ start_executors(Ring, [H|T], QTerm, Timeout, Accum) ->
     case riak_kv_map_executor:start_link(Ring, H, QTerm, Timeout, self()) of
         {ok, FSM} ->
             start_executors(Ring, T, QTerm, Timeout, [FSM|Accum]);
+        {error, no_vnodes} ->
+            throw({error, no_vnodes});
         {error, bad_input} ->
             throw({error, bad_input})
     end.

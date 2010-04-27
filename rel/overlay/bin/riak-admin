@@ -23,13 +23,15 @@ if [ -z "$NAME_ARG" ]; then
 fi
 
 # Learn how to specify node name for connection from remote nodes
-if [[ "$NAME_ARG" =~ ^-sname ]]; then
+echo "$NAME_ARG" | grep '^-sname' > /dev/null 2>&1
+if [ "X$?" = "X0" ]; then
     NAME_PARAM="-sname"
     NAME_HOST=""
 else
     NAME_PARAM="-name"
-    if [[ "$NAME_ARG" =~ (@.*) ]]; then
-        NAME_HOST=${BASH_REMATCH[1]}
+    echo "$NAME_ARG" | grep '@.*' > /dev/null 2>&1
+    if [ "X$?" = "X0" ]; then
+        NAME_HOST=`echo "${NAME_ARG}" | sed -e 's/.*\(@.*\)$/\1/'`
     else
         NAME_HOST=""
     fi
@@ -150,24 +152,6 @@ case "$1" in
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
         ;;
 
-    logger)
-        shift
-
-        if [ $# -lt 2 ]; then
-            echo "Usage:"
-            echo "    Log to console: $SCRIPT logger <node> <cookie>"
-            echo "    Log to file:    $SCRIPT logger <node> <cookie> <filename>"
-            exit 1
-        fi
-
-        NODE=$1
-        COOKIE=$2
-        FILENAME=$3
-
-        $ERTS_PATH/erl -noshell $NAME_PARAM riak_core_logger$NAME_HOST -setcookie $COOKIE \
-                       -eval "riak_core_event_logger:start('$NODE', \"$FILENAME\")."
-        ;;
-
     test)
         # Make sure the local node IS running
         RES=`$NODETOOL ping`
@@ -186,7 +170,7 @@ case "$1" in
 
         ;;
     *)
-        echo "Usage: $SCRIPT { join | backup | restore | logger | test | status | reip }"
+        echo "Usage: $SCRIPT { join | backup | restore | test | status | reip | js_reload  }"
         exit 1
         ;;
 esac

@@ -219,16 +219,3 @@ Start each developer node just as you would a regular node, but use
 the 'riak' script in dev/devN/bin/.
 
 
-Logging
----
-
-Viewing the activity log of a given riak node is done using the
-riak-admin script.  Just pass it the command "logger", the Erlang node
-name of the Riak node, and the cookie for that node:
-
-$ riak-admin logger dev1@127.0.0.1 riak
-[13/Jan/2010:14:45:37 -0500]: {riak_connect,send_ring_to,'dev1@127.0.0.1','dev2@127.0.0.1'}
-[13/Jan/2010:14:45:37 -0500]: {riak_ring_manager,write_ringfile,'dev1@127.0.0.1',
-                     <<"data/ring/riak_ring.default.20100113194537">>}
-[13/Jan/2010:14:45:37 -0500]: {riak_connect,changed_ring,'dev2@127.0.0.1',gossip_changed}
-...snip...
