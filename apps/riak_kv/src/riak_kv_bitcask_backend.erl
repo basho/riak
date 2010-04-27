@@ -41,7 +41,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
-start(Partition, Config) ->
+start(Partition, _Config) ->
     %% Schedule sync interval
     case application:get_env(bitcask, sync_interval) of
         {ok, SyncInterval} ->
@@ -61,10 +61,21 @@ start(Partition, Config) ->
         undefined ->
             undefined
     end,
-
-    BitcaskRoot = filename:join([proplists:get_value(data_root, Config),
-                                 "bitcask",
+    ConfigRoot = 
+        case application:get_env(bitcask, data_root) of
+            {ok, CR} -> CR;
+            _ -> 
+                riak:stop("bitcask data_root unset, failing")
+        end,
+    BitcaskRoot = filename:join([ConfigRoot,
                                  integer_to_list(Partition)]),
+
+    case filelib:ensure_dir(BitcaskRoot) of
+        ok -> ok;
+        _Error ->
+            riak:stop("riak_kv_bitcask_backend could not ensure"
+                      " the existence of its root directory")
+    end,
     case bitcask:open(BitcaskRoot, [{read_write, true}]) of
         {ok, State} ->
             %% We need to store the state of bitcask in the process dictionary
