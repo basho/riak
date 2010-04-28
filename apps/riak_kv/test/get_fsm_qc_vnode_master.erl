@@ -10,13 +10,15 @@
 -behaviour(gen_server).
 
 %% API
--export([start_link/0]).
+-export([start_link/0,
+         start/0]).
+-compile(export_all).
 
 %% gen_server callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {data}).
+-record(state, {object, partvals, history=[]}).
 
 %%====================================================================
 %% API
@@ -27,6 +29,12 @@
 %%--------------------------------------------------------------------
 start_link() ->
     gen_server:start_link({local, riak_kv_vnode_master}, ?MODULE, [], []).
+
+start() ->
+    gen_server:start({local, riak_kv_vnode_master}, ?MODULE, [], []).
+
+get_history() ->
+    gen_server:call(riak_kv_vnode_master, get_history).
 
 %%====================================================================
 %% gen_server callbacks
@@ -51,8 +59,10 @@ init([]) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-handle_call({set_data, Data}, _From, State) ->
-    {reply, ok, set_data(Data, State)};
+handle_call({set_data, Object, Partvals}, _From, State) ->
+    {reply, ok, set_data(Object, Partvals, State)};
+handle_call(get_history, _From, State) ->
+    {reply, lists:reverse(State#state.history), State};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -64,10 +74,16 @@ handle_call(_Request, _From, State) ->
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
 handle_cast({vnode_get, {Partition,_Node},
-             {FSM_pid,BKey,ReqID}}, State) ->
-    gen_fsm:send_event(FSM_pid, 
-                       {r, {ok, get_data(BKey, State)}, Partition, ReqID}),
-    {noreply, State};
+             {FSM_pid,_BKey,ReqID}}, State) ->
+    {Value, State1} = get_data(Partition, State),
+    case Value of
+        {error, timeout} ->
+            ok;
+        _ ->
+            gen_fsm:send_event(FSM_pid, 
+                {r, Value, Partition, ReqID})
+    end,
+    {noreply, State1#state{history = [{Partition, Value} | State#state.history]}};
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -94,15 +110,25 @@ terminate(_Reason, _State) ->
 %% Func: code_change(OldVsn, State, Extra) -> {ok, NewState}
 %% Description: Convert process state when code is changed
 %%--------------------------------------------------------------------
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+code_change(_OldVsn, _State, _Extra) ->
+    {ok, #state{history=[]}}.
 
 %%--------------------------------------------------------------------
 %%% Internal functions
 %%--------------------------------------------------------------------
 
-set_data(Data, State) ->
-    State#state{data=Data}.
+set_data(Object, Partvals, State) ->
+    State#state{object=Object, partvals=Partvals, history=[]}.
 
-get_data(_Bkey, State) ->
-    State#state.data.
+get_data(_Partition, #state{partvals = []} = State) ->
+    {{ok, State#state.object}, State};
+get_data(_Partition, #state{partvals = [Res|Rest]} = State) ->
+    State1 = State#state{partvals = Rest},
+    case Res of
+        ok ->
+            {{ok, State#state.object}, State1};
+        notfound ->
+            {{error, notfound}, State1};
+        timeout ->
+            {{error, timeout}, State1}
+    end.
