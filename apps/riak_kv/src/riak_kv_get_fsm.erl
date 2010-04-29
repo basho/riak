@@ -182,7 +182,7 @@ really_finalize(StateData=#state{final_obj=Final,
                           ring=Ring,
                           starttime=StartTime}) ->
     case Final of
-        {error, notfound} ->
+        tombstone ->
             maybe_finalize_delete(StateData);
         {ok,_} ->
             maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,
