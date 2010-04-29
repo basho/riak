@@ -1,0 +1,13 @@
+----------------------
+Riak 0.10.1 Release Notes
+----------------------
+
+Riak 0.10.1 addresses two issues:
+
+ - An issue has been fixed, which caused map/reduce queries to never
+   be run on the node where the query originated. This both improves
+   the efficiency of some queries, as well as fixes map/reduce on
+   single-node clusters.
+
+ - The "deps" make target was added as a dependency of the "rel" make
+   target, such that "make rel" does the right thing the first time.
