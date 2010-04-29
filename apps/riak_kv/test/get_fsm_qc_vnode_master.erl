@@ -18,7 +18,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {object, partvals, history=[]}).
+-record(state, {object, partvals, history=[], repair_history=[]}).
 
 %%====================================================================
 %% API
@@ -35,6 +35,9 @@ start() ->
 
 get_history() ->
     gen_server:call(riak_kv_vnode_master, get_history).
+
+get_repair_history() ->
+    gen_server:call(riak_kv_vnode_master, get_repair_history).
 
 %%====================================================================
 %% gen_server callbacks
@@ -63,6 +66,10 @@ handle_call({set_data, Object, Partvals}, _From, State) ->
     {reply, ok, set_data(Object, Partvals, State)};
 handle_call(get_history, _From, State) ->
     {reply, lists:reverse(State#state.history), State};
+handle_call(get_repair_history, _From, State) ->
+    {reply, lists:reverse(State#state.repair_history), State};
+handle_call(Msg={vnode_del, _, _}, _From, State) ->
+    {reply, ok, State#state{repair_history=[Msg|State#state.repair_history]}};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -84,6 +91,8 @@ handle_cast({vnode_get, {Partition,_Node},
                 {r, Value, Partition, ReqID})
     end,
     {noreply, State1#state{history = [{Partition, Value} | State#state.history]}};
+handle_cast(Msg={vnode_put, _, _}, State) ->
+    {noreply, State#state{repair_history=[Msg|State#state.repair_history]}};    
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -118,7 +127,8 @@ code_change(_OldVsn, _State, _Extra) ->
 %%--------------------------------------------------------------------
 
 set_data(Object, Partvals, State) ->
-    State#state{object=Object, partvals=Partvals, history=[]}.
+    State#state{object=Object, partvals=Partvals,
+                history=[], repair_history=[]}.
 
 get_data(_Partition, #state{partvals = []} = State) ->
     {{ok, State#state.object}, State};

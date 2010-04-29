@@ -110,15 +110,17 @@ prop_basic_get() ->
                             [{n_val, N}
                              |?DEFAULT_BUCKET_PROPS]),
     
-        riak_kv_get_fsm:start(ReqId,
-                              riak_object:bucket(Object),
-                              riak_object:key(Object),
-                              R,
-                              200,
-                              self()),
+        {ok, GetPid} = riak_kv_get_fsm:start(ReqId,
+                            riak_object:bucket(Object),
+                            riak_object:key(Object),
+                            R,
+                            200,
+                            self()),
 
+        ok = wait_for_pid(GetPid),
         Res = wait_for_req_id(ReqId),
         History = get_fsm_qc_vnode_master:get_history(),
+        RepairHistory = get_fsm_qc_vnode_master:get_repair_history(),
         Ok       = length([ ok || {_, {ok, _}} <- History ]),
         NotFound = length([ ok || {_, {error, notfound}} <- History ]),
         NoReply  = length([ ok || {_, {error, timeout}}  <- History ]),
@@ -127,16 +129,18 @@ prop_basic_get() ->
         Expected = expect(Object, H, N, R),
         ?WHENFAIL(
             begin
+                io:format("History: ~p~nRepair: ~p~n",
+                          [History, RepairHistory]),
                 io:format("N: ~p~nR: ~p~nQ: ~p~nResult: ~p~nExpected: ~p~n",
                           [N, R, Q, Res, Expected]),
-                io:format("History: ~p~nOk: ~p~nNotFound: ~p~nNoReply: ~p~n",
+                io:format("H: ~p~nOk: ~p~nNotFound: ~p~nNoReply: ~p~n",
                           [H, Ok, NotFound, NoReply])
             end,
-            collect({R, N},
             conjunction(
                 [{result, Res =:= Expected},
-                 {n_value, equals(length(History), N)}
-                ])))
+                 {n_value, equals(length(History), N)},
+                 {repair, check_repair(RepairHistory, History)}
+                ]))
     end).
 
 wait_for_req_id(ReqId) ->
@@ -157,6 +161,15 @@ test() ->
 
 test(N) ->
     quickcheck(numtests(N, prop_basic_get())).
+
+check_repair(RepairH, H) ->
+    lists:all(fun({vnode_put, {Part, _}, _}) ->
+                    case lists:keyfind(Part, 1, H) of
+                        {_, {error, notfound}} -> true;
+                        _ -> false
+                    end;
+                 (_) -> false
+              end, RepairH).
 
 expect(Object,History,N,R) ->
     case expect(History,N,R,0,0) of
@@ -184,4 +197,14 @@ expect([ok|Rest],N,R,NotFounds,Oks) ->
             ok;
         false ->
             expect(Rest,N,R,NotFounds,Oks+1)
+    end.
+    
+wait_for_pid(Pid) ->
+    Mref = erlang:monitor(process, Pid),
+    receive
+        {'DOWN',Mref,process,_,_} ->
+            ok
+    after
+        1000 ->
+            {error, didnotexit}
     end.
