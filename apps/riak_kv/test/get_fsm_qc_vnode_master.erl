@@ -140,5 +140,7 @@ get_data(_Partition, #state{partvals = [Res|Rest]} = State) ->
         notfound ->
             {{error, notfound}, State1};
         timeout ->
-            {{error, timeout}, State1}
+            {{error, timeout}, State1};
+        error ->
+            {{error, error}, State1}
     end.

@@ -70,9 +70,10 @@ riak_object() ->
            Vclock)).
 
 partval() ->
-    frequency([{1,ok},
+    frequency([{2,ok},
                {1,?SHRINK(notfound, [ok])},
-               {1,?SHRINK(timeout, [ok])}]).
+               {1,?SHRINK(timeout, [ok])},
+               {1,?SHRINK(error, [ok])}]).
 
 partvals(Partitions) ->
     vector(Partitions, partval()).
@@ -180,32 +181,40 @@ check_repair(RepairH, H) ->
         ]).
 
 expect(Object,History,N,R) ->
-    case expect(History,N,R,0,0) of
+    case expect(History,N,R,0,0,0) of
         ok  -> {ok, Object};
         Err -> {error, Err}
     end.
 
-expect([],N,R,NotFounds,_Oks) ->
-    case NotFounds >= N-R+1 of
-        true -> notfound;        
-        false -> timeout
-    end;
-expect([timeout|Rest],N,R,NotFounds,Oks) ->
-    expect(Rest,N,R,NotFounds,Oks);
-expect([notfound|Rest],N,R,NotFounds,Oks) ->
-    case (NotFounds + 1)*2 > N of
-        true ->
-            notfound;
-        false ->
-            expect(Rest,N,R,NotFounds+1,Oks)
-    end;
-expect([ok|Rest],N,R,NotFounds,Oks) ->
-    case Oks+1 >= R of
-        true ->
+notfound_or_error(0, Err) ->
+    lists:duplicate(Err, error);
+notfound_or_error(_NotFound, _Err) ->
+    notfound.
+
+expect(H, N, R, NotFounds, Oks, Errs) ->
+    Pending = N - (NotFounds + Oks + Errs),
+    if  Oks >= R ->                     % we made quorum
             ok;
-        false ->
-            expect(Rest,N,R,NotFounds,Oks+1)
+        (NotFounds + Errs)*2 > N orelse % basic quorum
+        Pending + Oks < R ->            % no way we'll make quorum
+            notfound_or_error(NotFounds, Errs);
+        true ->
+            case H of
+                [] ->
+                    timeout;
+                [Res|Rest] ->
+                    handle_result(Res, Rest, N, R, NotFounds, Oks, Errs)
+            end
     end.
+
+handle_result(timeout,Rest,N,R,NotFounds,Oks,Errs) ->
+    expect(Rest,N,R,NotFounds,Oks,Errs);
+handle_result(notfound,Rest,N,R,NotFounds,Oks,Errs) ->
+    expect(Rest,N,R,NotFounds+1,Oks,Errs);
+handle_result(error,Rest,N,R,NotFounds,Oks,Errs) ->
+    expect(Rest,N,R,NotFounds,Oks,Errs+1);
+handle_result(ok,Rest,N,R,NotFounds,Oks,Errs) ->
+    expect(Rest,N,R,NotFounds,Oks+1,Errs).
     
 wait_for_pid(Pid) ->
     Mref = erlang:monitor(process, Pid),
@@ -223,6 +232,6 @@ eqc_test_() ->
     {timeout, 20, ?_test(
         begin
             start_mock_servers(),
-            ?assert(test(20))
+            ?assert(test(30))
         end)
     }}.

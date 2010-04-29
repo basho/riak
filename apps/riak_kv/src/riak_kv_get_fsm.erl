@@ -117,29 +117,30 @@ waiting_vnode_r({r, {error, notfound}, Idx, ReqId},
             finalize(NewStateData#state{final_obj=Final})
     end;
 waiting_vnode_r({r, {error, Err}, Idx, ReqId},
-                  StateData=#state{r=R,client=Client,n=N,
-                                   replied_fail=Replied0,req_id=ReqId,
+                  StateData=#state{r=R,client=Client,n=N,allowmult=AllowMult,
+                                   replied_r=Replied,
+                                   replied_fail=Failed0,req_id=ReqId,
                                    replied_notfound=NotFound}) ->
-    Replied = [{Err,Idx}|Replied0],
-    NewStateData = StateData#state{replied_fail=Replied},
+    Failed = [{Err,Idx}|Failed0],
+    NewStateData = StateData#state{replied_fail=Failed},
     FailThreshold = erlang:min(trunc((N/2.0)+1), % basic quorum, or
                                (N-R+1)), % cannot ever get R 'ok' replies
     %% FailThreshold = N-R+1,
-    case (length(Replied) + length(NotFound)) >= FailThreshold of
+    case (length(Failed) + length(NotFound)) >= FailThreshold of
         false ->
             {next_state,waiting_vnode_r,NewStateData};
         true ->
             case length(NotFound) of
                 0 ->
-                    FullErr = [E || {E,_I} <- Replied],
+                    FullErr = [E || {E,_I} <- Failed],
                     update_stats(StateData),
-                    Client ! {ReqId, {error,FullErr}},
-                    {stop,normal,NewStateData};
+                    Client ! {ReqId, {error,FullErr}};
                 _ ->
                     update_stats(StateData),
-                    Client ! {ReqId, {error,notfound}},
-                    {stop,normal,NewStateData}
-            end
+                    Client ! {ReqId, {error,notfound}}
+            end,
+            Final = merge(Replied,AllowMult),
+            finalize(NewStateData#state{final_obj=Final})
     end;
 waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqId,replied_r=Replied,allowmult=AllowMult}) ->
     update_stats(StateData),
