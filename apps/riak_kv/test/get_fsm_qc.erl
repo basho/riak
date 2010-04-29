@@ -10,6 +10,15 @@
 
 %% Generators
 
+longer_list(K, G) ->
+    ?SIZED(Size, resize(trunc(K*Size), list(resize(Size, G)))).
+
+non_empty(G) ->
+    ?SUCHTHAT(X, G, X /= [] andalso X /= <<>>).
+
+largenat() ->
+    ?LET(X, largeint(), abs(X)).
+
 n(Max) ->
     choose(1, Max).
 
@@ -67,24 +76,27 @@ partval() ->
 partvals(Partitions) ->
     vector(Partitions, partval()).
 
+partvals() ->
+    non_empty(longer_list(2, partval())).
+
 start_mock_servers() ->
     get_fsm_qc_vnode_master:start(),
     application:load(riak_core),
     application:start(crypto).
 
-
-
-%    ?FORALL({Partitions, Object, ReqId}, {num_partitions(), noshrink(riak_object()), noshrink(largeint())},
-%    ?FORALL({N, Ring, PartVals}, {n(Partitions), ring(Partitions), partvals(Partitions)},
-%    ?FORALL(R, n(N),
+prop_len() ->
+    ?FORALL({R, Ps}, {choose(1, 10), partvals()},
+        collect({R, length(Ps)}, true)
+    ).
 
 prop_basic_get() ->
-    ?FORALL({R,RNdiff,NQdiff,Object,ReqId,PartVals},
-            {choose(1,10),choose(0,10),choose(0,4096),
+    ?FORALL({RSeed,NQdiff,Object,ReqId,PartVals},
+            {largenat(),choose(0,4096),
              noshrink(riak_object()), noshrink(largeint()),
-             ?LET(M, choose(0,20), partvals(M))},
+             partvals()},
     begin
-        N = R + RNdiff,
+        N = length(PartVals),
+        R = (RSeed rem N) + 1,
         Q = make_power_of_two(N + NQdiff),
         Ring = riak_core_ring:fresh(Q, node()),
 
@@ -112,28 +124,19 @@ prop_basic_get() ->
         NoReply  = length([ ok || {_, {error, timeout}}  <- History ]),
         H        = lists:map(fun({_, {ok, _}})      -> ok;
                             ({_, {error, Err}}) -> Err end, History),
-        Expected = expect(H, N, R),
+        Expected = expect(Object, H, N, R),
         ?WHENFAIL(
-            io:format("N: ~p~nR: ~p~nQ: ~p~nResult: ~p~nHistory: ~p~nOk: ~p~nNotFound: ~p~nNoReply: ~p~nExpected: ~p~n",
-                      [N, R, Q, Res, H, Ok, NotFound, NoReply, Expected]),
+            begin
+                io:format("N: ~p~nR: ~p~nQ: ~p~nResult: ~p~nExpected: ~p~n",
+                          [N, R, Q, Res, Expected]),
+                io:format("History: ~p~nOk: ~p~nNotFound: ~p~nNoReply: ~p~n",
+                          [H, Ok, NotFound, NoReply])
+            end,
+            collect({R, N},
             conjunction(
-                [{result,
-                    case Res of
-                        {ok, Reply} ->
-                            conjunction(
-                                [{object, equals(Reply, Object)},
-                                 {ok, Expected =:= ok}]);
-                        {error, timeout} ->
-                            Expected =:= timeout;
-                        {error, notfound} ->
-                            Expected =:= notfound;
-                        {anything, _Anything} ->
-                            false;
-                        timeout ->
-                            false
-                    end},
-                {n_value, equals(length(History), N)}
-                ]))
+                [{result, Res =:= Expected},
+                 {n_value, equals(length(History), N)}
+                ])))
     end).
 
 wait_for_req_id(ReqId) ->
@@ -155,9 +158,12 @@ test() ->
 test(N) ->
     quickcheck(numtests(N, prop_basic_get())).
 
-expect(History,N,R) ->
-    expect(History,N,R,0,0).
-    
+expect(Object,History,N,R) ->
+    case expect(History,N,R,0,0) of
+        ok  -> {ok, Object};
+        Err -> {error, Err}
+    end.
+
 expect([],N,R,NotFounds,_Oks) ->
     case NotFounds >= N-R+1 of
         true -> notfound;        
