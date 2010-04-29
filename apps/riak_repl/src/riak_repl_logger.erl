@@ -13,9 +13,9 @@ handle_call(_Request, _From, State) -> {reply, ok, State}.
 handle_cast(_Msg, State) -> {noreply, State}.
 handle_info(flush, State=#state{q=[]}) ->  {noreply, State};
 handle_info(flush, State=#state{q=Q, log=Log}) -> do_flush(Q, Log, State);
-handle_info({repl, Record}, State=#state{q=Q}) -> {noreply, State#state{q=[Record|Q]}};
-handle_info({disk_log, _Node, Log, Msg}, State) -> handle_disk_log_msg(Log, Msg, State).
-terminate(_Reason, _State) -> do_terminate(State).
+handle_info({repl,R},State=#state{q=Q}) -> {noreply, State#state{q=[R|Q]}};
+handle_info({disk_log,_,Log,Msg},State) -> handle_disk_log_msg(Log, Msg, State).
+terminate(_Reason, State) -> do_terminate(State).
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %% internal handlers %% 
@@ -25,9 +25,10 @@ do_initialize() ->
     ok = riak_repl_sink:add_receiver_pid(self()),    
     {ok, State}.
 
-do_terminate(State=#state{tref=Tref, log=Log}) ->
+do_terminate(#state{tref=TRef, log=Log}) ->
     timer:cancel_timer(TRef),
-    ok.
+    disk_log:sync(Log),
+    ok = disk_log:close(TRef).
 
 do_flush(Q, Log, State) ->
     disk_log:log_terms(Log, lists:reverse(Q)),
@@ -39,11 +40,8 @@ do_open_log() ->
     {ok, FlushIval} = application:get_env(riak_repl, log_flush_interval),
     {ok, TRef} = timer:send_interval(FlushIval*1000, flush),
     State = #state{tref=TRef, q=[]},
-    maybe_repair_log(disk_log:open([{name, "riak_repl_log"},
-                                    {file, LogFile},
-                                    {type, wrap},
-                                    {notify, true},
-                                    {size, {1073741, 10000}}]), State).
+    maybe_repair_log(disk_log:open([{name, riak_repl_log},{file, LogFile},
+                                    {notify, true}]), State).
 
 maybe_repair_log({ok, Log}, State) -> State#state{log=Log};
 maybe_repair_log({repaired, Log, {recovered, Rec}, {badbytes, Bad}}, State) ->
@@ -51,4 +49,6 @@ maybe_repair_log({repaired, Log, {recovered, Rec}, {badbytes, Bad}}, State) ->
                           "~p bad bytes~n", [Log, Rec, Bad]),
     State#state{log=Log}.
 
-handle_disk_log_msg(Log, Msg, State) -> {noreply, State}.
+handle_disk_log_msg(_Log, Msg, State) -> 
+    io:format("got log msg ~p~n", [Msg]),
+    {noreply, State}.

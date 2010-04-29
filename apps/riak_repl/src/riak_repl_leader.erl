@@ -11,6 +11,7 @@ start_link() ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     Candidates = riak_core_ring:all_members(Ring),
     [net_adm:ping(C) || C <- Candidates],
+    io:format("~p~n", [Candidates]),
     gen_leader:start_link(?MODULE, Candidates, [], ?MODULE, [], []).
 
 init([]) ->
