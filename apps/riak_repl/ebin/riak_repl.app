@@ -13,6 +13,7 @@
                   'riak_repl_logger',
                   'riak_repl_log_reader',
                   'riak_repl_peer', 
+                  'riak_repl_ring_handler',
                   'riak_repl_server', 
                   'riak_repl_sink',
                   'riak_repl_sup', 

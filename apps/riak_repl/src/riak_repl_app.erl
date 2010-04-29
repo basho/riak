@@ -13,7 +13,14 @@ start(_Type, _StartArgs) ->
     application:set_env(riak_core, default_bucket_props, 
                         proplists:delete(postcommit, DefaultBucketProps)),
     riak_core_bucket:append_bucket_defaults([{postcommit, [repl_hook()]}]),
-    riak_repl_sup:start_link().
+    %% Spin up supervisor
+    case riak_repl_sup:start_link() of
+        {ok, Pid} ->
+            ok = riak_core_ring_events:add_handler(riak_repl_ring_handler, []),
+            {ok, Pid};
+        {error, Reason} ->
+            {error, Reason}
+    end.
 
 %% @spec stop(State :: term()) -> ok
 %% @doc The application:stop callback for riak_repl.

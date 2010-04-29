@@ -9,8 +9,7 @@
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
-init([]) ->
-    {ok, #state{}}.
+init([]) -> {ok, #state{}}.
 
 postcommit(RObj) ->
     Bucket = riak_object:bucket(RObj),    
@@ -35,16 +34,17 @@ handle_cast({postcommit, _Record}, State=#state{receiver_pids=[]}) ->
     {noreply, State};
 handle_cast({postcommit, Record}, State=#state{receiver_pids=RPs}) -> 
     {ok, R} = riak_core_ring_manager:get_my_ring(),
-    Partition = riak_core_ring:preflist(riak_core_util:chash_key(Record), R),
-    [P ! {repl, {Partition, Record}} || P <- RPs],
+    Partition = element(1,
+                        hd(
+                          riak_core_ring:preflist(
+                            riak_core_util:chash_key(Record), R))),
+    Msg = {repl, {now(), Partition, Record}},
+    [gen_leader:leader_cast(P, Msg) || P <- RPs],
     {noreply, State}.
 
-handle_info(_Info, State) ->
-    {noreply, State}.
+handle_info(_Info, State) -> {noreply, State}.
 
-terminate(_Reason, _State) ->
-    ok.
+terminate(_Reason, _State) -> ok.
 
-code_change(_OldVsn, State, _Extra) ->
-    {ok, State}.
+code_change(_OldVsn, State, _Extra) -> {ok, State}.
 

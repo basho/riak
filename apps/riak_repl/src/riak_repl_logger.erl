@@ -1,46 +1,50 @@
 -module(riak_repl_logger).
 -behaviour(gen_server).
--export([start_link/0]).
--export([init/1, handle_call/3, handle_cast/2, handle_info/2,
-         terminate/2, code_change/3]).
--record(state, {log, tref, q=[]}).
+-export([start_link/1]).
+-export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, 
+         code_change/3]).
+-record(state, {log, tref, q}).
 
 %% gen_server %%
 
-start_link() -> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
-init([]) -> do_initialize().
+start_link(Name) -> gen_server:start_link(?MODULE,[Name],[]).
+init([Name]) -> do_initialize(Name).
 handle_call(_Request, _From, State) -> {reply, ok, State}.
 handle_cast(_Msg, State) -> {noreply, State}.
 handle_info(flush, State=#state{q=[]}) ->  {noreply, State};
 handle_info(flush, State=#state{q=Q, log=Log}) -> do_flush(Q, Log, State);
-handle_info({repl,R},State=#state{q=Q}) -> {noreply, State#state{q=[R|Q]}};
+handle_info({repl,R},State=#state{q=Q}) ->  ets:insert(Q, R), {noreply, State};
 handle_info({disk_log,_,Log,Msg},State) -> handle_disk_log_msg(Log, Msg, State).
 terminate(_Reason, State) -> do_terminate(State).
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %% internal handlers %% 
 
-do_initialize() ->
-    State = do_open_log(),
-    ok = riak_repl_sink:add_receiver_pid(self()),    
-    {ok, State}.
+do_initialize(Name) ->
+    State = do_open_log(Name),
+    Q = ets:new(list_to_atom(Name), [ordered_set]),
+    {ok, State#state{q=Q}}.
 
-do_terminate(#state{tref=TRef, log=Log}) ->
+do_terminate(#state{tref=TRef, log=Log}) -> 
     timer:cancel_timer(TRef),
     disk_log:sync(Log),
     ok = disk_log:close(TRef).
 
 do_flush(Q, Log, State) ->
-    disk_log:log_terms(Log, lists:reverse(Q)),
-    {noreply, State#state{q=[]}}.
+    ets:foldl(fun(A,Acc) -> disk_log:alog(Log, A), Acc end, [], Q),
+    ets:delete_all_objects(Q),
+    {noreply, State}.
 
-do_open_log() ->
+do_open_log(Name) ->
     {ok, LogDir} = application:get_env(riak_repl, log_dir),
-    LogFile = filename:join(LogDir, "riak_repl.LOG"),
+    LogFile = filename:join(
+                LogDir, 
+                lists:flatten(io_lib:format("~s.LOG", [Name]))),
     {ok, FlushIval} = application:get_env(riak_repl, log_flush_interval),
     {ok, TRef} = timer:send_interval(FlushIval*1000, flush),
     State = #state{tref=TRef, q=[]},
-    maybe_repair_log(disk_log:open([{name, riak_repl_log},{file, LogFile},
+    maybe_repair_log(disk_log:open([{name, list_to_atom(Name)},
+                                    {file, LogFile},
                                     {notify, true}]), State).
 
 maybe_repair_log({ok, Log}, State) -> State#state{log=Log};
