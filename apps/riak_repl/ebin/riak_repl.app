@@ -6,17 +6,31 @@
   {modules,      ['gen_leader',
                   'riak_repl', 
                   'riak_repl_app', 
+                  'riak_repl_config',
                   'riak_repl_connector', 
                   'riak_repl_fsm', 
                   'riak_repl_leader',
                   'riak_repl_logger',
+                  'riak_repl_log_reader',
                   'riak_repl_peer', 
                   'riak_repl_server', 
+                  'riak_repl_sink',
                   'riak_repl_sup', 
                   'riak_repl_tcp_client', 
                   'riak_repl_tcp_server', 
                   'riak_repl_util']},
+  {applications, [kernel, 
+                  stdlib, 
+                  sasl, 
+                  crypto,
+                  riak_core,
+                  riak_kv]},
   {registered,   []},
   {mod,          {riak_repl_app, []}},
-  {env,          []},
-  {applications, [kernel, stdlib, sasl, crypto]}]}.
+  {env,          [
+                  {repl_ip, "0.0.0.0"},
+                  {repl_port, 9010},
+                  {data_root, "data/riak_repl"},
+                  {log_flush_interval, 1}
+                 ]}
+]}.
