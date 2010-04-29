@@ -1,6 +1,7 @@
 -module(get_fsm_qc).
 
 -include_lib("eqc/include/eqc.hrl").
+-include_lib("eunit/include/eunit.hrl").
 
 -compile(export_all).
 -define(RING_KEY, riak_ring).
@@ -80,7 +81,7 @@ partvals() ->
     non_empty(longer_list(2, partval())).
 
 start_mock_servers() ->
-    get_fsm_qc_vnode_master:start(),
+    get_fsm_qc_vnode_master:start_link(),
     application:load(riak_core),
     application:start(crypto).
 
@@ -215,3 +216,13 @@ wait_for_pid(Pid) ->
         1000 ->
             {error, didnotexit}
     end.
+    
+    
+eqc_test_() ->
+    {spawn,
+    {timeout, 20, ?_test(
+        begin
+            start_mock_servers(),
+            ?assert(test(20))
+        end)
+    }}.
