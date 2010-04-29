@@ -162,14 +162,21 @@ test() ->
 test(N) ->
     quickcheck(numtests(N, prop_basic_get())).
 
+expected_repairs(H) ->
+    case [ ok || {_, {ok, _}} <- H ] of
+        [] -> [];
+        _  -> [ Part || {Part, {error, notfound}} <- H ]
+    end.
+
 check_repair(RepairH, H) ->
-    lists:all(fun({vnode_put, {Part, _}, _}) ->
-                    case lists:keyfind(Part, 1, H) of
-                        {_, {error, notfound}} -> true;
-                        _ -> false
-                    end;
-                 (_) -> false
-              end, RepairH).
+    Expected = expected_repairs(H),
+    Actual   = [ Part || {vnode_put, {Part, _}, _} <- RepairH ],
+    Deletes  = lists:filter(fun({vnode_put, _, _}) -> false;
+                               (_) -> true end, RepairH),
+    conjunction(
+        [{puts, equals(lists:sort(Expected), lists:sort(Actual))},
+         {junk, equals(Deletes, [])}
+        ]).
 
 expect(Object,History,N,R) ->
     case expect(History,N,R,0,0) of
