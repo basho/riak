@@ -72,19 +72,29 @@ riak_object() ->
            riak_object:new(Bucket, Key, Value),
            Vclock)).
 
-build_riak_obj(B,K,Vc,Val) ->
+build_riak_obj(B,K,Vc,Val,notombstone) ->
     riak_object:set_contents(
         riak_object:set_vclock(
             riak_object:new(B,K,Val),
                 Vc),
-        [{dict:from_list([{<<"X-Riak-Last-Modified">>,now()}]), Val}]).
+        [{dict:from_list([{<<"X-Riak-Last-Modified">>,now()}]), Val}]);
+build_riak_obj(B,K,Vc,Val,tombstone) ->
+    Obj = build_riak_obj(B,K,Vc,Val,notombstone),
+    add_tombstone(Obj).
+    
+add_tombstone(Obj) ->
+    [{M,V}] = riak_object:get_contents(Obj),
+    NewM = dict:store(<<"X-Riak-Deleted">>, true, M),
+    riak_object:set_contents(Obj, [{NewM, V}]).
                 
+maybe_tombstone() ->
+    weighted_default({2, notombstone}, {1, tombstone}).
 
 %% Generate 5 riak objects with the same bkey
 %% 
 riak_objects() ->
-    ?LET({{Bucket,Key},AncestorVclock}, 
-         {noshrink(bkey()),vclock()},
+    ?LET({{Bucket,Key},AncestorVclock,Tombstones}, 
+         {noshrink(bkey()),vclock(),vector(5, maybe_tombstone())},
     begin
         BrotherVclock  = vclock:increment(<<"bro!">>, AncestorVclock),
         OtherBroVclock = vclock:increment(<<"bro2">>, AncestorVclock),
@@ -95,8 +105,8 @@ riak_objects() ->
                   {sister,   SisterVclock, <<"sister">>},
                   {otherbrother, OtherBroVclock, <<"otherbrother">>},
                   {current,  CurrentVclock, <<"current">>}],
-        [ {Lineage, build_riak_obj(Bucket, Key, Vclock, Value)}
-            || {Lineage, Vclock, Value} <- Clocks ]
+        [ {Lineage, build_riak_obj(Bucket, Key, Vclock, Value, Tombstone)}
+            || {{Lineage, Vclock, Value}, Tombstone} <- lists:zip(Clocks, Tombstones) ]
     end).
 
 %%
@@ -157,10 +167,11 @@ is_sibling(Lin1, Lin2) ->
     not is_descendant(Lin2, Lin1).
 
 partval() ->
+    Shrink = fun(G) -> ?SHRINK(G, [{ok, current}]) end,
     frequency([{2,{ok, lineage()}},
-               {1,?SHRINK(notfound, [{ok,current}])},
-               {1,?SHRINK(timeout, [{ok,current}])},
-               {1,?SHRINK(error, [{ok,current}])}]).
+               {1,Shrink(notfound)},
+               {1,Shrink(timeout)},
+               {1,Shrink(error)}]).
 
 partvals() ->
     non_empty(longer_list(2, partval())).
@@ -180,7 +191,7 @@ start_mock_servers() ->
 
 node_status() ->
     frequency([{1, ?SHRINK(down, [up])},
-               {5, up}]).
+               {9, up}]).
 
 cycle(N, Xs=[_|_]) when N >= 0 ->
     cycle(Xs, N, Xs).
@@ -238,6 +249,8 @@ prop_basic_get() ->
                             self()),
 
         ok = wait_for_pid(GetPid),
+        % Give read repairs and deletes a chance to go through
+        timer:sleep(5),
         Res = wait_for_req_id(ReqId),
         History = get_fsm_qc_vnode_master:get_history(),
         RepairHistory = get_fsm_qc_vnode_master:get_repair_history(),
@@ -245,6 +258,12 @@ prop_basic_get() ->
         NotFound   = length([ ok || {_, notfound} <- History ]),
         NoReply    = length([ ok || {_, timeout}  <- History ]),
         Partitions = [ P || {{P,_}, _} <- History ],
+        Deleted    = [ {Lin, case riak_kv_util:obj_not_deleted(Obj) == undefined of
+                                 true  -> deleted;
+                                 false -> present
+                             end
+                       }
+                        || {Lin, Obj} <- Objects ],
         H          = [ V || {_, V} <- History ],
         ExpectedN  = lists:min([N, length([xx || up <- NodeStatus])]),
         Expected   = expect(Objects, H, N, R),
@@ -252,8 +271,8 @@ prop_basic_get() ->
             begin
                 io:format("Ring: ~p~nRepair: ~p~nHistory: ~p~n",
                           [Ring, RepairHistory, History]),
-                io:format("Result: ~p~nExpected: ~p~nNode status: ~p~n",
-                          [Res, Expected, NodeStatus]),
+                io:format("Result: ~p~nExpected: ~p~nNode status: ~p~nDeleted objects: ~p~n",
+                          [Res, Expected, NodeStatus, Deleted]),
                 io:format("N: ~p~nR: ~p~nQ: ~p~n",
                           [N, R, Q]),
                 io:format("H: ~p~nOk: ~p~nNotFound: ~p~nNoReply: ~p~n",
@@ -263,6 +282,7 @@ prop_basic_get() ->
                 [{result, Res =:= Expected},
                  {n_value, equals(length(History), ExpectedN)},
                  {repair, check_repair(Objects, RepairHistory, History)},
+                 {delete, check_delete(Objects, RepairHistory, History)},
                  {distinct, all_distinct(Partitions)}
                 ]))
     end).
@@ -301,17 +321,24 @@ expected_repairs(H) ->
         []   -> [];
         Lins ->
             Heads = merge_heads(Lins),
-            [ Part || {{Part, Node}, V} <- H,
-                      do_repair(Heads, V), Node =:= node() ]
+            [ Part || {{Part, _Node}, V} <- H,
+                      do_repair(Heads, V) ]
     end.
 
 check_repair(Objects, RepairH, H) ->
-    Expected = expected_repairs(H),
-    Actual   = [ Part || {vnode_put, {Part, _}, _} <- RepairH ],
-    Deletes  = lists:filter(fun({vnode_put, _, _}) -> false;
-                               (_) -> true end, RepairH),
+    Actual = [ Part || {vnode_put, {Part, _}, _} <- RepairH ],
+    Heads  = merge_heads([ Lineage || {_, {ok, Lineage}} <- H ]),
+    
+    AllDeleted = lists:all(fun({_, {ok, Lineage}}) ->
+                                Obj = proplists:get_value(Lineage, Objects),
+                                riak_kv_util:is_x_deleted(Obj);
+                              (_) -> true
+                           end, H),
+    Expected = case AllDeleted of
+            false -> expected_repairs(H);
+            true  -> []  %% we don't expect read repair if everyone has a tombstone
+        end,
 
-    Heads         = merge_heads([ Lineage || {_, {ok, Lineage}} <- H ]),
     RepairObject  = (catch build_merged_object(Heads, Objects)),
     RepairObjects = [ Obj || {vnode_put, _, {_, _, Obj, _, _}} <- RepairH ],
 
@@ -321,9 +348,31 @@ check_repair(Objects, RepairH, H) ->
          {right_object,
             ?WHENFAIL(io:format("RepairObject: ~p~n", [RepairObject]),
                 lists:all(fun(Obj) -> Obj =:= RepairObject end,
-                          RepairObjects))},
-         {no_deletes, equals(Deletes, [])}
+                          RepairObjects))}
         ]).
+
+check_delete(Objects, RepairH, H) ->
+    Deletes  = [ Part || {vnode_del, {Part,_Node}, _} <- RepairH ],
+
+    AllDeleted = lists:all(fun({{_,Node}, {ok, Lineage}}) ->
+                                Obj = proplists:get_value(Lineage, Objects),
+                                riak_kv_util:is_x_deleted(Obj) andalso Node == node();
+                              ({{_,Node}, notfound}) -> Node == node();
+                              ({_, error})    -> false;
+                              ({_, timeout})  -> false
+                           end, H),
+
+    HasOk = lists:any(fun({_, {ok, _}}) -> true;
+                         (_) -> false
+                      end, H),
+
+    Expected = case AllDeleted andalso HasOk of
+        true  -> [ P || {{P, _N}, _} <- H ];  %% send deletes to notfound nodes as well
+        false -> []
+    end,
+
+    equals(lists:sort(Expected), lists:sort(Deletes)).
+
 
 build_merged_object(Heads, Objects) ->
     Lineage = merge(Heads),
@@ -336,7 +385,10 @@ build_merged_object(Heads, Objects) ->
 expect(Objects,History,N,R) ->
     case expect(History,N,R,0,0,0,[]) of
         {ok, Heads} ->
-            {ok, build_merged_object(Heads, Objects)};
+            case riak_kv_util:obj_not_deleted(build_merged_object(Heads, Objects)) of
+                undefined -> {error, notfound};
+                Obj       -> {ok, Obj}
+            end;
         Err ->
             {error, Err}
     end.
