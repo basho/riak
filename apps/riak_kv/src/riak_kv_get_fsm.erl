@@ -278,12 +278,13 @@ merge_robjs(RObjs0,AllowMult) ->
             {ok, RObj}
     end.
 
-ancestor_indices(_,AnnoObjects) ->
-    ToRemove = [[Idx || {O2,Idx} <- AnnoObjects,
-     vclock:descends(riak_object:vclock(O1),riak_object:vclock(O2)),
-     (vclock:descends(riak_object:vclock(O2),riak_object:vclock(O1)) == false)]
-		|| {O1,_} <- AnnoObjects],
-    lists:flatten(ToRemove).
+strict_descendant(O1, O2) ->
+    vclock:descends(riak_object:vclock(O1),riak_object:vclock(O2)) andalso
+    not vclock:descends(riak_object:vclock(O2),riak_object:vclock(O1)).
+
+ancestor_indices({ok, Final},AnnoObjects) ->
+    [Idx || {O,Idx} <- AnnoObjects, strict_descendant(Final, O)].
+
 
 update_stats(#state{startnow=StartNow}) ->
     EndNow = now(),
