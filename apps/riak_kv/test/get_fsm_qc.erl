@@ -233,7 +233,7 @@ prop_basic_get() ->
             conjunction(
                 [{result, Res =:= Expected},
                  {n_value, equals(length(History), N)},
-                 {repair, check_repair(RepairHistory, History)}
+                 {repair, check_repair(Objects, RepairHistory, History)}
                 ]))
     end).
 
@@ -274,30 +274,38 @@ expected_repairs(H) ->
             [ Part || {Part, V} <- H, do_repair(Heads, V) ]
     end.
 
-check_repair(RepairH, H) ->
+check_repair(Objects, RepairH, H) ->
     Expected = expected_repairs(H),
     Actual   = [ Part || {vnode_put, {Part, _}, _} <- RepairH ],
     Deletes  = lists:filter(fun({vnode_put, _, _}) -> false;
                                (_) -> true end, RepairH),
+
+    Heads         = merge_heads([ Lineage || {_, {ok, Lineage}} <- H ]),
+    RepairObject  = (catch build_merged_object(Heads, Objects)),
+    RepairObjects = [ Obj || {vnode_put, _, {_, _, Obj, _, _}} <- RepairH ],
+
     conjunction(
         [{puts, equals(lists:sort(Expected), lists:sort(Actual))},
-         {junk, equals(Deletes, [])}
+         {sanity, equals(length(RepairObjects), length(Actual))},
+         {right_object,
+            ?WHENFAIL(io:format("RepairObject: ~p~n", [RepairObject]),
+                lists:all(fun(Obj) -> Obj =:= RepairObject end,
+                          RepairObjects))},
+         {no_deletes, equals(Deletes, [])}
         ]).
+
+build_merged_object(Heads, Objects) ->
+    Lineage = merge(Heads),
+    Object  = proplists:get_value(Lineage, Objects),
+    Vclock  = vclock:merge(
+                [ riak_object:vclock(proplists:get_value(Head, Objects))
+                    || Head <- Heads ]),
+   riak_object:set_vclock(Object, Vclock).
 
 expect(Objects,History,N,R) ->
     case expect(History,N,R,0,0,0,[]) of
         {ok, Heads} ->
-            Lineage = merge(Heads),
-            Object  = proplists:get_value(Lineage, Objects),
-            try
-                Vclock  = vclock:merge(
-                            [ riak_object:vclock(proplists:get_value(Head, Objects))
-                                || Head <- Heads ]),
-               {ok, riak_object:set_vclock(Object, Vclock)}
-            catch
-                _:_ ->
-                    {bad, Objects, Heads, Object, Lineage, erlang:get_stacktrace()}
-            end;
+            {ok, build_merged_object(Heads, Objects)};
         Err ->
             {error, Err}
     end.
