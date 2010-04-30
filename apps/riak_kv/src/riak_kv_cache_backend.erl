@@ -394,6 +394,14 @@ gb_trees_fold_inner(Fun, Acc, {Key, Val, Iterator}) ->
 simple_test() ->
     riak_kv_test_util:standard_backend_test(riak_kv_cache_backend, []).
     
+-ifdef(EQC).
+%% @private
+eqc_test() ->
+    ?assertEqual(true, backend_eqc:test(?MODULE, true)).
+
+-endif. % EQC
+
+
 % @private
 ttl_test() ->
     % Set TTL to 0.02 seconds...

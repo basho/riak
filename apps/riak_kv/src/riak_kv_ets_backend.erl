@@ -149,7 +149,7 @@ simple_test() ->
 -ifdef(EQC).
 %% @private
 eqc_test() ->
-    ?assertEqual(true, backend_eqc:test(?MODULE)).
+    ?assertEqual(true, backend_eqc:test(?MODULE, true)).
 
 -endif. % EQC
 -endif. % TEST

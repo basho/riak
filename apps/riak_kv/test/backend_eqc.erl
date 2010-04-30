@@ -12,12 +12,12 @@
          precondition/4, 
          postcondition/5]).
 
--export([stopped/2,
-         running/2,
+-export([stopped/3,
+         running/3,
          init_backend/2,
         fold/2]).
--export([test/1, test/2, test/3]).
--export([prop_backend/3]).
+-export([test/1, test/2, test/3, test/4, test/5]).
+-export([prop_backend/4]).
 
 -record(qcst, {c,  % Backend config
                s,  % Module state returned by Backend:start
@@ -25,20 +25,23 @@
                d}).% Orddict of values stored
 
 test(Backend) ->
-    test(Backend, []).
+    test(Backend, false).
 
-test(Backend, Config) ->
-    test(Backend, Config, fun(_BeState,_Olds) -> ok end).
+test(Backend, Volatile) ->
+    test(Backend, Volatile, []).
 
-test(Backend, Config, Cleanup) ->
-    test(Backend, Config, Cleanup, 30).
+test(Backend, Volatile, Config) ->
+    test(Backend, Volatile, Config, fun(_BeState,_Olds) -> ok end).
 
-test(Backend, Config, Cleanup, NumTests) ->
+test(Backend, Volatile, Config, Cleanup) ->
+    test(Backend, Volatile, Config, Cleanup, 30).
+
+test(Backend, Volatile, Config, Cleanup, NumTests) ->
     eqc:quickcheck(eqc:numtests(NumTests, 
-                                prop_backend(Backend, Config, Cleanup))).
+                                prop_backend(Backend, Volatile, Config, Cleanup))).
 
-prop_backend(Backend, Config, Cleanup) ->
-    ?FORALL(Cmds, commands(?MODULE, {{stopped, Backend}, initial_state_data(Config)}),
+prop_backend(Backend, Volatile, Config, Cleanup) ->
+    ?FORALL(Cmds, commands(?MODULE, {{stopped, Backend, Volatile}, initial_state_data(Config)}),
             aggregate(command_names(Cmds),
                       begin
                           {H,{_F,S},Res} = run_commands(?MODULE, Cmds),
@@ -61,7 +64,7 @@ val() ->
     binary().
 
 initial_state() ->
-    {stopped, riak_kv_ets_backend}.
+    {stopped, riak_kv_ets_backend, true}.
 
 initial_state_data() ->
     #qcst{d = orddict:new()}.
@@ -69,9 +72,9 @@ initial_state_data() ->
 initial_state_data(Config) ->
     #qcst{c = Config, d = orddict:new()}.
 
-next_state_data({running,Backend},{stopped,Backend},S,_R,_C) ->
+next_state_data({running,Backend,Volatile},{stopped,Backend,Volatile},S,_R,_C) ->
     S1 = S#qcst{s = undefined, olds = sets:add_element(S#qcst.s, S#qcst.olds)},
-    case volatile_backend(Backend) of
+    case Volatile of
         true ->
             S1#qcst{d = orddict:new()};
         false ->
@@ -86,23 +89,16 @@ next_state_data(_From,_To,S,_R,{call,_M,delete,[_S, Key]}) ->
 next_state_data(_From,_To,S,_R,_C) ->
     S.
 
-volatile_backend(riak_kv_ets_backend) ->
-    true;
-volatile_backend(riak_kv_gb_trees_backend) ->
-    true;
-volatile_backend(_) ->
-    false.
+stopped(Backend, Volatile, S) ->
+    [{{running, Backend, Volatile}, {call,?MODULE,init_backend,[Backend,S#qcst.c]}}].
 
-stopped(Backend, S) ->
-    [{{running, Backend}, {call,?MODULE,init_backend,[Backend,S#qcst.c]}}].
-
-running(Backend, S) ->
+running(Backend, Volatile, S) ->
     [{history, {call,Backend,put,[S#qcst.s,bkey(),val()]}},
      {history, {call,Backend,get,[S#qcst.s,bkey()]}},
      {history, {call,Backend,delete,[S#qcst.s,bkey()]}},
      {history, {call,Backend,list,[S#qcst.s]}},
      {history, {call,?MODULE,fold,[Backend,S#qcst.s]}},
-     {{stopped, Backend}, {call,Backend,stop,[S#qcst.s]}}
+     {{stopped, Backend, Volatile}, {call,Backend,stop,[S#qcst.s]}}
     ].
 
 

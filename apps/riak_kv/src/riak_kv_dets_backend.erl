@@ -148,8 +148,6 @@ eqc_test_inner() ->
         end,
     Config = [{riak_kv_dets_backend_root, "test/dets-backend"}],
     ?assertCmd("rm -rf test/dets-backend"),
-    ?assertEqual(true, backend_eqc:test(?MODULE, 
-                                        Config,
-                                        Cleanup)).
+    ?assertEqual(true, backend_eqc:test(?MODULE, false, Config, Cleanup)).
 -endif. % EQC
 -endif. % TEST

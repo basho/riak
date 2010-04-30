@@ -171,8 +171,16 @@ srv_fold1({K,V,Iter}, Fun0, Acc) ->
 %%
 %% Test
 %%
+-ifdef(TEST).
 
 % @private
 simple_test() ->
     riak_kv_test_util:standard_backend_test(riak_kv_gb_trees_backend, []).
 
+-ifdef(EQC).
+%% @private
+eqc_test() ->
+    ?assertEqual(true, backend_eqc:test(?MODULE, true)).
+
+-endif. % EQC
+-endif. % TEST
