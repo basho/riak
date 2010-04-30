@@ -46,8 +46,14 @@ prop_backend(Backend, Volatile, Config, Cleanup) ->
                       begin
                           {H,{_F,S},Res} = run_commands(?MODULE, Cmds),
                           Cleanup(S#qcst.s, sets:to_list(S#qcst.olds)),
-                          ?WHENFAIL(io:format("History\n~p\nState\n~p\nResult: ~p\n", [H,S,Res]),
-                                    Res == ok)
+                          ?WHENFAIL(
+                             begin
+                                 io:format("History: ~p\n", [H]),
+                                 io:format("BE Config: ~p\nBE State: ~p\nD: ~p\n",
+                                           [S#qcst.c, S#qcst.s, orddict:to_list(S#qcst.d)]),
+                                 io:format("Result: ~p\n", [Res])
+                             end,
+                             Res == ok)
                       end)).
 
 
@@ -104,6 +110,7 @@ running(Backend, Volatile, S) ->
      {history, {call,Backend,list,[S#qcst.s]}},
      {history, {call,?MODULE,fold,[Backend,S#qcst.s]}},
      {history, {call,Backend,is_empty,[S#qcst.s]}},
+     {history, {call,Backend,list_bucket,[S#qcst.s,bucket()]}},
      {{stopped, Backend, Volatile}, {call,Backend,drop,[S#qcst.s]}},
      {{stopped, Backend, Volatile}, {call,Backend,stop,[S#qcst.s]}}
     ].
@@ -129,9 +136,11 @@ postcondition(_From,_To,S,_C={call,_M,fold,[_Backend,_BeState]},R) ->
     lists:sort(orddict:to_list(S#qcst.d)) =:= lists:sort(R);
 postcondition(_From,_To,S,_C={call,_M,is_empty,[_BeState]},R) ->
     R =:= (orddict:size(S#qcst.d) =:= 0);
+postcondition(_From,_To,S,_C={call,_M,list_bucket,[_BeState,Bucket]},R) ->
+    AllKeys = orddict:fetch_keys(S#qcst.d),
+    R =:= lists:sort([K || {B,K} <- AllKeys, B =:= Bucket]);
 postcondition(_From,_To,_S,_C,_R) ->
     true.
-
 
 
 init_backend(Backend, Config) ->
