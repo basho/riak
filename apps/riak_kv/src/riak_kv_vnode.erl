@@ -225,15 +225,26 @@ do_put(FSM_pid, BKey, RObj, ReqID, PruneTime,
     {ok,Ring} = riak_core_ring_manager:get_my_ring(),
     {Bucket,_Key} = BKey,
     BProps = riak_core_bucket:get_bucket(Bucket, Ring),
-    case syntactic_put_merge(Mod, ModState, BKey, RObj, ReqID) of
-        oldobj ->
-            gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
-        {newobj, NewObj} ->
-            VC = riak_object:vclock(NewObj),
-            AMObj = enforce_allow_mult(NewObj, BProps),
-            ObjToStore = riak_object:set_vclock(AMObj,
+    ToStore = case proplists:get_value(last_write_wins, BProps) of
+        true ->
+          {true, RObj};
+        false ->
+            case syntactic_put_merge(Mod, ModState, BKey, RObj, ReqID) of
+                oldobj ->
+                    gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID}),
+                    false;
+                {newobj, NewObj} ->
+                    VC = riak_object:vclock(NewObj),
+                    AMObj = enforce_allow_mult(NewObj, BProps),
+                    ObjToStore = riak_object:set_vclock(AMObj,
                                            vclock:prune(VC,PruneTime,BProps)),
-            Val = term_to_binary(ObjToStore),
+                    {true, ObjToStore}
+            end
+    end,
+    case ToStore of
+        false -> nop;
+        {true, Obj} ->
+            Val = term_to_binary(Obj),
             case Mod:put(ModState, BKey, Val) of
                 ok ->
                     gen_fsm:send_event(FSM_pid, {dw, Idx, ReqID});
