@@ -103,6 +103,7 @@ running(Backend, Volatile, S) ->
      {history, {call,Backend,delete,[S#qcst.s,bkey()]}},
      {history, {call,Backend,list,[S#qcst.s]}},
      {history, {call,?MODULE,fold,[Backend,S#qcst.s]}},
+     {history, {call,Backend,is_empty,[S#qcst.s]}},
      {{stopped, Backend, Volatile}, {call,Backend,drop,[S#qcst.s]}},
      {{stopped, Backend, Volatile}, {call,Backend,stop,[S#qcst.s]}}
     ].
@@ -126,6 +127,8 @@ postcondition(_From,_To,S,_C={call,_M,list,[_BeState]},R) ->
     lists:sort(orddict:fetch_keys(S#qcst.d)) =:= lists:sort(R);
 postcondition(_From,_To,S,_C={call,_M,fold,[_Backend,_BeState]},R) ->
     lists:sort(orddict:to_list(S#qcst.d)) =:= lists:sort(R);
+postcondition(_From,_To,S,_C={call,_M,is_empty,[_BeState]},R) ->
+    R =:= (orddict:size(S#qcst.d) =:= 0);
 postcondition(_From,_To,_S,_C,_R) ->
     true.
 
