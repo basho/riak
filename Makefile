@@ -20,7 +20,7 @@ test:
 ##
 ## Release targets
 ##
-rel:
+rel: deps
 	./rebar compile generate 
 
 relclean:
