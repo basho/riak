@@ -72,7 +72,8 @@ initial_state_data() ->
 initial_state_data(Config) ->
     #qcst{c = Config, d = orddict:new()}.
 
-next_state_data({running,Backend,Volatile},{stopped,Backend,Volatile},S,_R,_C) ->
+next_state_data({running,Backend,Volatile},{stopped,Backend,Volatile},S,_R,
+                {call,_M,stop,_}) ->
     S1 = S#qcst{s = undefined, olds = sets:add_element(S#qcst.s, S#qcst.olds)},
     case Volatile of
         true ->
@@ -80,6 +81,10 @@ next_state_data({running,Backend,Volatile},{stopped,Backend,Volatile},S,_R,_C) -
         false ->
             S1
     end;
+next_state_data({running,Backend,Volatile},{stopped,Backend,Volatile},S,_R,
+                {call,_M,drop,_}) ->
+    S#qcst{s=undefined, olds=sets:add_element(S#qcst.s, S#qcst.olds),
+           d=orddict:new()};
 next_state_data(_From,_To,S,BeState,{call,_M,init_backend,_}) ->
     S#qcst{s = BeState};
 next_state_data(_From,_To,S,_R,{call,_M,put,[_S, Key, Val]}) ->
@@ -98,6 +103,7 @@ running(Backend, Volatile, S) ->
      {history, {call,Backend,delete,[S#qcst.s,bkey()]}},
      {history, {call,Backend,list,[S#qcst.s]}},
      {history, {call,?MODULE,fold,[Backend,S#qcst.s]}},
+     {{stopped, Backend, Volatile}, {call,Backend,drop,[S#qcst.s]}},
      {{stopped, Backend, Volatile}, {call,Backend,stop,[S#qcst.s]}}
     ].
 
