@@ -36,6 +36,9 @@ make_power_of_two(Q) -> make_power_of_two(Q, 1).
 make_power_of_two(Q, P) when P >= Q -> P;
 make_power_of_two(Q, P) -> make_power_of_two(Q, P*2).
 
+all_distinct(Xs) ->
+    lists:sort(Xs) =:= lists:usort(Xs).
+
 num_partitions() ->
     %% TODO: use some unfortunate parition counts (1, 50, etc.)
     % elements([4, 16, 64]).
@@ -175,21 +178,45 @@ start_mock_servers() ->
     application:start(crypto),
     ok.
 
+node_status() ->
+    frequency([{1, ?SHRINK(down, [up])},
+               {5, up}]).
+
+cycle(N, Xs=[_|_]) when N >= 0 ->
+    cycle(Xs, N, Xs).
+
+cycle(_Zs, 0, _Xs) ->
+    [];
+cycle(Zs, N, [X|Xs]) ->
+    [X|cycle(Zs, N - 1, Xs)];
+cycle(Zs, N, []) ->
+    cycle(Zs, N, Zs).
+
+reassign_nodes(Status, Ring) ->
+    Ids = [ I || {I, _} <- riak_core_ring:all_owners(Ring) ],
+    lists:foldl(
+        fun({down, Id}, R) ->
+                riak_core_ring:transfer_node(Id, 'dummy@nohost', R);
+           (_, R) -> R
+        end, Ring, lists:zip(Status, Ids)).
+
 prop_len() ->
     ?FORALL({R, Ps}, {choose(1, 10), partvals()},
         collect({R, length(Ps)}, true)
     ).
 
 prop_basic_get() ->
-    ?FORALL({RSeed,NQdiff,Objects,ReqId,PartVals},
+    ?FORALL({RSeed,NQdiff,Objects,ReqId,PartVals,NodeStatus0},
             {largenat(),choose(0,4096),
              riak_objects(), noshrink(largeint()),
-             partvals()},
+             partvals(),non_empty(longer_list(10, node_status()))},
     begin
         N = length(PartVals),
         R = (RSeed rem N) + 1,
         Q = make_power_of_two(N + NQdiff),
-        Ring = riak_core_ring:fresh(Q, node()),
+        NodeStatus = cycle(Q, NodeStatus0),
+        Ring = reassign_nodes(NodeStatus,
+                              riak_core_ring:fresh(Q, node())),
 
         ok = gen_server:call(riak_kv_vnode_master,
                          {set_data, Objects, PartVals}),
@@ -214,17 +241,19 @@ prop_basic_get() ->
         Res = wait_for_req_id(ReqId),
         History = get_fsm_qc_vnode_master:get_history(),
         RepairHistory = get_fsm_qc_vnode_master:get_repair_history(),
-        Ok       = length([ ok || {_, {ok, _}} <- History ]),
-        NotFound = length([ ok || {_, notfound} <- History ]),
-        NoReply  = length([ ok || {_, timeout}  <- History ]),
-        H        = [ V || {_, V} <- History ],
-        Expected = expect(Objects, H, N, R),
+        Ok         = length([ ok || {_, {ok, _}} <- History ]),
+        NotFound   = length([ ok || {_, notfound} <- History ]),
+        NoReply    = length([ ok || {_, timeout}  <- History ]),
+        Partitions = [ P || {{P,_}, _} <- History ],
+        H          = [ V || {_, V} <- History ],
+        ExpectedN  = lists:min([N, length([xx || up <- NodeStatus])]),
+        Expected   = expect(Objects, H, N, R),
         ?WHENFAIL(
             begin
-                io:format("Repair: ~p~nHistory: ~p~n",
-                          [RepairHistory, History]),
-                io:format("Result: ~p~nExpected: ~p~n",
-                          [Res, Expected]),
+                io:format("Ring: ~p~nRepair: ~p~nHistory: ~p~n",
+                          [Ring, RepairHistory, History]),
+                io:format("Result: ~p~nExpected: ~p~nNode status: ~p~n",
+                          [Res, Expected, NodeStatus]),
                 io:format("N: ~p~nR: ~p~nQ: ~p~n",
                           [N, R, Q]),
                 io:format("H: ~p~nOk: ~p~nNotFound: ~p~nNoReply: ~p~n",
@@ -232,8 +261,9 @@ prop_basic_get() ->
             end,
             conjunction(
                 [{result, Res =:= Expected},
-                 {n_value, equals(length(History), N)},
-                 {repair, check_repair(Objects, RepairHistory, History)}
+                 {n_value, equals(length(History), ExpectedN)},
+                 {repair, check_repair(Objects, RepairHistory, History)},
+                 {distinct, all_distinct(Partitions)}
                 ]))
     end).
 
@@ -271,7 +301,8 @@ expected_repairs(H) ->
         []   -> [];
         Lins ->
             Heads = merge_heads(Lins),
-            [ Part || {Part, V} <- H, do_repair(Heads, V) ]
+            [ Part || {{Part, Node}, V} <- H,
+                      do_repair(Heads, V), Node =:= node() ]
     end.
 
 check_repair(Objects, RepairH, H) ->

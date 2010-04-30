@@ -80,9 +80,9 @@ handle_call(_Request, _From, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({vnode_get, {Partition,_Node},
+handle_cast({vnode_get, {Partition,Node},
              {FSM_pid,_BKey,ReqID}}, State) ->
-    {Value, State1} = get_data(Partition, State),
+    {Value, State1} = get_data(Partition, Node, State),
     case Value of
         {error, timeout} ->
             ok;
@@ -130,9 +130,9 @@ set_data(Objects, Partvals, State) ->
     State#state{objects=Objects, partvals=Partvals,
                 history=[], repair_history=[]}.
 
-get_data(Partition, #state{objects=Objects, partvals=[Res|Rest]} = State) ->
+get_data(Partition, Node, #state{objects=Objects, partvals=[Res|Rest]} = State) ->
     State1 = State#state{partvals = Rest,
-                         history=[{Partition,Res}|State#state.history]},
+                         history=[{{Partition,Node},Res}|State#state.history]},
     case Res of
         {ok, Lineage} ->
             {{ok, proplists:get_value(Lineage, Objects)}, State1};
