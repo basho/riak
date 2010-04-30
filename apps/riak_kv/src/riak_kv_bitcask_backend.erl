@@ -122,14 +122,14 @@ list({Ref, _}) ->
             Other
     end.
 
-list_bucket({Ref, _}, {filter, Bucket, Fun}) ->
-    [K || {B, K} <- ?MODULE:list(Ref),
+list_bucket(State, {filter, Bucket, Fun}) ->
+    [K || {B, K} <- ?MODULE:list(State),
           B =:= Bucket,
           Fun(K)];
-list_bucket({Ref, _}, '_') ->
-    [B || {B, _K} <- ?MODULE:list(Ref)];
-list_bucket({Ref, _}, Bucket) ->
-    [K || {B, K} <- ?MODULE:list(Ref), B =:= Bucket].
+list_bucket(State, '_') ->
+    [B || {B, _K} <- ?MODULE:list(State)];
+list_bucket(State, Bucket) ->
+    [K || {B, K} <- ?MODULE:list(State), B =:= Bucket].
 
 
 fold({Ref, _}, Fun0, Acc0) ->
