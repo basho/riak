@@ -1,5 +1,7 @@
 -module(get_fsm_qc).
 
+-ifdef(EQC).
+
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eunit/include/eunit.hrl").
 
@@ -235,3 +237,10 @@ eqc_test_() ->
             ?assert(test(30))
         end)
     }}.
+
+%% Call unused callback functions to clear them in the coverage
+%% checker so the real code stands out.
+coverage_test() ->
+    riak_kv_test_util:call_unused_fsm_funs(riak_kv_get_fsm).
+    
+-endif. % EQC
