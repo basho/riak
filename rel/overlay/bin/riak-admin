@@ -170,7 +170,7 @@ case "$1" in
 
         ;;
     *)
-        echo "Usage: $SCRIPT { join | backup | restore | test | status | reip }"
+        echo "Usage: $SCRIPT { join | backup | restore | test | status | reip | js_reload  }"
         exit 1
         ;;
 esac
