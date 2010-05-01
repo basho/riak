@@ -18,7 +18,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {object, partvals, history=[], repair_history=[]}).
+-record(state, {objects, partvals, history=[], repair_history=[]}).
 
 %%====================================================================
 %% API
@@ -62,8 +62,8 @@ init([]) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling call messages
 %%--------------------------------------------------------------------
-handle_call({set_data, Object, Partvals}, _From, State) ->
-    {reply, ok, set_data(Object, Partvals, State)};
+handle_call({set_data, Objects, Partvals}, _From, State) ->
+    {reply, ok, set_data(Objects, Partvals, State)};
 handle_call(get_history, _From, State) ->
     {reply, lists:reverse(State#state.history), State};
 handle_call(get_repair_history, _From, State) ->
@@ -80,9 +80,9 @@ handle_call(_Request, _From, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({vnode_get, {Partition,_Node},
+handle_cast({vnode_get, {Partition,Node},
              {FSM_pid,_BKey,ReqID}}, State) ->
-    {Value, State1} = get_data(Partition, State),
+    {Value, State1} = get_data(Partition, Node, State),
     case Value of
         {error, timeout} ->
             ok;
@@ -90,7 +90,7 @@ handle_cast({vnode_get, {Partition,_Node},
             gen_fsm:send_event(FSM_pid, 
                 {r, Value, Partition, ReqID})
     end,
-    {noreply, State1#state{history = [{Partition, Value} | State#state.history]}};
+    {noreply, State1};
 handle_cast(Msg={vnode_put, _, _}, State) ->
     {noreply, State#state{repair_history=[Msg|State#state.repair_history]}};    
 handle_cast(_Msg, State) ->
@@ -126,17 +126,16 @@ code_change(_OldVsn, _State, _Extra) ->
 %%% Internal functions
 %%--------------------------------------------------------------------
 
-set_data(Object, Partvals, State) ->
-    State#state{object=Object, partvals=Partvals,
+set_data(Objects, Partvals, State) ->
+    State#state{objects=Objects, partvals=Partvals,
                 history=[], repair_history=[]}.
 
-get_data(_Partition, #state{partvals = []} = State) ->
-    {{ok, State#state.object}, State};
-get_data(_Partition, #state{partvals = [Res|Rest]} = State) ->
-    State1 = State#state{partvals = Rest},
+get_data(Partition, Node, #state{objects=Objects, partvals=[Res|Rest]} = State) ->
+    State1 = State#state{partvals = Rest,
+                         history=[{{Partition,Node},Res}|State#state.history]},
     case Res of
-        ok ->
-            {{ok, State#state.object}, State1};
+        {ok, Lineage} ->
+            {{ok, proplists:get_value(Lineage, Objects)}, State1};
         notfound ->
             {{error, notfound}, State1};
         timeout ->

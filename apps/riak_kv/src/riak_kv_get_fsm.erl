@@ -176,17 +176,17 @@ finalize(StateData) ->
     end.
 
 really_finalize(StateData=#state{final_obj=Final,
+                          waiting_for=Sent,
                           replied_r=RepliedR,
                           bkey=BKey,
                           req_id=ReqId,
                           replied_notfound=NotFound,
-                          ring=Ring,
                           starttime=StartTime}) ->
     case Final of
         tombstone ->
             maybe_finalize_delete(StateData);
         {ok,_} ->
-            maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,
+            maybe_do_read_repair(Sent,Final,RepliedR,NotFound,BKey,
                                  ReqId,StartTime);
         _ -> nop
     end,
@@ -217,17 +217,18 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
     end
     end).
 
-maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
-    Targets0 = ancestor_indices(Final, RepliedR) ++ NotFound,
-    Targets = [{Idx,riak_core_ring:index_owner(Ring,Idx)} || Idx <- Targets0],
+maybe_do_read_repair(Sent,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
+    Targets = ancestor_indices(Final, RepliedR) ++ NotFound,
     {ok, FinalRObj} = Final,
     Msg = {self(), BKey, FinalRObj, ReqId, StartTime},
     case Targets of
         [] -> nop;
         _ ->
-            [gen_server:cast({riak_kv_vnode_master, Node},
-                             {vnode_put, {Idx,Node}, Msg}) ||
-                {Idx,Node} <- Targets]
+            [begin 
+                {Idx,Node,Fallback} = lists:keyfind(Target, 1, Sent),
+                gen_server:cast({riak_kv_vnode_master, Fallback},
+                                {vnode_put, {Idx,Node}, Msg})
+             end || Target <- Targets]
     end.
 
 %% @private
@@ -260,6 +261,13 @@ respond(Client,VResponses,AllowMult,ReqId) ->
     case Merged of
         tombstone ->
             Reply = {error,notfound};
+        {ok, Obj} ->
+            case riak_kv_util:is_x_deleted(Obj) of
+                true ->
+                    Reply = {error, notfound};
+                false ->
+                    Reply = {ok, Obj}
+            end;
         X ->
             Reply = X
     end,
@@ -274,16 +282,17 @@ merge_robjs(RObjs0,AllowMult) ->
     case RObjs1 of
         [] -> tombstone;
         _ ->
-            RObj = riak_object:reconcile(RObjs1,AllowMult),
+            RObj = riak_object:reconcile(RObjs0,AllowMult),
             {ok, RObj}
     end.
 
-ancestor_indices(_,AnnoObjects) ->
-    ToRemove = [[Idx || {O2,Idx} <- AnnoObjects,
-     vclock:descends(riak_object:vclock(O1),riak_object:vclock(O2)),
-     (vclock:descends(riak_object:vclock(O2),riak_object:vclock(O1)) == false)]
-		|| {O1,_} <- AnnoObjects],
-    lists:flatten(ToRemove).
+strict_descendant(O1, O2) ->
+    vclock:descends(riak_object:vclock(O1),riak_object:vclock(O2)) andalso
+    not vclock:descends(riak_object:vclock(O2),riak_object:vclock(O1)).
+
+ancestor_indices({ok, Final},AnnoObjects) ->
+    [Idx || {O,Idx} <- AnnoObjects, strict_descendant(Final, O)].
+
 
 update_stats(#state{startnow=StartNow}) ->
     EndNow = now(),
