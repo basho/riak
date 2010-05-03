@@ -16,7 +16,7 @@ handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
 
-handle_cast({postcommit, Record}, State) ->
+handle_cast({postcommit, _Record}, State) ->
     {noreply, State}.
 
 handle_info(_Info, State) ->
