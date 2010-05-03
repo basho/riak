@@ -88,6 +88,39 @@ handle_info({ReqId, {keys, []}}, State=#state{req=#rpblistkeysreq{}, req_ctx=Req
 handle_info({ReqId, {keys, Keys}}, State=#state{req=#rpblistkeysreq{}, req_ctx=ReqId}) ->
     {noreply, send_msg(#rpblistkeysresp{keys = Keys}, State)};
 
+%% Handle response from mapred_stream/mapred_bucket_stream
+handle_info({flow_results, ReqId, done},
+            State=#state{sock = Socket, req=#rpbmapredreq{}, req_ctx=ReqId}) ->
+    NewState = send_msg(#rpbmapredresp{done = 1}, State),
+    inet:setopts(Socket, [{active, once}]),
+    {noreply, NewState#state{req = undefined, req_ctx = undefined}};
+
+handle_info({flow_results, ReqId, {error, Reason}},
+            State=#state{sock = Socket, req=#rpbmapredreq{}, req_ctx=ReqId}) ->
+    NewState = send_error("~p", [Reason], State),
+    inet:setopts(Socket, [{active, once}]),
+    {noreply, NewState#state{req = undefined, req_ctx = undefined}};
+
+handle_info({flow_results, PhaseId, ReqId, Res},
+            State=#state{sock=Socket,
+                         req=#rpbmapredreq{content_type = ContentType}, 
+                         req_ctx=ReqId}) ->
+    case encode_mapred_phase(Res, ContentType) of
+        {error, Reason} ->
+            NewState = send_error("~p", [Reason], State),
+            inet:setopts(Socket, [{active, once}]),
+            {noreply, NewState#state{req = undefined, req_ctx = undefined}};
+        Response ->
+            {noreply, send_msg(#rpbmapredresp{phase=PhaseId, 
+                                              response=Response}, State)}
+    end;
+
+handle_info({flow_error, ReqId, Error},
+            State=#state{sock = Socket, req=#rpbmapredreq{}, req_ctx=ReqId}) ->
+    NewState = send_error("~p", [Error], State),
+    inet:setopts(Socket, [{active, once}]),
+    {noreply, NewState#state{req = undefined, req_ctx = undefined}};
+
 handle_info(_, State) -> % Ignore any late replies from gen_servers/messages from fsms
     {noreply, State}.
 
@@ -199,7 +232,32 @@ process_message(#rpbsetbucketreq{bucket=B, props = PbProps},
                 #state{client=C} = State) ->
     Props = riakc_pb:erlify_rpbbucketprops(PbProps),
     ok = C:set_bucket(B, Props),
-    send_msg(rpbsetbucketresp, State).
+    send_msg(rpbsetbucketresp, State);
+
+%% Start map/reduce job - results will be processed in handle_info
+process_message(#rpbmapredreq{request=MrReq, content_type=ContentType}=Req, 
+                #state{client=C} = State) ->
+
+    case decode_mapred_query(MrReq, ContentType) of
+        {error, Reason} ->
+            send_error("~p", [Reason], State);
+
+        {ok, ParsedInputs, ParsedQuery, Timeout} ->
+            if is_list(ParsedInputs) ->
+                    {ok, {ReqId, FSM}} = C:mapred_stream(ParsedQuery, self(),
+                                                         Timeout),
+                    luke_flow:add_inputs(FSM, ParsedInputs),
+                    luke_flow:finish_inputs(FSM);
+               is_binary(ParsedInputs) ->
+                    {ok, ReqId} = C:mapred_bucket_stream(ParsedInputs, 
+                                                         ParsedQuery, self(),
+                                                         Timeout)
+            end,
+            %% Pause incoming packets - map/reduce results
+            %% will be processed by handle_info, it will 
+            %% set socket active again on completion of streaming.
+            {pause, State#state{req = Req, req_ctx = ReqId}}
+    end.
 
 %% @private
 %% @doc if return_body was requested, call the client to get it and return
@@ -284,3 +342,14 @@ get_riak_version() ->
     {ok, Vsn} = application:get_key(riak_kv, vsn),
     riakc_pb:to_binary(Vsn).
 
+%% Decode a mapred query
+decode_mapred_query(Query, <<"application/json">>) ->
+    riak_kv_mapred_json:parse_request(Query);
+decode_mapred_query(_Query, ContentType) ->
+    {error, {unknown_content_type, ContentType}}.
+
+%% Convert a map/reduce phase to the encoding requested
+encode_mapred_phase(Res, <<"application/json">>) ->
+    mochijson2:encode(Res);
+encode_mapred_phase(_Res, ContentType) ->
+    {error, {unknown_content_type, ContentType}}.

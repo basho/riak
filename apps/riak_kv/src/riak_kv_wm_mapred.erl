@@ -30,10 +30,6 @@
 
 -include_lib("webmachine/include/webmachine.hrl").
 
--define(QUERY_TOKEN, <<"query">>).
--define(INPUTS_TOKEN, <<"inputs">>).
--define(TIMEOUT_TOKEN, <<"timeout">>).
--define(DEFAULT_TIMEOUT, 60000).
 
 -record(state, {client, inputs, timeout, mrquery, boundary}).
 
@@ -142,51 +138,27 @@ stream_mapred_results(RD, ReqId, #state{timeout=Timeout}=State) ->
     end.
 
 verify_body(Body, State) ->
-    case catch mochijson2:decode(Body) of
-        {struct, MapReduceDesc} ->
-            Timeout = case proplists:get_value(?TIMEOUT_TOKEN, MapReduceDesc, ?DEFAULT_TIMEOUT) of
-                          X when is_number(X) andalso X > 0 ->
-                              X;
-                          _ ->
-                              ?DEFAULT_TIMEOUT
-                      end,
-            Inputs = proplists:get_value(?INPUTS_TOKEN, MapReduceDesc),
-            Query = proplists:get_value(?QUERY_TOKEN, MapReduceDesc),
-            case not(Inputs =:= undefined) andalso not(Query =:= undefined) of
-                true ->
-                    case riak_kv_mapred_json:parse_inputs(Inputs) of
-                        {ok, ParsedInputs} ->
-                            case riak_kv_mapred_json:parse_query(Query) of
-                                {ok, ParsedQuery} ->
-                                    {true, [], State#state{inputs=ParsedInputs,
-                                                           mrquery=ParsedQuery,
-                                                           timeout=Timeout}};
-                                {error, Message} ->
-                                    {false,
-                                     ["An error occurred parsing "
-                                      "the \"query\" field.\n",
-                                      Message],
-                                     State}
-                            end;
-                        {error, Message} ->
-                            {false,
-                             ["An error occurred parsing the \"inputs\" field.\n",
-                              Message],
-                             State}
-                    end;
-                false ->
-                    {false,
-                     "The post body was missing the "
-                     "\"inputs\" or \"query\" field.\n",
-                     State}
-            end;
-        {'EXIT', Message} ->
+    case riak_kv_mapred_json:parse_request(Body) of
+        {ok, ParsedInputs, ParsedQuery, Timeout} ->
+            {true, [], State#state{inputs=ParsedInputs,
+                                   mrquery=ParsedQuery,
+                                   timeout=Timeout}};
+        {error, {'query', Message}} ->
+            {false, ["An error occurred parsing the \"query\" field.\n", 
+                     Message], State};
+        {error, {inputs, Message}} ->
+            {false, ["An error occurred parsing the \"inputs\" field.\n",
+                     Message], State};
+        {error, missing_field} ->
+            {false, "The post body was missing the "
+             "\"inputs\" or \"query\" field.\n", State};
+        {error, {invalid_json, Message}} ->
             {false,
              io_lib:format("The POST body was not valid JSON.~n"
                            "The error from the parser was:~n~p~n",
                            [Message]),
              State};
-        _ ->
+        {error, not_json} ->
             {false, "The POST body was not a JSON object.\n", State}
     end.
 
