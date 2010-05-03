@@ -32,7 +32,7 @@
 -export([mapred_bucket/2,mapred_bucket/3,mapred_bucket/4]).
 -export([mapred_bucket_stream/3,mapred_bucket_stream/4,mapred_bucket_stream/5]).
 -export([get/3,get/4]).
--export([put/2,put/3,put/4]).
+-export([put/2,put/3,put/4,put/5]).
 -export([delete/3,delete/4]).
 -export([list_keys/1,list_keys/2,list_keys/3]).
 -export([stream_list_keys/1,stream_list_keys/2,stream_list_keys/3,
@@ -187,11 +187,22 @@ put(RObj, W, DW) -> put(RObj, W, DW, ?DEFAULT_TIMEOUT).
 %%      Return as soon as at least W nodes have received the request, and
 %%      at least DW nodes have stored it in their storage backend, or
 %%      TimeoutMillisecs passes.
-put(RObj, W, DW, Timeout) ->
+put(RObj, W, DW, Timeout) -> put(RObj, W, DW, Timeout, []).
+
+%% @spec put(RObj::riak_object:riak_object(), W :: integer(), RW :: integer(),
+%%           TimeoutMillisecs :: integer(), Options::list()) ->
+%%        ok |
+%%       {error, too_many_fails} |
+%%       {error, timeout}
+%% @doc Store RObj in the cluster.
+%%      Return as soon as at least W nodes have received the request, and
+%%      at least DW nodes have stored it in their storage backend, or
+%%      TimeoutMillisecs passes.
+put(RObj, W, DW, Timeout, Options) ->
     R0 = riak_object:increment_vclock(RObj, ClientId),
     Me = self(),
     ReqId = mk_reqid(),
-    spawn(Node, riak_kv_put_fsm, start, [ReqId,R0,W,DW,Timeout,Me]),
+    spawn(Node, riak_kv_put_fsm, start, [ReqId,R0,W,DW,Timeout,Me,Options]),
     wait_for_reqid(ReqId, Timeout).
 
 %% @spec delete(riak_object:bucket(), riak_object:key(), RW :: integer()) ->
