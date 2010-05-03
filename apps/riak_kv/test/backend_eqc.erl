@@ -15,7 +15,7 @@
 -export([stopped/3,
          running/3,
          init_backend/2,
-        fold/2]).
+         fold/2]).
 -export([test/1, test/2, test/3, test/4, test/5]).
 -export([prop_backend/4]).
 
@@ -138,7 +138,7 @@ postcondition(_From,_To,S,_C={call,_M,is_empty,[_BeState]},R) ->
     R =:= (orddict:size(S#qcst.d) =:= 0);
 postcondition(_From,_To,S,_C={call,_M,list_bucket,[_BeState,Bucket]},R) ->
     AllKeys = orddict:fetch_keys(S#qcst.d),
-    R =:= lists:sort([K || {B,K} <- AllKeys, B =:= Bucket]);
+    lists:sort(R) =:= lists:sort([K || {B,K} <- AllKeys, B =:= Bucket]);
 postcondition(_From,_To,_S,_C,_R) ->
     true.
 
