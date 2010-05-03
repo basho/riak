@@ -25,13 +25,14 @@ do_initialize(Name) ->
     Q = ets:new(list_to_atom(Name), [ordered_set]),
     {ok, State#state{q=Q}}.
 
-do_terminate(#state{tref=TRef, log=Log}) -> 
+do_terminate(#state{tref=TRef, log=Log}) ->  
     timer:cancel_timer(TRef),
     disk_log:sync(Log),
     ok = disk_log:close(TRef).
 
 do_flush(Q, Log, State) ->
     ets:foldl(fun(A,Acc) -> disk_log:alog(Log, A), Acc end, [], Q),
+    disk_log:sync(Log),
     ets:delete_all_objects(Q),
     {noreply, State}.
 
@@ -42,7 +43,7 @@ do_open_log(Name) ->
                 lists:flatten(io_lib:format("~s.LOG", [Name]))),
     {ok, FlushIval} = application:get_env(riak_repl, log_flush_interval),
     {ok, TRef} = timer:send_interval(FlushIval*1000, flush),
-    State = #state{tref=TRef, q=[]},
+    State = #state{tref=TRef},
     maybe_repair_log(disk_log:open([{name, list_to_atom(Name)},
                                     {file, LogFile},
                                     {notify, true}]), State).

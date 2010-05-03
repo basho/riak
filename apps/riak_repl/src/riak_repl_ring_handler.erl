@@ -7,11 +7,13 @@
 -record(state, {}).
 
 init([]) -> {ok, #state{}}.
-handle_event({ring_update, Ring}, State) ->
-    io:format("~p got ring update~n", [Ring]),
-    {ok, State};
+handle_event({ring_update, Ring}, State) -> 
+    {ok, handle_ring_update(Ring, State)};
 handle_event(_Event, State) -> {ok, State}.
 handle_call(_Request, State) -> {ok, ok, State}.
 handle_info(_Info, State) -> {ok, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
+
+handle_ring_update(Ring, State) -> State.
+    
