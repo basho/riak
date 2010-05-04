@@ -20,7 +20,7 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 do_initialize(State) ->
-    {ok, Ring} = riak_ring_manager:get_my_ring(),
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     State#state{ring=Ring}.
 
 handle_set_ring(Ring, State) -> 
