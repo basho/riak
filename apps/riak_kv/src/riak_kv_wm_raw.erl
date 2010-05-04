@@ -760,22 +760,18 @@ accept_doc_body(RD, Ctx=#ctx{bucket=B, key=K, client=C, links=L}) ->
     UserMetaMD = dict:store(?MD_USERMETA, UserMeta, LinkMD),
     MDDoc = riak_object:update_metadata(VclockDoc, UserMetaMD),
     Doc = riak_object:update_value(MDDoc, wrq:req_body(RD)),
-    case C:put(Doc, Ctx#ctx.w, Ctx#ctx.dw) of
+    Options = case wrq:get_qs_value(?Q_RETURNBODY, RD) of ?Q_TRUE -> [returnbody]; _ -> [] end,
+    case C:put(Doc, Ctx#ctx.w, Ctx#ctx.dw, 60000, Options) of
         {error, precommit_fail} ->
             {{halt, 403}, send_precommit_error(RD, undefined), Ctx};
         {error, {precommit_fail, Reason}} ->
             {{halt, 403}, send_precommit_error(RD, Reason), Ctx};
         ok ->
-            %% If returnbody=true is specified, then send the body back.
-            case wrq:get_qs_value(?Q_RETURNBODY, RD) of
-                ?Q_TRUE ->
-                    R = Ctx#ctx.w, % R won't be available, use the same setting as W.
-                    DocCtx = Ctx#ctx{doc=C:get(B, K, R)},
-                    HasSiblings = (select_doc(DocCtx) == multiple_choices),
-                    send_returnbody(RD, DocCtx, HasSiblings);
-                _ ->
-                    {true, RD, Ctx#ctx{doc = {ok, Doc}}}
-            end
+            {true, RD, Ctx#ctx{doc={ok, Doc}}};
+        {ok, RObj} ->
+            DocCtx = Ctx#ctx{doc={ok, RObj}},
+            HasSiblings = (select_doc(DocCtx) == multiple_choices),
+            send_returnbody(RD, DocCtx, HasSiblings)
     end.
 
 %% Handle the no-sibling case. Just send the object.

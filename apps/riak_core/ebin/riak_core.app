@@ -3,7 +3,7 @@
 {application, riak_core,
  [
   {description, "Riak Core"},
-  {vsn, "0.10"},
+  {vsn, "0.10.1"},
   {modules, [
              app_helper,
              bloom,
@@ -60,6 +60,7 @@
          %% Default bucket props
          {default_bucket_props, [{n_val,3},
                                  {allow_mult,false},
+                                 {last_write_wins,false},
                                  {precommit, []},
                                  {postcommit, []},
                                  {chash_keyfun, {riak_core_util, chash_std_keyfun}}]}

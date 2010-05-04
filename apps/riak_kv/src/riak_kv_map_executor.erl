@@ -29,9 +29,11 @@
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
+-define(VNODE_TIMEOUT, 1000).
+
 -export([wait/2]).
 
--record(state, {bkey,qterm,phase_pid,vnodes,keydata,ring,timeout}).
+-record(state, {bkey,qterm,phase_pid,vnodes,keydata,ring,timeout,vnode_timer}).
 
 % {link, Bucket, Tag, Acc}
 % {map, FunTerm, Arg, Acc}
@@ -68,42 +70,62 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
             N = proplists:get_value(n_val,BucketProps),
             Preflist = riak_core_ring:preflist(DocIdx, Ring),
             {Targets, _} = lists:split(N, Preflist),
-            VNodes = try_vnode(QTerm, {Bucket,Key}, KeyData, Targets),
-            {ok,wait,
-             #state{bkey={Bucket,Key},qterm=QTerm,phase_pid=PhasePid,
-                    vnodes=VNodes,keydata=KeyData,ring=Ring,timeout=Timeout},
-             Timeout}
+            State = #state{bkey={Bucket,Key},qterm=QTerm,phase_pid=PhasePid,
+                           vnodes=Targets,keydata=KeyData,ring=Ring,timeout=Timeout},
+            case try_vnode(State) of
+                {error, no_vnodes} ->
+                    {stop, no_vnodes};
+                NewState ->
+                    {ok, wait, NewState, Timeout}
+            end
     end.
 
-try_vnode(QTerm, BKey, KeyData, [{P,VN}|VNs]) ->
-    gen_server:cast({riak_kv_vnode_master, VN},
-                    {vnode_map, {P,node()},
-                     {self(),QTerm,BKey,KeyData}}),
-    VNs.
+try_vnode(#state{vnodes=[], bkey=BKey, phase_pid=PhasePid}) ->
+    riak_kv_phase_proto:mapexec_error(PhasePid, "all nodes failed"),
+    {error, {no_vnodes, BKey}};
+try_vnode(#state{qterm=QTerm, bkey=BKey, keydata=KeyData, vnodes=[{P, VN}|VNs]}=StateData) ->
+    case lists:member(VN, nodes() ++ [node()]) of
+        false ->
+            try_vnode(StateData#state{vnodes=VNs});
+        true ->
+            gen_server:cast({riak_kv_vnode_master, VN},
+                            {vnode_map, {P,node()},
+                             {self(),QTerm,BKey,KeyData}}),
+            {ok, TRef} = timer:send_after(?VNODE_TIMEOUT, self(), timeout),
+            StateData#state{vnodes=VNs, vnode_timer=TRef}
+    end.
 
 wait(timeout, StateData=#state{phase_pid=PhasePid,vnodes=[]}) ->
     riak_kv_phase_proto:mapexec_error(PhasePid, "all nodes failed"),
     {stop,normal,StateData};
-wait(timeout, StateData=
-     #state{vnodes=VNodes,qterm=QTerm,bkey=BKey,keydata=KeyData,timeout=Timeout}) ->
-    {next_state, wait, StateData#state{
-                         vnodes=try_vnode(QTerm, BKey, KeyData, VNodes)},
-     Timeout};
+wait(timeout, #state{timeout=Timeout}=StateData) ->
+    case try_vnode(StateData) of
+        {error, no_vnodes} ->
+           {stop, normal, StateData};
+        NewState ->
+            {next_state, wait, NewState, Timeout}
+    end;
 wait({mapexec_error, _VN, _ErrMsg},
-     StateData=#state{phase_pid=PhasePid,vnodes=[]}) ->
+     StateData=#state{phase_pid=PhasePid,vnodes=[], vnode_timer=TRef}) ->
+    timer:cancel(TRef),
     riak_kv_phase_proto:mapexec_error(PhasePid, "all nodes failed"),
     {stop,normal,StateData};
-wait({mapexec_error_noretry, _VN, ErrMsg}, #state{phase_pid=PhasePid}=StateData) ->
+wait({mapexec_error_noretry, _VN, ErrMsg}, #state{phase_pid=PhasePid, vnode_timer=TRef}=StateData) ->
+    timer:cancel(TRef),
     riak_kv_phase_proto:mapexec_error(PhasePid, ErrMsg),
     {stop, normal, StateData};
-wait({mapexec_error, _VN, _ErrMsg},StateData=
-     #state{vnodes=VNodes,qterm=QTerm,bkey=BKey,keydata=KeyData,timeout=Timeout}) ->
-    {next_state, wait, StateData#state{
-                         vnodes=try_vnode(QTerm, BKey, KeyData, VNodes)},
-     Timeout};
+wait({mapexec_error, _VN, _ErrMsg}, #state{timeout=Timeout, vnode_timer=TRef}=StateData) ->
+    timer:cancel(TRef),
+    case try_vnode(StateData) of
+        {error, no_vnodes} ->
+            {stop, normal, StateData};
+        NewState ->
+            {next_state, wait, NewState, Timeout}
+    end;
 wait({mapexec_reply, executing, _}, #state{timeout=Timeout}=StateData) ->
     {next_state, wait, StateData, Timeout};
-wait({mapexec_reply, RetVal, _VN}, StateData=#state{phase_pid=PhasePid}) ->
+wait({mapexec_reply, RetVal, _VN}, StateData=#state{phase_pid=PhasePid, vnode_timer=TRef}) ->
+    timer:cancel(TRef),
     riak_kv_phase_proto:mapexec_result(PhasePid, RetVal),
     {stop,normal,StateData}.
 
@@ -116,6 +138,10 @@ handle_sync_event(_Event, _From, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
 %% @private
+handle_info(timeout, StateName, StateData) ->
+    gen_fsm:send_event(self(), timeout),
+    {next_state, StateName, StateData};
+
 handle_info(_Info, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
