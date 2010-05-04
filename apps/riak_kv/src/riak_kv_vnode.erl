@@ -374,7 +374,11 @@ handle_sync_event(_Even, _From, _StateName, StateData) ->
 handle_info(vnode_shutdown, _StateName, StateData) ->
     {stop,normal,StateData};
 handle_info(ok, StateName, StateData) ->
+    {next_state, StateName, StateData};
+handle_info({Mod, Msg}, StateName, #state { mod = Mod } = StateData) ->
+    Mod:handle_info(StateData#state.modstate, Msg),
     {next_state, StateName, StateData}.
+
 %% @private
 terminate(_Reason, _StateName, _State) ->
     ok.
