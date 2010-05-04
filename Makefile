@@ -35,7 +35,7 @@ dev:
 	./rebar compile && cd dev && ../rebar generate
 
 dev1 dev2 dev3: dev
-	cp -Rn dev/riak dev/$@
+	cp -Ru dev/riak dev/$@
 	rm -rf dev/$@/data
 	mkdir -p dev/$@/data/ring
 	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
@@ -43,6 +43,10 @@ dev1 dev2 dev3: dev
 	perl -pi -e 's/riak_web_port, \d+/riak_web_port, 809$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
 	perl -pi -e 's/riak_handoff_port, \d+/riak_handoff_port, 810$(subst dev,,$@)/g' \
+                    dev/$@/etc/app.config
+	perl -pi -e 's/pb_port, \d+/pb_port, 820$(subst dev,,$@)/g' \
+		    dev/$@/etc/app.config
+	perl -pi -e 's/riak_repl_port, \d+/riak_repl_port 830$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
 
 devclean: clean
