@@ -145,15 +145,18 @@ process_message(#rpbputreq{bucket=B, key=K, vclock=PbVC, content=RpbContent,
     O0 = riak_object:new(B, K, <<>>),  
     O1 = update_rpbcontent(O0, RpbContent),
     O  = update_pbvc(O1, PbVC),
-
-    case C:put(O, default_w(W), default_dw(DW)) of
+    % erlang_protobuffs encodes as 1/0/undefined
+    Options = case ReturnBody of 1 -> [returnbody]; _ -> [] end,
+    case C:put(O, default_w(W), default_dw(DW), default_timeout(), Options) of
         ok ->
-            case ReturnBody of % erlang_protobuffs encodes as 1/0/undefined
-                1 ->
-                    send_put_return_body(B, K, State);
-                _ ->
-                    send_msg(#rpbputresp{}, State)
-            end;
+            send_msg(#rpbputresp{}, State);
+        {ok, Obj} ->
+            PbContents = riakc_pb:pbify_rpbcontents(riak_object:get_contents(Obj), []),
+            PutResp = #rpbputresp{contents = PbContents,
+                                  vclock = pbify_rpbvc(riak_object:vclock(Obj))},
+            send_msg(PutResp, State);
+        {error, notfound} ->
+            send_msg(#rpbputresp{}, State);            
         {error, Reason} ->
             send_error("~p", [Reason], State)
     end;
@@ -186,22 +189,6 @@ process_message(#rpblistkeysreq{bucket=B}=Req,
     %% set socket active again on completion of streaming.
     {ok, ReqId} = C:stream_list_keys(B),
     {pause, State#state{req = Req, req_ctx = ReqId}}.
-
-%% @private
-%% @doc if return_body was requested, call the client to get it and return
-send_put_return_body(B, K, State=#state{client = C}) ->
-    case C:get(B, K, default_r(undefined)) of
-        {ok, O} ->
-            PbContents = riakc_pb:pbify_rpbcontents(riak_object:get_contents(O), []),
-            PutResp = #rpbputresp{contents = PbContents,
-                                  vclock = pbify_rpbvc(riak_object:vclock(O))},
-            send_msg(PutResp, State);
-        {error, notfound} ->
-            %% User may have NRW set so this is possible - send the same as a get not found
-            send_msg(#rpbputresp{}, State);
-        {error, Reason} ->
-            send_error("~p", [Reason], State)
-    end.
 
 %% Send a message to the client
 -spec send_msg(msg(), #state{}) -> #state{}.
@@ -253,6 +240,9 @@ default_rw(undefined) ->
     2;
 default_rw(RW) ->
     RW.
+
+default_timeout() ->
+    60000.
         
 %% Convert a vector clock to erlang
 erlify_rpbvc(undefined) ->
