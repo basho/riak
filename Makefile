@@ -11,14 +11,14 @@ clean:
 distclean: clean devclean relclean
 	@cd apps/erlang_js;make clean
 
-test: 
+test:
 	./rebar eunit
 
 ##
 ## Release targets
 ##
 rel:
-	./rebar compile generate 
+	./rebar compile generate
 
 relclean:
 	rm -rf rel/riak
@@ -29,15 +29,16 @@ relclean:
 
 devrel: dev1 dev2 dev3
 
-dev: 
+dev:
 	mkdir dev
 	cp -R rel/overlay rel/reltool.config dev
 	./rebar compile && cd dev && ../rebar generate
 
 dev1 dev2 dev3: dev
-	cp -Ru dev/riak dev/$@
+	cp -Rn dev/riak dev/$@
 	rm -rf dev/$@/data
 	mkdir -p dev/$@/data/ring
+	mkdir -p dev/$@/data/snmp/agent/db
 	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
 	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
 	perl -pi -e 's/riak_web_port, \d+/riak_web_port, 809$(subst dev,,$@)/g' \
@@ -46,8 +47,9 @@ dev1 dev2 dev3: dev
                     dev/$@/etc/app.config
 	perl -pi -e 's/pb_port, \d+/pb_port, 820$(subst dev,,$@)/g' \
 		    dev/$@/etc/app.config
-	perl -pi -e 's/riak_repl_port, \d+/riak_repl_port 830$(subst dev,,$@)/g' \
+	perl -pi -e 's/riak_repl_port, \d+/riak_repl_port, 830$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
+	mkdir -p dev/dev1/data/snmp/agent/db
 
 devclean: clean
 	rm -rf dev
@@ -56,7 +58,7 @@ devclean: clean
 ## Doc targets
 ##
 docs:
-	@erl -noshell -run edoc_run application riak '"apps/riak"' '[]' 
+	@erl -noshell -run edoc_run application riak '"apps/riak"' '[]'
 	@cp -R apps/riak/doc doc/riak
 
 orgs: orgs-doc orgs-README
@@ -70,5 +72,3 @@ orgs-README:
 
 dialyzer: compile
 	@dialyzer -Wno_return -c apps/riak/ebin
-
-
