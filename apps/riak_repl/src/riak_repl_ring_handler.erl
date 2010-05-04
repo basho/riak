@@ -15,5 +15,6 @@ handle_info(_Info, State) -> {ok, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
-handle_ring_update(_Ring, State) -> State.
-    
+handle_ring_update(Ring, State) -> 
+    riak_repl_config:set_ring(Ring),
+    State.
