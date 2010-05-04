@@ -41,6 +41,7 @@ dev1 dev2 dev3: dev
 	cp -Rn dev/riak dev/$@
 	rm -rf dev/$@/data
 	mkdir -p dev/$@/data/ring
+	mkdir -p dev/$@/data/snmp/agent/db
 	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
 	$(foreach dep,$(wildcard deps/*), rm -rf dev/$@/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$@/lib;)
 	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
@@ -50,6 +51,9 @@ dev1 dev2 dev3: dev
                     dev/$@/etc/app.config
 	perl -pi -e 's/handoff_port, \d+/handoff_port, 810$(subst dev,,$@)/g' \
                     dev/$@/etc/app.config
+	perl -pi -e 's/intAgentUDPPort, \d+/intAgentUDPPort, 400$(subst dev,,$@)/g' \
+			    dev/$@/etc/snmp/agent/conf/agent.conf
+
 
 devclean: clean
 	rm -rf dev
