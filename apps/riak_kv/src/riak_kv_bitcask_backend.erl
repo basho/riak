@@ -182,7 +182,7 @@ handle_info({_, BitcaskRoot}, {merge, MergeInterval}) ->
 
 simple_test() ->
     ?assertCmd("rm -rf test/bitcask-backend"),
-    Config = [{data_root, "test/bitcask-backend"}],
-    riak_kv_test_util:standard_backend_test(?MODULE, Config).
+    application:set_env(bitcask, data_root, "test/bitcask-backend"),
+    riak_kv_test_util:standard_backend_test(?MODULE, []).
 
 -endif.
