@@ -98,53 +98,60 @@ waiting_vnode_r({r, {ok, RObj}, Idx, ReqId},
             {next_state,waiting_vnode_r,NewStateData}
     end;
 waiting_vnode_r({r, {error, notfound}, Idx, ReqId},
-                  StateData=#state{r=R,replied_fail=Fails,
+                  StateData=#state{r=R,allowmult=AllowMult,replied_fail=Fails,
                                    req_id=ReqId,client=Client,n=N,
-                                   replied_notfound=Replied0}) ->
-    Replied = [Idx|Replied0],
-    NewStateData = StateData#state{replied_notfound=Replied},
+                                   replied_r=Replied,
+                                   replied_notfound=NotFound0}) ->
+    NotFound = [Idx|NotFound0],
+    NewStateData = StateData#state{replied_notfound=NotFound},
     FailThreshold = erlang:min(trunc((N/2.0)+1), % basic quorum, or
                                (N-R+1)), % cannot ever get R 'ok' replies
-    case (length(Replied) + length(Fails)) >= FailThreshold of
+    %% FailThreshold = N-R+1,
+    case (length(NotFound) + length(Fails)) >= FailThreshold of
         false ->
             {next_state,waiting_vnode_r,NewStateData};
         true ->
             update_stats(StateData),
             Client ! {ReqId, {error,notfound}},
-            {stop,normal,NewStateData}
+            Final = merge(Replied,AllowMult),
+            finalize(NewStateData#state{final_obj=Final})
     end;
 waiting_vnode_r({r, {error, Err}, Idx, ReqId},
-                  StateData=#state{r=R,client=Client,n=N,
-                                   replied_fail=Replied0,req_id=ReqId,
+                  StateData=#state{r=R,client=Client,n=N,allowmult=AllowMult,
+                                   replied_r=Replied,
+                                   replied_fail=Failed0,req_id=ReqId,
                                    replied_notfound=NotFound}) ->
-    Replied = [{Err,Idx}|Replied0],
-    NewStateData = StateData#state{replied_fail=Replied},
+    Failed = [{Err,Idx}|Failed0],
+    NewStateData = StateData#state{replied_fail=Failed},
     FailThreshold = erlang:min(trunc((N/2.0)+1), % basic quorum, or
                                (N-R+1)), % cannot ever get R 'ok' replies
-    case (length(Replied) + length(NotFound)) >= FailThreshold of
+    %% FailThreshold = N-R+1,
+    case (length(Failed) + length(NotFound)) >= FailThreshold of
         false ->
             {next_state,waiting_vnode_r,NewStateData};
         true ->
             case length(NotFound) of
                 0 ->
-                    FullErr = [E || {E,_I} <- Replied],
+                    FullErr = [E || {E,_I} <- Failed],
                     update_stats(StateData),
-                    Client ! {ReqId, {error,FullErr}},
-                    {stop,normal,NewStateData};
+                    Client ! {ReqId, {error,FullErr}};
                 _ ->
                     update_stats(StateData),
-                    Client ! {ReqId, {error,notfound}},
-                    {stop,normal,NewStateData}
-            end
+                    Client ! {ReqId, {error,notfound}}
+            end,
+            Final = merge(Replied,AllowMult),
+            finalize(NewStateData#state{final_obj=Final})
     end;
-waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqId}) ->
+waiting_vnode_r(timeout, StateData=#state{client=Client,req_id=ReqId,replied_r=Replied,allowmult=AllowMult}) ->
     update_stats(StateData),
     Client ! {ReqId, {error,timeout}},
-    {stop,normal,StateData}.
+    really_finalize(StateData#state{final_obj=merge(Replied, AllowMult)}).
 
 waiting_read_repair({r, {ok, RObj}, Idx, ReqId},
-                  StateData=#state{req_id=ReqId,replied_r=Replied0}) ->
-    finalize(StateData#state{replied_r=[{RObj,Idx}|Replied0]});
+                  StateData=#state{req_id=ReqId,allowmult=AllowMult,replied_r=Replied0}) ->
+    Replied = [{RObj,Idx}|Replied0],
+    Final = merge(Replied,AllowMult),
+    finalize(StateData#state{replied_r=Replied,final_obj=Final});
 waiting_read_repair({r, {error, notfound}, Idx, ReqId},
                   StateData=#state{req_id=ReqId,replied_notfound=Replied0}) ->
     finalize(StateData#state{replied_notfound=[Idx|Replied0]});
@@ -154,23 +161,32 @@ waiting_read_repair({r, {error, Err}, Idx, ReqId},
 waiting_read_repair(timeout, StateData) ->
     really_finalize(StateData).
 
-finalize(StateData=#state{replied_r=R,replied_fail=F,replied_notfound=NF, n=N}) ->
-    case (length(R) + length(F) + length(NF)) >= N of
+has_all_replies(#state{replied_r=R,replied_fail=F,replied_notfound=NF, n=N}) ->
+    length(R) + length(F) + length(NF) >= N.
+
+finalize(StateData=#state{replied_r=[]}) ->
+    case has_all_replies(StateData) of
+        true -> {stop,normal,StateData};
+        false -> {next_state,waiting_read_repair,StateData}
+    end;    
+finalize(StateData) ->
+    case has_all_replies(StateData) of
         true -> really_finalize(StateData);
         false -> {next_state,waiting_read_repair,StateData}
     end.
+
 really_finalize(StateData=#state{final_obj=Final,
+                          waiting_for=Sent,
                           replied_r=RepliedR,
                           bkey=BKey,
                           req_id=ReqId,
                           replied_notfound=NotFound,
-                          ring=Ring,
                           starttime=StartTime}) ->
     case Final of
-        {error, notfound} ->
+        tombstone ->
             maybe_finalize_delete(StateData);
         {ok,_} ->
-            maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,
+            maybe_do_read_repair(Sent,Final,RepliedR,NotFound,BKey,
                                  ReqId,StartTime);
         _ -> nop
     end,
@@ -201,17 +217,18 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
     end
     end).
 
-maybe_do_read_repair(Ring,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
-    Targets0 = ancestor_indices(Final, RepliedR) ++ NotFound,
-    Targets = [{Idx,riak_core_ring:index_owner(Ring,Idx)} || Idx <- Targets0],
+maybe_do_read_repair(Sent,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
+    Targets = ancestor_indices(Final, RepliedR) ++ NotFound,
     {ok, FinalRObj} = Final,
     Msg = {self(), BKey, FinalRObj, ReqId, StartTime},
     case Targets of
         [] -> nop;
         _ ->
-            [gen_server:cast({riak_kv_vnode_master, Node},
-                             {vnode_put, {Idx,Node}, Msg}) ||
-                {Idx,Node} <- Targets]
+            [begin 
+                {Idx,Node,Fallback} = lists:keyfind(Target, 1, Sent),
+                gen_server:cast({riak_kv_vnode_master, Fallback},
+                                {vnode_put, {Idx,Node}, Msg})
+             end || Target <- Targets]
     end.
 
 %% @private
@@ -236,27 +253,46 @@ terminate(Reason, _StateName, _State) ->
 %% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
-respond(Client,VResponses,AllowMult,ReqId) ->
-    Reply = merge_robjs([R || {R,_I} <- VResponses],AllowMult),
-    Client ! {ReqId, Reply},
-    Reply.
+merge(VResponses, AllowMult) ->
+   merge_robjs([R || {R,_I} <- VResponses],AllowMult).
 
+respond(Client,VResponses,AllowMult,ReqId) ->
+    Merged = merge(VResponses, AllowMult),
+    case Merged of
+        tombstone ->
+            Reply = {error,notfound};
+        {ok, Obj} ->
+            case riak_kv_util:is_x_deleted(Obj) of
+                true ->
+                    Reply = {error, notfound};
+                false ->
+                    Reply = {ok, Obj}
+            end;
+        X ->
+            Reply = X
+    end,
+    Client ! {ReqId, Reply},
+    Merged.
+
+merge_robjs([], _) ->
+    {error, notfound};
 merge_robjs(RObjs0,AllowMult) ->
     RObjs1 = [X || X <- [riak_kv_util:obj_not_deleted(O) ||
                             O <- RObjs0], X /= undefined],
     case RObjs1 of
-        [] -> {error, notfound};
+        [] -> tombstone;
         _ ->
-            RObj = riak_object:reconcile(RObjs1,AllowMult),
+            RObj = riak_object:reconcile(RObjs0,AllowMult),
             {ok, RObj}
     end.
 
-ancestor_indices(_,AnnoObjects) ->
-    ToRemove = [[Idx || {O2,Idx} <- AnnoObjects,
-     vclock:descends(riak_object:vclock(O1),riak_object:vclock(O2)),
-     (vclock:descends(riak_object:vclock(O2),riak_object:vclock(O1)) == false)]
-		|| {O1,_} <- AnnoObjects],
-    lists:flatten(ToRemove).
+strict_descendant(O1, O2) ->
+    vclock:descends(riak_object:vclock(O1),riak_object:vclock(O2)) andalso
+    not vclock:descends(riak_object:vclock(O2),riak_object:vclock(O1)).
+
+ancestor_indices({ok, Final},AnnoObjects) ->
+    [Idx || {O,Idx} <- AnnoObjects, strict_descendant(Final, O)].
+
 
 update_stats(#state{startnow=StartNow}) ->
     EndNow = now(),
