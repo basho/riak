@@ -245,21 +245,30 @@ process_message(#rpbmapredreq{request=MrReq, content_type=ContentType}=Req,
         {error, Reason} ->
             send_error("~p", [Reason], State);
 
-        {ok, ParsedInputs, ParsedQuery, Timeout} ->
-            if is_list(ParsedInputs) ->
-                    {ok, {ReqId, FSM}} = C:mapred_stream(ParsedQuery, self(),
-                                                         Timeout),
-                    luke_flow:add_inputs(FSM, ParsedInputs),
-                    luke_flow:finish_inputs(FSM);
-               is_binary(ParsedInputs) ->
-                    {ok, ReqId} = C:mapred_bucket_stream(ParsedInputs, 
-                                                         ParsedQuery, self(),
-                                                         Timeout)
-            end,
-            %% Pause incoming packets - map/reduce results
-            %% will be processed by handle_info, it will 
-            %% set socket active again on completion of streaming.
-            {pause, State#state{req = Req, req_ctx = ReqId}}
+        {ok, Inputs, Query, Timeout} ->
+            if is_list(Inputs) ->
+                    case C:mapred_stream(Query, self(), Timeout) of
+                        {stop, Error} ->
+                            send_error("~p", [Error], State);
+                        
+                        {ok, {ReqId, FSM}} ->
+                            luke_flow:add_inputs(FSM, Inputs),
+                            luke_flow:finish_inputs(FSM),
+                            %% Pause incoming packets - map/reduce results
+                            %% will be processed by handle_info, it will 
+                            %% set socket active again on completion of streaming.
+                            {pause, State#state{req = Req, req_ctx = ReqId}}
+                    end;
+               is_binary(Inputs) ->
+                    case C:mapred_bucket_stream(Inputs, Query, 
+                                                self(), Timeout) of
+                        {stop, Error} ->
+                            send_error("~p", [Error], State);
+
+                        {ok, ReqId} ->
+                            {pause, State#state{req = Req, req_ctx = ReqId}}
+                    end
+            end
     end.
 
 %% Send a message to the client
@@ -333,13 +342,19 @@ get_riak_version() ->
     riakc_pb:to_binary(Vsn).
 
 %% Decode a mapred query
+%% {ok, ParsedInputs, ParsedQuery, Timeout};
 decode_mapred_query(Query, <<"application/json">>) ->
     riak_kv_mapred_json:parse_request(Query);
+decode_mapred_query(Query, <<"application/x-erlang-binary">>) ->
+    riak_kv_mapred_term:parse_request(Query);
 decode_mapred_query(_Query, ContentType) ->
     {error, {unknown_content_type, ContentType}}.
 
 %% Convert a map/reduce phase to the encoding requested
 encode_mapred_phase(Res, <<"application/json">>) ->
     mochijson2:encode(Res);
+encode_mapred_phase(Res, <<"application/x-erlang-binary">>) ->
+    term_to_binary(Res);
 encode_mapred_phase(_Res, ContentType) ->
     {error, {unknown_content_type, ContentType}}.
+
