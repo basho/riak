@@ -154,7 +154,7 @@
 -record(state,{vnode_gets,vnode_puts,vnode_gets_total,vnode_puts_total,
                node_gets_total, node_puts_total,
                get_fsm_time,put_fsm_time,
-               pbc_connects,pbc_connects_total}).
+               pbc_connects,pbc_connects_total,pbc_active}).
 
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
 %% @doc Start the server.  Also start the os_mon application, if it's
@@ -188,7 +188,8 @@ init([]) ->
                 get_fsm_time=slide:fresh(),
                 put_fsm_time=slide:fresh(),
                 pbc_connects=spiraltime:fresh(),
-                pbc_connects_total=0}}.
+                pbc_connects_total=0,
+                pbc_active=0}}.
 
 %% @private
 handle_call(get_stats, _From, State) ->
@@ -229,10 +230,19 @@ update({get_fsm_time, Microsecs}, Moment, State=#state{node_gets_total=NGT}) ->
     slide_incr(#state.get_fsm_time, Microsecs, Moment, State#state{node_gets_total=NGT+1});
 update({put_fsm_time, Microsecs}, Moment, State=#state{node_puts_total=NPT}) ->
     slide_incr(#state.put_fsm_time, Microsecs, Moment, State#state{node_puts_total=NPT+1});
-update(pbc_connect, Moment, State=#state{pbc_connects_total=NCT}) ->
-    spiral_incr(#state.pbc_connects, Moment, State#state{pbc_connects_total=NCT+1});
+update(pbc_connect, Moment, State=#state{pbc_connects_total=NCT, pbc_active=Active}) ->
+    spiral_incr(#state.pbc_connects, Moment, State#state{pbc_connects_total=NCT+1, 
+                                                         pbc_active=Active+1});
+update(pbc_disconnect, _Moment, State=#state{pbc_active=Active}) ->
+    State#state{pbc_active=decrzero(Active)};
 update(_, _, State) ->
     State.
+
+%% @doc decrement down to zero - do not go negative
+decrzero(0) ->
+    0;
+decrzero(N) ->
+    N-1.
 
 %% @spec spiral_incr(integer(), integer(), state()) -> state()
 %% @doc Increment the value of a spiraltime structure at a given
@@ -384,11 +394,11 @@ config_stats() ->
 %% @spec pbc_stats(state()) -> proplist()
 %% @doc Get stats on the disk, as given by the disksup module
 %%      of the os_mon application.
-pbc_stats(Moment, State=#state{pbc_connects_total=NCT}) ->
+pbc_stats(Moment, State=#state{pbc_connects_total=NCT, pbc_active=Active}) ->
     case whereis(riak_kv_pb_socket_sup) of
         undefined ->
             [];
         _ -> [{pbc_connects_total, NCT},
               {pbc_connects, spiral_minute(Moment, #state.pbc_connects, State)},
-              {pbc_active, riak_kv_pb_socket_sup:active_connections()}]
+              {pbc_active, Active}]
     end.

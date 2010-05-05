@@ -115,9 +115,35 @@ drop(#state{table=T, path=P}) ->
 %%
 %% Test
 %%
+-ifdef(TEST).
 
 % @private
 simple_test() ->
     ?assertCmd("rm -rf test/dets-backend"),
     Config = [{riak_kv_dets_backend_root, "test/dets-backend"}],
     riak_kv_test_util:standard_backend_test(riak_kv_dets_backend, Config).
+
+-ifdef(EQC).
+
+%% @private
+eqc_test_() ->
+    {timeout, 60,
+     [{"eqc test", ?_test(eqc_test_inner())}]}.
+
+%% @private
+eqc_test_inner() ->
+    Cleanup = 
+        fun(State, OldS) ->
+                case State of
+                    #state{} ->
+                        drop(State);
+                    _ ->
+                        ok
+                end,                
+                [file:delete(S#state.path) || S <- OldS]
+        end,
+    Config = [{riak_kv_dets_backend_root, "test/dets-backend"}],
+    ?assertCmd("rm -rf test/dets-backend"),
+    ?assertEqual(true, backend_eqc:test(?MODULE, false, Config, Cleanup)).
+-endif. % EQC
+-endif. % TEST

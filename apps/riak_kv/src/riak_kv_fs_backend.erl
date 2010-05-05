@@ -246,3 +246,11 @@ nest_test() ->
     ?assertEqual(["0","0","ab"],  nest("ab")),
     ?assertEqual(["0","0","a"],   nest("a")),
     ?assertEqual(["0","0","0"],   nest([])).
+
+-ifdef(EQC).
+eqc_test() ->
+    Cleanup = fun(_State,_Olds) -> os:cmd("rm -rf test/fs-backend") end,
+    Config = [{riak_kv_fs_backend_root, "test/fs-backend"}],
+    ?assertCmd("rm -rf test/fs-backend"),
+    ?assertEqual(true, backend_eqc:test(?MODULE, false, Config, Cleanup)).
+-endif.

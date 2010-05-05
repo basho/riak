@@ -54,6 +54,7 @@ start_link(Socket) ->
     gen_server2:start_link(?MODULE, [Socket], []).
 
 init([Socket]) -> 
+    riak_kv_stat:update(pbc_connect),
     inet:setopts(Socket, [{active, once}, {packet, 4}, {header, 1}]),
     {ok, C} = riak:local_client(),
     {ok, #state{sock = Socket, client = C}}.
@@ -88,10 +89,45 @@ handle_info({ReqId, {keys, []}}, State=#state{req=#rpblistkeysreq{}, req_ctx=Req
 handle_info({ReqId, {keys, Keys}}, State=#state{req=#rpblistkeysreq{}, req_ctx=ReqId}) ->
     {noreply, send_msg(#rpblistkeysresp{keys = Keys}, State)};
 
+%% Handle response from mapred_stream/mapred_bucket_stream
+handle_info({flow_results, ReqId, done},
+            State=#state{sock = Socket, req=#rpbmapredreq{}, req_ctx=ReqId}) ->
+    NewState = send_msg(#rpbmapredresp{done = 1}, State),
+    inet:setopts(Socket, [{active, once}]),
+    {noreply, NewState#state{req = undefined, req_ctx = undefined}};
+
+handle_info({flow_results, ReqId, {error, Reason}},
+            State=#state{sock = Socket, req=#rpbmapredreq{}, req_ctx=ReqId}) ->
+    NewState = send_error("~p", [Reason], State),
+    inet:setopts(Socket, [{active, once}]),
+    {noreply, NewState#state{req = undefined, req_ctx = undefined}};
+
+handle_info({flow_results, PhaseId, ReqId, Res},
+            State=#state{sock=Socket,
+                         req=#rpbmapredreq{content_type = ContentType}, 
+                         req_ctx=ReqId}) ->
+    case encode_mapred_phase(Res, ContentType) of
+        {error, Reason} ->
+            NewState = send_error("~p", [Reason], State),
+            inet:setopts(Socket, [{active, once}]),
+            {noreply, NewState#state{req = undefined, req_ctx = undefined}};
+        Response ->
+            {noreply, send_msg(#rpbmapredresp{phase=PhaseId, 
+                                              response=Response}, State)}
+    end;
+
+handle_info({flow_error, ReqId, Error},
+            State=#state{sock = Socket, req=#rpbmapredreq{}, req_ctx=ReqId}) ->
+    NewState = send_error("~p", [Error], State),
+    inet:setopts(Socket, [{active, once}]),
+    {noreply, NewState#state{req = undefined, req_ctx = undefined}};
+
 handle_info(_, State) -> % Ignore any late replies from gen_servers/messages from fsms
     {noreply, State}.
 
-terminate(_Reason, _State) -> ok.
+terminate(_Reason, _State) -> 
+    riak_kv_stat:update(pbc_disconnect),
+    ok.
 
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
@@ -145,15 +181,18 @@ process_message(#rpbputreq{bucket=B, key=K, vclock=PbVC, content=RpbContent,
     O0 = riak_object:new(B, K, <<>>),  
     O1 = update_rpbcontent(O0, RpbContent),
     O  = update_pbvc(O1, PbVC),
-
-    case C:put(O, default_w(W), default_dw(DW)) of
+    % erlang_protobuffs encodes as 1/0/undefined
+    Options = case ReturnBody of 1 -> [returnbody]; _ -> [] end,
+    case C:put(O, default_w(W), default_dw(DW), default_timeout(), Options) of
         ok ->
-            case ReturnBody of % erlang_protobuffs encodes as 1/0/undefined
-                1 ->
-                    send_put_return_body(B, K, State);
-                _ ->
-                    send_msg(#rpbputresp{}, State)
-            end;
+            send_msg(#rpbputresp{}, State);
+        {ok, Obj} ->
+            PbContents = riakc_pb:pbify_rpbcontents(riak_object:get_contents(Obj), []),
+            PutResp = #rpbputresp{contents = PbContents,
+                                  vclock = pbify_rpbvc(riak_object:vclock(Obj))},
+            send_msg(PutResp, State);
+        {error, notfound} ->
+            send_msg(#rpbputresp{}, State);            
         {error, Reason} ->
             send_error("~p", [Reason], State)
     end;
@@ -185,22 +224,54 @@ process_message(#rpblistkeysreq{bucket=B}=Req,
     %% will be processed by handle_info, it will 
     %% set socket active again on completion of streaming.
     {ok, ReqId} = C:stream_list_keys(B),
-    {pause, State#state{req = Req, req_ctx = ReqId}}.
+    {pause, State#state{req = Req, req_ctx = ReqId}};
 
-%% @private
-%% @doc if return_body was requested, call the client to get it and return
-send_put_return_body(B, K, State=#state{client = C}) ->
-    case C:get(B, K, default_r(undefined)) of
-        {ok, O} ->
-            PbContents = riakc_pb:pbify_rpbcontents(riak_object:get_contents(O), []),
-            PutResp = #rpbputresp{contents = PbContents,
-                                  vclock = pbify_rpbvc(riak_object:vclock(O))},
-            send_msg(PutResp, State);
-        {error, notfound} ->
-            %% User may have NRW set so this is possible - send the same as a get not found
-            send_msg(#rpbputresp{}, State);
+%% Get bucket properties
+process_message(#rpbgetbucketreq{bucket=B}, 
+                #state{client=C} = State) ->
+    Props = C:get_bucket(B),
+    PbProps = riakc_pb:pbify_rpbbucketprops(Props),
+    send_msg(#rpbgetbucketresp{props = PbProps}, State);
+
+%% Set bucket properties
+process_message(#rpbsetbucketreq{bucket=B, props = PbProps}, 
+                #state{client=C} = State) ->
+    Props = riakc_pb:erlify_rpbbucketprops(PbProps),
+    ok = C:set_bucket(B, Props),
+    send_msg(rpbsetbucketresp, State);
+
+%% Start map/reduce job - results will be processed in handle_info
+process_message(#rpbmapredreq{request=MrReq, content_type=ContentType}=Req, 
+                #state{client=C} = State) ->
+
+    case decode_mapred_query(MrReq, ContentType) of
         {error, Reason} ->
-            send_error("~p", [Reason], State)
+            send_error("~p", [Reason], State);
+
+        {ok, Inputs, Query, Timeout} ->
+            if is_list(Inputs) ->
+                    case C:mapred_stream(Query, self(), Timeout) of
+                        {stop, Error} ->
+                            send_error("~p", [Error], State);
+                        
+                        {ok, {ReqId, FSM}} ->
+                            luke_flow:add_inputs(FSM, Inputs),
+                            luke_flow:finish_inputs(FSM),
+                            %% Pause incoming packets - map/reduce results
+                            %% will be processed by handle_info, it will 
+                            %% set socket active again on completion of streaming.
+                            {pause, State#state{req = Req, req_ctx = ReqId}}
+                    end;
+               is_binary(Inputs) ->
+                    case C:mapred_bucket_stream(Inputs, Query, 
+                                                self(), Timeout) of
+                        {stop, Error} ->
+                            send_error("~p", [Error], State);
+
+                        {ok, ReqId} ->
+                            {pause, State#state{req = Req, req_ctx = ReqId}}
+                    end
+            end
     end.
 
 %% Send a message to the client
@@ -253,6 +324,9 @@ default_rw(undefined) ->
     2;
 default_rw(RW) ->
     RW.
+
+default_timeout() ->
+    60000.
         
 %% Convert a vector clock to erlang
 erlify_rpbvc(undefined) ->
@@ -269,4 +343,21 @@ pbify_rpbvc(Vc) ->
 get_riak_version() ->
     {ok, Vsn} = application:get_key(riak_kv, vsn),
     riakc_pb:to_binary(Vsn).
+
+%% Decode a mapred query
+%% {ok, ParsedInputs, ParsedQuery, Timeout};
+decode_mapred_query(Query, <<"application/json">>) ->
+    riak_kv_mapred_json:parse_request(Query);
+decode_mapred_query(Query, <<"application/x-erlang-binary">>) ->
+    riak_kv_mapred_term:parse_request(Query);
+decode_mapred_query(_Query, ContentType) ->
+    {error, {unknown_content_type, ContentType}}.
+
+%% Convert a map/reduce phase to the encoding requested
+encode_mapred_phase(Res, <<"application/json">>) ->
+    mochijson2:encode(Res);
+encode_mapred_phase(Res, <<"application/x-erlang-binary">>) ->
+    term_to_binary(Res);
+encode_mapred_phase(_Res, ContentType) ->
+    {error, {unknown_content_type, ContentType}}.
 

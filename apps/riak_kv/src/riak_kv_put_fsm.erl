@@ -25,8 +25,8 @@
 -module(riak_kv_put_fsm).
 -include_lib("eunit/include/eunit.hrl").
 -behaviour(gen_fsm).
-
--export([start/6]).
+-define(DEFAULT_OPTS, [{returnbody, false}]).
+-export([start/6,start/7]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 -export([initialize/2,waiting_vnode_w/2,waiting_vnode_dw/2]).
@@ -48,25 +48,57 @@
                 timeout :: pos_integer(),
                 tref    :: reference(),
                 ring :: riak_core_ring:riak_core_ring(),
-                startnow :: {pos_integer(), pos_integer(), pos_integer()}
+                startnow :: {pos_integer(), pos_integer(), pos_integer()},
+                options :: list(),
+                returnbody :: boolean(),
+                resobjs :: list(),
+                allowmult :: boolean(),
+                reply_arity :: 1 | 2
                }).
 
 start(ReqId,RObj,W,DW,Timeout,From) ->
-    gen_fsm:start(?MODULE, [ReqId,RObj,W,DW,Timeout,From], []).
+    start(ReqId,RObj,W,DW,Timeout,From,?DEFAULT_OPTS).
+
+start(ReqId,RObj,W,DW,Timeout,From,Options) ->
+    gen_fsm:start(?MODULE, [ReqId,RObj,W,DW,Timeout,From,Options], []).
 
 %% @private
-init([ReqId,RObj0,W,DW,Timeout,Client]) ->
+init([ReqId,RObj0,W,DW,Timeout,Client,Options0]) ->
+    Options = case Options0 of [] -> ?DEFAULT_OPTS; _ -> Options0 end,
     {ok,Ring} = riak_core_ring_manager:get_my_ring(),
+    BucketProps = riak_core_bucket:get_bucket(riak_object:bucket(RObj0), Ring),
+    AllowMult = proplists:get_value(allow_mult,BucketProps),
     {ok, RClient} = riak:local_client(),
-    StateData = #state{robj=RObj0, client=Client, w=W, dw=DW,
-                       req_id=ReqId, timeout=Timeout, ring=Ring,
-                       rclient=RClient},
-
+    Bucket = riak_object:bucket(RObj0),
+    Key = riak_object:key(RObj0),    
+    StateData0 = #state{robj=RObj0, client=Client, w=W, dw=DW, bkey={Bucket, Key},
+                        req_id=ReqId, timeout=Timeout, ring=Ring,
+                        rclient=RClient, options=proplists:unfold(Options),
+                        resobjs=[], allowmult=AllowMult, reply_arity=1},
+    StateData = handle_options(StateData0),
     {ok,initialize,StateData,0}.
 
 %% @private
+handle_options(State=#state{options=Options}) ->
+    handle_options(Options, State).
+%% @private
+handle_options([], State) -> 
+    State;
+handle_options([{returnbody, true}|T], State=#state{w=W}) ->
+    handle_options(T, State#state{returnbody=true,dw=W, reply_arity=2});
+handle_options([{returnbody, false}|T], State) ->
+    case has_postcommit_hooks(element(1,State#state.bkey)) of
+        true ->
+            handle_options(T, State#state{returnbody=true});
+        false ->
+            handle_options(T, State#state{returnbody=false})
+    end;
+handle_options([{_,_}|T], State) -> handle_options(T, State).
+
+%% @private
 initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
-                                      timeout=Timeout, ring=Ring, rclient=RClient}) ->
+                                      timeout=Timeout, ring=Ring, bkey={Bucket,Key},
+                                      rclient=RClient, options=Options}) ->
     case invoke_hook(precommit, RClient, update_metadata(RObj0)) of
         fail ->
             Client ! {ReqId, {error, precommit_fail}},
@@ -78,11 +110,9 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
             StartNow = now(),
             TRef = erlang:send_after(Timeout, self(), timeout),
             RealStartTime = riak_core_util:moment(),
-            Bucket = riak_object:bucket(RObj1),
             BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
-            Key = riak_object:key(RObj1),
             DocIdx = riak_core_util:chash_key({Bucket, Key}),
-            Msg = {self(), {Bucket,Key}, RObj1, ReqId, RealStartTime},
+            Msg = {self(), {Bucket,Key}, RObj1, ReqId, RealStartTime, Options},
             N = proplists:get_value(n_val,BucketProps),
             Preflist = riak_core_ring:preflist(DocIdx, Ring),
             {Targets, Fallbacks} = lists:split(N, Preflist),
@@ -92,7 +122,7 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
                        false -> Sent1 ++ riak_kv_util:fallback(vnode_put,Msg,Pangs1,Fallbacks)
                    end,
             StateData = StateData0#state{
-                          robj=RObj1, n=N, preflist=Preflist, bkey={Bucket,Key},
+                          robj=RObj1, n=N, preflist=Preflist,
                           waiting_for=Sent, starttime=riak_core_util:moment(),
                           replied_w=[], replied_dw=[], replied_fail=[],
                           tref=TRef,startnow=StartNow},
@@ -100,22 +130,18 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
     end.
 
 waiting_vnode_w({w, Idx, ReqId},
-                StateData=#state{w=W,dw=DW,req_id=ReqId,client=Client,
-                                 replied_w=Replied0, rclient=RClient,
-                                 robj=RObj}) ->
+                StateData=#state{w=W,dw=DW,req_id=ReqId,client=Client,replied_w=Replied0}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= W of
         true ->
             case DW of
                 0 ->
                     Client ! {ReqId, ok},
-                    invoke_hook(postcommit, RClient, RObj),
                     update_stats(StateData),
                     {stop,normal,StateData};
                 _ ->
                     NewStateData = StateData#state{replied_w=Replied},
                     {next_state,waiting_vnode_dw,NewStateData}
-
             end;
         false ->
             NewStateData = StateData#state{replied_w=Replied},
@@ -125,6 +151,12 @@ waiting_vnode_w({dw, Idx, _ReqId},
                   StateData=#state{replied_dw=Replied0}) ->
     Replied = [Idx|Replied0],
     NewStateData = StateData#state{replied_dw=Replied},
+    {next_state,waiting_vnode_w,NewStateData};
+waiting_vnode_w({dw, Idx, ResObj, _ReqId},
+                  StateData=#state{replied_dw=Replied0, resobjs=ResObjs0}) ->
+    Replied = [Idx|Replied0],
+    ResObjs = [ResObj|ResObjs0],
+    NewStateData = StateData#state{replied_dw=Replied, resobjs=ResObjs},
     {next_state,waiting_vnode_w,NewStateData};
 waiting_vnode_w({fail, Idx, ReqId},
                   StateData=#state{n=N,w=W,client=Client,
@@ -148,17 +180,33 @@ waiting_vnode_dw({w, _Idx, ReqId},
           StateData=#state{req_id=ReqId}) ->
     {next_state,waiting_vnode_dw,StateData};
 waiting_vnode_dw({dw, Idx, ReqId},
-                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0,
-                                  rclient=RClient, robj=RObj}) ->
+                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of
         true ->
             Client ! {ReqId, ok},
-            invoke_hook(postcommit, RClient, RObj),
             update_stats(StateData),
             {stop,normal,StateData};
         false ->
             NewStateData = StateData#state{replied_dw=Replied},
+            {next_state,waiting_vnode_dw,NewStateData}
+    end;
+waiting_vnode_dw({dw, Idx, ResObj, ReqId},
+                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0, 
+                                  allowmult=AllowMult, reply_arity=ReplyArity,
+                                  rclient=RClient, resobjs=ResObjs0}) ->
+    Replied = [Idx|Replied0],
+    ResObjs = [ResObj|ResObjs0],
+    case length(Replied) >= DW of
+        true ->
+            ReplyObj = merge_robjs(ResObjs, AllowMult),
+            Reply = case ReplyArity of 1 -> ok; 2 -> {ok, ReplyObj} end,
+            Client ! {ReqId, Reply},
+            invoke_hook(postcommit, RClient, ReplyObj),
+            update_stats(StateData),
+            {stop,normal,StateData};
+        false ->
+            NewStateData = StateData#state{replied_dw=Replied,resobjs=ResObjs},
             {next_state,waiting_vnode_dw,NewStateData}
     end;
 waiting_vnode_dw({fail, Idx, ReqId},
@@ -285,3 +333,15 @@ invoke_hook(postcommit, undefined, undefined, _JSName, _Obj) ->
 %% NOP to handle all other cases
 invoke_hook(_, _, _, _, RObj) ->
     RObj.
+
+merge_robjs(RObjs0,AllowMult) ->
+    RObjs1 = [X || X <- [riak_kv_util:obj_not_deleted(O) ||
+                            O <- RObjs0], X /= undefined],
+    case RObjs1 of
+        [] -> {error, notfound};
+        _ -> riak_object:reconcile(RObjs1,AllowMult)
+    end.
+
+has_postcommit_hooks(Bucket) ->
+    proplists:get_all_values(postcommit, riak_core_bucket:get_bucket(Bucket)) /= [].
+

@@ -60,6 +60,7 @@
          %% Default bucket props
          {default_bucket_props, [{n_val,3},
                                  {allow_mult,false},
+                                 {last_write_wins,false},
                                  {precommit, []},
                                  {postcommit, []},
                                  {chash_keyfun, {riak_core_util, chash_std_keyfun}}]}

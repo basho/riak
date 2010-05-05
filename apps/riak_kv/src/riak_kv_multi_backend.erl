@@ -183,6 +183,27 @@ simple_test() ->
     Config = sample_config(),
     riak_kv_test_util:standard_backend_test(riak_kv_multi_backend, Config).
 
+-ifdef(EQC).
+%% @private
+eqc_test() ->
+    % Start the ring manager...
+    crypto:start(),
+    riak_core_ring_events:start_link(),
+    riak_core_ring_manager:start_link(test),
+    
+    % Set some buckets...
+    application:load(riak_core), % make sure default_bucket_props is set
+    riak_core_bucket:set_bucket(<<"b1">>, [{backend, first_backend}]),
+    riak_core_bucket:set_bucket(<<"b2">>, [{backend, second_backend}]),
+
+    % Run the standard backend test... sample is volatile as it uses
+    % gb_trees and ets
+    Config = sample_config(),
+    ?assertEqual(true, backend_eqc:test(?MODULE, true, Config)).
+
+-endif. % EQC
+
+
 get_backend_test() ->
     % Start the ring manager...
     crypto:start(),

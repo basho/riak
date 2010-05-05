@@ -47,9 +47,9 @@ handle_cast({vnode_map, {Partition,_Node},
     gen_fsm:send_event(Pid, {map, ClientPid, QTerm, BKey, KeyData}),
     {noreply, State};
 handle_cast({vnode_put, {Partition,_Node},
-             {FSM_pid,BKey,RObj,ReqID,FSMTime}}, State) ->
+             {FSM_pid,BKey,RObj,ReqID,FSMTime,Options}}, State) ->
     Pid = get_vnode(Partition, State),
-    gen_fsm:send_event(Pid, {put, FSM_pid, BKey, RObj, ReqID, FSMTime}),
+    gen_fsm:send_event(Pid, {put, FSM_pid, BKey, RObj, ReqID, FSMTime,Options}),
     {noreply, State};
 handle_cast({vnode_get, {Partition,_Node},
              {FSM_pid,BKey,ReqID}}, State) ->

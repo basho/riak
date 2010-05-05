@@ -417,8 +417,8 @@ content_types_provided(RD, Ctx0) ->
     case DocCtx#ctx.doc of
         {ok, _} ->
             case select_doc(DocCtx) of
-                {MD, _} ->
-                    {[{dict:fetch(?MD_CTYPE, MD), produce_doc_body}], RD, DocCtx};
+                {MD, V} ->
+                    {[{get_ctype(MD,V), produce_doc_body}], RD, DocCtx};
                 multiple_choices ->
                     {[{"text/plain", produce_sibling_message_body},
                       {"multipart/mixed", produce_multipart_body}], RD, DocCtx}
@@ -759,23 +759,19 @@ accept_doc_body(RD, Ctx=#ctx{bucket=B, key=K, client=C, links=L}) ->
     LinkMD = dict:store(?MD_LINKS, L, EncMD),
     UserMetaMD = dict:store(?MD_USERMETA, UserMeta, LinkMD),
     MDDoc = riak_object:update_metadata(VclockDoc, UserMetaMD),
-    Doc = riak_object:update_value(MDDoc, wrq:req_body(RD)),
-    case C:put(Doc, Ctx#ctx.w, Ctx#ctx.dw) of
+    Doc = riak_object:update_value(MDDoc, accept_value(CType, wrq:req_body(RD))),
+    Options = case wrq:get_qs_value(?Q_RETURNBODY, RD) of ?Q_TRUE -> [returnbody]; _ -> [] end,
+    case C:put(Doc, Ctx#ctx.w, Ctx#ctx.dw, 60000, Options) of
         {error, precommit_fail} ->
             {{halt, 403}, send_precommit_error(RD, undefined), Ctx};
         {error, {precommit_fail, Reason}} ->
             {{halt, 403}, send_precommit_error(RD, Reason), Ctx};
         ok ->
-            %% If returnbody=true is specified, then send the body back.
-            case wrq:get_qs_value(?Q_RETURNBODY, RD) of
-                ?Q_TRUE ->
-                    R = Ctx#ctx.w, % R won't be available, use the same setting as W.
-                    DocCtx = Ctx#ctx{doc=C:get(B, K, R)},
-                    HasSiblings = (select_doc(DocCtx) == multiple_choices),
-                    send_returnbody(RD, DocCtx, HasSiblings);
-                _ ->
-                    {true, RD, Ctx#ctx{doc = {ok, Doc}}}
-            end
+            {true, RD, Ctx#ctx{doc={ok, Doc}}};
+        {ok, RObj} ->
+            DocCtx = Ctx#ctx{doc={ok, RObj}},
+            HasSiblings = (select_doc(DocCtx) == multiple_choices),
+            send_returnbody(RD, DocCtx, HasSiblings)
     end.
 
 %% Handle the no-sibling case. Just send the object.
@@ -875,7 +871,7 @@ produce_doc_body(RD, Ctx) ->
                                         LinkRD, UserMeta);
                         error -> LinkRD
                     end,
-            {Doc, encode_vclock_header(UserMetaRD, Ctx), Ctx};
+            {encode_value(Doc), encode_vclock_header(UserMetaRD, Ctx), Ctx};
         multiple_choices ->
             throw({unexpected_code_path, ?MODULE, produce_doc_body, multiple_choices})
     end.
@@ -922,7 +918,7 @@ multipart_encode_body(Prefix, Bucket, {MD, V}) ->
                                   {ok, Ls} -> Ls;
                                   error -> []
                               end]])),
-    [?HEAD_CTYPE, ": ",dict:fetch(?MD_CTYPE, MD),
+    [?HEAD_CTYPE, ": ",get_ctype(MD,V),
      case dict:find(?MD_CHARSET, MD) of
          {ok, CS} -> ["; charset=",CS];
          error -> []
@@ -951,7 +947,7 @@ multipart_encode_body(Prefix, Bucket, {MD, V}) ->
                         [], M);
          error -> []
      end,
-     "\r\n",V].
+     "\r\n",encode_value(V)].
 
 
 %% @spec select_doc(context()) -> {metadata(), value()}|multiple_choices
@@ -1116,6 +1112,34 @@ get_link_heads(RD, #ctx{prefix=Prefix, bucket=B}) ->
               end,
               lists:delete(BucketLink, string:tokens(Heads, ",")))
     end.
+
+%% @spec get_ctype(dict(), term()) -> string()
+%% @doc Work out the content type for this object - use the metadata if provided
+get_ctype(MD,V) ->
+    case dict:find(?MD_CTYPE, MD) of
+        {ok, Ctype} ->
+            Ctype;
+        error when is_binary(V) ->
+            "application/octet-stream";
+        error ->
+            "application/x-erlang-binary"
+    end.
+
+%% @spec encode_value(term()) -> binary()
+%% @doc Encode the object value as a binary - content type can be used
+%%      to decode
+encode_value(V) when is_binary(V) ->
+    V;
+encode_value(V) ->
+    term_to_binary(V).
+    
+%% @spec accept_value(binary()) -> term()
+%% @doc Accept the object value as a binary - content type can be used
+%%      to decode
+accept_value("application/x-erlang-binary",V) ->
+    binary_to_term(V);
+accept_value(_Ctype, V) ->
+    V.
 
 any_to_list(V) when is_list(V) ->
     V;
