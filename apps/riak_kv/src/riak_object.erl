@@ -24,6 +24,7 @@
 
 -module(riak_object).
 -include_lib("eunit/include/eunit.hrl").
+-include("riak_kv_wm_raw.hrl").
 
 -record(r_content, {
           metadata :: dict(),
@@ -47,7 +48,7 @@
 %% @type bkey()={bucket(),key()}
 %% @type value()=term().
 
--export([new/3, ancestors/1, reconcile/2, increment_vclock/2, equal/2]).
+-export([new/3, new/4, ancestors/1, reconcile/2, increment_vclock/2, equal/2]).
 -export([key/1, get_metadata/1, get_metadatas/1, get_values/1, get_value/1]).
 -export([vclock/1, update_value/2, update_metadata/2, bucket/1, value_count/1]).
 -export([get_update_metadata/1, get_update_value/1, get_contents/1]).
@@ -58,11 +59,21 @@
 %% @spec new(Bucket::bucket(), Key::key(), Value::value()) -> riak_object()
 %% @doc Constructor for new riak objects.
 new(B, K, V) when is_binary(B), is_binary(K) ->
+    new(B, K, V, dict:new()).
+
+%% @spec new(Bucket::bucket(), Key::key(), Value::value(), ContentType::string()) -> riak_object()
+%% @doc Constructor for new riak objects with an initial content-type.
+new(B, K, V, C) when is_binary(B), is_binary(K), is_list(C) ->
+    new(B, K, V, dict:from_list([{?MD_CTYPE, C}]));
+
+%% @spec new(Bucket::bucket(), Key::key(), Value::value(), Metadata::dict()) -> riak_object()
+%% @doc Constructor for new riak objects with an initial metadata dict.
+new(B, K, V, MD) when is_binary(B), is_binary(K), is_tuple(MD) ->
     case size(K) > ?MAX_KEY_SIZE of
         true ->
             throw({error,key_too_large});
         false ->
-            Contents = [#r_content{metadata=dict:new(), value=V}],
+            Contents = [#r_content{metadata=MD, value=V}],
             #r_object{bucket=B,key=K,contents=Contents,vclock=vclock:fresh()}
     end.
 
@@ -406,6 +417,8 @@ syntactic_merge(CurrentObject, NewObject, FromClientId) ->
             end
     end.
 
+-ifdef(TEST).
+
 object_test() ->
     B = <<"buckets_are_binaries">>,
     K = <<"keys are binaries">>,
@@ -591,3 +604,13 @@ remove_duplicates_test() ->
     ?assertEqual(2, length(ND)),
     ?assert(lists:member(O0, ND)),
     ?assert(lists:member(O1, ND)).
+
+new_with_ctype_test() ->
+    O = riak_object:new(<<"b">>, <<"k">>, <<"{\"a\":1}">>, "application/json"),
+    ?assertEqual("application/json", dict:fetch(?MD_CTYPE, riak_object:get_metadata(O))).
+
+new_with_md_test() ->
+    O = riak_object:new(<<"b">>, <<"k">>, <<"abc">>, dict:from_list([{?MD_CHARSET,"utf8"}])),
+    ?assertEqual("utf8", dict:fetch(?MD_CHARSET, riak_object:get_metadata(O))).
+
+-endif.
