@@ -42,45 +42,52 @@
 -endif.
 
 start(Partition, _Config) ->
-    %% Schedule sync interval
-    case application:get_env(bitcask, sync_interval) of
-        {ok, SyncInterval} ->
-            SyncIntervalMs = timer:seconds(SyncInterval),
+    %% Schedule sync (if necessary)
+    case application:get_env(bitcask, sync_strategy) of
+        {ok, {seconds, Seconds}} ->
+            SyncIntervalMs = timer:seconds(Seconds),
             erlang:send_after(SyncIntervalMs, self(),
                               {?MODULE, {sync, SyncIntervalMs}});
-        undefined ->
-            undefined
+        _ ->
+            ok
     end,
 
-    %% Schedule merge interval
-    case application:get_env(bitcask, merge_interval) of
-        {ok, MergeInterval} ->
-            MergeIntervalMs = timer:minutes(MergeInterval),
+    %% Schedule merges
+    case application:get_env(bitcask, merge_strategy) of
+        {ok, {hours, Hours}} ->
+            MergeIntervalMs = timer:hours(Hours),
             erlang:send_after(MergeIntervalMs, self(),
                               {?MODULE, {merge, MergeIntervalMs}});
         undefined ->
             undefined
     end,
-    ConfigRoot = 
+
+    %% Get the data root directory
+    DataDir =
         case application:get_env(bitcask, data_root) of
-            {ok, CR} -> CR;
-            _ -> 
+            {ok, Dir} ->
+                Dir;
+            _ ->
                 riak:stop("bitcask data_root unset, failing")
         end,
-    BitcaskRoot = filename:join([ConfigRoot,
-                                 integer_to_list(Partition)]),
 
+    %% Setup actual bitcask dir for this partition
+    BitcaskRoot = filename:join([DataDir,
+                                 integer_to_list(Partition)]),
     case filelib:ensure_dir(BitcaskRoot) of
-        ok -> ok;
-        _Error ->
-            riak:stop("riak_kv_bitcask_backend could not ensure"
-                      " the existence of its root directory")
+        ok ->
+            ok;
+        {error, Reason} ->
+            error_logger:error_msg("Failed to create bitcask dir ~s: ~p\n",
+                                   [BitcaskRoot, Reason]),
+            riak:stop("riak_kv_bitcask_backend failed to start.")
     end,
+
     case bitcask:open(BitcaskRoot, [{read_write, true}]) of
         Ref when is_reference(Ref) ->
             {ok, {Ref, BitcaskRoot}};
-        {error, Reason} ->
-            {error, Reason}
+        {error, Reason2} ->
+            {error, Reason2}
     end.
 
 
