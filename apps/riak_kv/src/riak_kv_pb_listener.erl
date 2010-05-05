@@ -53,7 +53,6 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 new_connection(Socket, State) ->
     {ok, Pid} = riak_kv_pb_socket_sup:start_socket(Socket),
-    riak_kv_stat:update(pbc_connect),
     ok = gen_tcp:controlling_process(Socket, Pid),
     {ok, State}.
 

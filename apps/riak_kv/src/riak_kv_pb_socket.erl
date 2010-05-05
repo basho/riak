@@ -54,6 +54,7 @@ start_link(Socket) ->
     gen_server2:start_link(?MODULE, [Socket], []).
 
 init([Socket]) -> 
+    riak_kv_stat:update(pbc_connect),
     inet:setopts(Socket, [{active, once}, {packet, 4}, {header, 1}]),
     {ok, C} = riak:local_client(),
     {ok, #state{sock = Socket, client = C}}.
@@ -124,7 +125,9 @@ handle_info({flow_error, ReqId, Error},
 handle_info(_, State) -> % Ignore any late replies from gen_servers/messages from fsms
     {noreply, State}.
 
-terminate(_Reason, _State) -> ok.
+terminate(_Reason, _State) -> 
+    riak_kv_stat:update(pbc_disconnect),
+    ok.
 
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
