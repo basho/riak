@@ -73,6 +73,19 @@ case "$1" in
         $NODETOOL rpc riak_kv_console join $@
         ;;
 
+    leave)
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+
+        shift
+
+        $NODETOOL rpc riak_kv_console leave $@
+        ;;
+
     status)
         # Make sure the local node IS running
         RES=`$NODETOOL ping`
@@ -170,7 +183,7 @@ case "$1" in
 
         ;;
     *)
-        echo "Usage: $SCRIPT { join | backup | restore | test | status | reip | js_reload  }"
+        echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | reip | js_reload  }"
         exit 1
         ;;
 esac
