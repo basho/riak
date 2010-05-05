@@ -73,13 +73,18 @@ case "$1" in
         ;;
 
     add-listener)
-	# Reload all Javascript VMs
+        ACTION=$1
+        shift
+        if [ $# -lt 3 ]; then
+            echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port>"
+            exit 1
+        fi
 	RES=`$NODETOOL ping`
 	if [ "$RES" != "pong" ]; then
 	    echo "Node is not running!"
 	    exit 1
 	fi
-        $NODETOOL rpc riak_repl_console add_listener $@
+        $NODETOOL rpc riak_repl_config add_listener $1 $2 $3
         ;;
 
     del-listener)
