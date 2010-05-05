@@ -31,6 +31,7 @@
              riak_kv_map_phase,
              riak_kv_mapred_json,
              riak_kv_mapred_query,
+             riak_kv_mapred_term,
              riak_kv_mapreduce,
              riak_kv_multi_backend,
              riak_kv_pb_listener,

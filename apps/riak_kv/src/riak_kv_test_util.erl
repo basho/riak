@@ -23,7 +23,8 @@
 %% @doc utilities for test scripts
 
 -module(riak_kv_test_util).
--export([standard_backend_test/2]).
+-export([standard_backend_test/2,
+         call_unused_fsm_funs/1]).
 -include_lib("eunit/include/eunit.hrl").
 
 standard_backend_test(BackendMod, Config) ->
@@ -56,3 +57,13 @@ standard_backend_test(BackendMod, Config) ->
     ?assertEqual(ok, BackendMod:delete(S,{<<"b3">>,<<"k3">>})),
     ?assertEqual(true, BackendMod:is_empty(S)),
     ok = BackendMod:stop(S).
+
+call_unused_fsm_funs(Mod) ->
+    Mod:handle_event(event, statename, state),
+    Mod:handle_sync_event(event, from, stateneame, state),
+    Mod:handle_info(info, statename, statedata),
+    Mod:terminate(reason, statename, state),
+    Mod:code_change(oldvsn, statename, state, extra).
+    
+    
+    

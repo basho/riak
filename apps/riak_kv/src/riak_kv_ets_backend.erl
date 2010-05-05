@@ -140,7 +140,16 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 %%
 %% Test
 %%
+-ifdef(TEST).
 
 % @private
 simple_test() ->
     riak_kv_test_util:standard_backend_test(riak_kv_ets_backend, []).
+
+-ifdef(EQC).
+%% @private
+eqc_test() ->
+    ?assertEqual(true, backend_eqc:test(?MODULE, true)).
+
+-endif. % EQC
+-endif. % TEST
