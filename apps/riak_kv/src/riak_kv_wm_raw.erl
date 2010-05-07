@@ -1110,7 +1110,7 @@ get_link_heads(RD, #ctx{prefix=Prefix, bucket=B}) ->
                         list_to_binary(mochiweb_util:unquote(Key))},
                        list_to_binary(mochiweb_util:unquote(Tag))}
               end,
-              lists:delete(BucketLink, string:tokens(Heads, ",")))
+              lists:delete(BucketLink, [string:strip(T) || T<- string:tokens(Heads, ",")]))
     end.
 
 %% @spec get_ctype(dict(), term()) -> string()
