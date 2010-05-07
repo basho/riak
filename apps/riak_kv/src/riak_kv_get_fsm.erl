@@ -220,7 +220,7 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
 maybe_do_read_repair(Sent,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
     Targets = ancestor_indices(Final, RepliedR) ++ NotFound,
     {ok, FinalRObj} = Final,
-    Msg = {self(), BKey, FinalRObj, ReqId, StartTime},
+    Msg = {self(), BKey, FinalRObj, ReqId, StartTime, [{returnbody, false}]},
     case Targets of
         [] -> nop;
         _ ->
