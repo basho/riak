@@ -85,6 +85,7 @@ ensure_repl_config(Ring) ->
     end.
 
 ensure_listeners(Ring) ->    
+    io:format("ensure: ~p~n", [Ring]),
     {ok, ReplConfig} = riak_core_ring:get_meta(?MODULE, Ring),
     LocalListeners = dict:fetch(local_listeners, ReplConfig),
     ToStart = [{IP, Port} || {Node, {IP, Port}} <- LocalListeners, 
@@ -92,6 +93,6 @@ ensure_listeners(Ring) ->
     case ToStart of 
         [] -> nop;
         [{IP, Port}] -> 
-            io:format("should start listener on ~p:~p~n", [IP, Port])
-            %%riak_repl_sup:start_listener(IP, Port)
+            R = riak_repl_listener_sup:start_listener(IP, Port),
+            io:format("listener start result: ~p~n", [R])
     end.
