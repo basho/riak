@@ -53,13 +53,11 @@ handle_DOWN(_Node, State, _Election) ->
     {ok, State}.
 
 handle_info(_Info, State) ->
-    io:format("~p~n", [_Info]),
     {noreply, State}.
 
 terminate(_Reason, _State) -> ok.
 
 code_change(_OldVsn, State, _Election, _Extra) ->
-    error_logger:info_msg("Code CHange!!!"),
     {ok, State}.
 
   
