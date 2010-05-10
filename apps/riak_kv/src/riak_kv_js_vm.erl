@@ -70,7 +70,6 @@ init([Manager]) ->
 
 %% Reduce phase with anonymous function
 handle_call({dispatch, _JobId, {{jsanon, JS}, Reduced, Arg}}, _From, #state{ctx=Ctx}=State) ->
-    Start = erlang:now(),
     {Reply, UpdatedState} = case define_anon_js(JS, State) of
                                 {ok, FunName, NewState} ->
                                     case invoke_js(Ctx, FunName, [Reduced, Arg]) of
@@ -82,7 +81,6 @@ handle_call({dispatch, _JobId, {{jsanon, JS}, Reduced, Arg}}, _From, #state{ctx=
                                 {Error, undefined, NewState} ->
                                     {Error, NewState}
                             end,
-    End = erlang:now(),
     {reply, Reply, UpdatedState};
 %% Reduce phase with named function
 handle_call({dispatch, _JobId, {{jsfun, JS}, Reduced, Arg}}, _From, #state{ctx=Ctx}=State) ->
@@ -102,7 +100,6 @@ handle_cast(reload, #state{ctx=Ctx}=State) ->
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc},
                                             Value,
                                             KeyData, _BKey}}, #state{ctx=Ctx}=State) ->
-    Start = erlang:now(),
     {Result, UpdatedState} = case define_anon_js(JS, State) of
                                 {ok, FunName, NewState} ->
                                     JsonValue = riak_object:to_json(Value),
@@ -116,7 +113,6 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc
                                 {Error, undefined, NewState} ->
                                     {Error, NewState}
                             end,
-    End = erlang:now(),
     case Result of
         {ok, ReturnValue} ->
             gen_fsm:send_event(FsmPid, {mapexec_reply, ReturnValue, Requestor}),
