@@ -128,11 +128,7 @@ simple_test() ->
 %% @private
 eqc_test_() ->
     {timeout, 60,
-     [{"eqc test",
-       ?_test(
-          begin
-              eqc_test_inner()
-           end)}]}.
+     [{"eqc test", ?_test(eqc_test_inner())}]}.
 
 %% @private
 eqc_test_inner() ->
