@@ -7,7 +7,6 @@
 -export([add_site/1, add_site/3]).
 -record(state, {ring}).
 
-
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
@@ -15,10 +14,8 @@ init([]) -> {ok, do_initialize(#state{})}.
 
 set_ring(Ring) -> gen_server:cast(?MODULE, {set_ring, Ring}).
 
-
 add_listener([NodeName, ListenIP, Port]) ->
     add_listener(list_to_atom(NodeName), ListenIP, list_to_integer(Port)).
-
 
 add_listener(NodeName, ListenIP, Port) ->
     gen_server:call(?MODULE, {add_local_listener, NodeName, ListenIP, Port}).
@@ -37,7 +34,6 @@ handle_call({add_site, IPAddr, PortNum, SiteName}, _From, State) ->
     {Reply, NewState} = 
         handle_add_site(IPAddr, PortNum, SiteName, State),
     {reply, Reply, NewState}.
-
 
 handle_cast({set_ring, Ring}, State) -> {noreply, handle_set_ring(Ring, State)}.
 handle_info(_Info, State) -> {noreply, State}.
@@ -88,7 +84,7 @@ handle_add_site(IPAddr, PortNum, SiteName, State=#state{ring=Ring}) ->
             undefined -> 
                 [{SiteName, {IPAddr, PortNum}}|Sites];
             _ ->
-                [{SiteName, {IPAddr, PortNum}}|proplists:delete(SiteName, Sites)]
+                [{SiteName,{IPAddr,PortNum}}|proplists:delete(SiteName, Sites)]
         end,
     NewRing = case NewSites =:= Sites of
         true -> 
@@ -107,8 +103,6 @@ handle_add_site(IPAddr, PortNum, SiteName, State=#state{ring=Ring}) ->
     ensure_connectors(NewRing),
     {ok, State#state{ring=NewRing}}.
     
-                       
-
 initial_config() ->
     dict:from_list(
       [{local_listeners, []},

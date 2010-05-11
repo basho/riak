@@ -7,6 +7,8 @@
                   'riak_repl', 
                   'riak_repl_app', 
                   'riak_repl_config',
+                  'riak_repl_connector',
+                  'riak_repl_connector_sup',
                   'riak_repl_events',
                   'riak_repl_fsm', 
                   'riak_repl_leader',
