@@ -8,9 +8,9 @@ riak/doc/basic-setup.txt.
 Overview
 ---
 
-To talk to riak, all you need is an Erlang node with riak/ebin in its 
-code path.  Once this shell is up,
-use riak:client_connect/1 to get connected.  The client returned from
+To talk to riak, all you need is an Erlang node with the Riak ebin
+directories in its code path.  Once this shell is up, use
+riak:client_connect/1 to get connected.  The client returned from
 client_connect is defined by the riak_client module, and supports the
 simple functions get, put, delete, and others.
 
@@ -18,17 +18,22 @@ simple functions get, put, delete, and others.
 Starting Your Client Erlang Node
 ---
 
-Riak client nodes must use "long names" and have riak/ebin in their
-code path.  The easiest way to start a node of this nature is:
+Riak client nodes must use "long names" and have the Riak ebin
+directoriess in their code path.  The easiest way to start a node of
+this nature is:
 
-$ erl -name myclient@127.0.0.1 -setcookie cookie -pa $PATH_TO_RIAK/ebin 
+$ export ERL_LIBS=$PATH_TO_RIAK/apps
+$ erl -name myclient@127.0.0.1 -setcookie cookie
+
+Note: If you are using a precompiled version of Riak your ERL_LIBS
+would be /usr/lib/riak/lib
 
 You'll know you've done this correctly if you can execute the
 following commands and get a path to a beam file, instead of the atom
 'non_existing':
 
 (myclient@127.0.0.1)1> code:which(riak).
-"../riak/ebin/riak.beam"
+"../riak_kv/ebin/riak.beam"
 
 Connecting
 ---

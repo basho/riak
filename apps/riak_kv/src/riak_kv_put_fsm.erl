@@ -89,6 +89,7 @@ handle_options([{returnbody, true}|T], State=#state{w=W}) ->
 handle_options([{returnbody, false}|T], State=#state{w=W}) ->
     case has_postcommit_hooks(element(1,State#state.bkey)) of
         true ->
+            io:format("has post commit hooks~n"),
             Options = [{returnbody, true}],
             handle_options(T, State#state{options=Options,
                                           returnbody=true,
@@ -347,5 +348,5 @@ merge_robjs(RObjs0,AllowMult) ->
     end.
 
 has_postcommit_hooks(Bucket) ->
-    proplists:get_all_values(postcommit, riak_core_bucket:get_bucket(Bucket)) /= [].
+    lists:flatten(proplists:get_all_values(postcommit, riak_core_bucket:get_bucket(Bucket))) /= [].
 
