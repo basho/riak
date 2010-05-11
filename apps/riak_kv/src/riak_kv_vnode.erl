@@ -321,11 +321,11 @@ syntactic_put_merge(Mod, ModState, BKey, Obj1, ReqId) ->
 
 %% @private
 get_merkle(State=#state{}) ->
-    F = fun(K,V,Acc) -> merkerl:insert({{K,V}, erlang:phash2(V)}, Acc) end,
+    F = fun(K,V,Acc) -> merkerl:insert({K, erlang:phash2(V)}, Acc) end,
     InitAcc = merkerl:build_tree([]),
     case do_fold(F, InitAcc, State) of
         undefined ->
-            undefined;
+            {ok, term_to_binary(merkerl:build_tree([]))};
         M when is_tuple(M) ->
             {ok, term_to_binary(M, [compressed])}
     end.
