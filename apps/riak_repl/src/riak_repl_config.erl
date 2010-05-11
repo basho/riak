@@ -5,7 +5,7 @@
          terminate/2, code_change/3]).
 -export([set_ring/1, add_listener/1, add_listener/3]).
 -export([add_site/1, add_site/3]).
--record(state, {ring}).
+-record(state, {ring, listeners=[]}).
 
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
@@ -40,13 +40,14 @@ handle_info(_Info, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
-do_initialize(State) ->
-    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-    NewRing = ensure_repl_config(Ring),
-    ensure_listeners(NewRing),
-    State#state{ring=NewRing}.
+do_initialize(State0) ->
+    {ok, Ring0} = riak_core_ring_manager:get_my_ring(),
+    Ring1 = ensure_repl_config(Ring0),
+    State1 = ensure_listeners(Ring1, State0),
+    State2 = ensure_connectors(Ring1, State1),
+    {ok, NewRing} = riak_core_ring_manager:get_my_ring(),
+    State2#state{ring=NewRing}.
 
-handle_set_ring(Ring, State=#state{ring=Ring}) -> State;
 handle_set_ring(Ring, State) -> State#state{ring=Ring}.
 
 handle_add_local_listener(Node, ListenIP, Port, State=#state{ring=Ring}) ->
@@ -71,9 +72,10 @@ handle_add_local_listener(Node, ListenIP, Port, State=#state{ring=Ring}) ->
                                                 ReplConfig),
                                               Ring),
             riak_core_ring_manager:set_my_ring(NR),
+            riak_core_ring_manager:write_ringfile(),
             NR
     end,
-    ensure_listeners(NewRing),
+    ensure_listeners(NewRing, State),
     {ok, State#state{ring=NewRing}}.
 
 handle_add_site(IPAddr, PortNum, SiteName, State=#state{ring=Ring}) ->
@@ -98,9 +100,10 @@ handle_add_site(IPAddr, PortNum, SiteName, State=#state{ring=Ring}) ->
                                                 ReplConfig),
                                            Ring),
             riak_core_ring_manager:set_my_ring(NR),
+            riak_core_ring_manager:write_ringfile(),                      
             NR
     end,
-    ensure_connectors(NewRing),
+    ensure_connectors(NewRing, State),
     {ok, State#state{ring=NewRing}}.
     
 initial_config() ->
@@ -120,17 +123,27 @@ ensure_repl_config(Ring) ->
             Ring
     end.
 
-ensure_connectors(_Ring) ->
-    io:format("ensuring connectors~n").
+ensure_connectors(Ring, State) ->
+    {ok, ReplConfig} = riak_core_ring:get_meta(?MODULE, Ring),
+    Sites = dict:fetch(sites, ReplConfig),
+    riak_repl_leader:ensure_connectors(Sites),
+    State.
 
-ensure_listeners(Ring) ->    
+ensure_listeners(Ring, State=#state{listeners=L}) ->    
     {ok, ReplConfig} = riak_core_ring:get_meta(?MODULE, Ring),
     LocalListeners = dict:fetch(local_listeners, ReplConfig),
     ToStart = [{IP, Port} || {Node, {IP, Port}} <- LocalListeners, 
                              Node =:= node()],
     case ToStart of 
-        [] -> nop;
+        [] -> State;
         [{IP, Port}] -> 
-            R = riak_repl_listener_sup:start_listener(IP, Port),
-            io:format("listener start result: ~p~n", [R])
+            case proplists:get_value({IP, Port}, L) of
+                undefined ->
+                    {ok, Pid} = riak_repl_listener_sup:start_listener(IP, Port),
+                    State#state{listeners=[{{IP, Port}, Pid}|L]};
+                _ ->
+                    io:format("not starting duplicate listener for ~p",
+                              [{IP, Port}]),
+                    State
+            end
     end.

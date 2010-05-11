@@ -4,6 +4,8 @@
 -export([start_listener/2]).
 
 start_listener(IP, Port) ->
+    error_logger:info_msg("Starting replication listener on ~s:~p~n",
+                          [IP, Port]),
     supervisor:start_child(?MODULE, [IP, Port]).
 
 start_link() ->

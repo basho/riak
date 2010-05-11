@@ -20,6 +20,8 @@
                   'riak_repl_server', 
                   'riak_repl_sink',
                   'riak_repl_sup', 
+                  'riak_repl_tcp_client',
+                  'riak_repl_tcp_server',
                   'riak_repl_util']},
   {applications, [kernel, 
                   stdlib, 
