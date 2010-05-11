@@ -26,6 +26,8 @@
 
 -behaviour(gen_server).
 
+-define(MAX_ANON_FUNS, 25).
+
 %% API
 -export([start_link/1, dispatch/4, blocking_dispatch/3, reload/1]).
 
@@ -35,7 +37,7 @@
 
 -define(SERVER, ?MODULE).
 
--record(state, {manager, ctx, last_mapper, last_reducer}).
+-record(state, {manager, ctx, next_funid=1, anon_funs=[]}).
 
 start_link(Manager) ->
     gen_server:start_link(?MODULE, [Manager], []).
@@ -50,9 +52,15 @@ reload(VMPid) ->
     gen_server:cast(VMPid, reload).
 
 init([Manager]) ->
-    error_logger:info_msg("Spidermonkey VM host starting (~p)~n", [self()]),
-    case new_context() of
+    HeapSize = case app_helper:get_env(riak_kv, js_max_vm_mem, 8) of
+                   N when is_integer(N) ->
+                       N;
+                   _ ->
+                       8
+               end,
+    case new_context(HeapSize) of
         {ok, Ctx} ->
+            error_logger:info_msg("Spidermonkey VM (max heap: ~pMB) host starting (~p)~n", [HeapSize, self()]),
             riak_kv_js_manager:add_to_manager(),
             erlang:monitor(process, Manager),
             {ok, #state{manager=Manager, ctx=Ctx}};
@@ -62,18 +70,18 @@ init([Manager]) ->
 
 %% Reduce phase with anonymous function
 handle_call({dispatch, _JobId, {{jsanon, JS}, Reduced, Arg}}, _From, #state{ctx=Ctx}=State) ->
-    {Result, NewState} = case define_anon_js(reduce, JS, State) of
-                             {ok, State1} ->
-                                 case invoke_js(Ctx, <<"riakReducer">>, [Reduced, Arg]) of
-                                     {ok, R} ->
-                                         {{ok, R}, State1};
-                                     Error ->
-                                         {Error, State}
-                                 end;
-                             {Error, State1} ->
-                                 {Error, State1}
-                         end,
-    {reply, Result, NewState};
+    {Reply, UpdatedState} = case define_anon_js(JS, State) of
+                                {ok, FunName, NewState} ->
+                                    case invoke_js(Ctx, FunName, [Reduced, Arg]) of
+                                        {ok, R} ->
+                                            {{ok, R}, NewState};
+                                        Error ->
+                                            {Error, State}
+                                    end;
+                                {Error, undefined, NewState} ->
+                                    {Error, NewState}
+                            end,
+    {reply, Reply, UpdatedState};
 %% Reduce phase with named function
 handle_call({dispatch, _JobId, {{jsfun, JS}, Reduced, Arg}}, _From, #state{ctx=Ctx}=State) ->
     {reply, invoke_js(Ctx, JS, [Reduced, Arg]), State};
@@ -92,27 +100,28 @@ handle_cast(reload, #state{ctx=Ctx}=State) ->
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc},
                                             Value,
                                             KeyData, _BKey}}, #state{ctx=Ctx}=State) ->
-    {Result, NewState} = case define_anon_js(map, JS, State) of
-                             {ok, State1} ->
-                                 JsonValue = riak_object:to_json(Value),
-                                 JsonArg = jsonify_arg(Arg),
-                                 case invoke_js(Ctx, <<"riakMapper">>, [JsonValue, KeyData, JsonArg]) of
-                                     {ok, R} ->
-                                         {{ok, R}, State1};
-                                     Error ->
-                                         {Error, State}
-                                 end;
-                             {_, _}=Error->
-                                 Error
-                         end,
+    {Result, UpdatedState} = case define_anon_js(JS, State) of
+                                {ok, FunName, NewState} ->
+                                    JsonValue = riak_object:to_json(Value),
+                                    JsonArg = jsonify_arg(Arg),
+                                    case invoke_js(Ctx, FunName, [JsonValue, KeyData, JsonArg]) of
+                                        {ok, R} ->
+                                            {{ok, R}, NewState};
+                                        Error ->
+                                            {Error, State}
+                                    end;
+                                {Error, undefined, NewState} ->
+                                    {Error, NewState}
+                            end,
     case Result of
         {ok, ReturnValue} ->
             gen_fsm:send_event(FsmPid, {mapexec_reply, ReturnValue, Requestor}),
-            {noreply, NewState};
+            {noreply, UpdatedState};
         ErrorResult ->
             gen_fsm:send_event(FsmPid, {mapexec_error_noretry, Requestor, ErrorResult}),
             {noreply, State}
     end;
+
 %% Map phase with named function
 handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsfun, JS}, Arg, _Acc},
                                             Value,
@@ -168,35 +177,31 @@ invoke_js(Ctx, Js, Args) ->
             {error, bad_encoding}
     end.
 
-define_anon_js(Name, JS, #state{ctx=Ctx, last_mapper=LastMapper, last_reducer=LastReducer}=State) ->
+define_anon_js(JS, #state{ctx=Ctx, anon_funs=AnonFuns, next_funid=NextFunId}=State) ->
     Hash = erlang:phash2(JS),
-    {OldHash, FunName} = if
-                             Name == map ->
-                                 {LastMapper, <<"riakMapper">>};
-                             true ->
-                                 {LastReducer, <<"riakReducer">>}
-                         end,
-    if
-        Hash == OldHash ->
-            {ok, State};
-        true ->
-            case js:define(Ctx, list_to_binary([<<"var ">>, FunName, <<" = ">>, JS, <<";">>])) of
-                ok ->
-                    if
-                        Name == map ->
-                            {ok, State#state{last_mapper=Hash}};
+    case proplists:get_value(Hash, AnonFuns) of
+        undefined ->
+            FunId = case NextFunId > ?MAX_ANON_FUNS of
                         true ->
-                            {ok, State#state{last_reducer=Hash}}
-                    end;
-                {error, _}=Error ->
-                    error_logger:warning_msg("Error defining Javascript expression: ~p~n", [Error]),
-                    {Error, State}
-            end
+                            1;
+                        false ->
+                            NextFunId
+                    end,
+            FunName = list_to_binary("riakAnon" ++ integer_to_list(FunId)),
+            case js:define(Ctx, list_to_binary([<<"var ">>, FunName, <<"=">>, JS, <<";">>])) of
+                ok ->
+                    {ok, FunName, State#state{anon_funs=[{Hash, FunName}|AnonFuns], next_funid=NextFunId + 1}};
+                Error ->
+                    error_logger:warning_msg("Error defining anonymous Javascript function: ~p~n", [Error]),
+                    {error, undefined, State}
+            end;
+        FunName ->
+            {ok, FunName, State}
     end.
 
-new_context() ->
+new_context(HeapSize) ->
     InitFun = fun(Ctx) -> init_context(Ctx) end,
-    js_driver:new(InitFun).
+    js_driver:new(HeapSize, InitFun).
 
 init_context(Ctx) ->
     load_user_builtins(Ctx),

@@ -86,10 +86,14 @@ handle_options([], State) ->
     State;
 handle_options([{returnbody, true}|T], State=#state{w=W}) ->
     handle_options(T, State#state{returnbody=true,dw=W, reply_arity=2});
-handle_options([{returnbody, false}|T], State) ->
+handle_options([{returnbody, false}|T], State=#state{w=W}) ->
     case has_postcommit_hooks(element(1,State#state.bkey)) of
         true ->
-            handle_options(T, State#state{returnbody=true});
+            Options = [{returnbody, true}],
+            handle_options(T, State#state{options=Options,
+                                          returnbody=true,
+                                          dw=W,
+                                          reply_arity=2});
         false ->
             handle_options(T, State#state{returnbody=false})
     end;
