@@ -89,7 +89,6 @@ handle_options([{returnbody, true}|T], State=#state{w=W}) ->
 handle_options([{returnbody, false}|T], State=#state{w=W}) ->
     case has_postcommit_hooks(element(1,State#state.bkey)) of
         true ->
-            io:format("has post commit hooks~n"),
             Options = [{returnbody, true}],
             handle_options(T, State#state{options=Options,
                                           returnbody=true,
