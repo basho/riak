@@ -31,8 +31,6 @@ upgrade() ->
     [supervisor:start_child(?MODULE, Spec) || Spec <- Specs],
     ok.
 
-
-
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->

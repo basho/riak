@@ -111,18 +111,17 @@ case "$1" in
     add-site)
         ACTION=$1
         shift
-
-        if [ $# -lt 3 ]; then
-            echo "Usage: $SCRIPT $ACTION <node> <cookie> <filename>"
+        # Make sure the local node IS not running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
             exit 1
         fi
-
-        NODE=$1
-        COOKIE=$2
-        FILENAME=$3
-
-        $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
-                       -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
+        if [ $# -lt 3 ]; then
+            echo "Usage: $SCRIPT $ACTION <ipaddr> <portnum> <sitename>"
+            exit 1
+        fi
+        $NODETOOL rpc riak_repl_config add_site $1 $2 $3
         ;;
     *)
         echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | full-sync | status }"

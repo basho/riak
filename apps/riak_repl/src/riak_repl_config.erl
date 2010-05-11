@@ -4,6 +4,7 @@
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 -export([set_ring/1, add_listener/1, add_listener/3]).
+-export([add_site/1, add_site/3]).
 -record(state, {ring}).
 
 
@@ -18,13 +19,26 @@ set_ring(Ring) -> gen_server:cast(?MODULE, {set_ring, Ring}).
 add_listener([NodeName, ListenIP, Port]) ->
     add_listener(list_to_atom(NodeName), ListenIP, list_to_integer(Port)).
 
+
 add_listener(NodeName, ListenIP, Port) ->
     gen_server:call(?MODULE, {add_local_listener, NodeName, ListenIP, Port}).
+
+add_site([IPAddr, PortNum, SiteName]) ->
+    add_site(IPAddr, PortNum, SiteName).
+
+add_site(IPAddr, PortNum, SiteName) ->
+    gen_server:call(?MODULE, {add_site, IPAddr, PortNum, SiteName}).
 
 handle_call({add_local_listener, NodeName, ListenIP, Port}, _From, State) -> 
     {Reply, NewState} = 
         handle_add_local_listener(NodeName, ListenIP, Port, State),
+    {reply, Reply, NewState};
+handle_call({add_site, IPAddr, PortNum, SiteName}, _From, State) -> 
+    {Reply, NewState} = 
+        handle_add_site(IPAddr, PortNum, SiteName, State),
     {reply, Reply, NewState}.
+
+
 handle_cast({set_ring, Ring}, State) -> {noreply, handle_set_ring(Ring, State)}.
 handle_info(_Info, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
@@ -65,7 +79,35 @@ handle_add_local_listener(Node, ListenIP, Port, State=#state{ring=Ring}) ->
     end,
     ensure_listeners(NewRing),
     {ok, State#state{ring=NewRing}}.
-            
+
+handle_add_site(IPAddr, PortNum, SiteName, State=#state{ring=Ring}) ->
+    {ok, ReplConfig} = riak_core_ring:get_meta(?MODULE, Ring),
+    Sites = dict:fetch(sites, ReplConfig),
+    NewSites = 
+        case proplists:get_value(SiteName, Sites) of
+            undefined -> 
+                [{SiteName, {IPAddr, PortNum}}|Sites];
+            _ ->
+                [{SiteName, {IPAddr, PortNum}}|proplists:delete(SiteName, Sites)]
+        end,
+    NewRing = case NewSites =:= Sites of
+        true -> 
+            Ring;
+        false -> 
+            NR = 
+                riak_core_ring:update_meta(?MODULE,
+                                              dict:store(
+                                                sites,
+                                                NewSites,
+                                                ReplConfig),
+                                           Ring),
+            riak_core_ring_manager:set_my_ring(NR),
+            NR
+    end,
+    ensure_connectors(NewRing),
+    {ok, State#state{ring=NewRing}}.
+    
+                       
 
 initial_config() ->
     dict:from_list(
@@ -84,8 +126,10 @@ ensure_repl_config(Ring) ->
             Ring
     end.
 
+ensure_connectors(_Ring) ->
+    io:format("ensuring connectors~n").
+
 ensure_listeners(Ring) ->    
-    io:format("ensure: ~p~n", [Ring]),
     {ok, ReplConfig} = riak_core_ring:get_meta(?MODULE, Ring),
     LocalListeners = dict:fetch(local_listeners, ReplConfig),
     ToStart = [{IP, Port} || {Node, {IP, Port}} <- LocalListeners, 
