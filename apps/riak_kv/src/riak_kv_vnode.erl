@@ -320,15 +320,15 @@ syntactic_put_merge(Mod, ModState, BKey, Obj1, ReqId) ->
     end.
 
 %% @private
-get_merkle(_State=#state{mod=Mod,modstate=ModState}) ->
-    KeyList = Mod:list(ModState),
-    Merk0 = merkerl:build_tree([]),
-    get_merk(Mod,ModState,KeyList,Merk0).
-%% @private
-get_merk(_Mod,_ModState,[],Merk) -> Merk;
-get_merk(Mod,ModState,[BKey|KeyList],Merk) ->
-    V = Mod:get(ModState,BKey), % normally, V = {ok,BinObj}
-    get_merk(Mod,ModState,KeyList,merkerl:insert({BKey,erlang:phash2(V)},Merk)).
+get_merkle(State=#state{}) ->
+    F = fun(K,V,Acc) -> merkerl:insert({{K,V}, erlang:phash2(V)}, Acc) end,
+    InitAcc = merkerl:build_tree([]),
+    case do_fold(F, InitAcc, State) of
+        undefined ->
+            undefined;
+        M when is_tuple(M) ->
+            {ok, term_to_binary(M, [compressed])}
+    end.
 
 %% @private
 get_vclocks(KeyList,_State=#state{mod=Mod,modstate=ModState}) ->
