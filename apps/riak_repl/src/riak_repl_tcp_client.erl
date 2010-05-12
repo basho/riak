@@ -79,8 +79,8 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP,
             DiffKeys0 = couch_merkle:diff(TheirMerkle, OurMerkle),
             couch_merkle:close(OurMerkle),
             couch_merkle:close(TheirMerkle),
-            %%file:delete(MerkleFN),
-            %%file:delete(FN),
+            file:delete(MerkleFN),
+            file:delete(FN),
             DiffKeys = [riak_repl_util:binunpack_bkey(K) || {K,_} <- DiffKeys0],
             {ok, Ring} = riak_core_ring_manager:get_my_ring(),
             OwnerNode = riak_core_ring:index_owner(Ring, PT),
@@ -93,7 +93,7 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP,
                     ok = send(Socket, term_to_binary({ack, PT, []}));
                 VClocks -> 
                     ok = send(Socket, 
-                              term_to_binary({ack, PT, VClocks}))
+                              term_to_binary({ack, PT, VClocks}, [compressed]))
             end,
             {next_state, merkle_exchange, State};
         _ ->

@@ -64,13 +64,14 @@ merkle_send(timeout, State=#state{socket=Socket, partitions=[Partition|T]}) ->
             ok = send(Socket, term_to_binary({merkle, FileSize, Partition})),
             io:format("sending merkle tree for partition ~p~n", [Partition]),
             ok = send_chunks(FP, Socket),
+            file:delete(MerkleFile),
             {next_state, merkle_wait_ack, State#state{partitions=T}}
     end.
 
 send_chunks(FP, Socket) ->
     case file:read(FP, 8192) of
         {ok, Data} ->
-            ok = send(Socket, term_to_binary({merk_chunk, Data})),
+            ok = send(Socket, term_to_binary({merk_chunk, Data}, [compressed])),
             send_chunks(FP, Socket);
         eof ->
             file:close(FP),
@@ -83,7 +84,7 @@ merkle_wait_ack({ack, Partition, DiffVClocks}, State=#state{client=Client, socke
     Actions = vclock_diff(Partition, DiffVClocks, State),
     {_GetMsg, SendMsg} = vclock_diff_response(Actions, Client, [], []),
     io:format("sending ~p get reqs and ~p send reqs~n", [length(element(2, _GetMsg)), length(element(2, SendMsg))]),
-    ok = send(Socket, term_to_binary({diff_response, Partition, SendMsg})),
+    ok = send(Socket, term_to_binary({diff_response, Partition, SendMsg}, [compressed])),
     {next_state, merkle_wait_ack, State}.
 
 connected(_E, State) ->
