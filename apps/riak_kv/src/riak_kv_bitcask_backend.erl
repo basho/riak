@@ -41,6 +41,8 @@
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
+-define(MERGE_CHECK_INTERVAL, timer:minutes(3)).
+
 start(Partition, _Config) ->
     %% Schedule sync (if necessary)
     case application:get_env(bitcask, sync_strategy) of
@@ -52,15 +54,8 @@ start(Partition, _Config) ->
             ok
     end,
 
-    %% Schedule merges
-    case application:get_env(bitcask, merge_strategy) of
-        {ok, {hours, Hours}} ->
-            MergeIntervalMs = timer:hours(Hours),
-            erlang:send_after(MergeIntervalMs, self(),
-                              {?MODULE, {merge, MergeIntervalMs}});
-        undefined ->
-            undefined
-    end,
+    %% Schedule merge checks
+    erlang:send_after(?MERGE_CHECK_INTERVAL, self(), {?MODULE, merge_check}),
 
     %% Get the data root directory
     DataDir =
@@ -173,13 +168,18 @@ is_empty({Ref, _}) ->
     end.
 
 handle_info({Ref, _}, {sync, SyncInterval}) ->
-   bitcask:sync(Ref),
+    bitcask:sync(Ref),
     erlang:send_after(SyncInterval, self(),
                       {?MODULE, {sync, SyncInterval}});
-handle_info({_, BitcaskRoot}, {merge, MergeInterval}) ->
-    bitcask_merge_worker:merge(BitcaskRoot),
-    erlang:send_after(MergeInterval, self(),
-                      {?MODULE, {merge, MergeInterval}}).
+
+handle_info({Ref, BitcaskRoot}, merge_check) ->
+    case bitcask:needs_merge(Ref) of
+        {true, Files} ->
+            bitcask_merge_worker:merge(BitcaskRoot, [], Files);
+        false ->
+            ok
+    end,
+    erlang:send_after(?MERGE_CHECK_INTERVAL, self(), {?MODULE, merge_check}).
 
 
 %% ===================================================================
