@@ -90,7 +90,6 @@ terminate(_Reason, _StateName, _State) ->  ok.
 
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
-
 send(Socket, Data) -> 
     ok = gen_tcp:send(Socket, Data).
 

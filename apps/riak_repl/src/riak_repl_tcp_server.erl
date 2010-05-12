@@ -49,7 +49,7 @@ merkle_send(timeout, State=#state{socket=_Socket, partitions=[]}) ->
     io:format("sent last merkle~n"),
     {next_state, connected, State};
 merkle_send(timeout, State=#state{socket=Socket, partitions=[Partition|T]}) ->
-    case get_merkle(State, Partition) of
+    case make_merkle(State, Partition) of
         {error, Reason} ->
             io:format("get_merkle error ~p for partition ~p~n", [Reason, Partition]),
             {next_state, merkle_send, State, 0};
@@ -105,17 +105,6 @@ code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 send(Socket, Data) -> 
     ok = gen_tcp:send(Socket, Data).
     
-get_merkle(#state{my_pi=#peer_info{ring=Ring}}, Partition) ->
-    OwnerNode = riak_core_ring:index_owner(Ring, Partition),
-    case riak_repl_util:vnode_master_call(OwnerNode, {get_merkle, Partition}) of
-        {error, Reason} ->
-            io:format("~p:error getting merkle tree for ~p from ~p: ~p~n",
-                      [?MODULE, Partition, OwnerNode, Reason]),
-            {error, Reason};
-        {ok, MerkleTree} -> {ok, MerkleTree}
-    end.
-
-
 should_get(V1, V2) -> vclock:descends(V1, V2) =:= false.
 should_send(V1, V2) -> vclock:descends(V2, V1) =:= false.
 vclock_diff(Partition, DiffVClocks, #state{my_pi=#peer_info{ring=Ring}}) ->
@@ -170,3 +159,26 @@ vclock_diff_response([{send,{B,K}}|T], Client, Gets, Sends) ->
             vclock_diff_response(T, Client, Gets, Sends)
     end.    
 
+make_merkle(#state{my_pi=#peer_info{ring=Ring}}, Partition) ->
+    OwnerNode = riak_core_ring:index_owner(Ring, Partition),
+    Self = self(),
+    Pid = spawn_link(
+            fun() -> merkle_maker(Self, merkerl:build_tree([]))
+            end),
+    F = fun(K, V, Collector) ->
+                Collector ! {K, erlang:phash2(V)},
+                Pid
+        end,
+    riak_repl_util:vnode_master_call(OwnerNode, {fold, {Partition, F, Pid}}),
+    Pid ! done,
+    receive
+        {ok, MerkleTree} -> {ok, MerkleTree}
+    end.
+
+merkle_maker(PPid, MerkleTree) ->
+    receive 
+        {K, H} ->
+            merkle_maker(PPid, merkerl:insert({K, H}, MerkleTree));
+        done ->
+            PPid ! {ok, term_to_binary(MerkleTree, [compressed])}
+    end.
