@@ -33,7 +33,7 @@ handle_call({leader_available, false},_From,
     {reply, ok, State}.
 
 handle_cast({postcommit, _Record}, State=#state{leader_available=false}) ->
-    io:format("local log~n"),
+    %%io:format("local log~n"),
     %% log_record_local(Record),
     {noreply, State};
 handle_cast({postcommit, Record}, State=#state{leader_available=true}) -> 
