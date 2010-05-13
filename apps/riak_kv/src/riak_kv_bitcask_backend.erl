@@ -149,7 +149,7 @@ drop({Ref, BitcaskRoot}) ->
     %%  of its own, use that instead.
     bitcask:close(Ref),
     {ok, FNs} = file:list_dir(BitcaskRoot),
-    [file:delete(FN) || FN <- FNs],
+    [file:delete(filename:join(BitcaskRoot, FN)) || FN <- FNs],
     file:del_dir(BitcaskRoot),
     ok.
 
