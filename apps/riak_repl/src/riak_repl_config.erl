@@ -20,8 +20,7 @@ add_listener([NodeName, ListenIP, Port]) ->
 add_listener(NodeName, ListenIP, Port) ->
     gen_server:call(?MODULE, {add_local_listener, NodeName, ListenIP, Port}).
 
-add_site([IPAddr, PortNum, SiteName]) ->
-    add_site(IPAddr, PortNum, SiteName).
+add_site([IPAddr, PortNum, SiteName]) -> add_site(IPAddr, PortNum, SiteName).
 
 add_site(IPAddr, PortNum, SiteName) ->
     gen_server:call(?MODULE, {add_site, IPAddr, PortNum, SiteName}).
