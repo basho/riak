@@ -23,17 +23,17 @@
          }
        ).
 
-start(Socket) ->
-    gen_fsm:start(?MODULE, [Socket], []).
+start(Socket) -> gen_fsm:start(?MODULE, [Socket], []).
 
 init([Socket]) ->
     process_flag(trap_exit, true),
     %%io:format("~p starting, sock=~p~n", [?MODULE, Socket]),
-    inet:setopts(Socket, [{active, once}, {packet, 4}]),
+    ok = inet:setopts(Socket, [{active, once}, {packet, 4}]),
     {ok, Client} = riak:local_client(),
     MyPeerInfo = riak_repl_util:make_peer_info(),
     Partitions = riak_repl_util:get_partitions(MyPeerInfo),
     ok = send(Socket, term_to_binary({peerinfo, MyPeerInfo})),
+    riak_repl_leader:add_receiver_pid(self()),
     {ok, wait_peerinfo, #state{socket=Socket,
                                client=Client,
                                partitions=Partitions,
@@ -82,49 +82,31 @@ merkle_wait_ack({ack, _Partition, []}, State) ->
     {next_state, merkle_send, State, 0};
 merkle_wait_ack({ack, Partition, DiffVClocks}, State=#state{client=Client, socket=Socket}) ->
     Actions = vclock_diff(Partition, DiffVClocks, State),
-    {_GetMsg, SendMsg} = vclock_diff_response(Actions, Client, [], []),
-    io:format("sending ~p get reqs and ~p send reqs~n", [length(element(2, _GetMsg)), length(element(2, SendMsg))]),
-    ok = send(Socket, term_to_binary({diff_response, Partition, SendMsg}, [compressed])),
+    vclock_diff_response(Actions, Client, Socket, [], []),
+    %io:format("sending ~p get reqs and ~p send reqs~n", [length(element(2, _GetMsg)), length(element(2, SendMsg))]),
+    ok = send(Socket, term_to_binary({diff_response, Partition, {send, []}})),
     {next_state, merkle_wait_ack, State}.
 
-connected(_E, State) ->
-    {next_state, connected, State}.
-
-handle_event(_Event, StateName, State) ->
-    {next_state, StateName, State}.
-
-handle_sync_event(_Event, _From, StateName, State) ->
-    Reply = ok,
-    {reply, Reply, StateName, State}.
+connected(_E, State) -> {next_state, connected, State}.
+handle_event(_Event, StateName, State) -> {next_state, StateName, State}.
+handle_sync_event(_Event,_From,StateName,State) -> {reply,ok,StateName,State}.
 
 handle_info({tcp_closed, Socket}, _StateName, State=#state{socket=Socket}) ->
     io:format("tcp socket closed ~p~n", [Socket]),
     {stop, normal, State};
 handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
-    case binary_to_term(Data) of
-        {remote_update, Obj} ->
-            riak_repl_util:do_repl_put(Obj),
-            inet:setopts(Socket, [{active, once}]), 
-            io:format("wrote remote update~n"), 
-            {next_state, StateName, State};
-        Msg ->
-            R = ?MODULE:StateName(Msg, State),
-            inet:setopts(Socket, [{active, once}]),            
-            R
-    end;
-handle_info({local_update, Obj}, StateName, State=#state{socket=Socket}) ->
-    io:format("got local update~n"),
-    ok = send(Socket, term_to_binary({remote_update, Obj})),
+    R = ?MODULE:StateName(binary_to_term(Data), State),
+    ok = inet:setopts(Socket, [{active, once}]),            
+    R;
+handle_info({repl, RObj}, StateName, State=#state{socket=Socket}) ->
+    ok = send(Socket, term_to_binary({diff_obj, RObj}, [compressed])),
+    ok = inet:setopts(Socket, [{active, once}]),
     {next_state, StateName, State};
-handle_info(_I, StateName, State) ->
-    {next_state, StateName, State}.
-
+handle_info(_I, StateName, State) -> {next_state, StateName, State}.
 terminate(_Reason, _StateName, _State) -> ok.
-
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
-send(Socket, Data) -> 
-    ok = gen_tcp:send(Socket, Data).
+send(Socket, Data) ->  ok = gen_tcp:send(Socket, Data).
     
 should_get(V1, V2) -> vclock:descends(V1, V2) =:= false.
 should_send(V1, V2) -> vclock:descends(V2, V1) =:= false.
@@ -169,15 +151,17 @@ vclock_diff1([{K,VC}|T], OurVClocks, Acc) ->
     end.
 
 
-vclock_diff_response([], _Client, Gets, Sends) ->
+vclock_diff_response([], _Client, Socket, Gets, Sends) ->
     {{get, lists:reverse(Gets)}, {send, lists:reverse(Sends)}};
-vclock_diff_response([{get,{_B,K}}|T], Client, Gets, Sends) ->
-    vclock_diff_response(T, Client, [K|Gets], Sends);
-vclock_diff_response([{send,{B,K}}|T], Client, Gets, Sends) ->
+vclock_diff_response([{get,{_B,K}}|T], Client, Socket, Gets, Sends) ->
+    vclock_diff_response(T, Client, Socket, Gets, Sends);
+vclock_diff_response([{send,{B,K}}|T], Client, Socket, Gets, Sends) ->
     case Client:get(B, K, 1, ?REPL_FSM_TIMEOUT) of
         {ok, Obj} ->
-            vclock_diff_response(T, Client, Gets, [Obj|Sends]);
+            ok = send(Socket, term_to_binary({diff_obj, Obj})),
+            ok = inet:setopts(Socket, [{active, once}]),
+            vclock_diff_response(T, Client, Socket, Gets, Sends);
         _ ->
-            vclock_diff_response(T, Client, Gets, Sends)
+            vclock_diff_response(T, Client, Socket, Gets, Sends)
     end.    
 

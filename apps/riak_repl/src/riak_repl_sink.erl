@@ -32,13 +32,9 @@ handle_call({leader_available, false},_From,
             State=#state{leader_available=false}) ->
     {reply, ok, State}.
 
-handle_cast({postcommit, _Record}, State=#state{leader_available=false}) ->
-    %%io:format("local log~n"),
-    %% log_record_local(Record),
-    {noreply, State};
-handle_cast({postcommit, Record}, State=#state{leader_available=true}) -> 
+handle_cast({postcommit, Record}, State) ->
     Msg = {repl, Record},
-    gen_leader:leader_cast(riak_repl_leader, Msg),
+    gen_leader:leader_call(riak_repl_leader, Msg),
     {noreply, State}.
 
 handle_info(_Info, State) -> {noreply, State}.

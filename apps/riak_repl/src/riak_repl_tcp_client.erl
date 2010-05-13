@@ -24,13 +24,12 @@
           merkle_sz
          }).
 
-start(Socket, SiteName) ->
-    gen_fsm:start(?MODULE, [Socket, SiteName], []).
+start(Socket, SiteName) -> gen_fsm:start(?MODULE, [Socket, SiteName], []).
 
 init([Socket, SiteName]) ->
     process_flag(trap_exit, true),
     io:format("~p starting, sock=~p, site=~p, pid=~p~n", [?MODULE, Socket, SiteName, self()]),
-    inet:setopts(Socket, [{active, once}, {packet, 4}]),
+    ok = inet:setopts(Socket, [{active, once}, {packet, 4}]),
     {ok, Client} = riak:local_client(),
     MyPeerInfo = riak_repl_util:make_peer_info(),
     ok = send(Socket, term_to_binary({peerinfo, MyPeerInfo})),
@@ -58,7 +57,7 @@ merkle_exchange({merkle, FileSize, Partition}, State=#state{socket=_Socket}) ->
 merkle_exchange({diff_response,Partition,{send, Sends}}, State=#state{socket=Socket}) ->
     io:format("got diff_response with ~p sendreqs~n", [length(Sends)]),
     ok = send(Socket, term_to_binary({ack, Partition, []})),
-    [riak_repl_util:do_repl_put(O) || O <- Sends],
+    %[riak_repl_util:do_repl_put(O) || O <- Sends],
     {next_state, merkle_exchange, State}.
 
 merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, 
@@ -96,16 +95,13 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP,
                               term_to_binary({ack, PT, VClocks}, [compressed]))
             end,
             {next_state, merkle_exchange, State};
-        _ ->
+        LB ->
             {next_state, merkle_recv, State#state{merkle_sz=LeftBytes}}
     end.
 
-handle_event(_Event, StateName, State) ->
-    {next_state, StateName, State}.
+handle_event(_Event, StateName, State) -> {next_state, StateName, State}.
 
-handle_sync_event(_Event, _From, StateName, State) ->
-    Reply = ok,
-    {reply, Reply, StateName, State}.
+handle_sync_event(_Ev, _F, StateName, State) -> {reply, ok, StateName, State}.
 
 handle_info({tcp_closed, Socket}, _StateName, State=#state{socket=Socket}) ->
     io:format("tcp socket closed ~p~n", [Socket]),
@@ -113,30 +109,21 @@ handle_info({tcp_closed, Socket}, _StateName, State=#state{socket=Socket}) ->
 
 handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
     case binary_to_term(Data) of
-        {remote_update, Obj} ->
+        {diff_obj, Obj} ->
             riak_repl_util:do_repl_put(Obj),
-            inet:setopts(Socket, [{active, once}]),            
             io:format("wrote remote update~n"),
-            {next_state, StateName, State};
+            ok = inet:setopts(Socket, [{active, once}]),            
+            {next_state, StateName, State};            
         Msg ->
             R = ?MODULE:StateName(Msg, State),
-            inet:setopts(Socket, [{active, once}]),            
+            ok = inet:setopts(Socket, [{active, once}]),            
             R
     end;
-
-handle_info({local_update, Obj}, StateName, State=#state{socket=Socket}) ->
-    io:format("got local update~n"),
-    ok = send(Socket, term_to_binary({remote_update, Obj})),
-    {next_state, StateName, State};
-handle_info(_I, StateName, State) ->
-    {next_state, StateName, State}.
-
+handle_info(_I, StateName, State) ->  {next_state, StateName, State}.
 terminate(_Reason, _StateName, _State) ->  ok.
-
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
-send(Socket, Data) -> 
-    ok = gen_tcp:send(Socket, Data).
+send(Socket, Data) ->  ok = gen_tcp:send(Socket, Data).
 
 diff_merkle(Partition, MerkleTree, #state{my_pi=#peer_info{ring=Ring}}) ->
     OwnerNode = riak_core_ring:index_owner(Ring, Partition),

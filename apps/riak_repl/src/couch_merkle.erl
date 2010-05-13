@@ -68,11 +68,11 @@ equals(Server1, Server2) ->
 root(Server) ->
   gen_server2:call(Server, root).
   
-update(Server, Key, Value) ->
-  gen_server2:call(Server, {update, Key, Value}).
+update(Server, Key, Hash) ->
+  gen_server2:call(Server, {update, Key, Hash}).
   
-updatea(Server, Key, Value) ->
-  gen_server2:cast(Server, {update, Key, Value}).
+updatea(Server, Key, Hash) ->
+  gen_server2:cast(Server, {update, Key, Hash}).
   
 delete(Server, Key) ->
   gen_server2:call(Server, {delete, Key}).
@@ -127,8 +127,8 @@ init([Filename, Create]) ->
 %% @doc Handling call messages
 %% @end 
 %%--------------------------------------------------------------------
-handle_call({update, Key, Value}, _From, Bt) ->
-  Bt2 = handle_update(Key, Value, Bt),
+handle_call({update, Key, Hash}, _From, Bt) ->
+  Bt2 = handle_update(Key, Hash, Bt),
   {reply, self(), Bt2};
   
 handle_call({delete, Key}, _From, Bt) ->
@@ -152,8 +152,8 @@ handle_call(leaves, _From, Bt) ->
 %% @doc Handling cast messages
 %% @end 
 %%--------------------------------------------------------------------
-handle_cast({update, Key, Value}, Bt) ->
-  Bt2 = handle_update(Key, Value, Bt),
+handle_cast({update, Key, Hash}, Bt) ->
+  Bt2 = handle_update(Key, Hash, Bt),
   {noreply, Bt2};
   
 handle_cast({delete, Key}, Bt) ->
@@ -208,8 +208,8 @@ open_new(Filename) ->
   ok = couch_file:write_header(Fd, Header),
   {ok, Bt} = couch_btree:open(nil, Fd, [{reduce, fun reduce/2}]).
 
-handle_update(Key, Value, Bt) ->
-  {ok, Bt2} = couch_btree:add(Bt, [{Key, erlang:phash2(Value)}]),
+handle_update(Key, Hash, Bt) ->
+  {ok, Bt2} = couch_btree:add(Bt, [{Key, Hash}]),
   optional_header_update(Bt, Bt2),
   Bt2.
   
