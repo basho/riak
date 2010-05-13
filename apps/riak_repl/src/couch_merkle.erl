@@ -36,12 +36,7 @@
 
 -include("couch_db.hrl").
 
--ifdef(TEST).
--include("etest/couch_merkle_test.erl").
--endif.
-
--ifndef(TEST).
--define(NODEBUG, true).
+-ifndef(EUNIT).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
 
