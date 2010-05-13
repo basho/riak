@@ -9,7 +9,7 @@
          site_root_dir/1,
          binpack_bkey/1,
          binunpack_bkey/1,
-         make_merkle/2]).
+         make_merkle/3]).
 
 make_peer_info() ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
@@ -60,9 +60,10 @@ binpack_bkey({B, K}) ->
 binunpack_bkey(<<SB:32/integer,B:SB/binary,SK:32/integer,K:SK/binary>>) -> 
     {B,K}.
 
-make_merkle(#peer_info{ring=Ring}, Partition) ->
+make_merkle(#peer_info{ring=Ring}, Partition, Dir) ->
     OwnerNode = riak_core_ring:index_owner(Ring, Partition),
-    FileName = integer_to_list(Partition) ++ ".merkle",
+    FileName0 = integer_to_list(Partition) ++ ".merkle",
+    FileName = filename:join(Dir, FileName0),
     {ok, DMerkle} = couch_merkle:open(FileName),
     F = fun(K, V, MPid) -> couch_merkle:update(MPid, binpack_bkey(K), erlang:phash2(V)), MPid end,
     riak_repl_util:vnode_master_call(OwnerNode, {fold, {Partition, F, DMerkle}}),

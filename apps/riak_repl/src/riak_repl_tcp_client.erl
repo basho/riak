@@ -18,6 +18,7 @@
           sitename,
           client,
           my_pi,
+          work_dir,
           merkle_pt,
           merkle_fp,
           merkle_fn,
@@ -29,27 +30,37 @@ start(Socket, SiteName) -> gen_fsm:start(?MODULE, [Socket, SiteName], []).
 init([Socket, SiteName]) ->
     process_flag(trap_exit, true),
     io:format("~p starting, sock=~p, site=~p, pid=~p~n", [?MODULE, Socket, SiteName, self()]),
+    ok = gen_tcp:send(Socket, SiteName),
     ok = inet:setopts(Socket, [{active, once}, {packet, 4}]),
     {ok, Client} = riak:local_client(),
     MyPeerInfo = riak_repl_util:make_peer_info(),
+    {ok, WorkRoot} = application:get_env(riak_repl, work_dir),
+    WorkDir = filename:join(WorkRoot, SiteName),
+    ok = filelib:ensure_dir(filename:join(WorkDir, "empty")),
     ok = send(Socket, term_to_binary({peerinfo, MyPeerInfo})),
     {ok, wait_peerinfo, #state{socket=Socket,
+                               work_dir=WorkDir,
                                sitename=SiteName,
                                client=Client,
                                my_pi=MyPeerInfo}}.
 
-wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, socket=_Socket}) ->
+wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, 
+                                                      socket=_Socket,
+                                                      sitename=SiteName}) ->
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
         true ->
-            io:format("peer info ok!~n"),
+            PIPath = filename:join([riak_repl_util:site_root_dir(SiteName), "ring"]),
+            ok = file:write_file(PIPath, term_to_binary(TheirPeerInfo)),
             {next_state, merkle_exchange, State};
         false ->
             io:format("invalid peer_info ~p~n", [TheirPeerInfo]),
             {stop, normal, State}
     end.
-merkle_exchange({merkle, FileSize, Partition}, State=#state{socket=_Socket}) ->
+merkle_exchange({merkle, FileSize, Partition}, State=#state{socket=_Socket, 
+                                                            work_dir=WorkDir}) ->
     io:format("merkle transfer beginning: ~p ~p~n", [FileSize, Partition]),
-    MerkleFN = integer_to_list(Partition) ++ ".theirs",
+    MerkleFN0 = integer_to_list(Partition) ++ ".theirs",
+    MerkleFN = filename:join(WorkDir, MerkleFN0),
     {ok, FP} = file:open(MerkleFN, [write, raw, binary]),
     {next_state, merkle_recv, State#state{merkle_fp=FP, merkle_fn=MerkleFN,
                                           merkle_sz=FileSize, 
@@ -57,13 +68,13 @@ merkle_exchange({merkle, FileSize, Partition}, State=#state{socket=_Socket}) ->
 merkle_exchange({diff_response,Partition,{send, Sends}}, State=#state{socket=Socket}) ->
     io:format("got diff_response with ~p sendreqs~n", [length(Sends)]),
     ok = send(Socket, term_to_binary({ack, Partition, []})),
-    %[riak_repl_util:do_repl_put(O) || O <- Sends],
     {next_state, merkle_exchange, State}.
 
 merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, 
                                              merkle_sz=SZ, 
                                              merkle_fn=FN,
                                              merkle_pt=PT,
+                                             work_dir=WorkDir,
                                              socket=Socket,
                                              my_pi=PI}) ->
     ok = file:write(FP, Data),
@@ -72,7 +83,7 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP,
         0 ->
             ok = file:sync(FP),
             ok = file:close(FP),
-            {ok, MerkleFN} = riak_repl_util:make_merkle(PI, PT),
+            {ok, MerkleFN} = riak_repl_util:make_merkle(PI, PT, WorkDir),
             {ok, OurMerkle} = couch_merkle:open(MerkleFN),
             {ok, TheirMerkle} = couch_merkle:open(FN),
             DiffKeys0 = couch_merkle:diff(TheirMerkle, OurMerkle),

@@ -7,6 +7,8 @@
 %% @doc The application:start callback for riak_repl.
 %%      Arguments are ignored as all configuration is done via the erlenv file.
 start(_Type, _StartArgs) ->
+    IncarnationId = erlang:phash2({make_ref(), now()}),
+    application:set_env(riak_repl, incarnation, IncarnationId),
     ok = ensure_dirs(),
     {ok, DefaultBucketProps} = application:get_env(riak_core, 
                                                    default_bucket_props),
@@ -35,8 +37,18 @@ ensure_dirs() ->
             ok;
         {error, Reason} ->
             Msg = io_lib:format("riak_repl couldn't create log dir ~p: ~p~n", [LogDir, Reason]),
-            riak:stop(lists:flatten(Msg)),
-            {error, Reason}
+            riak:stop(lists:flatten(Msg))
+    end,
+    {ok, Incarnation} = application:get_env(riak_repl, incarnation),
+    WorkDir = filename:join([DataRoot, "work", integer_to_list(Incarnation)]),
+    case filelib:ensure_dir(filename:join([WorkDir, "empty"])) of
+        ok -> 
+            application:set_env(riak_repl, work_dir, WorkDir),
+            ok;
+        {error, R} ->
+            M = io_lib:format("riak_repl couldn't create work dir ~p: ~p~n", [WorkDir,R]),
+            riak:stop(lists:flatten(M)),
+            {error, R}
     end.
 
 repl_hook() -> {struct, 

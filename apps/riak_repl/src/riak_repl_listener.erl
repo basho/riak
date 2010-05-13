@@ -25,7 +25,8 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 new_connection(Socket, State) ->
-    {ok, Pid} = riak_repl_tcp_server:start(Socket),
+    {ok, SiteName} = gen_tcp:recv(Socket, 0),
+    {ok, Pid} = riak_repl_tcp_server:start(Socket, binary_to_list(SiteName)),
     gen_tcp:controlling_process(Socket, Pid),
     {ok, State}.
 

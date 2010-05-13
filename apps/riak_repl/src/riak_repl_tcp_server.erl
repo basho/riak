@@ -2,7 +2,7 @@
 -include("riak_repl.hrl").
 -include_lib("kernel/include/file.hrl").
 -behaviour(gen_fsm).
--export([start/1]).
+-export([start/2]).
 -export([init/1, 
          handle_event/3,
          handle_sync_event/4, 
@@ -16,26 +16,33 @@
 -record(state, 
         {
           socket,
+          sitename,
           client,
           my_pi,
           merkle_fp,
+          work_dir,
           partitions=[]
          }
        ).
 
-start(Socket) -> gen_fsm:start(?MODULE, [Socket], []).
+start(Socket, SiteName) -> gen_fsm:start(?MODULE, [Socket, SiteName], []).
 
-init([Socket]) ->
+init([Socket, SiteName]) ->
     process_flag(trap_exit, true),
     %%io:format("~p starting, sock=~p~n", [?MODULE, Socket]),
     ok = inet:setopts(Socket, [{active, once}, {packet, 4}]),
     {ok, Client} = riak:local_client(),
     MyPeerInfo = riak_repl_util:make_peer_info(),
     Partitions = riak_repl_util:get_partitions(MyPeerInfo),
+    {ok, WorkRoot} = application:get_env(riak_repl, work_dir),
+    WorkDir = filename:join(WorkRoot, SiteName),
+    ok = filelib:ensure_dir(filename:join(WorkDir, "empty")),
     ok = send(Socket, term_to_binary({peerinfo, MyPeerInfo})),
     riak_repl_leader:add_receiver_pid(self()),
     {ok, wait_peerinfo, #state{socket=Socket,
+                               sitename=SiteName,
                                client=Client,
+                               work_dir=WorkDir,
                                partitions=Partitions,
                                my_pi=MyPeerInfo}}.
 
@@ -51,8 +58,10 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, socket=_
 merkle_send(timeout, State=#state{socket=_Socket, partitions=[]}) ->
     io:format("sent last merkle~n"),
     {next_state, connected, State};
-merkle_send(timeout, State=#state{socket=Socket, partitions=[Partition|T]}) ->
-    X =  riak_repl_util:make_merkle(State#state.my_pi, Partition),
+merkle_send(timeout, State=#state{socket=Socket, 
+                                  partitions=[Partition|T],
+                                  work_dir=WorkDir}) ->
+    X =  riak_repl_util:make_merkle(State#state.my_pi, Partition, WorkDir),
     case X of
         {error, Reason} ->
             io:format("get_merkle error ~p for partition ~p~n", [Reason, Partition]),
