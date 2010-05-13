@@ -151,9 +151,9 @@ vclock_diff1([{K,VC}|T], OurVClocks, Acc) ->
     end.
 
 
-vclock_diff_response([], _Client, Socket, Gets, Sends) ->
+vclock_diff_response([], _Client, _Socket, Gets, Sends) ->
     {{get, lists:reverse(Gets)}, {send, lists:reverse(Sends)}};
-vclock_diff_response([{get,{_B,K}}|T], Client, Socket, Gets, Sends) ->
+vclock_diff_response([{get,{_B,_K}}|T], Client, Socket, Gets, Sends) ->
     vclock_diff_response(T, Client, Socket, Gets, Sends);
 vclock_diff_response([{send,{B,K}}|T], Client, Socket, Gets, Sends) ->
     case Client:get(B, K, 1, ?REPL_FSM_TIMEOUT) of

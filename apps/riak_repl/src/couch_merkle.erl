@@ -199,14 +199,13 @@ code_change(_OldVsn, State, _Extra) ->
 open_existing(Filename) ->
   {ok, Fd} = couch_file:open(Filename),
   {ok, #db_header{local_docs_btree_state=HeaderBtree}} = couch_file:read_header(Fd),
-  {ok, Bt} = couch_btree:open(HeaderBtree, Fd, [{reduce, fun reduce/2}]).
-
+  couch_btree:open(HeaderBtree, Fd, [{reduce, fun reduce/2}]).
   
 open_new(Filename) ->
   {ok, Fd} = couch_file:open(Filename, [create]),
   Header = #db_header{},
   ok = couch_file:write_header(Fd, Header),
-  {ok, Bt} = couch_btree:open(nil, Fd, [{reduce, fun reduce/2}]).
+  couch_btree:open(nil, Fd, [{reduce, fun reduce/2}]).
 
 handle_update(Key, Hash, Bt) ->
   {ok, Bt2} = couch_btree:add(Bt, [{Key, Hash}]),
@@ -239,7 +238,7 @@ handle_diff(#btree{root=Root1} = Bt1, #btree{root=Root2} = Bt2) ->
     {nil, _} -> handle_leaves(Bt2);
     {_, nil} -> handle_leaves(Bt1);
     {{_, Hash}, {_, Hash}} -> [];
-    {{Pointer1, Hash1}, {Pointer2, Hash2}} ->
+      {{Pointer1, _Hash1}, {Pointer2, _Hash2}} ->
       Node1 = couch_btree:get_node(Bt1, Pointer1),
       Node2 = couch_btree:get_node(Bt2, Pointer2),
       {KeysA, KeysB} = key_diff(Node1, Node2, Bt1, Bt2, [], []),
@@ -261,30 +260,30 @@ key_diff(#kp_node{children=ChildrenA}, #kp_node{children=ChildrenB},
   % % error_logger:info_msg("node differences ~n"),
   node_diff(ChildrenA, ChildrenB, TreeA, TreeB, KeysA, KeysB);
 
-key_diff(Leaf = #kv_node{}, Node = #kp_node{children=Children}, TreeA, TreeB, KeysA, KeysB) ->
+key_diff(Leaf = #kv_node{}, #kp_node{children=Children}, TreeA, TreeB, KeysA, KeysB) ->
   % % error_logger:info_msg("leaf node differences ~n"),
   lists:foldl(fun({_,{Ptr,_}}, {AccA, AccB}) ->
       Child = couch_btree:get_node(TreeB, Ptr),
       key_diff(Leaf, Child, TreeA, TreeB, AccA, AccB)
     end, {KeysA, KeysB}, Children);
 
-key_diff(Node = #kp_node{children=Children}, Leaf = #kv_node{}, TreeA, TreeB, KeysA, KeysB) ->
+key_diff(#kp_node{children=Children}, Leaf = #kv_node{}, TreeA, TreeB, KeysA, KeysB) ->
   % % error_logger:info_msg("node leaf differences  ~n"),
   lists:foldl(fun({_,{Ptr,_}}, {AccA, AccB}) ->
       Child = couch_btree:get_node(TreeA, Ptr),
       key_diff(Child, Leaf, TreeA, TreeB, AccA, AccB)
     end, {KeysA, KeysB}, Children).
 
-node_diff([], [], TreeA, TreeB, KeysA, KeysB) -> {KeysA, KeysB};
+node_diff([], [], _TreeA, _TreeB, KeysA, KeysB) -> {KeysA, KeysB};
 
-node_diff([], ChildrenB, TreeA, TreeB, KeysA, KeysB) ->
+node_diff([], ChildrenB, _TreeA, TreeB, KeysA, KeysB) ->
     % % error_logger:info_msg("node_diff empty children ~n"),
   {KeysA, lists:foldl(fun({_,{Ptr,_}}, Acc) ->
       Child = couch_btree:get_node(TreeB, Ptr),
       hash_leaves(Child, TreeB, Acc)
     end, KeysB, ChildrenB)};
 
-node_diff(ChildrenA, [], TreeA, TreeB, KeysA, KeysB) ->
+node_diff(ChildrenA, [], TreeA, _TreeB, KeysA, KeysB) ->
   % % error_logger:info_msg("node_diff children empty ~n"),
   {lists:foldl(fun({_,{Ptr,_}}, Acc) ->
       Child = couch_btree:get_node(TreeA, Ptr),
@@ -317,7 +316,7 @@ leaf_diff([{Key,Val}|ValuesA], [{Key,Val}|ValuesB], TreeA, TreeB, KeysA, KeysB) 
   % % error_logger:info_msg("leaf_diff equals~n"),
   leaf_diff(ValuesA, ValuesB, TreeA, TreeB, KeysA, KeysB);
 
-leaf_diff([{Key,ValA}|ValuesA], [{Key,ValB}|ValuesB], TreeA, TreeB, KeysA, KeysB) ->
+leaf_diff([{Key,ValA}|ValuesA], [{Key,_ValB}|ValuesB], TreeA, TreeB, KeysA, KeysB) ->
   % % error_logger:info_msg("leaf_diff equal keys, diff vals ~n"),
   leaf_diff(ValuesA, ValuesB, TreeA, TreeB, [{Key,ValA}|KeysA], KeysB);
 
@@ -335,7 +334,7 @@ hash_leaves(#kp_node{children=Children}, Tree, Keys) ->
       hash_leaves(Child, Tree, Acc)
     end, Keys, Children);
 
-hash_leaves(#kv_node{values=Values}, Tree, Keys) -> Keys ++ Values.
+hash_leaves(#kv_node{values=Values}, _Tree, Keys) -> Keys ++ Values.
 
 diff_merge(ListA, ListB) ->
   diff_merge(ListA, ListB, []).
@@ -345,7 +344,7 @@ diff_merge([], ListB, Acc) -> lists:reverse(Acc) ++ ListB;
 diff_merge(ListA, [], Acc) -> lists:reverse(Acc) ++ ListA;
 diff_merge([{Key,Hash}|ListA], [{Key,Hash}|ListB], Acc) ->
   diff_merge(ListA, ListB, Acc);
-diff_merge([{Key,HashA}|ListA], [{Key,HashB}|ListB], Acc) ->
+diff_merge([{Key,HashA}|ListA], [{Key,_HashB}|ListB], Acc) ->
   diff_merge(ListA, ListB, [{Key,HashA}|Acc]);
 diff_merge([{KeyA,HashA}|ListA], [{KeyB,HashB}|ListB], Acc) when KeyA < KeyB ->
   diff_merge(ListA, [{KeyB,HashB}|ListB], [{KeyA,HashA}|Acc]);

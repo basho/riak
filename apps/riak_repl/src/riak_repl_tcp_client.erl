@@ -95,7 +95,7 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP,
                               term_to_binary({ack, PT, VClocks}, [compressed]))
             end,
             {next_state, merkle_exchange, State};
-        LB ->
+        _ ->
             {next_state, merkle_recv, State#state{merkle_sz=LeftBytes}}
     end.
 
