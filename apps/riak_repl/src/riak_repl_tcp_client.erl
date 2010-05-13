@@ -1,7 +1,7 @@
 -module(riak_repl_tcp_client).
 -include("riak_repl.hrl").
 -behaviour(gen_fsm).
--export([start/2]).
+-export([start/3]).
 -export([init/1, 
          handle_event/3,
          handle_sync_event/4, 
@@ -16,6 +16,7 @@
 -record(state, {
           socket,
           sitename,
+          connector_pid,
           client,
           my_pi,
           work_dir,
@@ -25,9 +26,10 @@
           merkle_sz
          }).
 
-start(Socket, SiteName) -> gen_fsm:start(?MODULE, [Socket, SiteName], []).
+start(Socket, SiteName, ConnectorPid) -> 
+    gen_fsm:start(?MODULE, [Socket, SiteName, ConnectorPid], []).
 
-init([Socket, SiteName]) ->
+init([Socket, SiteName, ConnectorPid]) ->
     process_flag(trap_exit, true),
     io:format("~p starting, sock=~p, site=~p, pid=~p~n", [?MODULE, Socket, SiteName, self()]),
     ok = gen_tcp:send(Socket, SiteName),
@@ -41,9 +43,13 @@ init([Socket, SiteName]) ->
     {ok, wait_peerinfo, #state{socket=Socket,
                                work_dir=WorkDir,
                                sitename=SiteName,
+                               connector_pid=ConnectorPid,
                                client=Client,
                                my_pi=MyPeerInfo}}.
 
+wait_peerinfo({redirect, IP, Port}, State=#state{connector_pid=P}) ->
+    P ! {redirect, IP, Port},
+    {stop, normal, State};
 wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, 
                                                       socket=_Socket,
                                                       sitename=SiteName}) ->
@@ -58,7 +64,6 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo,
     end.
 merkle_exchange({merkle, FileSize, Partition}, State=#state{socket=_Socket, 
                                                             work_dir=WorkDir}) ->
-    io:format("merkle transfer beginning: ~p ~p~n", [FileSize, Partition]),
     MerkleFN0 = integer_to_list(Partition) ++ ".theirs",
     MerkleFN = filename:join(WorkDir, MerkleFN0),
     {ok, FP} = file:open(MerkleFN, [write, raw, binary]),
@@ -122,7 +127,7 @@ handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
     case binary_to_term(Data) of
         {diff_obj, Obj} ->
             riak_repl_util:do_repl_put(Obj),
-            io:format("wrote remote update~n"),
+            %io:format("wrote remote update~n"),
             ok = inet:setopts(Socket, [{active, once}]),            
             {next_state, StateName, State};            
         Msg ->

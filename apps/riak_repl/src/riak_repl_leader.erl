@@ -5,6 +5,7 @@
          handle_cast/3, handle_DOWN/3, handle_info/2, terminate/2,
          code_change/4]).
 -export([get_state/0, is_leader/0, ensure_connectors/1, add_receiver_pid/1]).
+-export([leader_node/0]).
 -record(state, {logger, is_leader, connectors=[], receivers=[], leader_node}).
 
 start_link() ->
@@ -24,6 +25,9 @@ init([]) ->
 is_leader() ->
     gen_leader:call(?MODULE, is_leader).
 
+leader_node() ->
+    gen_leader:call(?MODULE, leader_node).
+
 get_state() ->
     gen_leader:call(?MODULE, get_state).
 
@@ -31,16 +35,28 @@ add_receiver_pid(Pid) when is_pid(Pid) ->
     gen_leader:leader_call(?MODULE, {add_receiver_pid, Pid}).
 
 ensure_connectors(RemoteSites) ->
-    gen_leader:call(?MODULE, {ensure_connectors, RemoteSites}).
+    gen_leader:cast(?MODULE, {ensure_connectors, RemoteSites}).
 
 elected(State, _NewElection, _Node) ->
-    %%riak_repl_sink:set_leader_available(true),
-    {ok, {i_am_leader, node()}, State#state{is_leader=true}}.
+    case whereis(riak_repl_config) of
+        undefined ->
+            {ok, Pid} = riak_repl_sup:start_config(),
+            io:format("started config with pid: ~p~n", [Pid]);            
+        _ ->
+            ignore
+    end,
+    {ok, {i_am_leader, node()}, State#state{is_leader=true, leader_node=node()}}.
 
-surrendered(State, Sync, _NewElection) ->
-    error_logger:info_msg("surrendered: sync=~p~n", [Sync]),
-    riak_repl_sink:set_leader_available(true),
-    {ok, State#state{is_leader=false}}.
+surrendered(State, {i_am_leader, Node}, _NewElection) ->
+    error_logger:info_msg("surrendered: sync=~p~n", [Node]),
+    case whereis(riak_repl_config) of
+        undefined ->
+            {ok, Pid} = riak_repl_sup:start_config(),
+            io:format("started config with pid: ~p~n", [Pid]);
+        _ ->
+            ignore
+    end,
+    {ok, State#state{is_leader=false, leader_node=Node}}.
 
 handle_leader_call({add_receiver_pid, Pid}, _From, 
                    State=#state{receivers=R}, _E) ->
@@ -68,16 +84,17 @@ from_leader(Command, State, _NewElection) ->
 
 handle_call(get_state, _From, State, _E) ->
     {reply, State, State};
+handle_call(leader_node, _From, State, _E) ->
+    {reply, State#state.leader_node, State};
 handle_call(is_leader, _From, State=#state{is_leader=IL}, _E) ->
-    {reply, IL, State};
-handle_call({ensure_connectors,RemoteSites},_From,
+    {reply, IL, State}.
+handle_cast({ensure_connectors,RemoteSites},
             State=#state{is_leader=true}, _E) ->
     NewState = handle_ensure_connectors(RemoteSites, State),
-    {reply, ok, NewState};
-handle_call({ensure_connectors,_RemoteSites},_From,
+    {noreply, NewState};
+handle_cast({ensure_connectors,_RemoteSites},
             State=#state{is_leader=false}, _E) ->
-    {reply, ok, State}.
-
+    {noreply, State};
 handle_cast(_Message, State, _E) ->
     {noreply, State}.
 

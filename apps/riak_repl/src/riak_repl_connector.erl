@@ -39,6 +39,9 @@ handle_info({retry_connect, Host, Port}, State=#state{sitename=SiteName}) ->
     Self = self(),
     spawn_link(fun() -> do_connect(Host, Port, SiteName, Self) end),
     {noreply, State};
+handle_info({redirect, Host, Port}, State) ->
+    io:format("redirecting to ~p~p~n", [Host, Port]),
+    {noreply, State#state{host=Host, port=Port}};
 handle_info(_Info, State) ->
     {noreply, State}.
 
@@ -51,7 +54,7 @@ code_change(_OldVsn, State, _Extra) ->
 do_connect(Host, Port, SiteName, PPid) ->
     case gen_tcp:connect(Host, Port, [binary,{packet, 4}], 15000) of
         {ok, Socket} ->
-            {ok, Pid} = riak_repl_tcp_client:start(Socket, SiteName),
+            {ok, Pid} = riak_repl_tcp_client:start(Socket, SiteName, PPid),
             ok = gen_tcp:controlling_process(Socket, Pid),
             PPid ! {connect, ok, {Host, Port}, Pid};
         {error, Reason} ->

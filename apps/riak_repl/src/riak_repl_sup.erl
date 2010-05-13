@@ -7,6 +7,8 @@
 %% supervisor callbacks
 -export([init/1]).
 
+-export([start_config/0]).
+
 %% @spec start_link() -> ServerRet
 %% @doc API for starting the supervisor.
 start_link() ->
@@ -31,6 +33,13 @@ upgrade() ->
     [supervisor:start_child(?MODULE, Spec) || Spec <- Specs],
     ok.
 
+start_config() ->
+    ChildSpec = 
+        {riak_repl_config,
+         {riak_repl_config, start_link, []},
+         permanent, 5000, worker, [riak_config]},
+    supervisor:start_child(?MODULE, ChildSpec).
+
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->
@@ -48,8 +57,5 @@ init([]) ->
                   permanent, 5000, worker, dynamic},
                  {riak_repl_sink,
                   {riak_repl_sink, start_link, []},
-                  permanent, 5000, worker, [riak_repl_sink]},
-                 {riak_repl_config,
-                  {riak_repl_config, start_link, []},
-                  permanent, 5000, worker, [riak_repl_config]}],
+                  permanent, 5000, worker, [riak_repl_sink]}],
     {ok, {{one_for_one, 9, 10}, Processes}}.

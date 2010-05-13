@@ -54,7 +54,7 @@ process_message(0, MsgData, State) ->
     <<Partition:160/integer>> = MsgData,
     error_logger:info_msg("Receiving handoff data for partition ~p~n", 
                           [Partition]),
-    {ok, VNode} = gen_server2:call(riak_vnode_master, {get_vnode, Partition}, 60000),  
+    {ok, VNode} = gen_server2:call(riak_kv_vnode_master, {get_vnode, Partition}, 60000),  
     State#state{partition=Partition, vnode=VNode};
 process_message(1, MsgData, State=#state{vnode=VNode, count=Count}) ->
     % header of 1 is a riakobject_pb

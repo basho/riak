@@ -37,14 +37,31 @@ init([Socket, SiteName]) ->
     {ok, WorkRoot} = application:get_env(riak_repl, work_dir),
     WorkDir = filename:join(WorkRoot, SiteName),
     ok = filelib:ensure_dir(filename:join(WorkDir, "empty")),
-    ok = send(Socket, term_to_binary({peerinfo, MyPeerInfo})),
-    riak_repl_leader:add_receiver_pid(self()),
-    {ok, wait_peerinfo, #state{socket=Socket,
-                               sitename=SiteName,
-                               client=Client,
-                               work_dir=WorkDir,
-                               partitions=Partitions,
-                               my_pi=MyPeerInfo}}.
+    case maybe_redirect(Socket, MyPeerInfo) of
+        ok ->
+            riak_repl_leader:add_receiver_pid(self()),
+            {ok, wait_peerinfo, 
+             #state{socket=Socket,
+                    sitename=SiteName,
+                    client=Client,
+                    work_dir=WorkDir,
+                    partitions=Partitions,
+                    my_pi=MyPeerInfo}};
+        redirect ->
+            ignore
+    end.
+
+maybe_redirect(Socket, PeerInfo) ->
+    LeaderNode = riak_repl_leader:leader_node(),
+    case LeaderNode =:= node() of
+        true ->
+            send(Socket, term_to_binary({peerinfo, PeerInfo})),
+            ok;
+        false ->
+            send(Socket, term_to_binary({redirect, "127.0.0.1", 9011})),
+            redirect
+    end.
+
 
 wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, socket=_Socket}) ->
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
