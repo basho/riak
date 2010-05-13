@@ -1,7 +1,7 @@
                            Welcome to Riak.
                            ================
 
-Date: 2010-03-10 09:25:33 EST
+Date: 2010-05-07 08:47:28 EDT
 
 
 
@@ -12,6 +12,7 @@ Table of Contents
     2.1 Building Riak 
     2.2 Starting Riak 
     2.3 Connecting a client to Riak 
+    2.4 Clients for Other Languages 
 3 Server Management 
     3.1 Configuration 
     3.2 Server Control 
@@ -176,6 +177,33 @@ Table of Contents
   {ok,[<<"mine">>]}
 
 
+2.4 Clients for Other Languages 
+================================
+
+   Client libraries are available for many languages.  Rather than
+   bundle them with the Riak server source code, we have given them
+   each their own source repository.  Currently, official Riak
+   client language libraries include:
+
+   + Javascript
+     [http://bitbucket.org/basho/riak-javascript-client]
+
+   + Python
+     [http://bitbucket.org/basho/riak-python-client]
+
+   + Ruby
+     [http://bitbucket.org/basho/riak-ruby-client]
+     [http://github.com/seancribbs/ripple/]
+
+   + Java
+     [http://bitbucket.org/basho/riak-java-client]
+
+   + PHP
+     [http://bitbucket.org/basho/riak-php-client]
+
+   + Erlang
+     [http://bitbucket.org/basho/riak-erlang-client]
+     (using protocol buffers instead of distributed Erlang)
 
 3 Server Management 
 ~~~~~~~~~~~~~~~~~~~~
@@ -257,12 +285,6 @@ Table of Contents
     
     To restore from a backup file:
     $ riak-admin restore riak@X.X.X.X riak <directory/backup_file>
-    
-    To view the logs of from a node:
-    $ bin/riak-admin logger riak@X.X.X.X riak
-    
-    If you would like to save the log to a file:
-    $ bin/riak-admin logger riak@X.X.X.X riak <filename>
     
     To view the status of a node:
     $ bin/riak-admin status

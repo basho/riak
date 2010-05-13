@@ -1,5 +1,0 @@
-ebin/.*\.beam$
-c_src/deps/(nsprpub|js|mozilla|nspr_release)/.*
-c_src/include/js/.*
-c_src/.*(\.o|\.a)$
-
