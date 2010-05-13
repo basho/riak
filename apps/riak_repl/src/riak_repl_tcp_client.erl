@@ -55,8 +55,10 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo,
                                                       sitename=SiteName}) ->
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
         true ->
+            {ok, TheirReplConfig} = riak_core_ring:get_meta(riak_repl_config,
+                                                            TheirPeerInfo#peer_info.ring),
             PIPath = filename:join([riak_repl_util:site_root_dir(SiteName), "ring"]),
-            ok = file:write_file(PIPath, term_to_binary(TheirPeerInfo)),
+            ok = file:write_file(PIPath, term_to_binary(TheirReplConfig)),
             {next_state, merkle_exchange, State};
         false ->
             io:format("invalid peer_info ~p~n", [TheirPeerInfo]),
