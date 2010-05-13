@@ -39,10 +39,9 @@ init([Socket]) ->
     inet:setopts(Socket, [{active, once}, {packet, 4}, {header, 1}]),
     {ok, #state{sock=Socket, count=0}}.
 
-handle_info({tcp_closed, Socket}, State=#state{sock=Socket,partition=Partition,
-                                               count=Count}) ->
-    error_logger:info_msg("Handoff receiver for partition ~p exiting after "
-                          " processing ~p objects~n", [Partition, Count]),
+handle_info({tcp_closed,Socket},State=#state{sock=Socket,partition=Partition,count=Count}) ->
+    error_logger:info_msg("Handoff receiver for partition ~p exiting after processing ~p"
+                          " objects~n", [Partition, Count]),
     {stop, normal, State};
 handle_info({tcp, _Sock, Data}, State=#state{sock=Socket}) ->
     [MsgType|MsgData] = Data,
@@ -52,8 +51,7 @@ handle_info({tcp, _Sock, Data}, State=#state{sock=Socket}) ->
 
 process_message(0, MsgData, State) ->
     <<Partition:160/integer>> = MsgData,
-    error_logger:info_msg("Receiving handoff data for partition ~p~n", 
-                          [Partition]),
+    error_logger:info_msg("Receiving handoff data for partition ~p~n", [Partition]),
     {ok, VNode} = gen_server2:call(riak_kv_vnode_master, {get_vnode, Partition}, 60000),  
     State#state{partition=Partition, vnode=VNode};
 process_message(1, MsgData, State=#state{vnode=VNode, count=Count}) ->
