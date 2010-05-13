@@ -34,12 +34,14 @@
 start(_StartType, _StartArgs) ->
     %% Validate that the ring state directory exists
     RingStateDir = app_helper:get_env(riak_core, ring_state_dir),
-    case filelib:is_dir(RingStateDir) of
-        true ->
+    case filelib:ensure_dir(filename:join(RingStateDir, "dummy")) of
+        ok ->
             ok;
-        false ->
-            error_logger:error_msg("Ring state directory ~p does not exist.\n",
-                                   [RingStateDir]),
+        {error, RingReason} ->
+            error_logger:error_msg(
+              "Ring state directory ~p does not exist, "
+              "and could not be created. (reason: ~p)\n",
+              [RingStateDir, RingReason]),
             throw({error, invalid_ring_state_dir})
     end,
 
