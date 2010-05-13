@@ -5,7 +5,7 @@
          handle_cast/3, handle_DOWN/3, handle_info/2, terminate/2,
          code_change/4]).
 -export([get_state/0, is_leader/0, ensure_connectors/1, add_receiver_pid/1]).
--record(state, {logger, is_leader, connectors=[], receivers=[]}).
+-record(state, {logger, is_leader, connectors=[], receivers=[], leader_node}).
 
 start_link() ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
@@ -60,8 +60,8 @@ handle_leader_cast(Request, State=#state{logger=Logger}, _Election) ->
     Logger ! Request, 
     {noreply, State}.
 
-from_leader({i_am_leader, _Node}, State, _NewElection) ->
-    {ok, State};
+from_leader({i_am_leader, Node}, State, _NewElection) ->
+    {ok, State#state{leader_node=Node}};
 from_leader(Command, State, _NewElection) ->
     error_logger:info_msg("from_leader: ~p~n", [Command]),
     {ok, State}.

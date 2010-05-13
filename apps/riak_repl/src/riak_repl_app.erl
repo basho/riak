@@ -40,7 +40,9 @@ ensure_dirs() ->
             riak:stop(lists:flatten(Msg))
     end,
     {ok, Incarnation} = application:get_env(riak_repl, incarnation),
-    WorkDir = filename:join([DataRoot, "work", integer_to_list(Incarnation)]),
+    WorkRoot = filename:join([DataRoot, "work"]),
+    prune_old_workdirs(WorkRoot),
+    WorkDir = filename:join([WorkRoot, integer_to_list(Incarnation)]),
     case filelib:ensure_dir(filename:join([WorkDir, "empty"])) of
         ok -> 
             application:set_env(riak_repl, work_dir, WorkDir),
@@ -49,6 +51,16 @@ ensure_dirs() ->
             M = io_lib:format("riak_repl couldn't create work dir ~p: ~p~n", [WorkDir,R]),
             riak:stop(lists:flatten(M)),
             {error, R}
+    end.
+
+prune_old_workdirs(WorkRoot) ->
+    case file:list_dir(WorkRoot) of
+        {ok, SubDirs} ->
+            DirPaths = [filename:join(WorkRoot, D) || D <- SubDirs],
+            Cmds = [lists:flatten(io_lib:format("rm -rf ~s", [D])) || D <- DirPaths],
+            [os:cmd(Cmd) || Cmd <- Cmds];
+        _ ->
+            ignore
     end.
 
 repl_hook() -> {struct, 
