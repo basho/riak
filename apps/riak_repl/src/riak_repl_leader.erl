@@ -70,13 +70,9 @@ handle_leader_call({add_receiver_pid, Pid}, _From,
         false ->
             erlang:monitor(process, Pid),
             {reply, ok, State#state{receivers=[Pid|R]}}
-    end;
+    end.
 
-handle_leader_call({repl, Msg}, _From, State, _Election) ->
-    [P ! {repl, Msg} || P <- State#state.receivers],
-    {reply, reply, State}.
-
-handle_leader_cast(Msg, State=#state{logger=_Logger}, _Election) ->
+handle_leader_cast({repl, Msg}, State=#state{logger=_Logger}, _Election) ->
     %%Logger ! Request, 
     [P ! {repl, Msg} || P <- State#state.receivers],
     {noreply, State}.

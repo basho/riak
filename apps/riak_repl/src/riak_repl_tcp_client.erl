@@ -31,7 +31,7 @@ start(Socket, SiteName, ConnectorPid) ->
 
 init([Socket, SiteName, ConnectorPid]) ->
     process_flag(trap_exit, true),
-    %%io:format("~p starting, sock=~p, site=~p, pid=~p~n", [?MODULE, Socket, SiteName, self()]),
+    io:format("~p starting, sock=~p, site=~p, pid=~p~n", [?MODULE, Socket, SiteName, self()]),
     ok = gen_tcp:send(Socket, SiteName),
     ok = inet:setopts(Socket, [{active, once}, {packet, 4}]),
     {ok, Client} = riak:local_client(),

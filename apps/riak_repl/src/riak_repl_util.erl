@@ -43,7 +43,7 @@ do_repl_put(Object) ->
     ReqId = erlang:phash2(erlang:now()),
     spawn(
       fun() ->
-              riak_repl_fsm:start(ReqId, Object, 1, 1, ?REPL_FSM_TIMEOUT, self()) 
+              riak_repl_fsm:start(ReqId, Object, 1, 1, ?REPL_FSM_TIMEOUT, self())
       end).
 
 site_root_dir(Site) ->
