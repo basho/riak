@@ -34,7 +34,7 @@ handle_call({leader_available, false},_From,
 
 handle_cast({postcommit, Record}, State) ->
     Msg = {repl, Record},
-    gen_leader:leader_call(riak_repl_leader, Msg),
+    gen_leader:leader_cast(riak_repl_leader, Msg),
     {noreply, State}.
 
 handle_info(_Info, State) -> {noreply, State}.

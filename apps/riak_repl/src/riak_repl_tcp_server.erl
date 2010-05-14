@@ -66,14 +66,13 @@ maybe_redirect(Socket, PeerInfo) ->
 wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, socket=_Socket}) ->
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
         true ->
-            %%io:format("peer info ok!~n"),
             {next_state, merkle_send, State, 0};
         false ->
             {stop, normal, State}
     end.
 
-merkle_send(timeout, State=#state{socket=_Socket, partitions=[]}) ->
-    io:format("sent last merkle~n"),
+merkle_send(timeout, State=#state{socket=_Socket, partitions=[], sitename=SiteName}) ->
+    error_logger:info_msg("Fullsync with site ~p complete~n", [SiteName]),
     {next_state, connected, State};
 merkle_send(timeout, State=#state{socket=Socket, 
                                   partitions=[Partition|T],
@@ -81,14 +80,15 @@ merkle_send(timeout, State=#state{socket=Socket,
     X =  riak_repl_util:make_merkle(State#state.my_pi, Partition, WorkDir),
     case X of
         {error, Reason} ->
-            io:format("get_merkle error ~p for partition ~p~n", [Reason, Partition]),
+            error_logger:error_msg("get_merkle error ~p for partition ~p~n", 
+                                   [Reason, Partition]),
             {next_state, merkle_send, State, 0};
         {ok, MerkleFile} ->
             {ok, FileInfo} = file:read_file_info(MerkleFile),
             FileSize = FileInfo#file_info.size,
             {ok, FP} = file:open(MerkleFile, [read, raw, binary, read_ahead]),
             ok = send(Socket, term_to_binary({merkle, FileSize, Partition})),
-            io:format("sending merkle tree for partition ~p~n", [Partition]),
+            error_logger:info_msg("Synchronizing partition ~p~n", [Partition]),
             ok = send_chunks(FP, Socket),
             file:delete(MerkleFile),
             {next_state, merkle_wait_ack, State#state{partitions=T}}
@@ -109,7 +109,6 @@ merkle_wait_ack({ack, _Partition, []}, State) ->
 merkle_wait_ack({ack, Partition, DiffVClocks}, State=#state{client=Client, socket=Socket}) ->
     Actions = vclock_diff(Partition, DiffVClocks, State),
     vclock_diff_response(Actions, Client, Socket, [], []),
-    %io:format("sending ~p get reqs and ~p send reqs~n", [length(element(2, _GetMsg)), length(element(2, SendMsg))]),
     ok = send(Socket, term_to_binary({diff_response, Partition, {send, []}})),
     {next_state, merkle_wait_ack, State}.
 
@@ -142,7 +141,7 @@ vclock_diff(Partition, DiffVClocks, #state{my_pi=#peer_info{ring=Ring}}) ->
     Keys = [K || {K, _V} <- DiffVClocks],
     case riak_repl_util:vnode_master_call(OwnerNode, {get_vclocks, Partition, Keys}) of
         {error, Reason} ->
-            io:format("~p:error getting vclocks for ~p from ~p: ~p~n",
+            error_logger:error_msg("~p:error getting vclocks for ~p from ~p: ~p~n",
                       [?MODULE, Partition, OwnerNode, Reason]),
             [];
         OurVClocks ->

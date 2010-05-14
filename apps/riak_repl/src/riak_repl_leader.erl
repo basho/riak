@@ -1,3 +1,4 @@
+%% Copyright (c) 
 -module(riak_repl_leader).
 -behaviour(gen_leader).
 -export([start_link/0, init/1, elected/3, surrendered/3, handle_leader_call/4, 
@@ -6,17 +7,20 @@
          code_change/4]).
 -export([get_state/0, is_leader/0, ensure_connectors/1, add_receiver_pid/1]).
 -export([leader_node/0]).
--record(state, {logger, is_leader, connectors=[], receivers=[], leader_node}).
-
+-record(state, {logger, 
+                is_leader, 
+                connectors=[], 
+                receivers=[], 
+                leader_node}).
+-define(LEADER_OPTS, [{vardir, VarDir}, {bcast_type, all}]).
 start_link() ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     Candidates = riak_core_ring:all_members(Ring),
     {ok, DataRootDir} = application:get_env(riak_repl, data_root),
     VarDir = filename:join(DataRootDir, "leader"),
     ok = filelib:ensure_dir(filename:join(VarDir, ".empty")),
-    LeaderOpts = [{vardir, VarDir}],
     [net_adm:ping(C) || C <- Candidates],
-    gen_leader:start_link(?MODULE, Candidates, LeaderOpts, ?MODULE, [], []).
+    gen_leader:start_link(?MODULE, Candidates, ?LEADER_OPTS, ?MODULE, [], []).
 
 init([]) ->
     {ok, Logger} = riak_repl_logger:start_link(atom_to_list(?MODULE)),
@@ -72,8 +76,9 @@ handle_leader_call({repl, Msg}, _From, State, _Election) ->
     [P ! {repl, Msg} || P <- State#state.receivers],
     {reply, reply, State}.
 
-handle_leader_cast(Request, State=#state{logger=Logger}, _Election) ->
-    Logger ! Request, 
+handle_leader_cast(Msg, State=#state{logger=_Logger}, _Election) ->
+    %%Logger ! Request, 
+    [P ! {repl, Msg} || P <- State#state.receivers],
     {noreply, State}.
 
 from_leader({i_am_leader, Node}, State, _NewElection) ->
@@ -99,6 +104,7 @@ handle_cast(_Message, State, _E) ->
     {noreply, State}.
 
 handle_DOWN(_Node, State, _Election) ->
+    io:format("HANDLE_DOWN: ~p:~p~n", [_Node, State]),
     {ok, State}.
 
 handle_info({'DOWN', _MR, process, Pid, Info}, State) ->
