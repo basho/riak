@@ -1,4 +1,5 @@
-%% Copyright (c) 
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+
 -module(riak_repl_leader).
 -behaviour(gen_leader).
 -export([start_link/0, init/1, elected/3, surrendered/3, handle_leader_call/4, 
@@ -73,7 +74,6 @@ handle_leader_call({add_receiver_pid, Pid}, _From,
     end.
 
 handle_leader_cast({repl, Msg}, State=#state{logger=_Logger}, _Election) ->
-    %%Logger ! Request, 
     [P ! {repl, Msg} || P <- State#state.receivers],
     {noreply, State}.
 
