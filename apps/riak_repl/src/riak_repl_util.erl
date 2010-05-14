@@ -41,11 +41,10 @@ wait_for_riak(PPid) ->
 
 do_repl_put(Object) ->
     ReqId = erlang:phash2(erlang:now()),
-    riak_repl_fsm:start(ReqId, Object, 1, 1, ?REPL_FSM_TIMEOUT, self()),
-    receive
-        {ReqId, _} ->
-            ok
-    end.
+    spawn(
+      fun() ->
+              riak_repl_fsm:start(ReqId, Object, 1, 1, ?REPL_FSM_TIMEOUT, self()) 
+      end).
 
 site_root_dir(Site) ->
     {ok, DataRootDir} = application:get_env(riak_repl, data_root),
