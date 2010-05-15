@@ -1,4 +1,6 @@
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_listener_sup).
+-author('Andy Gross <andy@basho.com>').
 -behaviour(supervisor).
 -export([start_link/0, init/1, stop/1]).
 -export([start_listener/2]).

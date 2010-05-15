@@ -1,4 +1,6 @@
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_connector).
+-author('Andy Gross <andy@andygross.org>').
 -include("riak_repl.hrl").
 -behaviour(gen_server).
 -export([start_link/3]).

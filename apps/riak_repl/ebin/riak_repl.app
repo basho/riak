@@ -17,7 +17,6 @@
                   'riak_repl_listener',
                   'riak_repl_listener_sup',
                   'riak_repl_ring_handler',
-                  'riak_repl_server', 
                   'riak_repl_sup', 
                   'riak_repl_tcp_client',
                   'riak_repl_tcp_server',

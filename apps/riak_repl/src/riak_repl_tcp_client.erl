@@ -1,5 +1,6 @@
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_tcp_client).
+-author('Andy Gross <andy@basho.com').
 -include("riak_repl.hrl").
 -behaviour(gen_fsm).
 -export([start/3]).

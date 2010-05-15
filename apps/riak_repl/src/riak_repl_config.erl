@@ -1,4 +1,6 @@
+%% Ccopyright 2007-2009 Basho Technologies, Inc. All Rights Reserved.
 -module(riak_repl_config).
+-author('Andy Gross <andy@basho.com>').
 -behaviour(gen_server).
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,

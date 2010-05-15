@@ -1,4 +1,6 @@
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_listener).
+-author('Andy Gross <andy@basho.com>').
 -behavior(gen_nb_server).
 -export([start_link/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,

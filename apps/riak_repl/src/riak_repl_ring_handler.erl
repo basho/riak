@@ -1,5 +1,6 @@
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_ring_handler).
+-author('Andy Gross <andy@basho.com>').
 -behaviour(gen_event).
 %% gen_event callbacks
 -export([init/1, handle_event/2, handle_call/2,

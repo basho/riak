@@ -1,4 +1,6 @@
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_sup).
+-author('Andy Gross <andy@basho.com>').
 -behaviour(supervisor).
 
 %% External exports
