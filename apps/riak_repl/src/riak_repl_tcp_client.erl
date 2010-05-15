@@ -1,3 +1,4 @@
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_tcp_client).
 -include("riak_repl.hrl").
 -behaviour(gen_fsm).
@@ -39,7 +40,7 @@ init([Socket, SiteName, ConnectorPid]) ->
     {ok, WorkRoot} = application:get_env(riak_repl, work_dir),
     WorkDir = filename:join(WorkRoot, SiteName),
     ok = filelib:ensure_dir(filename:join(WorkDir, "empty")),
-    ok = send(Socket, term_to_binary({peerinfo, MyPeerInfo})),
+    ok = send(Socket, {peerinfo, MyPeerInfo}),
     {ok, wait_peerinfo, #state{socket=Socket,
                                work_dir=WorkDir,
                                sitename=SiteName,
@@ -78,7 +79,7 @@ merkle_exchange({merkle, FileSize, Partition}, State=#state{socket=_Socket,
                                           merkle_pt=Partition}};
 merkle_exchange({diff_response,Partition,{send, Sends}}, State=#state{socket=Socket}) ->
     io:format("got diff_response with ~p sendreqs~n", [length(Sends)]),
-    ok = send(Socket, term_to_binary({ack, Partition, []})),
+    ok = send(Socket, {ack, Partition, []}),
     {next_state, merkle_exchange, State};
 merkle_exchange({diff_obj, Obj}, State) ->
     riak_repl_util:do_repl_put(Obj),
@@ -117,10 +118,9 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP,
                 {error, Reason} ->
                     error_logger:error_msg("~p:error getting vclocks for ~p from ~p: ~p~n",
                               [?MODULE, PT, OwnerNode, Reason]),
-                    ok = send(Socket, term_to_binary({ack, PT, []}));
+                    ok = send(Socket, {ack, PT, []});
                 VClocks -> 
-                    ok = send(Socket, 
-                              term_to_binary({ack, PT, VClocks}, [compressed]))
+                    ok = send(Socket, {ack, PT, VClocks})
             end,
             {next_state, merkle_exchange, State};
         _ ->
@@ -132,18 +132,15 @@ handle_event(_Event, StateName, State) -> {next_state, StateName, State}.
 handle_sync_event(_Ev, _F, StateName, State) -> {reply, ok, StateName, State}.
 
 handle_info({tcp_closed, Socket}, _StateName, State=#state{socket=Socket}) ->
-    io:format("tcp socket closed ~p~n", [Socket]),
     {stop, normal, State};
 
 handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
-    R = ?MODULE:StateName(binary_to_term(Data), State),
+    R = ?MODULE:StateName(binary_to_term(zlib:unzip(Data)), State),
     ok = inet:setopts(Socket, [{active, once}]),            
     R;
 handle_info(_I, StateName, State) ->  {next_state, StateName, State}.
 terminate(_Reason, _StateName, _State) ->  ok.
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
-
-send(Socket, Data) ->  ok = gen_tcp:send(Socket, Data).
 
 diff_merkle(Partition, MerkleTree, #state{my_pi=#peer_info{ring=Ring}}) ->
     OwnerNode = riak_core_ring:index_owner(Ring, Partition),
@@ -164,3 +161,8 @@ diff_merkle(Partition, MerkleTree, #state{my_pi=#peer_info{ring=Ring}}) ->
                 VClocks -> VClocks
             end
     end.
+
+send(Socket, Data) when is_binary(Data) ->  
+    gen_tcp:send(Socket, zlib:zip(Data));
+send(Socket, Data) ->
+    gen_tcp:send(Socket, zlib:zip(term_to_binary(Data))).

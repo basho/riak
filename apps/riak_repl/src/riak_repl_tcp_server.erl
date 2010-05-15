@@ -1,4 +1,6 @@
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_tcp_server).
+-author('Andy Gross <andy@basho.com').
 -include("riak_repl.hrl").
 -include_lib("kernel/include/file.hrl").
 -behaviour(gen_fsm).
@@ -55,13 +57,12 @@ maybe_redirect(Socket, PeerInfo) ->
     LeaderNode = riak_repl_leader:leader_node(),
     case LeaderNode =:= node() of
         true ->
-            send(Socket, term_to_binary({peerinfo, PeerInfo})),
+            ok = send(Socket, {peerinfo, PeerInfo}),
             ok;
         false ->
-            send(Socket, term_to_binary({redirect, "127.0.0.1", 9011})),
+            send(Socket, {redirect, "127.0.0.1", 9011}),
             redirect
     end.
-
 
 wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, socket=_Socket}) ->
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
@@ -77,8 +78,7 @@ merkle_send(timeout, State=#state{socket=_Socket, partitions=[], sitename=SiteNa
 merkle_send(timeout, State=#state{socket=Socket, 
                                   partitions=[Partition|T],
                                   work_dir=WorkDir}) ->
-    X =  riak_repl_util:make_merkle(State#state.my_pi, Partition, WorkDir),
-    case X of
+    case riak_repl_util:make_merkle(State#state.my_pi, Partition, WorkDir) of
         {error, Reason} ->
             error_logger:error_msg("get_merkle error ~p for partition ~p~n", 
                                    [Reason, Partition]),
@@ -87,7 +87,7 @@ merkle_send(timeout, State=#state{socket=Socket,
             {ok, FileInfo} = file:read_file_info(MerkleFile),
             FileSize = FileInfo#file_info.size,
             {ok, FP} = file:open(MerkleFile, [read, raw, binary, read_ahead]),
-            ok = send(Socket, term_to_binary({merkle, FileSize, Partition})),
+            ok = send(Socket, {merkle, FileSize, Partition}),
             error_logger:info_msg("Synchronizing partition ~p~n", [Partition]),
             ok = send_chunks(FP, Socket),
             file:delete(MerkleFile),
@@ -97,7 +97,7 @@ merkle_send(timeout, State=#state{socket=Socket,
 send_chunks(FP, Socket) ->
     case file:read(FP, 8192) of
         {ok, Data} ->
-            ok = send(Socket, term_to_binary({merk_chunk, Data}, [compressed])),
+            ok = send(Socket, {merk_chunk, Data}),
             send_chunks(FP, Socket);
         eof ->
             file:close(FP),
@@ -108,8 +108,8 @@ merkle_wait_ack({ack, _Partition, []}, State) ->
     {next_state, merkle_send, State, 0};
 merkle_wait_ack({ack, Partition, DiffVClocks}, State=#state{client=Client, socket=Socket}) ->
     Actions = vclock_diff(Partition, DiffVClocks, State),
-    vclock_diff_response(Actions, Client, Socket, [], []),
-    ok = send(Socket, term_to_binary({diff_response, Partition, {send, []}})),
+    request_diffobjs(Actions, Client, Socket, [], []),
+    ok = send(Socket, {diff_response, Partition, {send, []}}),
     {next_state, merkle_wait_ack, State}.
 
 connected(_E, State) -> {next_state, connected, State}.
@@ -120,19 +120,22 @@ handle_info({tcp_closed, Socket}, _StateName, State=#state{socket=Socket}) ->
     io:format("tcp socket closed ~p~n", [Socket]),
     {stop, normal, State};
 handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
-    R = ?MODULE:StateName(binary_to_term(Data), State),
+    R = ?MODULE:StateName(binary_to_term(zlib:unzip(Data)), State),
     ok = inet:setopts(Socket, [{active, once}]),            
     R;
 handle_info({repl, RObj}, StateName, State=#state{socket=Socket}) ->
-    ok = send(Socket, term_to_binary({diff_obj, RObj}, [compressed])),
-    ok = inet:setopts(Socket, [{active, once}]),
+    ok = send(Socket, {diff_obj, RObj}),
     {next_state, StateName, State};
 handle_info(_I, StateName, State) -> {next_state, StateName, State}.
 terminate(_Reason, _StateName, _State) -> ok.
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
-send(Socket, Data) ->  ok = gen_tcp:send(Socket, Data).
-    
+
+send(Socket, Data) when is_binary(Data) ->  
+    gen_tcp:send(Socket, zlib:zip(Data));
+send(Socket, Data) ->
+    gen_tcp:send(Socket, zlib:zip(term_to_binary(Data))).
+
 should_get(V1, V2) -> vclock:descends(V1, V2) =:= false.
 should_send(V1, V2) -> vclock:descends(V2, V1) =:= false.
 
@@ -176,17 +179,16 @@ vclock_diff1([{K,VC}|T], OurVClocks, Acc) ->
     end.
 
 
-vclock_diff_response([], _Client, _Socket, Gets, Sends) ->
+request_diffobjs([], _Client, _Socket, Gets, Sends) ->
     {{get, lists:reverse(Gets)}, {send, lists:reverse(Sends)}};
-vclock_diff_response([{get,{_B,_K}}|T], Client, Socket, Gets, Sends) ->
-    vclock_diff_response(T, Client, Socket, Gets, Sends);
-vclock_diff_response([{send,{B,K}}|T], Client, Socket, Gets, Sends) ->
+request_diffobjs([{get,{_B,_K}}|T], Client, Socket, Gets, Sends) ->
+    request_diffobjs(T, Client, Socket, Gets, Sends);
+request_diffobjs([{send,{B,K}}|T], Client, Socket, Gets, Sends) ->
     case Client:get(B, K, 1, ?REPL_FSM_TIMEOUT) of
         {ok, Obj} ->
-            ok = send(Socket, term_to_binary({diff_obj, Obj})),
-            ok = inet:setopts(Socket, [{active, once}]),
-            vclock_diff_response(T, Client, Socket, Gets, Sends);
+            ok = send(Socket, {diff_obj, Obj}),
+            request_diffobjs(T, Client, Socket, Gets, Sends);
         _ ->
-            vclock_diff_response(T, Client, Socket, Gets, Sends)
+            request_diffobjs(T, Client, Socket, Gets, Sends)
     end.    
 
