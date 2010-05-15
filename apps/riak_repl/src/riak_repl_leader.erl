@@ -35,7 +35,7 @@ leader_node() ->
     gen_leader:call(?MODULE, leader_node).
 
 postcommit(Object) ->
-    gen_leader:leader_cast({repl, Object}).
+    gen_leader:leader_cast(?MODULE, {repl, Object}).
 
 get_state() ->
     gen_leader:call(?MODULE, get_state).

@@ -123,7 +123,7 @@ handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
     R = ?MODULE:StateName(binary_to_term(Data), State),
     ok = inet:setopts(Socket, [{active, once}]),            
     R;
-handle_info({repl, {RObj}}, StateName, State=#state{socket=Socket}) ->
+handle_info({repl, RObj}, StateName, State=#state{socket=Socket}) ->
     ok = send(Socket, term_to_binary({diff_obj, RObj}, [compressed])),
     ok = inet:setopts(Socket, [{active, once}]),
     {next_state, StateName, State};
