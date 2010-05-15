@@ -64,7 +64,7 @@ prune_old_workdirs(WorkRoot) ->
     end.
 
 repl_hook() -> {struct, 
-                [{<<"mod">>, <<"riak_repl_sink">>},
+                [{<<"mod">>, <<"riak_repl_leader">>},
                  {<<"fun">>, <<"postcommit">>}]}.
     
 

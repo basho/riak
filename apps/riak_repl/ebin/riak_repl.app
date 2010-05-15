@@ -12,16 +12,12 @@
                   'riak_repl_config',
                   'riak_repl_connector',
                   'riak_repl_connector_sup',
-                  'riak_repl_events',
                   'riak_repl_fsm', 
                   'riak_repl_leader',
                   'riak_repl_listener',
                   'riak_repl_listener_sup',
-                  'riak_repl_logger',
-                  'riak_repl_log_reader',
                   'riak_repl_ring_handler',
                   'riak_repl_server', 
-                  'riak_repl_sink',
                   'riak_repl_sup', 
                   'riak_repl_tcp_client',
                   'riak_repl_tcp_server',
@@ -37,6 +33,9 @@
   {env,          [
                   {repl_ip, "0.0.0.0"},
                   {repl_port, 9010},
+                  {fullsync_on_connect, true},
+                  % minutes
+                  {fullsync_interval, 360},
                   {data_root, "data/riak_repl"},
                   {log_flush_interval, 1}
                  ]}

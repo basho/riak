@@ -6,14 +6,19 @@
          handle_leader_cast/3, from_leader/3, handle_call/4,
          handle_cast/3, handle_DOWN/3, handle_info/2, terminate/2,
          code_change/4]).
--export([get_state/0, is_leader/0, ensure_connectors/1, add_receiver_pid/1]).
--export([leader_node/0]).
--record(state, {logger, 
-                is_leader, 
-                connectors=[], 
-                receivers=[], 
-                leader_node}).
+-export([get_state/0, 
+         ensure_connectors/1, 
+         add_receiver_pid/1,
+         postcommit/1,
+         leader_node/0]).
+
+-record(state, {is_leader :: boolean(),
+                connectors=[] :: list(),
+                receivers=[] :: list(),
+                leader_node=undefined :: atom()}).
+
 -define(LEADER_OPTS, [{vardir, VarDir}, {bcast_type, all}]).
+
 start_link() ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     Candidates = riak_core_ring:all_members(Ring),
@@ -24,14 +29,13 @@ start_link() ->
     gen_leader:start_link(?MODULE, Candidates, ?LEADER_OPTS, ?MODULE, [], []).
 
 init([]) ->
-    {ok, Logger} = riak_repl_logger:start_link(atom_to_list(?MODULE)),
-    {ok, #state{logger=Logger, is_leader=false}}.
-
-is_leader() ->
-    gen_leader:call(?MODULE, is_leader).
+    {ok, #state{is_leader=false}}.
 
 leader_node() ->
     gen_leader:call(?MODULE, leader_node).
+
+postcommit(Object) ->
+    gen_leader:leader_cast({repl, Object}).
 
 get_state() ->
     gen_leader:call(?MODULE, get_state).
@@ -73,7 +77,7 @@ handle_leader_call({add_receiver_pid, Pid}, _From,
             {reply, ok, State#state{receivers=[Pid|R]}}
     end.
 
-handle_leader_cast({repl, Msg}, State=#state{logger=_Logger}, _Election) ->
+handle_leader_cast({repl, Msg}, State, _Election) ->
     [P ! {repl, Msg} || P <- State#state.receivers],
     {noreply, State}.
 

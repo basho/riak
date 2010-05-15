@@ -51,11 +51,5 @@ init([]) ->
                   permanent, infinity, supervisor, [riak_repl_connector_sup]},
                  {riak_repl_leader,
                   {riak_repl_leader, start_link, []},
-                  permanent, 5000, worker, [riak_repl_leader]},
-                 {riak_repl_events,
-                  {riak_repl_events, start_link, []},
-                  permanent, 5000, worker, dynamic},
-                 {riak_repl_sink,
-                  {riak_repl_sink, start_link, []},
-                  permanent, 5000, worker, [riak_repl_sink]}],
+                  permanent, 5000, worker, [riak_repl_leader]}],
     {ok, {{one_for_one, 9, 10}, Processes}}.
