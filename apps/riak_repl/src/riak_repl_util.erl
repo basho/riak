@@ -68,11 +68,18 @@ make_merkle(#peer_info{ring=Ring}, Partition, Dir) ->
     MakerPid = spawn(fun() -> merkle_maker(DMerkle, [], 0) end),
     F = fun(K, V, MPid) -> MPid ! {K, erlang:phash2(V)}, MPid end,
     riak_repl_util:vnode_master_call(OwnerNode, {fold,{Partition,F,MakerPid}}),
+    MakerPid ! {finish, self()},
+    receive 
+        {ok, RestKeys} ->
+            couch_merkle:update_many(DMerkle, RestKeys)
+    end,
     couch_merkle:close(DMerkle),
     {ok, FileName}.
 
 merkle_maker(DMerklePid, Buffer, Size) ->
     receive 
+        {finish, Pid} ->
+            Pid ! {ok, Buffer};
         {K, H} ->
             PackedKey = binpack_bkey(K),
             NewSize = Size+size(PackedKey)+4,

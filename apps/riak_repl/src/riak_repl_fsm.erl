@@ -92,9 +92,7 @@ waiting_vnode_w({w, Idx, ReqId},
     end;
 waiting_vnode_w({dw, Idx, _ReqId},
                   StateData=#state{replied_dw=Replied0}) ->
-    Replied = [Idx|Replied0],
-    NewStateData = StateData#state{replied_dw=Replied},
-    {next_state,waiting_vnode_w,NewStateData};
+    {next_state,waiting_vnode_w, StateData#state{replied_dw=[Idx|Replied0]}};
 waiting_vnode_w({fail, Idx, ReqId},
                   StateData=#state{n=N,w=W,client=Client,
                                    replied_fail=Replied0}) ->
