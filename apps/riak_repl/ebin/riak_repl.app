@@ -36,6 +36,6 @@
                   % minutes
                   {fullsync_interval, 360},
                   {data_root, "data/riak_repl"},
-                  {log_flush_interval, 1}
+                  {merkle_bufsize, 1048576}
                  ]}
 ]}.

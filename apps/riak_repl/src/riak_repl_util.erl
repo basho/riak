@@ -63,11 +63,26 @@ binunpack_bkey(<<SB:32/integer,B:SB/binary,SK:32/integer,K:SK/binary>>) ->
 
 make_merkle(#peer_info{ring=Ring}, Partition, Dir) ->
     OwnerNode = riak_core_ring:index_owner(Ring, Partition),
-    FileName0 = integer_to_list(Partition) ++ ".merkle",
-    FileName = filename:join(Dir, FileName0),
+    FileName = filename:join(Dir, integer_to_list(Partition) ++ ".merkle"),
     {ok, DMerkle} = couch_merkle:open(FileName),
-    F = fun(K, V, MPid) -> couch_merkle:update(MPid, binpack_bkey(K), erlang:phash2(V)), MPid end,
-    riak_repl_util:vnode_master_call(OwnerNode, {fold, {Partition, F, DMerkle}}),
+    MakerPid = spawn(fun() -> merkle_maker(DMerkle, [], 0) end),
+    F = fun(K, V, MPid) -> MPid ! {K, erlang:phash2(V)}, MPid end,
+    riak_repl_util:vnode_master_call(OwnerNode, {fold,{Partition,F,MakerPid}}),
     couch_merkle:close(DMerkle),
     {ok, FileName}.
 
+merkle_maker(DMerklePid, Buffer, Size) ->
+    receive 
+        {K, H} ->
+            PackedKey = binpack_bkey(K),
+            NewSize = Size+size(PackedKey)+4,
+            case NewSize >= ?MERKLE_BUFSZ of 
+                true ->
+                    couch_merkle:update_many(DMerklePid, Buffer),
+                    merkle_maker(DMerklePid, [], 0);
+                false ->
+                    merkle_maker(DMerklePid, [{PackedKey, H}|Buffer], NewSize)
+            end
+    end.
+            
+            

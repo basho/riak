@@ -14,7 +14,7 @@
 -behaviour(gen_server2).
 
 %% API
--export([open/1, open/2, equals/2, root/1, update/3, updatea/3, delete/2, deletea/2, diff/2, close/1, tree/1]).
+-export([open/1, open/2, equals/2, root/1, update/3, update_many/2, updatea/3, delete/2, deletea/2, diff/2, close/1, tree/1]).
 
 %% gen_server2 callbacks
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -68,7 +68,10 @@ update(Server, Key, Hash) ->
   
 updatea(Server, Key, Hash) ->
   gen_server2:cast(Server, {update, Key, Hash}).
-  
+
+update_many(Server, KHPairs) ->
+    gen_server2:call(Server, {update_many, KHPairs}).
+
 delete(Server, Key) ->
   gen_server2:call(Server, {delete, Key}).
   
@@ -124,6 +127,10 @@ init([Filename, Create]) ->
 %%--------------------------------------------------------------------
 handle_call({update, Key, Hash}, _From, Bt) ->
   Bt2 = handle_update(Key, Hash, Bt),
+  {reply, self(), Bt2};
+
+handle_call({update_many, KVList}, _From, Bt) ->
+  Bt2 = handle_update(KVList, Bt),
   {reply, self(), Bt2};
   
 handle_call({delete, Key}, _From, Bt) ->
@@ -206,6 +213,11 @@ handle_update(Key, Hash, Bt) ->
   {ok, Bt2} = couch_btree:add(Bt, [{Key, Hash}]),
   optional_header_update(Bt, Bt2),
   Bt2.
+
+handle_update(KHList, Bt) ->
+    {ok, Bt2} = couch_btree:add(Bt, KHList),    
+    optional_header_update(Bt, Bt2),
+    Bt2.
   
 handle_delete(Key, Bt) ->
   {ok, Bt2} = couch_btree:add_remove(Bt, [], [Key]),
