@@ -17,37 +17,32 @@
          connected/2]).
 -record(state, 
         {
-          socket :: port(),
-          sitename :: string(),
-          client :: tuple(),
-          my_pi :: #peer_info{},
-          merkle_fp :: term(),
-          work_dir :: string(),
-          partitions=[] :: list()
+          socket :: port(),       %% peer socket
+          sitename :: string(),   %% repl site identifier
+          client :: tuple(),      %% local riak client
+          my_pi :: #peer_info{},  %% peer info record 
+          merkle_fp :: term(),    %% current merkle filedesc
+          work_dir :: string(),   %% working directory for this repl session
+          partitions=[] :: list() %% list of local partitions
          }
        ).
 
 start(Socket, SiteName) -> gen_fsm:start(?MODULE, [Socket, SiteName], []).
 
 init([Socket, SiteName]) ->
-    process_flag(trap_exit, true),
-    %%io:format("~p starting, sock=~p~n", [?MODULE, Socket]),
-    ok = inet:setopts(Socket, [{active, once}, {packet, 4}]),
-    {ok, Client} = riak:local_client(),
-    MyPeerInfo = riak_repl_util:make_peer_info(),
-    Partitions = riak_repl_util:get_partitions(MyPeerInfo),
-    {ok, WorkRoot} = application:get_env(riak_repl, work_dir),
-    WorkDir = filename:join(WorkRoot, SiteName),
-    ok = filelib:ensure_dir(filename:join(WorkDir, "empty")),
-    case maybe_redirect(Socket, MyPeerInfo) of
+    io:format("~p starting, sock=~p, sitename=~p~n", [?MODULE, Socket, SiteName]),
+    Props = riak_repl_fsm:common_init(Socket, SiteName),
+    State = #state{
+      socket=Socket,
+      sitename=SiteName,
+      client=proplists:get_value(client, Props),
+      my_pi=proplists:get_value(my_pi, Props),
+      work_dir=proplists:get_value(work_dir,Props),
+      partitions=proplists:get_value(partitions, Props)},
+    case maybe_redirect(Socket,  State#state.my_pi) of
         ok ->
             riak_repl_leader:add_receiver_pid(self()),
-            {ok, wait_peerinfo, #state{socket=Socket,
-                                       sitename=SiteName,
-                                       client=Client,
-                                       work_dir=WorkDir,
-                                       partitions=Partitions,
-                                       my_pi=MyPeerInfo}};
+            {ok, wait_peerinfo, State};
         redirect -> ignore
     end.
 
@@ -64,7 +59,7 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo}) ->
     end.
 
 merkle_send(timeout, State=#state{partitions=[], sitename=SiteName}) ->
-    error_logger:info_msg("Fullsync with site ~p complete~n", [SiteName]),
+    error_logger:info_msg("Full-sync with site ~p complete~n", [SiteName]),
     {next_state, connected, State};
 merkle_send(timeout, State=#state{socket=Socket, 
                                   partitions=[Partition|T],
@@ -74,9 +69,8 @@ merkle_send(timeout, State=#state{socket=Socket,
             error_logger:error_msg("get_merkle error ~p for partition ~p~n", 
                                    [Reason, Partition]),
             {next_state, merkle_send, State, 0};
-        {ok, MerkleFile, MerklePid, Root} ->
+        {ok, MerkleFile, MerklePid, _Root} ->
             couch_merkle:close(MerklePid),
-            io:format("our root: ~p~n", [Root]),
             {ok, FileInfo} = file:read_file_info(MerkleFile),
             FileSize = FileInfo#file_info.size,
             {ok, FP} = file:open(MerkleFile, [read, raw, binary, read_ahead]),
@@ -103,8 +97,6 @@ merkle_wait_ack({ack, Partition, DiffVClocks}, State=#state{socket=Socket}) ->
     {next_state, merkle_wait_ack, State}.
 
 connected(_E, State) -> {next_state, connected, State}.
-handle_event(_Event, StateName, State) -> {next_state, StateName, State}.
-handle_sync_event(_Event,_From,StateName,State) -> {reply,ok,StateName,State}.
 
 handle_info({tcp_closed, Socket}, _StateName, State=#state{socket=Socket}) ->
     io:format("tcp socket closed ~p~n", [Socket]),
@@ -116,23 +108,22 @@ handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
 handle_info({repl, RObj}, StateName, State=#state{socket=Socket}) ->
     ok = send(Socket, {diff_obj, RObj}),
     {next_state, StateName, State};
+%% no-ops
 handle_info(_I, StateName, State) -> {next_state, StateName, State}.
 terminate(_Reason, _StateName, _State) -> ok.
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
-
+handle_event(_Event, StateName, State) -> {next_state, StateName, State}.
+handle_sync_event(_Event,_From,StateName,State) -> {reply,ok,StateName,State}.
 
 send(Socket, Data) when is_binary(Data) -> gen_tcp:send(Socket, zlib:zip(Data));
 send(Socket, Data) -> gen_tcp:send(Socket, zlib:zip(term_to_binary(Data))).
 
 vclock_diff(Partition, DiffVClocks, #state{client=Client, socket=Socket}) ->
-    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-    OwnerNode = riak_core_ring:index_owner(Ring, Partition),
     Keys = [K || {K, _V} <- DiffVClocks],
-    case riak_repl_util:vnode_master_call(OwnerNode, 
-                                          {get_vclocks, Partition, Keys}) of
+    case riak_repl_fsm:get_vclocks(Partition, Keys) of
         {error, Reason} ->
-            error_logger:error_msg("~p:getting vclocks for ~p from ~p: ~p~n",
-                      [?MODULE, Partition, OwnerNode, Reason]),
+            error_logger:error_msg("~p:getting vclocks for ~p:~p~n",
+                                   [?MODULE, Partition, Reason]),
             [];
         OurVClocks ->
             vclock_diff1(DiffVClocks, OurVClocks, Client, Socket, 0)

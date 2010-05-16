@@ -1,5 +1,5 @@
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
--module(riak_repl_fsm).
+-module(riak_repl_put_fsm).
 -include_lib("eunit/include/eunit.hrl").
 -behaviour(gen_fsm).
 -define(DEFAULT_OPTS, [{returnbody, false}]).

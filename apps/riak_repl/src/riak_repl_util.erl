@@ -24,7 +24,8 @@ validate_peer_info(T=#peer_info{}, M=#peer_info{}) ->
     OurPartitions = get_partitions(M#peer_info.ring),
     TheirPartitions =:= OurPartitions.
 
-get_partitions(Ring) ->
+get_partitions(_Ring) ->
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     lists:sort([P || {P, _} <- riak_core_ring:all_owners(Ring)]).
 
 vnode_master_call(Node, Message) ->
@@ -42,7 +43,7 @@ do_repl_put(Object) ->
     ReqId = erlang:phash2(erlang:now()),
     spawn(
       fun() ->
-              riak_repl_fsm:start(ReqId,Object,1,1,?REPL_FSM_TIMEOUT,self())
+              riak_repl_put_fsm:start(ReqId,Object,1,1,?REPL_FSM_TIMEOUT,self())
       end).
 
 site_root_dir(Site) ->
