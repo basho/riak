@@ -23,7 +23,8 @@
           my_pi :: #peer_info{},  %% peer info record 
           merkle_fp :: term(),    %% current merkle filedesc
           work_dir :: string(),   %% working directory for this repl session
-          partitions=[] :: list() %% list of local partitions
+          partitions=[] :: list(),%% list of local partitions
+          merkle_wip=[] :: list() %% merkle work in progress
          }
        ).
 
@@ -93,8 +94,8 @@ merkle_wait_ack({ack, _Partition, []}, State) ->
     {next_state, merkle_send, State, 0};
 merkle_wait_ack({ack, Partition, DiffVClocks}, State=#state{socket=Socket}) ->
     vclock_diff(Partition, DiffVClocks, State),
-    ok = send(Socket, {diff_response, Partition, {send, []}}),
-    {next_state, merkle_wait_ack, State}.
+    ok = send(Socket, {partition_complete, Partition}),
+    {next_state, merkle_send, State}.
 
 connected(_E, State) -> {next_state, connected, State}.
 

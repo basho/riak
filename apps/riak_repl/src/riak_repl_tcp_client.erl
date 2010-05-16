@@ -74,8 +74,7 @@ merkle_exchange({merkle, FileSize, Partition},State=#state{work_dir=WorkDir}) ->
     {next_state, merkle_recv, State#state{merkle_fp=FP, merkle_fn=MerkleFN,
                                           merkle_sz=FileSize, 
                                           merkle_pt=Partition}};
-merkle_exchange({diff_response,Partition,_}, State=#state{socket=Socket}) ->
-    ok = send(Socket, {ack, Partition, []}),
+merkle_exchange({partition_complete,_Partition}, State) ->
     {next_state, merkle_exchange, State};
 merkle_exchange({diff_obj, Obj}, State) ->
     riak_repl_util:do_repl_put(Obj),
@@ -96,19 +95,25 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, merkle_sz=SZ,
             ok = file:close(FP),
             {ok, MerkleFN, OurMerkle, _OurRoot} = riak_repl_util:make_merkle(PT, WorkDir),
             {ok, TheirMerkle} = couch_merkle:open(FN),
-            DiffKeys0 = couch_merkle:diff(TheirMerkle, OurMerkle),
+            MerkleDiff = couch_merkle:diff(TheirMerkle, OurMerkle),
             [couch_merkle:close(M) || M <- [OurMerkle, TheirMerkle]],
             [file:delete(F) || F <- [MerkleFN, FN]],
-            DiffKeys = [riak_repl_util:binunpack_bkey(K) || {K,_} <- DiffKeys0],
-            case riak_repl_fsm:get_vclocks(PT, DiffKeys) of
-                {error, Reason} ->
-                    error_logger:error_msg(
-                      "~p:getting vclocks for ~p: ~p~n",
-                      [?MODULE, PT, Reason]),
-                    ok = send(Socket, {ack, PT, []});
-                VClocks -> ok = send(Socket, {ack, PT, VClocks})
-            end,
-            {next_state, merkle_exchange, State};
+            case MerkleDiff of
+                [] -> 
+                    ok = send(Socket, {ack, PT, []}),
+                    {next_state, merkle_exchange, State};
+                DiffKeys0 ->  
+                    DiffKeys = [riak_repl_util:binunpack_bkey(K) || {K,_} <- DiffKeys0],
+                    case riak_repl_fsm:get_vclocks(PT, DiffKeys) of
+                        {error, Reason} ->
+                            error_logger:error_msg(
+                              "~p:getting vclocks for ~p: ~p~n",
+                              [?MODULE, PT, Reason]),
+                            ok = send(Socket, {ack, PT, []});
+                        VClocks -> ok = send(Socket, {ack, PT, VClocks})
+                    end,
+                    {next_state, merkle_exchange, State}
+            end;
         _ ->
             {next_state, merkle_recv, State#state{merkle_sz=LeftBytes}}
     end.
