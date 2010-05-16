@@ -1,3 +1,4 @@
+%% Riak EnterpriseDS
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_tcp_client).
 -author('Andy Gross <andy@basho.com').
@@ -50,7 +51,8 @@ init([Socket, SiteName, ConnectorPid]) ->
 wait_peerinfo({redirect, IP, Port}, State=#state{connector_pid=P}) ->
     P ! {redirect, IP, Port},
     {stop, normal, State};
-wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, sitename=SiteName}) ->
+wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, 
+                                                      sitename=SiteName}) ->
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
         true ->
             {ok, TheirReplConfig} = riak_core_ring:get_meta(
@@ -61,18 +63,19 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, sitename
             ok = file:write_file(PIPath, term_to_binary(TheirReplConfig)),
             {next_state, merkle_exchange, State};
         false ->
-            error_logger:error_msg("invalid peer_info ~p~n", [TheirPeerInfo]),
+            error_logger:error_msg("invalid peer_info ~p~n",[TheirPeerInfo]),
             {stop, normal, State}
     end;
 wait_peerinfo({diff_obj, Obj}, State) ->
     riak_repl_util:do_repl_put(Obj),
     {next_state, wait_peerinfo, State}.
 
-merkle_exchange({merkle, FileSize, Partition},State=#state{work_dir=WorkDir}) ->
-    MerkleFN = filename:join(WorkDir, integer_to_list(Partition) ++ ".theirs"),
+merkle_exchange({merkle,Size,Partition},State=#state{work_dir=WorkDir}) ->
+    MerkleFN = filename:join(WorkDir,integer_to_list(Partition)++".theirs"),
     {ok, FP} = file:open(MerkleFN, [write, raw, binary, delayed_write]),
-    {next_state, merkle_recv, State#state{merkle_fp=FP, merkle_fn=MerkleFN,
-                                          merkle_sz=FileSize, 
+    {next_state, merkle_recv, State#state{merkle_fp=FP, 
+                                          merkle_fn=MerkleFN,
+                                          merkle_sz=Size, 
                                           merkle_pt=Partition}};
 merkle_exchange({partition_complete,_Partition}, State) ->
     {next_state, merkle_exchange, State};
@@ -82,7 +85,7 @@ merkle_exchange({diff_obj, Obj}, State) ->
 
 merkle_recv({diff_obj, Obj}, State) ->
     riak_repl_util:do_repl_put(Obj),
-    {next_state, merkle_recv, State};    
+    {next_state, merkle_recv, State};   
 merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, merkle_sz=SZ, 
                                              merkle_fn=FN, merkle_pt=PT,
                                              work_dir=WorkDir, 
@@ -93,7 +96,8 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, merkle_sz=SZ,
         0 ->
             ok = file:sync(FP),
             ok = file:close(FP),
-            {ok, MerkleFN, OurMerkle, _OurRoot} = riak_repl_util:make_merkle(PT, WorkDir),
+            {ok, MerkleFN, OurMerkle, _OurRoot} = 
+                riak_repl_util:make_merkle(PT, WorkDir),
             {ok, TheirMerkle} = couch_merkle:open(FN),
             MerkleDiff = couch_merkle:diff(TheirMerkle, OurMerkle),
             [couch_merkle:close(M) || M <- [OurMerkle, TheirMerkle]],
@@ -103,7 +107,8 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, merkle_sz=SZ,
                     ok = send(Socket, {ack, PT, []}),
                     {next_state, merkle_exchange, State};
                 DiffKeys0 ->  
-                    DiffKeys = [riak_repl_util:binunpack_bkey(K) || {K,_} <- DiffKeys0],
+                    DiffKeys = [riak_repl_util:binunpack_bkey(K) || 
+                                   {K,_} <- DiffKeys0],
                     case riak_repl_fsm:get_vclocks(PT, DiffKeys) of
                         {error, Reason} ->
                             error_logger:error_msg(
@@ -129,7 +134,5 @@ terminate(_Reason, _StateName, _State) ->  ok.
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 handle_event(_Event, StateName, State) -> {next_state, StateName, State}.
 handle_sync_event(_Ev, _F, StateName, State) -> {reply, ok, StateName, State}.
-
-
 send(Socket, Data) when is_binary(Data) -> gen_tcp:send(Socket, zlib:zip(Data));
 send(Socket, Data) -> gen_tcp:send(Socket, zlib:zip(term_to_binary(Data))).

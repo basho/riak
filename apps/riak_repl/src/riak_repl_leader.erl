@@ -1,8 +1,9 @@
+%% Riak EnterpriseDS
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_leader).
 -author('Andy Gross <andy@basho.com>').
 -behaviour(gen_leader).
--export([start_link/0, init/1, elected/3, surrendered/3, handle_leader_call/4, 
+-export([start_link/0,init/1,elected/3,surrendered/3,handle_leader_call/4, 
          handle_leader_cast/3, from_leader/3, handle_call/4,
          handle_cast/3, handle_DOWN/3, handle_info/2, terminate/2,
          code_change/4]).
@@ -12,21 +13,24 @@
          postcommit/1,
          leader_node/0]).
 
--record(state, {is_leader :: boolean(),
-                connectors=[] :: list(),
-                receivers=[] :: list(),
-                leader_node=undefined :: atom()}).
-
 -define(LEADER_OPTS, [{vardir, VarDir}, {bcast_type, all}]).
 
+-record(state, {
+          is_leader :: boolean(),
+          connectors=[] :: list(),
+          receivers=[] :: list(),
+          leader_node=undefined :: atom()}).
+
+
 start_link() ->
+    process_flag(trap_exit, true),
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     Candidates = riak_core_ring:all_members(Ring),
     {ok, DataRootDir} = application:get_env(riak_repl, data_root),
     VarDir = filename:join(DataRootDir, "leader"),
     ok = filelib:ensure_dir(filename:join(VarDir, ".empty")),
     [net_adm:ping(C) || C <- Candidates],
-    gen_leader:start_link(?MODULE, Candidates, ?LEADER_OPTS, ?MODULE, [], []).
+    gen_leader:start_link(?MODULE, Candidates,?LEADER_OPTS,?MODULE, [], []).
 
 init([]) ->
     {ok, #state{is_leader=false}}.
@@ -54,7 +58,8 @@ elected(State, _NewElection, _Node) ->
         _ ->
             ignore
     end,
-    {ok, {i_am_leader, node()}, State#state{is_leader=true, leader_node=node()}}.
+    {ok, {i_am_leader, node()}, State#state{is_leader=true, 
+                                            leader_node=node()}}.
 
 surrendered(State, {i_am_leader, Node}, _NewElection) ->
     error_logger:info_msg("surrendered: sync=~p~n", [Node]),
@@ -129,7 +134,8 @@ ensure_connector(Site, IP, Port, State=#state{connectors=C}) ->
     case proplists:get_value(Site, C) of
         undefined ->
             ensure_site_dir(Site),
-            {ok, Pid} = riak_repl_connector_sup:start_connector(IP, Port, Site),
+            {ok, Pid} = 
+                riak_repl_connector_sup:start_connector(IP, Port, Site),
             State#state{connectors=[{Site, {IP, Port, Pid}}|C]};
         _ ->
             State

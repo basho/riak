@@ -1,3 +1,4 @@
+%% Riak EnterpriseDS
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -define(REPL_FSM_TIMEOUT, 15000).
 -define(REPL_QUEUE_TIMEOUT, 1000).

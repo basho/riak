@@ -1,3 +1,4 @@
+%% Riak EnterpriseDS
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_util).
 -author('Andy Gross <andy@basho.com>').

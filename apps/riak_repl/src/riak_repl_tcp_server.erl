@@ -1,3 +1,4 @@
+%% Riak EnterpriseDS
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_tcp_server).
 -author('Andy Gross <andy@basho.com').
@@ -31,7 +32,8 @@
 start(Socket, SiteName) -> gen_fsm:start(?MODULE, [Socket, SiteName], []).
 
 init([Socket, SiteName]) ->
-    io:format("~p starting, sock=~p, sitename=~p~n", [?MODULE, Socket, SiteName]),
+    io:format("~p starting, sock=~p, sitename=~p~n", 
+              [?MODULE, Socket, SiteName]),
     Props = riak_repl_fsm:common_init(Socket, SiteName),
     State = #state{
       socket=Socket,
@@ -63,6 +65,7 @@ merkle_send(timeout, State=#state{partitions=[], sitename=SiteName}) ->
     error_logger:info_msg("Full-sync with site ~p complete~n", [SiteName]),
     {next_state, connected, State};
 merkle_send(timeout, State=#state{socket=Socket, 
+                                  sitename=SiteName,
                                   partitions=[Partition|T],
                                   work_dir=WorkDir}) ->
     case riak_repl_util:make_merkle(Partition, WorkDir) of
@@ -74,9 +77,10 @@ merkle_send(timeout, State=#state{socket=Socket,
             couch_merkle:close(MerklePid),
             {ok, FileInfo} = file:read_file_info(MerkleFile),
             FileSize = FileInfo#file_info.size,
-            {ok, FP} = file:open(MerkleFile, [read, raw, binary, read_ahead]),
+            {ok, FP} = file:open(MerkleFile, [read,raw,binary,read_ahead]),
             ok = send(Socket, {merkle, FileSize, Partition}),
-            error_logger:info_msg("Synchronizing partition ~p~n", [Partition]),
+            error_logger:info_msg("Syncing partition ~p with site ~p~n",
+                                  [Partition, SiteName]),
             ok = send_chunks(FP, Socket),
             file:delete(MerkleFile),
             {next_state, merkle_wait_ack, State#state{partitions=T}}
@@ -92,7 +96,7 @@ send_chunks(FP, Socket) ->
 
 merkle_wait_ack({ack, _Partition, []}, State) ->
     {next_state, merkle_send, State, 0};
-merkle_wait_ack({ack, Partition, DiffVClocks}, State=#state{socket=Socket}) ->
+merkle_wait_ack({ack,Partition,DiffVClocks}, State=#state{socket=Socket}) ->
     vclock_diff(Partition, DiffVClocks, State),
     ok = send(Socket, {partition_complete, Partition}),
     {next_state, merkle_send, State}.
@@ -113,11 +117,11 @@ handle_info({repl, RObj}, StateName, State=#state{socket=Socket}) ->
 handle_info(_I, StateName, State) -> {next_state, StateName, State}.
 terminate(_Reason, _StateName, _State) -> ok.
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
-handle_event(_Event, StateName, State) -> {next_state, StateName, State}.
-handle_sync_event(_Event,_From,StateName,State) -> {reply,ok,StateName,State}.
+handle_event(_E, StateName, State) -> {next_state, StateName, State}.
+handle_sync_event(_E,_F,StateName,State) -> {reply,ok,StateName,State}.
 
-send(Socket, Data) when is_binary(Data) -> gen_tcp:send(Socket, zlib:zip(Data));
-send(Socket, Data) -> gen_tcp:send(Socket, zlib:zip(term_to_binary(Data))).
+send(Sock,Data) when is_binary(Data) -> gen_tcp:send(Sock,zlib:zip(Data));
+send(Sock,Data) -> gen_tcp:send(Sock, zlib:zip(term_to_binary(Data))).
 
 vclock_diff(Partition, DiffVClocks, #state{client=Client, socket=Socket}) ->
     Keys = [K || {K, _V} <- DiffVClocks],
@@ -141,7 +145,9 @@ vclock_diff1([{K,VC}|T], OurVClocks, Client, Socket, Count) ->
     end.
 
 maybe_send(BKey, V1, V2, Client, Socket) ->
-    case vclock:descends(V2, V1) of true -> nop; false -> ok = do_send(BKey, Client, Socket) end.
+    case vclock:descends(V2, V1) of 
+        true -> nop; 
+        false -> ok = do_send(BKey, Client, Socket) end.
             
 do_send({B,K}, Client, Socket) ->
     case Client:get(B, K, 1, ?REPL_FSM_TIMEOUT) of
