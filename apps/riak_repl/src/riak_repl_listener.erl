@@ -14,7 +14,12 @@ start_link(IPAddr, PortNum) ->
 init([IPAddr, PortNum]) -> 
     {ok, #state{ipaddr=IPAddr, portnum=PortNum}}.
 
-sock_opts() -> [binary, {packet, 4}, {reuseaddr, true}, {backlog, 64}].
+sock_opts() -> [binary, 
+                {keepalive, true},
+                {nodelay, true},
+                {packet, 4}, 
+                {reuseaddr, true}, 
+                {backlog, 64}].
 
 handle_call(_Req, _From, State) -> {reply, ok, State}.
 
