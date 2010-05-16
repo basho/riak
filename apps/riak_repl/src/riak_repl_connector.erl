@@ -54,7 +54,10 @@ code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
 
 do_connect(Host, Port, SiteName, PPid) ->
-    case gen_tcp:connect(Host, Port, [binary,{packet, 4}], 15000) of
+    case gen_tcp:connect(Host, Port, [binary, 
+                                      {packet, 4}, 
+                                      {keepalive, true},
+                                      {nodelay, true}], 15000) of
         {ok, Socket} ->
             {ok, Pid} = riak_repl_tcp_client:start(Socket, SiteName, PPid),
             ok = gen_tcp:controlling_process(Socket, Pid),
