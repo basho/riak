@@ -12,20 +12,19 @@
          code_change/4]).
 -export([wait_peerinfo/2,
          merkle_recv/2,
-         diff_merkle/3,
          merkle_exchange/2]).
 
 -record(state, {
-          socket,
-          sitename,
-          connector_pid,
-          client,
-          my_pi,
-          work_dir,
-          merkle_pt,
-          merkle_fp,
-          merkle_fn,
-          merkle_sz
+          socket :: port(),
+          sitename :: string(),
+          connector_pid :: pid(),
+          client :: tuple(),
+          my_pi :: #peer_info{},
+          work_dir :: string(),
+          merkle_pt :: non_neg_integer(),
+          merkle_fp :: term(),
+          merkle_fn :: string(),
+          merkle_sz :: non_neg_integer()
          }).
 
 start(Socket, SiteName, ConnectorPid) -> 
@@ -33,7 +32,8 @@ start(Socket, SiteName, ConnectorPid) ->
 
 init([Socket, SiteName, ConnectorPid]) ->
     process_flag(trap_exit, true),
-    io:format("~p starting, sock=~p, site=~p, pid=~p~n", [?MODULE, Socket, SiteName, self()]),
+    io:format("~p starting, sock=~p, site=~p, pid=~p~n", 
+              [?MODULE, Socket, SiteName, self()]),
     ok = gen_tcp:send(Socket, SiteName),
     ok = inet:setopts(Socket, [{active, once}, {packet, 4}]),
     {ok, Client} = riak:local_client(),
@@ -42,24 +42,21 @@ init([Socket, SiteName, ConnectorPid]) ->
     WorkDir = filename:join(WorkRoot, SiteName),
     ok = filelib:ensure_dir(filename:join(WorkDir, "empty")),
     ok = send(Socket, {peerinfo, MyPeerInfo}),
-    {ok, wait_peerinfo, #state{socket=Socket,
-                               work_dir=WorkDir,
-                               sitename=SiteName,
-                               connector_pid=ConnectorPid,
-                               client=Client,
-                               my_pi=MyPeerInfo}}.
+    {ok, wait_peerinfo, #state{socket=Socket, work_dir=WorkDir,
+                               sitename=SiteName,connector_pid=ConnectorPid,
+                               client=Client, my_pi=MyPeerInfo}}.
 
 wait_peerinfo({redirect, IP, Port}, State=#state{connector_pid=P}) ->
     P ! {redirect, IP, Port},
     {stop, normal, State};
-wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, 
-                                                      socket=_Socket,
-                                                      sitename=SiteName}) ->
+wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo, sitename=SiteName}) ->
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
         true ->
-            {ok, TheirReplConfig} = riak_core_ring:get_meta(riak_repl_config,
-                                                            TheirPeerInfo#peer_info.ring),
-            PIPath = filename:join([riak_repl_util:site_root_dir(SiteName), "ring"]),
+            {ok, TheirReplConfig} = riak_core_ring:get_meta(
+                                      riak_repl_config,
+                                      TheirPeerInfo#peer_info.ring),
+            PIPath = filename:join([riak_repl_util:site_root_dir(SiteName), 
+                                    "ring"]),
             ok = file:write_file(PIPath, term_to_binary(TheirReplConfig)),
             {next_state, merkle_exchange, State};
         false ->
@@ -70,16 +67,14 @@ wait_peerinfo({diff_obj, Obj}, State) ->
     riak_repl_util:do_repl_put(Obj),
     {next_state, wait_peerinfo, State}.
 
-merkle_exchange({merkle, FileSize, Partition}, State=#state{socket=_Socket, 
-                                                            work_dir=WorkDir}) ->
+merkle_exchange({merkle, FileSize, Partition},State=#state{work_dir=WorkDir}) ->
     MerkleFN0 = integer_to_list(Partition) ++ ".theirs",
     MerkleFN = filename:join(WorkDir, MerkleFN0),
     {ok, FP} = file:open(MerkleFN, [write, raw, binary]),
     {next_state, merkle_recv, State#state{merkle_fp=FP, merkle_fn=MerkleFN,
                                           merkle_sz=FileSize, 
                                           merkle_pt=Partition}};
-merkle_exchange({diff_response,Partition,{send, Sends}}, State=#state{socket=Socket}) ->
-    io:format("got diff_response with ~p sendreqs~n", [length(Sends)]),
+merkle_exchange({diff_response,Partition,_}, State=#state{socket=Socket}) ->
     ok = send(Socket, {ack, Partition, []}),
     {next_state, merkle_exchange, State};
 merkle_exchange({diff_obj, Obj}, State) ->
@@ -89,21 +84,18 @@ merkle_exchange({diff_obj, Obj}, State) ->
 merkle_recv({diff_obj, Obj}, State) ->
     riak_repl_util:do_repl_put(Obj),
     {next_state, merkle_recv, State};    
-merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, 
-                                             merkle_sz=SZ, 
-                                             merkle_fn=FN,
-                                             merkle_pt=PT,
-                                             work_dir=WorkDir,
-                                             socket=Socket,
-                                             my_pi=PI}) ->
+merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, merkle_sz=SZ, 
+                                             merkle_fn=FN, merkle_pt=PT,
+                                             work_dir=WorkDir, 
+                                             socket=Socket}) ->
     ok = file:write(FP, Data),
     LeftBytes = SZ - size(Data),
     case LeftBytes of
         0 ->
             ok = file:sync(FP),
             ok = file:close(FP),
-            {ok, MerkleFN} = riak_repl_util:make_merkle(PI, PT, WorkDir),
-            {ok, OurMerkle} = couch_merkle:open(MerkleFN),
+            {ok, MerkleFN, OurMerkle, OurRoot} = riak_repl_util:make_merkle(PT, WorkDir),
+            io:format("our root: ~p~n", [OurRoot]),
             {ok, TheirMerkle} = couch_merkle:open(FN),
             DiffKeys0 = couch_merkle:diff(TheirMerkle, OurMerkle),
             couch_merkle:close(OurMerkle),
@@ -117,11 +109,11 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP,
                                                   {get_vclocks, 
                                                    PT, DiffKeys}) of
                 {error, Reason} ->
-                    error_logger:error_msg("~p:error getting vclocks for ~p from ~p: ~p~n",
+                    error_logger:error_msg(
+                      "~p:getting vclocks for ~p from ~p: ~p~n",
                               [?MODULE, PT, OwnerNode, Reason]),
                     ok = send(Socket, {ack, PT, []});
-                VClocks -> 
-                    ok = send(Socket, {ack, PT, VClocks})
+                VClocks -> ok = send(Socket, {ack, PT, VClocks})
             end,
             {next_state, merkle_exchange, State};
         _ ->
@@ -129,41 +121,17 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP,
     end.
 
 handle_event(_Event, StateName, State) -> {next_state, StateName, State}.
-
 handle_sync_event(_Ev, _F, StateName, State) -> {reply, ok, StateName, State}.
-
 handle_info({tcp_closed, Socket}, _StateName, State=#state{socket=Socket}) ->
     {stop, normal, State};
-
 handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
     R = ?MODULE:StateName(binary_to_term(zlib:unzip(Data)), State),
     ok = inet:setopts(Socket, [{active, once}]),            
     R;
 handle_info(_I, StateName, State) ->  {next_state, StateName, State}.
+
 terminate(_Reason, _StateName, _State) ->  ok.
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
-diff_merkle(Partition, MerkleTree, #state{my_pi=#peer_info{ring=Ring}}) ->
-    OwnerNode = riak_core_ring:index_owner(Ring, Partition),
-    case riak_repl_util:vnode_master_call(OwnerNode, {get_merkle, Partition}) of
-        {error, Reason} ->
-            error_logger:error_msg("~p:error getting merkle tree for ~p from ~p: ~p~n",
-                      [?MODULE, Partition, OwnerNode, Reason]),
-            [];
-        {ok, OurMerkleTree} ->
-            MT = binary_to_term(OurMerkleTree),
-            DiffKeys = merkerl:diff(MerkleTree, MT),
-            case riak_repl_util:vnode_master_call(OwnerNode,
-                                                  {get_vclocks, Partition, DiffKeys}) of
-                {error, Reason} ->
-                    error_logger:error_msg("~p:error getting vclock list for ~p from ~p: ~p~n",
-                    [?MODULE, Partition, OwnerNode, Reason]),
-                    [];
-                VClocks -> VClocks
-            end
-    end.
-
-send(Socket, Data) when is_binary(Data) ->  
-    gen_tcp:send(Socket, zlib:zip(Data));
-send(Socket, Data) ->
-    gen_tcp:send(Socket, zlib:zip(term_to_binary(Data))).
+send(Socket, Data) when is_binary(Data) -> gen_tcp:send(Socket, zlib:zip(Data));
+send(Socket, Data) -> gen_tcp:send(Socket, zlib:zip(term_to_binary(Data))).
