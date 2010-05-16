@@ -1,4 +1,5 @@
-%% Ccopyright 2007-2009 Basho Technologies, Inc. All Rights Reserved.
+%% Riak EnterpriseDS
+%% Copyright 2007-2009 Basho Technologies, Inc. All Rights Reserved.
 -module(riak_repl_config).
 -author('Andy Gross <andy@basho.com>').
 -behaviour(gen_server).
