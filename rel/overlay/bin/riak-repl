@@ -116,7 +116,33 @@ case "$1" in
             echo "Usage: $SCRIPT $ACTION <ipaddr> <portnum> <sitename>"
             exit 1
         fi
-        $NODETOOL rpc riak_repl_config add_site $1 $2 $3
+        $NODETOOL rpc riak_repl_console add_site $1 $2 $3
+        ;;
+   del-site)
+        ACTION=$1
+        shift
+        # Make sure the local node IS not running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        if [ $# -lt 1 ]; then
+            echo "Usage: $SCRIPT $ACTION <sitename>"
+            exit 1
+        fi
+        $NODETOOL rpc riak_repl_console del_site $1
+        ;;
+    status)
+        ACTION=$1
+        shift
+        # Make sure the local node IS not running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        echo $NODETOOL rpc riak_repl_console get_status
         ;;
     *)
         echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | full-sync | status }"

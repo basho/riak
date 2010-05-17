@@ -9,18 +9,20 @@
 -export([ring_actions/1]).
 
 -include("riak_repl.hrl").
+
 -type(ets_tid() :: term()).
 -type(mon_item() :: #repl_listener{} | #repl_site{}).
+
 -record(state, {
           sites     :: ets_tid(), 
           listeners :: ets_tid(), 
           monitors  :: ets_tid()}).
+
 -record(repl_monitor, {
           monref :: reference(),
           item :: mon_item(),
           pid :: pid()}).
           
-
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
@@ -103,10 +105,12 @@ stop_listener(#repl_listener{nodename=N},
     end;
 stop_listener(#repl_listener{}, State) -> State.
 
-
-start_site(R=#repl_site{}, State) ->
-    io:format("Starting site ~p~n", [R]),
-    State.
+start_site(R=#repl_site{name=N}, State=#state{sites=S, monitors=_M}) ->
+    io:format("stating site: ~p~n", [R]),
+    case ets:lookup(S, N) of
+        [] -> State;
+        [#repl_site{}=_I] ->  State
+    end.
 
 stop_site(R=#repl_site{}, State) ->
     io:format("Stopping site ~p~n", [R]),
