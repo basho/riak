@@ -64,8 +64,16 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo}) ->
 
 merkle_send(timeout, State=#state{partitions=[], 
                                   sitename=SiteName}) ->
-    error_logger:info_msg("Full-sync with site ~p complete~n", [SiteName]),
-    {next_state, connected, State};
+    error_logger:info_msg("Full-sync with ~p complete~n", [SiteName]),
+    case State#state.fullsync_ival of
+        undefined ->
+            {ok, FSI} = application:get_env(riak_repl, fullsync_interval),
+            erlang:send_after(timer:minutes(FSI), self(), fullsync),
+            {next_state, connected, State#state{fullsync_ival=FSI}};
+        _ ->
+            erlang:send_after(timer:minutes(State#state.fullsync_ival), self(), fullsync),
+            {next_state, connected, State}
+    end;
 merkle_send(timeout, State=#state{socket=Socket, 
                                   sitename=SiteName,
                                   partitions=[Partition|T],
@@ -101,7 +109,7 @@ merkle_wait_ack({ack, _Partition, []}, State) ->
 merkle_wait_ack({ack,Partition,DiffVClocks}, State=#state{socket=Socket}) ->
     vclock_diff(Partition, DiffVClocks, State),
     ok = send(Socket, {partition_complete, Partition}),
-    {next_state, merkle_send, State}.
+    {next_state, merkle_send, State, 0}.
 
 connected(_E, State) -> {next_state, connected, State}.
 
@@ -115,6 +123,10 @@ handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
 handle_info({repl, RObj}, StateName, State=#state{socket=Socket}) ->
     ok = send(Socket, {diff_obj, RObj}),
     {next_state, StateName, State};
+handle_info(fullsync, connected, State) ->
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    Partitions = riak_repl_util:get_partitions(Ring),
+    {next_state, merkle_send, State#state{partitions=Partitions}, 0};
 %% no-ops
 handle_info(_I, StateName, State) -> {next_state, StateName, State}.
 terminate(_Reason, _StateName, _State) -> ok.

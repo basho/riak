@@ -105,15 +105,36 @@ stop_listener(#repl_listener{nodename=N},
     end;
 stop_listener(#repl_listener{}, State) -> State.
 
-start_site(R=#repl_site{name=N}, State=#state{sites=S, monitors=_M}) ->
-    io:format("stating site: ~p~n", [R]),
+start_site(R=#repl_site{name=N}, State=#state{sites=S, monitors=M}) ->
     case ets:lookup(S, N) of
-        [] -> State;
-        [#repl_site{}=_I] ->  State
+        [] -> 
+            case riak_repl_leader:leader_node() =:= node() of
+                true ->
+                    {IP, Port} = hd(R#repl_site.addrs),
+                    riak_repl_util:ensure_site_dir(N),
+                    {ok, Pid} = riak_repl_connector_sup:start_connector(IP, Port, N),
+                    ets:insert(M, make_monitor(R, Pid)),
+                    State;
+                false ->
+                    State
+            end;
+        [#repl_site{}=I] ->  
+            %% already have record, see if it's running
+            case ets:match_object(M, #repl_monitor{item=I,monref='_',pid='_'}) of
+                [] ->
+                    {IP, Port} = hd(R#repl_site.addrs),
+                    riak_repl_util:ensure_site_dir(N),
+                    {ok, Pid} = riak_repl_connector_sup:start_connector(IP, Port, N),
+                    ets:insert(M, make_monitor(R, Pid)),
+                    State;
+                [#repl_monitor{item=I}] ->
+                    %% ignore, already running
+                    State
+            end
+
     end.
 
-stop_site(R=#repl_site{}, State) ->
-    io:format("Stopping site ~p~n", [R]),
+stop_site(_R=#repl_site{}, State=#state{sites=_S, monitors=_M}) ->
     State.
 
 make_monitor(I=#repl_listener{}, Pid) -> 

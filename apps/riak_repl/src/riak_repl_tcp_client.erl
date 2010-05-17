@@ -31,6 +31,7 @@
 
 start(Socket, SiteName, ConnectorPid) -> 
     gen_fsm:start(?MODULE, [Socket, SiteName, ConnectorPid], []).
+    
 
 init([Socket, SiteName, ConnectorPid]) ->
     io:format("~p starting, sock=~p, site=~p, pid=~p~n", 
@@ -69,7 +70,6 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo,
 wait_peerinfo({diff_obj, Obj}, State) ->
     riak_repl_util:do_repl_put(Obj),
     {next_state, wait_peerinfo, State}.
-
 merkle_exchange({merkle,Size,Partition},State=#state{work_dir=WorkDir}) ->
     MerkleFN = filename:join(WorkDir,integer_to_list(Partition)++".theirs"),
     {ok, FP} = file:open(MerkleFN, [write, raw, binary, delayed_write]),

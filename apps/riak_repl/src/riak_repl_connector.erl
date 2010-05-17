@@ -11,7 +11,7 @@
 
 start_link(Host, Port, SiteName) ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [Host, 
-                                                      list_to_integer(Port), 
+                                                      Port,
                                                       SiteName],[]).
 init([Host, Port, SiteName]) ->
     erlang:send_after(?REPL_CONN_RETRY, self(), {retry_connect, Host, Port}),

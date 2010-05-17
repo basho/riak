@@ -10,6 +10,7 @@
          wait_for_riak/1,
          do_repl_put/1,
          site_root_dir/1,
+         ensure_site_dir/1,
          binpack_bkey/1,
          binunpack_bkey/1,
          make_merkle/2]).
@@ -51,6 +52,10 @@ site_root_dir(Site) ->
     {ok, DataRootDir} = application:get_env(riak_repl, data_root),
     SitesRootDir = filename:join([DataRootDir, "sites"]),
     filename:join([SitesRootDir, Site]).
+
+ensure_site_dir(Site) ->
+    ok = filelib:ensure_dir(
+           filename:join([riak_repl_util:site_root_dir(Site), ".empty"])).
 
 binpack_bkey({B, K}) ->
     SB = size(B),
