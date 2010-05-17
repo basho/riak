@@ -38,8 +38,8 @@
           listen_addr :: repl_addr() %% ip/port to bind/listen on
          }).
 -record(repl_site, {
-          name  :: repl_sitename(), %% site name
-          addrs :: repl_addrlist()  %% list of ip/ports to connect to
+          name  :: repl_sitename(),   %% site name
+          addrs=[] :: repl_addrlist() %% list of ip/ports to connect to
          }).
 
 

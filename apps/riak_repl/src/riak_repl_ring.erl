@@ -3,7 +3,8 @@
 -module(riak_repl_ring).
 -author('Andy Gross <andy@andygross.org>').
 -include("riak_repl.hrl").
--export([ensure_config/1,
+-
+export([ensure_config/1,
          get_repl_config/1,
          add_site/2,
          add_listener/2,
@@ -23,7 +24,6 @@ ensure_config(Ring) ->
         {ok, _} ->
             Ring
     end.
-
 
 -spec(get_repl_config/1 :: (ring()) -> {ok, dict()}|undefined).
 %% @doc Get the replication config dictionary from Ring.
@@ -82,7 +82,7 @@ add_listener(Ring,Listener) ->
             NewListeners = [Listener|Listeners],
             riak_core_ring:update_meta(
               ?MODULE,
-              dict:store(sites, NewListeners, RC),
+              dict:store(listeners, NewListeners, RC),
               Ring);
         true ->
             Ring
@@ -120,7 +120,39 @@ get_listener(Ring,{_IP,_Port}=ListenAddr) ->
 %% @private
 initial_config() ->
     dict:from_list(
-      [{local_listeners, []},
+      [{listeners, []},
        {sites, []}]
       ).
 
+mock_ring() ->
+    riak_core_ring:fresh(16, 'test@test').
+
+ensure_config_test() ->
+    Ring = ensure_config(mock_ring()),
+    ?assertNot(undefined =:= riak_core_ring:get_meta(?MODULE, Ring)),
+    Ring.
+
+add_get_site_test() ->
+    Ring0 = ensure_config_test(),
+    Site = #repl_site{name="test"},
+    Ring1 = add_site(Ring0, Site),
+    Site = get_site(Ring1, "test"),
+    Ring1.
+
+del_site_test() ->
+    Ring0 = add_get_site_test(),
+    Ring1 = del_site(Ring0, "test"),
+    ?assertEqual(undefined, get_site(Ring1, "test")).
+    
+add_get_listener_test() ->
+    Ring0 = ensure_config_test(),
+    Listener = #repl_listener{nodename='test@test', 
+                              listen_addr={"127.0.0.1", 9010}},
+    Ring1 = add_listener(Ring0, Listener),
+    Listener = get_listener(Ring1, {"127.0.0.1", 9010}),
+    Ring1.
+    
+del_listener_test() ->
+    Ring0 = add_get_listener_test(),
+    Ring1 = del_listener(Ring0, {"127.0.0.1", 9010}),
+    ?assertEqual(undefined, get_listener(Ring1, {"127.0.0.1", 9010})).
