@@ -32,14 +32,14 @@ relclean:
 ## Developer targets
 ##
 
-devrel: dev1 dev2 dev3
+devrel: dev1 dev2 dev3 dev4 dev5 dev6
 
 dev: 
 	mkdir dev
 	cp -R rel/overlay rel/reltool.config dev
 	./rebar compile && cd dev && ../rebar generate
 
-dev1 dev2 dev3: dev
+dev1 dev2 dev3 dev4 dev5 dev6: dev
 	cp -Rn dev/riak dev/$@
 	rm -rf dev/$@/data
 	mkdir -p dev/$@/data/ring
