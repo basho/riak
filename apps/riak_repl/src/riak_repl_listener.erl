@@ -3,10 +3,11 @@
 -module(riak_repl_listener).
 -author('Andy Gross <andy@basho.com>').
 -behavior(gen_nb_server).
+-include("riak_repl.hrl").
 -export([start_link/2]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
--export([sock_opts/0, new_connection/2]).
+-export([sock_opts/0, new_connection/2, stop/1]).
 -record(state, {
           ipaddr :: string(), 
           portnum :: non_neg_integer()
@@ -26,17 +27,24 @@ sock_opts() -> [binary,
                 {backlog, 64}].
 
 new_connection(Socket, State) ->
-    {ok, SiteName} = gen_tcp:recv(Socket, 0),
-    case riak_repl_tcp_server:start(Socket, binary_to_list(SiteName)) of
-        {ok, Pid} ->       connection_made(Socket, Pid, State);
-        {error, Reason} -> connection_error(Reason, binary_to_list(SiteName),
-                                            State);
-        ignore ->          {ok, State}
+    case gen_tcp:recv(Socket, 0) of
+        {ok, SiteName} ->
+            case riak_repl_tcp_server:start(Socket, binary_to_list(SiteName)) of
+                {ok, Pid} ->       connection_made(Socket, Pid, State);
+                {error, Reason} -> connection_error(Reason, binary_to_list(SiteName),
+                                                    State);
+                ignore ->          {ok, State}
+            end;
+        {error, Reason} ->
+            connection_error(Reason, "unknown", State)
     end.
+
+stop(Pid) when is_pid(Pid)  ->
+    gen_server:cast(Pid, stop).
 
 %% no-ops
 handle_call(_Req, _From, State) -> {reply, ok, State}.
-handle_cast(_Msg, State) -> {noreply, State}.
+handle_cast(stop, State) -> {stop, normal, State}.
 handle_info(_Info, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.

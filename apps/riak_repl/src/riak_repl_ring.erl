@@ -5,7 +5,9 @@
 -include("riak_repl.hrl").
 
 -export([ensure_config/1,
+         initial_config/0,
          get_repl_config/1,
+         set_repl_config/2,
          add_site/2,
          add_site_addr/3,
          del_site_addr/3,
@@ -23,19 +25,27 @@ ensure_config(Ring) ->
     case get_repl_config(Ring) of
         undefined ->
             riak_core_ring:update_meta(?MODULE, initial_config(), Ring);
-        {ok, _} ->
+        _ ->
             Ring
     end.
 
--spec(get_repl_config/1 :: (ring()) -> {ok, dict()}|undefined).
+-spec(get_repl_config/1 :: (ring()) -> {dict()}|undefined).
 %% @doc Get the replication config dictionary from Ring.
 get_repl_config(Ring) ->
-    riak_core_ring:get_meta(?MODULE, Ring).
+    case riak_core_ring:get_meta(?MODULE, Ring) of
+        {ok, RC} -> RC;
+        undefined -> undefined
+    end.
+
+-spec(set_repl_config/2 :: (ring(), dict()) -> ring()).
+%% @doc Set the replication config dictionary in Ring.
+set_repl_config(Ring, RC) ->
+    riak_core_ring:update_meta(?MODULE, RC, Ring).
 
 -spec(add_site/2 :: (ring(), #repl_site{}) -> ring()).
 %% @doc Add a replication site to the Ring.
 add_site(Ring, Site=#repl_site{name=Name}) ->
-    {ok, RC} = get_repl_config(Ring),
+    RC = get_repl_config(Ring),
     Sites = dict:fetch(sites, RC),
     case lists:keysearch(Name, 2, Sites) of
         false ->
@@ -51,7 +61,7 @@ add_site(Ring, Site=#repl_site{name=Name}) ->
 -spec(del_site/2 :: (ring(), repl_sitename()) -> ring()).
 %% @doc Delete a replication site from the Ring.
 del_site(Ring, SiteName) -> 
-    {ok, RC} = get_repl_config(Ring),
+    RC  = get_repl_config(Ring),
     Sites = dict:fetch(sites, RC),
     case lists:keysearch(SiteName, 2, Sites) of
         false ->
@@ -67,7 +77,7 @@ del_site(Ring, SiteName) ->
 -spec(get_site/2 :: (ring(), repl_sitename()) -> #repl_site{}|undefined).
 %% @doc Get a replication site record from the Ring.
 get_site(Ring, SiteName) ->
-    {ok, RC} = get_repl_config(Ring),
+    RC = get_repl_config(Ring),
     Sites  = dict:fetch(sites, RC),
     case lists:keysearch(SiteName, 2, Sites) of
         false -> undefined;
@@ -109,7 +119,7 @@ del_site_addr(Ring, SiteName, {_IP, _Port}=Addr) ->
 -spec(add_listener/2 :: (ring(), #repl_listener{}) -> ring()).
 %% @doc Add a replication listener host/port to the Ring.
 add_listener(Ring,Listener) ->
-    {ok, RC} = get_repl_config(Ring),
+    RC = get_repl_config(Ring),
     Listeners = dict:fetch(listeners, RC),
     case lists:member(Listener, Listeners) of
         false ->
@@ -122,41 +132,39 @@ add_listener(Ring,Listener) ->
             Ring
     end.
 
--spec(del_listener/2 :: (ring(), repl_addr()) -> ring()).
-%% @doc Delete a replication listener host/port from the Ring.
-del_listener(Ring,{_IP, _Port}=ListenAddr) -> 
-    {ok, RC} = get_repl_config(Ring),
+-spec(del_listener/2 :: (ring(), #repl_listener{}) -> ring()).
+%% @doc Delete a replication listener from the Ring.
+del_listener(Ring,Listener) -> 
+    RC  = get_repl_config(Ring),
     Listeners = dict:fetch(listeners, RC),
-    case lists:keysearch(ListenAddr, 3, Listeners) of
+    case lists:member(Listener, Listeners) of
         false ->
             Ring;
-        {value, Listener} ->
+        true ->
             NewListeners = lists:delete(Listener, Listeners),
             riak_core_ring:update_meta(
               ?MODULE,
               dict:store(listeners, NewListeners, RC),
               Ring)
     end.
-            
 
 -spec(get_listener/2 :: (ring(), repl_addr()) -> #repl_listener{}|undefined).
 %% @doc Fetch a replication host/port listener record from the Ring.
 get_listener(Ring,{_IP,_Port}=ListenAddr) -> 
-    {ok, RC} = get_repl_config(Ring),
+    RC = get_repl_config(Ring),
     Listeners  = dict:fetch(listeners, RC),
     case lists:keysearch(ListenAddr, 3, Listeners) of
         false -> undefined;
         {value,Listener} -> Listener
     end.
 
-%% helper functions
-
-%% @private
 initial_config() ->
     dict:from_list(
       [{listeners, []},
        {sites, []}]
       ).
+
+%% unit tests
 
 mock_ring() ->
     riak_core_ring:fresh(16, 'test@test').
@@ -203,5 +211,6 @@ add_get_listener_test() ->
     
 del_listener_test() ->
     Ring0 = add_get_listener_test(),
-    Ring1 = del_listener(Ring0, {"127.0.0.1", 9010}),
+    Ring1 = del_listener(Ring0, #repl_listener{nodename='test@test', 
+                                               listen_addr={"127.0.0.1", 9010}}),
     ?assertEqual(undefined, get_listener(Ring1, {"127.0.0.1", 9010})).

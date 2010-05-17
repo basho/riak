@@ -84,28 +84,23 @@ case "$1" in
 	    echo "Node is not running!"
 	    exit 1
 	fi
-        $NODETOOL rpc riak_repl_config add_listener $1 $2 $3
+        $NODETOOL rpc riak_repl_console add_listener $1 $2 $3
         ;;
 
     del-listener)
         ACTION=$1
         shift
-        if [ $# -lt 2 ]; then
-            echo "Usage $SCRIPT $ACTION <old_nodename> <new_nodename>"
+        if [ $# -lt 3 ]; then
+            echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port>"
             exit 1
         fi
         # Make sure the local node IS not running
         RES=`$NODETOOL ping`
-        if [ "$RES" == "pong" ]; then
-            echo "Node must be down to re-ip."
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
             exit 1
         fi
-        OLDNODE=$1
-        NEWNODE=$2
-        $ERTS_PATH/erl -noshell \
-            -config $RUNNER_ETC_DIR/app.config \
-            -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
-            -s init stop
+        $NODETOOL rpc riak_repl_console del_listener $1 $2 $3
         ;;
 
     add-site)

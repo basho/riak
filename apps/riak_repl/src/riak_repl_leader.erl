@@ -21,7 +21,6 @@
           receivers=[] :: list(),
           leader_node=undefined :: atom()}).
 
-
 start_link() ->
     process_flag(trap_exit, true),
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
@@ -51,25 +50,11 @@ ensure_connectors(RemoteSites) ->
     gen_leader:cast(?MODULE, {ensure_connectors, RemoteSites}).
 
 elected(State, _NewElection, _Node) ->
-    case whereis(riak_repl_config) of
-        undefined ->
-            {ok, Pid} = riak_repl_sup:start_config(),
-            io:format("started config with pid: ~p~n", [Pid]);            
-        _ ->
-            ignore
-    end,
     {ok, {i_am_leader, node()}, State#state{is_leader=true, 
                                             leader_node=node()}}.
 
 surrendered(State, {i_am_leader, Node}, _NewElection) ->
     error_logger:info_msg("surrendered: sync=~p~n", [Node]),
-    case whereis(riak_repl_config) of
-        undefined ->
-            {ok, Pid} = riak_repl_sup:start_config(),
-            io:format("started config with pid: ~p~n", [Pid]);
-        _ ->
-            ignore
-    end,
     {ok, State#state{is_leader=false, leader_node=Node}}.
 
 handle_leader_call({add_receiver_pid, Pid}, _From, 

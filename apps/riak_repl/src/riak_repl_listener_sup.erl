@@ -3,10 +3,11 @@
 -module(riak_repl_listener_sup).
 -author('Andy Gross <andy@basho.com>').
 -behaviour(supervisor).
+-include("riak_repl.hrl").
 -export([start_link/0, init/1, stop/1]).
--export([start_listener/2]).
+-export([start_listener/1]).
 
-start_listener(IP, Port) ->
+start_listener(#repl_listener{listen_addr={IP, Port}}) ->
     error_logger:info_msg("Starting replication listener on ~s:~p~n",
                           [IP, Port]),
     supervisor:start_child(?MODULE, [IP, Port]).

@@ -56,7 +56,7 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo,
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
         true ->
             {ok, TheirReplConfig} = riak_core_ring:get_meta(
-                                      riak_repl_config,
+                                      riak_repl_ring,
                                       TheirPeerInfo#peer_info.ring),
             PIPath = filename:join([riak_repl_util:site_root_dir(SiteName), 
                                     "ring"]),
