@@ -3,15 +3,17 @@
 -module(riak_repl_ring).
 -author('Andy Gross <andy@andygross.org>').
 -include("riak_repl.hrl").
--
-export([ensure_config/1,
+
+-export([ensure_config/1,
          get_repl_config/1,
          add_site/2,
-         add_listener/2,
-         del_site/2,
-         del_listener/2,
+         add_site_addr/3,
+         del_site_addr/3,
          get_site/2,
-         get_listener/2]).
+         del_site/2,
+         add_listener/2,
+         get_listener/2,
+         del_listener/2]).
 
 -include_lib("eunit/include/eunit.hrl").
 
@@ -70,6 +72,38 @@ get_site(Ring, SiteName) ->
     case lists:keysearch(SiteName, 2, Sites) of
         false -> undefined;
         {value, ReplSite} -> ReplSite
+    end.
+
+-spec(add_site_addr/3 :: (ring(), repl_sitename(), repl_addr()) -> ring()).
+%% @doc Add a site address to connect to.
+add_site_addr(Ring, SiteName, {_IP, _Port}=Addr) ->
+    case get_site(Ring, SiteName) of
+        undefined ->
+            Ring;
+        #repl_site{addrs=Addrs}=Site ->
+            case lists:member(Addr,Addrs) of
+                false ->
+                    Ring0 = del_site(Ring, SiteName),
+                    add_site(Ring0, Site#repl_site{addrs=[Addr|Addrs]});
+                true ->
+                    Ring
+            end
+    end.
+
+-spec(del_site_addr/3 :: (ring(), repl_sitename(), repl_addr()) -> ring()).
+%% @doc Delete a server address from the site
+del_site_addr(Ring, SiteName, {_IP, _Port}=Addr) ->
+    case get_site(Ring, SiteName) of
+        undefined ->
+            Ring;
+        #repl_site{addrs=Addrs}=Site ->
+            case lists:member(Addr,Addrs) of
+                false ->
+                    Ring;
+                true ->
+                    Ring0 = del_site(Ring, SiteName),
+                    add_site(Ring0, Site#repl_site{addrs=lists:delete(Addr, Addrs)})
+            end
     end.
 
 -spec(add_listener/2 :: (ring(), #repl_listener{}) -> ring()).
@@ -138,6 +172,21 @@ add_get_site_test() ->
     Ring1 = add_site(Ring0, Site),
     Site = get_site(Ring1, "test"),
     Ring1.
+
+add_site_addr_test() ->
+    Ring0 = add_get_site_test(),
+    Site = get_site(Ring0, "test"),
+    ?assertEqual([], Site#repl_site.addrs),
+    Ring1 = add_site_addr(Ring0, "test", {"127.0.0.1", 9010}),
+    Site1 = get_site(Ring1, "test"),
+    ?assertEqual([{"127.0.0.1", 9010}], Site1#repl_site.addrs),
+    Ring1.
+
+del_site_addr_test() ->
+    Ring0 = add_site_addr_test(),
+    Ring1 = del_site_addr(Ring0, "test", {"127.0.0.1", 9010}),
+    Site1 = get_site(Ring1, "test"),
+    ?assertEqual([], Site1#repl_site.addrs).
 
 del_site_test() ->
     Ring0 = add_get_site_test(),
