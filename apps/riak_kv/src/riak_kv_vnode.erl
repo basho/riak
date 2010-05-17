@@ -25,7 +25,8 @@
 -module(riak_kv_vnode).
 -behaviour(gen_fsm).
 
--export([start_link/1]).
+-export([start_link/1,
+         get_vnode_index/1]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 -export([active/2,active/3]).
@@ -37,6 +38,9 @@
 -record(putargs, {returnbody,lww,bkey,robj,reqid,bprops,prunetime,fsm_pid}).
 
 start_link(Idx) -> gen_fsm:start_link(?MODULE, [Idx], []).
+
+get_vnode_index(Pid) ->
+    gen_fsm:sync_send_all_state_event(Pid, get_vnode_index).
 
 init([VNodeIndex]) ->
     Mod = app_helper:get_env(riak_kv, storage_backend),
@@ -367,6 +371,8 @@ handle_sync_event({diffobj,{BKey,BinObj}}, _From, StateName, StateData) ->
             error_logger:error_msg("Error storing handoff obj: ~p~n", [Err]),
             {reply, {error, Err}, StateName, StateData, ?TIMEOUT}
     end;
+handle_sync_event(get_vnode_index, _From, StateName, StateData) ->
+    {reply, StateData#state.idx, StateName, StateData};
 handle_sync_event(_Even, _From, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 

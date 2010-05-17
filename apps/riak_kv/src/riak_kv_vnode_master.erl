@@ -34,7 +34,21 @@
 start_link() -> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 %% @private
-init([]) -> {ok, #state{idxtab=ets:new(riak_kv_vnode_idx,[{keypos,2}])}}.
+init([]) ->
+    %% Get the current list of vnodes running in the supervisor. We use this
+    %% to rebuild our ETS table for routing messages to the appropriate
+    %% vnode.
+    VnodePids = [Pid || {_, Pid, worker, _}
+                            <- supervisor:which_children(riak_kv_vnode_sup)],
+    IdxTable = ets:new(riak_kv_vnode_idx, [{keypos, 2}]),
+
+    F = fun(Pid) ->
+                Idx = riak_kv_vnode:get_vnode_index(Pid),
+                Mref = erlang:monitor(process, Pid),
+                #idxrec { idx = Idx, pid = Pid, monref = Mref }
+        end,
+    true = ets:insert_new(IdxTable, [F(Pid) || Pid <- VnodePids]),
+    {ok, #state{idxtab = IdxTable}}.
 
 
 %% @private
