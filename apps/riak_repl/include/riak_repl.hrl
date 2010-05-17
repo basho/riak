@@ -9,6 +9,7 @@
 -define(MERKLE_BUFSZ, 1048576*10).
 -define(MERKLE_CHUNKSZ, 65536).
 -define(FSM_SOCKOPTS, [{active, once}, {packet, 4}]).
+-define(REPL_VERSION, 2).
 
 -type(ip_addr_str() :: string()).
 -type(ip_portnum() :: non_neg_integer()).
@@ -39,7 +40,8 @@
          }).
 -record(repl_site, {
           name  :: repl_sitename(),   %% site name
-          addrs=[] :: repl_addrlist() %% list of ip/ports to connect to
+          addrs=[] :: repl_addrlist(),%% list of ip/ports to connect to
+          last_sync=?NEVER_SYNCED :: tuple()  
          }).
 
 

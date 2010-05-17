@@ -161,7 +161,8 @@ get_listener(Ring,{_IP,_Port}=ListenAddr) ->
 initial_config() ->
     dict:from_list(
       [{listeners, []},
-       {sites, []}]
+       {sites, []},
+       {version, ?REPL_VERSION}]
       ).
 
 %% unit tests

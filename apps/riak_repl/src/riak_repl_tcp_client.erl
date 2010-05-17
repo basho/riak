@@ -34,8 +34,8 @@ start(Socket, SiteName, ConnectorPid) ->
     
 
 init([Socket, SiteName, ConnectorPid]) ->
-    io:format("~p starting, sock=~p, site=~p, pid=~p~n", 
-              [?MODULE, Socket, SiteName, self()]),
+    %io:format("~p starting, sock=~p, site=~p, pid=~p~n", 
+    %          [?MODULE, Socket, SiteName, self()]),
     ok = gen_tcp:send(Socket, SiteName),
     Props = riak_repl_fsm:common_init(Socket, SiteName),
     State = #state{
@@ -56,12 +56,8 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo,
                                                       sitename=SiteName}) ->
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
         true ->
-            {ok, TheirReplConfig} = riak_core_ring:get_meta(
-                                      riak_repl_ring,
-                                      TheirPeerInfo#peer_info.ring),
-            PIPath = filename:join([riak_repl_util:site_root_dir(SiteName), 
-                                    "ring"]),
-            ok = file:write_file(PIPath, term_to_binary(TheirReplConfig)),
+            update_site_ips(riak_repl_ring:get_repl_config(
+                              TheirPeerInfo#peer_info.ring), SiteName),
             {next_state, merkle_exchange, State};
         false ->
             error_logger:error_msg("invalid peer_info ~p~n",[TheirPeerInfo]),
@@ -136,3 +132,22 @@ handle_event(_Event, StateName, State) -> {next_state, StateName, State}.
 handle_sync_event(_Ev, _F, StateName, State) -> {reply, ok, StateName, State}.
 send(Socket, Data) when is_binary(Data) -> gen_tcp:send(Socket, zlib:zip(Data));
 send(Socket, Data) -> gen_tcp:send(Socket, zlib:zip(term_to_binary(Data))).
+
+update_site_ips(TheirReplConfig, SiteName) ->
+    {ok, OurRing} = riak_core_ring_manager:get_my_ring(),
+    MyListeners = dict:fetch(listeners, riak_repl_ring:get_repl_config(OurRing)),
+    MyIPAddrs = sets:from_list([R#repl_listener.listen_addr || R <- MyListeners]),
+    TheirListeners = dict:fetch(listeners, TheirReplConfig),
+    TheirIPAddrs = sets:from_list([R#repl_listener.listen_addr || R <- TheirListeners]),
+    ToRemove = sets:subtract(MyIPAddrs, TheirIPAddrs),
+    ToAdd = sets:subtract(TheirIPAddrs, MyIPAddrs),
+    OurRing1 = lists:foldl(fun(E,A) -> riak_repl_ring:del_site_addr(A, SiteName, E) end,
+                           OurRing, sets:to_list(ToRemove)),
+    OurRing2 = lists:foldl(fun(E,A) -> riak_repl_ring:add_site_addr(A, SiteName, E) end,
+                           OurRing1, sets:to_list(ToAdd)),
+    _MyNewRC = riak_repl_ring:get_repl_config(OurRing2),
+    {ok, _OurRing3} = riak_core_ring_manager:get_my_ring().
+    %OurRing4 = riak_repl_ring:set_repl_config(OurRing3, MyNewRC),
+    %riak_core_ring_manager:set_my_ring(OurRing4).
+
+    
