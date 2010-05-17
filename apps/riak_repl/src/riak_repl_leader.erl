@@ -8,7 +8,6 @@
          handle_cast/3, handle_DOWN/3, handle_info/2, terminate/2,
          code_change/4]).
 -export([get_state/0, 
-         ensure_connectors/1, 
          add_receiver_pid/1,
          postcommit/1,
          leader_node/0]).
@@ -17,7 +16,6 @@
 
 -record(state, {
           is_leader :: boolean(),
-          connectors=[] :: list(),
           receivers=[] :: list(),
           leader_node=undefined :: atom()}).
 
@@ -32,6 +30,7 @@ start_link() ->
     gen_leader:start_link(?MODULE, Candidates,?LEADER_OPTS,?MODULE, [], []).
 
 init([]) ->
+    riak_repl:install_hook(),
     {ok, #state{is_leader=false}}.
 
 leader_node() ->
@@ -46,15 +45,13 @@ get_state() ->
 add_receiver_pid(Pid) when is_pid(Pid) ->
     gen_leader:leader_call(?MODULE, {add_receiver_pid, Pid}).
 
-ensure_connectors(RemoteSites) ->
-    gen_leader:cast(?MODULE, {ensure_connectors, RemoteSites}).
-
 elected(State, _NewElection, _Node) ->
+    error_logger:info_msg("Elected as replication leader~n"),
     {ok, {i_am_leader, node()}, State#state{is_leader=true, 
                                             leader_node=node()}}.
 
 surrendered(State, {i_am_leader, Node}, _NewElection) ->
-    error_logger:info_msg("surrendered: sync=~p~n", [Node]),
+    error_logger:info_msg("Replication leadership surrendered to ~p~n", [Node]),
     {ok, State#state{is_leader=false, leader_node=Node}}.
 
 handle_leader_call({add_receiver_pid, Pid}, _From, 
@@ -78,20 +75,10 @@ from_leader(Command, State, _NewElection) ->
 
 handle_call(get_state, _From, State, _E) -> {reply, State, State};
 handle_call(leader_node, _From, State, _E) ->
-    {reply, State#state.leader_node, State};
-handle_call(is_leader, _From, State=#state{is_leader=IL}, _E) ->
-    {reply, IL, State}.
-handle_cast({ensure_connectors,RemoteSites},
-            State=#state{is_leader=true}, _E) ->
-    NewState = handle_ensure_connectors(RemoteSites, State),
-    {noreply, NewState};
-handle_cast({ensure_connectors,_RemoteSites},
-            State=#state{is_leader=false}, _E) ->
-    {noreply, State};
+    {reply, State#state.leader_node, State}.
 handle_cast(_Message, State, _E) -> {noreply, State}.
 
 handle_DOWN(_Node, State, _Election) ->
-    io:format("HANDLE_DOWN: ~p:~p~n", [_Node, State]),
     {ok, State}.
 handle_info(_Info, State) ->
     io:format("got other info: ~p~n", [_Info]),
@@ -100,27 +87,4 @@ handle_info(_Info, State) ->
 terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Election, _Extra) -> {ok, State}.
 
-handle_ensure_connectors(RemoteSites, State=#state{}) ->
-    lists:foldl(
-      fun({Site, {IP, Port}}, S) -> 
-              ensure_connector(Site, IP, Port, S)
-      end, State, RemoteSites).
-
-ensure_connector(Site, IP, Port, State=#state{connectors=C}) ->
-    case proplists:get_value(Site, C) of
-        undefined ->
-            ensure_site_dir(Site),
-            {ok, Pid} = 
-                riak_repl_connector_sup:start_connector(IP, Port, Site),
-            State#state{connectors=[{Site, {IP, Port, Pid}}|C]};
-        _ ->
-            State
-    end.
-
-ensure_site_dir(Site) ->
-    ok = filelib:ensure_dir(
-           filename:join([riak_repl_util:site_root_dir(Site), ".empty"])).
-    
-                        
-    
   

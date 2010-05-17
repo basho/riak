@@ -1,0 +1,36 @@
+#+SETUPFILE: "basho-doc-style.iorg"
+#+TITLE: Riak Multi-Datacenter Replication Guide
+
+* Overview
+  
+  This document is a guide to configuring and managing replication between 
+  Riak clusters.
+
+* How Replication Works
+
+  Lorem ipsum blah blah blah.
+
+* Concepts
+
+** Listeners
+   
+   Replication 'listener' nodes are Riak cluster nodes that will listen on an 
+   external IP address and port for the purposes of handling Replication 
+   requests.  Any node in a Riak cluster can participate as a listener - adding
+   more nodes will increase the fault-tolerance of the replication process in 
+   the presence of individual node failures.  
+
+   XXX
+
+** Sites
+   
+   Lorem ipsum blah blah blah
+
+* Configuration
+
+** The riak-repl Command
+
+   
+   
+
+

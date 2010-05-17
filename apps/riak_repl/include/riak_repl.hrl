@@ -43,3 +43,6 @@
          }).
 
 
+-define(REPL_HOOK, {struct, 
+                    [{<<"mod">>, <<"riak_repl_leader">>},
+                     {<<"fun">>, <<"postcommit">>}]}).

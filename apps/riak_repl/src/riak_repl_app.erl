@@ -13,11 +13,6 @@ start(_Type, _StartArgs) ->
     IncarnationId = erlang:phash2({make_ref(), now()}),
     application:set_env(riak_repl, incarnation, IncarnationId),
     ok = ensure_dirs(),
-    {ok, DefaultBucketProps} = application:get_env(riak_core, 
-                                                   default_bucket_props),
-    application:set_env(riak_core, default_bucket_props, 
-                        proplists:delete(postcommit, DefaultBucketProps)),
-    riak_core_bucket:append_bucket_defaults([{postcommit, [repl_hook()]}]),
     %% Spin up supervisor
     case riak_repl_sup:start_link() of
         {ok, Pid} ->
@@ -66,8 +61,6 @@ prune_old_workdirs(WorkRoot) ->
             ignore
     end.
 
-repl_hook() -> {struct, 
-                [{<<"mod">>, <<"riak_repl_leader">>},
-                 {<<"fun">>, <<"postcommit">>}]}.
+
     
 
