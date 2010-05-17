@@ -18,14 +18,15 @@
          connected/2]).
 -record(state, 
         {
-          socket :: port(),       %% peer socket
-          sitename :: string(),   %% repl site identifier
+          socket :: repl_socket(),       %% peer socket
+          sitename :: repl_sitename(),   %% repl site identifier
           client :: tuple(),      %% local riak client
           my_pi :: #peer_info{},  %% peer info record 
           merkle_fp :: term(),    %% current merkle filedesc
           work_dir :: string(),   %% working directory for this repl session
           partitions=[] :: list(),%% list of local partitions
-          merkle_wip=[] :: list() %% merkle work in progress
+          merkle_wip=[] :: list(),%% merkle work in progress
+          fullsync_ival :: undefined|non_neg_integer()
          }
        ).
 
@@ -61,7 +62,8 @@ wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo}) ->
         false -> {stop, normal, State}
     end.
 
-merkle_send(timeout, State=#state{partitions=[], sitename=SiteName}) ->
+merkle_send(timeout, State=#state{partitions=[], 
+                                  sitename=SiteName}) ->
     error_logger:info_msg("Full-sync with site ~p complete~n", [SiteName]),
     {next_state, connected, State};
 merkle_send(timeout, State=#state{socket=Socket, 

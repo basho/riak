@@ -10,23 +10,36 @@
 -define(MERKLE_CHUNKSZ, 65536).
 -define(FSM_SOCKOPTS, [{active, once}, {packet, 4}]).
 
+-type(ip_addr_str() :: string()).
+-type(ip_portnum() :: non_neg_integer()).
+-type(repl_addr() :: {ip_addr_str(), ip_portnum()}).
+-type(repl_addrlist() :: [repl_addr()]).
+-type(repl_socket() :: port()).
+-type(repl_sitename() :: string()).
+-type(ring() :: tuple()).
+
 -record(peer_info, {
-          riak_version :: string(), 
-          repl_version :: string(), 
-          ring :: tuple()}).
+          riak_version :: string(), %% version number of the riak_kv app
+          repl_version :: string(), %% version number of the riak_kv app
+          ring :: ring()            %% instance of riak_core_ring()
+         }).
 
 -record(fsm_state, {
-          socket :: port(),
-          sitename :: string(),
-          my_pi :: #peer_info{},
-          client :: tuple(),
-          partitions = [] :: list(),
-          work_dir :: string()}).
+          socket :: repl_socket(),     %% peer socket
+          sitename :: repl_sitename(), %% peer sitename
+          my_pi :: #peer_info{},       %% local peer_info
+          client :: tuple(),           %% riak local_client
+          partitions = [] :: list(),   %% list of local partitions
+          work_dir :: string()         %% working directory 
+         }).
 
--define(socket, State#fsm_state.socket).
--define(sitename, State#fsm_state.sitename).
--define(peerinfo, State#fsm_state.my_pi).
--define(client, State#fsm_state.client).
--define(partitions, State#fsm_state.partitions).
--define(work_dir, State#fsm_state.work_dir).
+-record(repl_listener, {
+          nodename :: atom(),        %% cluster-local node name
+          listen_addr :: repl_addr() %% ip/port to bind/listen on
+         }).
+-record(repl_site, {
+          name  :: repl_sitename(), %% site name
+          addrs :: repl_addrlist()  %% list of ip/ports to connect to
+         }).
+
 
