@@ -31,9 +31,15 @@ del_site([SiteName]) ->
     ok = maybe_set_ring(Ring, NewRing).
 
 status([]) ->
-    io:format("status").
+    Stats1 = ets:tab2list(riak_repl_stats),
+    format_counter_stats(Stats1).
 
 %% helper functions
+
+format_counter_stats([]) -> ok;
+format_counter_stats([{K,V}|T]) ->
+    io:format("~p: ~p~n", [K,V]),
+    format_counter_stats(T).
 
 make_listener(NodeName, IP, Port) ->
     #repl_listener{nodename=list_to_atom(NodeName),
@@ -51,7 +57,6 @@ maybe_set_ring(_R1, R2) ->
     RC = riak_repl_ring:get_repl_config(R2),
     riak_core_ring_manager:ring_trans(F, RC),
     ok.
-
 
 get_ring() ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
