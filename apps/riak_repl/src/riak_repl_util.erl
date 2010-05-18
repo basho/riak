@@ -31,7 +31,12 @@ get_partitions(_Ring) ->
     lists:sort([P || {P, _} <- riak_core_ring:all_owners(Ring)]).
 
 vnode_master_call(Node, Message) ->
-    gen_server:call({riak_kv_vnode_master, Node}, Message, ?REPL_MERK_TIMEOUT).
+    case lists:member(Node, [node()|nodes()]) of
+        true ->
+            gen_server:call({riak_kv_vnode_master, Node}, Message, ?REPL_MERK_TIMEOUT);
+        false ->
+            {error, node_not_available}
+    end.
 
 wait_for_riak(PPid) ->
     case [A || {A,_,_} <- application:which_applications(), A =:= riak_kv] of
@@ -68,16 +73,21 @@ binunpack_bkey(<<SB:32/integer,B:SB/binary,SK:32/integer,K:SK/binary>>) ->
 make_merkle(Partition, Dir) ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     OwnerNode = riak_core_ring:index_owner(Ring, Partition),
-    FileName = filename:join(Dir, integer_to_list(Partition) ++ ".merkle"),
-    {ok, DMerkle} = couch_merkle:open(FileName),
-    MakerPid = spawn(fun() -> merkle_maker(DMerkle, [], 0) end),
-    F = fun(K, V, MPid) -> MPid ! {K, erlang:phash2(V)}, MPid end,
-    riak_repl_util:vnode_master_call(OwnerNode, {fold,{Partition,F,MakerPid}}),
-    MakerPid ! {finish, self()},
-    receive 
-        {ok, RestKeys} -> couch_merkle:update_many(DMerkle, RestKeys)
-    end,
-    {ok, FileName, DMerkle, couch_merkle:root(DMerkle)}.
+    case lists:member(OwnerNode, [node()|nodes()]) of
+        true ->
+            FileName = filename:join(Dir,integer_to_list(Partition)++".merkle"),
+            {ok, DMerkle} = couch_merkle:open(FileName),
+            MakerPid = spawn(fun() -> merkle_maker(DMerkle, [], 0) end),
+            F = fun(K, V, MPid) -> MPid ! {K, erlang:phash2(V)}, MPid end,
+            riak_repl_util:vnode_master_call(OwnerNode, {fold,{Partition,F,MakerPid}}),
+            MakerPid ! {finish, self()},
+            receive 
+                {ok, RestKeys} -> couch_merkle:update_many(DMerkle, RestKeys)
+            end,
+            {ok, FileName, DMerkle, couch_merkle:root(DMerkle)};
+        false ->
+            {error, node_not_available}
+    end.
 
 merkle_maker(DMerklePid, Buffer, Size) ->
     receive 

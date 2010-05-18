@@ -20,7 +20,10 @@
 start_link() -> gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
 
 init([]) -> 
-    {ok, #state{t=ets:new(?MODULE, [set, {write_concurrency, true}])}}.
+    T = ets:new(?MODULE, [public, named_table, set, {write_concurrency, true}]),
+    ets:insert(T, {bytes_sent, 0}),
+    ets:insert(T, {bytes_recvd, 0}),
+    {ok, #state{t=T}}.
 
 add_counter(Name) ->
     add_counter(Name, 0).
@@ -32,7 +35,8 @@ increment_counter(Name) ->
     increment_counter(Name, 1).
 
 increment_counter(Name, IncrBy) when is_atom(Name) andalso is_integer(IncrBy) ->
-    gen_server:cast(?MODULE, {increment_counter, Name, IncrBy}).
+    %gen_server:cast(?MODULE, {increment_counter, Name, IncrBy}).
+    ets:update_counter(?MODULE, Name, IncrBy).
 
 handle_call({add_counter, Name, InitVal}, _From, State=#state{t=T}) -> 
     ets:insert(T, {Name, InitVal}),

@@ -24,15 +24,19 @@ init([]) ->
 
 handle_event({ring_update, Ring}, State=#state{ring=Ring}) -> 
     {ok, State};
-handle_event({ring_update, NewRing}, State=#state{ring=Ring}) ->
-    {Actions, R} = handle_ring_update(Ring, NewRing),
+handle_event({ring_update, NewRing0}, State=#state{ring=Ring}) ->
+    {Actions, R} = handle_ring_update(Ring, NewRing0),
     riak_repl_controller:ring_actions(Actions),
     case R =:= Ring of 
         true -> 
             {ok, State#state{initialized=true}};
         false -> 
-            riak_core_ring_manager:set_my_ring(R),
-            {ok, State#state{ring=R, initialized=true}}
+            F = fun(InRing, ReplConfig) ->
+                    {new_ring, riak_repl_ring:set_repl_config(InRing, ReplConfig)}
+                end,
+            RC = riak_repl_ring:get_repl_config(R),
+            {ok, NewRing} = riak_core_ring_manager:ring_trans(F, RC),
+            {ok, State#state{ring=NewRing, initialized=true}}
     end;
 handle_event(_Event, State) -> {ok, State}.
 handle_call(_Request, State) -> {ok, ok, State}.

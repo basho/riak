@@ -44,9 +44,14 @@ make_site(SiteName, IP, Port) ->
 
 maybe_set_ring(_R, _R) -> ok;
 maybe_set_ring(_R1, R2) ->
-    riak_core_ring_manager:set_my_ring(R2),
-    riak_core_ring_manager:write_ringfile(),
+    RC = riak_repl_ring:get_repl_config(R2),
+    F = fun(InRing, ReplConfig) ->
+                {new_ring, riak_repl_ring:set_repl_config(InRing, ReplConfig)}
+        end,
+    RC = riak_repl_ring:get_repl_config(R2),
+    riak_core_ring_manager:ring_trans(F, RC),
     ok.
+
 
 get_ring() ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),

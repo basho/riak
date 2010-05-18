@@ -79,10 +79,13 @@ merkle_send(timeout, State=#state{socket=Socket,
                                   partitions=[Partition|T],
                                   work_dir=WorkDir}) ->
     case riak_repl_util:make_merkle(Partition, WorkDir) of
+        {error, node_not_available} ->
+            {next_state, merkle_send, State#state{partitions=T}, 0};            
         {error, Reason} ->
             error_logger:error_msg("get_merkle error ~p for partition ~p~n", 
                                    [Reason, Partition]),
-            {next_state, merkle_send, State, 0};
+            {next_state, merkle_send, State#state{partitions=T}, 0};
+
         {ok, MerkleFile, MerklePid, _Root} ->
             couch_merkle:close(MerklePid),
             {ok, FileInfo} = file:read_file_info(MerkleFile),
@@ -114,11 +117,11 @@ merkle_wait_ack({ack,Partition,DiffVClocks}, State=#state{socket=Socket}) ->
 connected(_E, State) -> {next_state, connected, State}.
 
 handle_info({tcp_closed, Socket}, _StateName, State=#state{socket=Socket}) ->
-    io:format("tcp socket closed ~p~n", [Socket]),
     {stop, normal, State};
 handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
     R = ?MODULE:StateName(binary_to_term(zlib:unzip(Data)), State),
     ok = inet:setopts(Socket, [{active, once}]),            
+    riak_repl_stats:increment_counter(bytes_recvd, size(Data)),
     R;
 handle_info({repl, RObj}, StateName, State=#state{socket=Socket}) ->
     ok = send(Socket, {diff_obj, RObj}),
@@ -134,12 +137,21 @@ code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 handle_event(_E, StateName, State) -> {next_state, StateName, State}.
 handle_sync_event(_E,_F,StateName,State) -> {reply,ok,StateName,State}.
 
-send(Sock,Data) when is_binary(Data) -> gen_tcp:send(Sock,zlib:zip(Data));
-send(Sock,Data) -> gen_tcp:send(Sock, zlib:zip(term_to_binary(Data))).
-
+send(Sock,Data) when is_binary(Data) -> 
+    Msg = zlib:zip(Data),
+    R = gen_tcp:send(Sock,Msg),
+    riak_repl_stats:increment_counter(bytes_sent, size(Msg)),
+    R;
+send(Sock,Data) -> 
+    Msg = zlib:zip(term_to_binary(Data)),
+    R = gen_tcp:send(Sock, Msg),
+    riak_repl_stats:increment_counter(bytes_sent, size(Msg)),
+    R.
 vclock_diff(Partition, DiffVClocks, #state{client=Client, socket=Socket}) ->
     Keys = [K || {K, _V} <- DiffVClocks],
     case riak_repl_fsm:get_vclocks(Partition, Keys) of
+        {error, node_not_available} ->
+            [];
         {error, Reason} ->
             error_logger:error_msg("~p:getting vclocks for ~p:~p~n",
                                    [?MODULE, Partition, Reason]),

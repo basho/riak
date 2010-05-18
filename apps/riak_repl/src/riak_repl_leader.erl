@@ -7,15 +7,13 @@
          handle_leader_cast/3, from_leader/3, handle_call/4,
          handle_cast/3, handle_DOWN/3, handle_info/2, terminate/2,
          code_change/4]).
--export([get_state/0, 
-         add_receiver_pid/1,
+-export([add_receiver_pid/1,
          postcommit/1,
          leader_node/0]).
 
 -define(LEADER_OPTS, [{vardir, VarDir}, {bcast_type, all}]).
 
 -record(state, {
-          is_leader :: boolean(),
           receivers=[] :: list(),
           leader_node=undefined :: atom()}).
 
@@ -31,7 +29,7 @@ start_link() ->
 
 init([]) ->
     riak_repl:install_hook(),
-    {ok, #state{is_leader=false}}.
+    {ok, #state{}}.
 
 leader_node() ->
     gen_leader:call(?MODULE, leader_node).
@@ -39,20 +37,16 @@ leader_node() ->
 postcommit(Object) ->
     gen_leader:leader_cast(?MODULE, {repl, Object}).
 
-get_state() ->
-    gen_leader:call(?MODULE, get_state).
-
 add_receiver_pid(Pid) when is_pid(Pid) ->
     gen_leader:leader_call(?MODULE, {add_receiver_pid, Pid}).
 
 elected(State, _NewElection, _Node) ->
     error_logger:info_msg("Elected as replication leader~n"),
-    {ok, {i_am_leader, node()}, State#state{is_leader=true, 
-                                            leader_node=node()}}.
+    {ok, {i_am_leader, node()}, State#state{leader_node=node()}}.
 
 surrendered(State, {i_am_leader, Node}, _NewElection) ->
     error_logger:info_msg("Replication leadership surrendered to ~p~n", [Node]),
-    {ok, State#state{is_leader=false, leader_node=Node}}.
+    {ok, State#state{leader_node=Node}}.
 
 handle_leader_call({add_receiver_pid, Pid}, _From, 
                    State=#state{receivers=R}, _E) ->
@@ -73,7 +67,6 @@ from_leader(Command, State, _NewElection) ->
     error_logger:info_msg("from_leader: ~p~n", [Command]),
     {ok, State}.
 
-handle_call(get_state, _From, State, _E) -> {reply, State, State};
 handle_call(leader_node, _From, State, _E) ->
     {reply, State#state.leader_node, State}.
 handle_cast(_Message, State, _E) -> {noreply, State}.

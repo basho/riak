@@ -92,28 +92,35 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, merkle_sz=SZ,
         0 ->
             ok = file:sync(FP),
             ok = file:close(FP),
-            {ok, MerkleFN, OurMerkle, _OurRoot} = 
-                riak_repl_util:make_merkle(PT, WorkDir),
-            {ok, TheirMerkle} = couch_merkle:open(FN),
-            MerkleDiff = couch_merkle:diff(TheirMerkle, OurMerkle),
-            [couch_merkle:close(M) || M <- [OurMerkle, TheirMerkle]],
-            [file:delete(F) || F <- [MerkleFN, FN]],
-            case MerkleDiff of
-                [] -> 
+            case riak_repl_util:make_merkle(PT, WorkDir) of
+                {error, _} ->
                     ok = send(Socket, {ack, PT, []}),
-                    {next_state, merkle_exchange, State};
-                DiffKeys0 ->  
-                    DiffKeys = [riak_repl_util:binunpack_bkey(K) || 
-                                   {K,_} <- DiffKeys0],
-                    case riak_repl_fsm:get_vclocks(PT, DiffKeys) of
-                        {error, Reason} ->
-                            error_logger:error_msg(
-                              "~p:getting vclocks for ~p: ~p~n",
-                              [?MODULE, PT, Reason]),
-                            ok = send(Socket, {ack, PT, []});
-                        VClocks -> ok = send(Socket, {ack, PT, VClocks})
-                    end,
-                    {next_state, merkle_exchange, State}
+                    {next_state, merkle_exchange, State};                    
+                {ok, MerkleFN, OurMerkle, _OurRoot} ->
+                    riak_repl_util:make_merkle(PT, WorkDir),
+                    {ok, TheirMerkle} = couch_merkle:open(FN),
+                    MerkleDiff = couch_merkle:diff(TheirMerkle, OurMerkle),
+                    [couch_merkle:close(M) || M <- [OurMerkle, TheirMerkle]],
+                    [file:delete(F) || F <- [MerkleFN, FN]],
+                    case MerkleDiff of
+                        [] -> 
+                            ok = send(Socket, {ack, PT, []}),
+                            {next_state, merkle_exchange, State};
+                        DiffKeys0 ->  
+                            DiffKeys = [riak_repl_util:binunpack_bkey(K) || 
+                                           {K,_} <- DiffKeys0],
+                            case riak_repl_fsm:get_vclocks(PT, DiffKeys) of
+                                {error, node_not_available} ->
+                                    ok = send(Socket, {ack, PT, []});
+                                {error, Reason} ->
+                                    error_logger:error_msg(
+                                      "~p:getting vclocks for ~p: ~p~n",
+                                      [?MODULE, PT, Reason]),
+                                    ok = send(Socket, {ack, PT, []});
+                                VClocks -> ok = send(Socket, {ack, PT, VClocks})
+                            end,
+                            {next_state, merkle_exchange, State}
+                    end
             end;
         _ ->
             {next_state, merkle_recv, State#state{merkle_sz=LeftBytes}}
@@ -123,6 +130,7 @@ handle_info({tcp_closed, _Socket}, _StateName, State) -> {stop, normal, State};
 handle_info({tcp, Socket, Data}, StateName, State=#state{socket=Socket}) ->
     R = ?MODULE:StateName(binary_to_term(zlib:unzip(Data)), State),
     ok = inet:setopts(Socket, [{active, once}]),            
+    riak_repl_stats:increment_counter(bytes_recvd, size(Data)),
     R;
 %% no-ops
 handle_info(_I, StateName, State) ->  {next_state, StateName, State}.
@@ -130,8 +138,17 @@ terminate(_Reason, _StateName, _State) ->  ok.
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 handle_event(_Event, StateName, State) -> {next_state, StateName, State}.
 handle_sync_event(_Ev, _F, StateName, State) -> {reply, ok, StateName, State}.
-send(Socket, Data) when is_binary(Data) -> gen_tcp:send(Socket, zlib:zip(Data));
-send(Socket, Data) -> gen_tcp:send(Socket, zlib:zip(term_to_binary(Data))).
+
+send(Socket, Data) when is_binary(Data) -> 
+    Msg = zlib:zip(Data),
+    R = gen_tcp:send(Socket, Msg),
+    riak_repl_stats:increment_counter(bytes_sent, size(Msg)),
+    R;
+send(Socket, Data) ->
+    Msg = zlib:zip(term_to_binary(Data)),
+    R = gen_tcp:send(Socket, Msg),
+    riak_repl_stats:increment_counter(bytes_sent, size(Msg)),
+    R.
 
 update_site_ips(TheirReplConfig, SiteName) ->
     {ok, OurRing} = riak_core_ring_manager:get_my_ring(),
