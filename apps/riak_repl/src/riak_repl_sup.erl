@@ -33,7 +33,7 @@ init([]) ->
                   permanent, infinity, supervisor, [riak_repl_connector_sup]},
                  {riak_repl_controller,
                   {riak_repl_controller, start_link, []},
-                  permanent, infinity, supervisor, [riak_repl_controller]},
+                  permanent, 5000, worker, [riak_repl_controller]},
                  {riak_repl_stats,
                   {riak_repl_stats, start_link, []},
                   permanent, 5000, worker, [riak_repl_stat]},
