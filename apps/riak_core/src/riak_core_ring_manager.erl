@@ -36,6 +36,7 @@
          read_ringfile/1,
          find_latest_ringfile/0,
          do_write_ringfile/1,
+         ring_trans/2,
          stop/0]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -75,6 +76,9 @@ set_my_ring(Ring) ->
 %% @spec write_ringfile() -> ok
 write_ringfile() ->
     gen_server2:cast(?MODULE, write_ringfile).
+
+ring_trans(Fun, Args) ->
+    gen_server2:call(?MODULE, {ring_trans, Fun, Args}).
 
 
 do_write_ringfile(Ring) ->
@@ -182,9 +186,21 @@ handle_call({set_my_ring, Ring}, _From, State) ->
 
     % Notify any local observers that the ring has changed (async)
     riak_core_ring_events:ring_update(Ring),
-    {reply,ok,State}.
-
-
+    {reply,ok,State};
+handle_call({ring_trans, Fun, Args}, _From, State) ->
+    {ok, Ring} = get_my_ring(),
+    case catch Fun(Ring, Args) of
+        {new_ring, NewRing} ->
+            mochiglobal:put(?RING_KEY, NewRing),
+            riak_core_ring_events:ring_update(NewRing),
+            {reply, {ok, NewRing}, State};
+        ignore ->
+            {reply, not_changed, State};
+        Other ->
+            error_logger:error_msg("ring_trans: invalid return value: ~p~n", 
+                                   [Other]),
+            {reply, not_changed, State}
+    end.
 handle_cast(stop, State) ->
     {stop,normal,State};
 
