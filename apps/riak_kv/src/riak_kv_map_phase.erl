@@ -77,6 +77,10 @@ convert_input(I={_B,_K})
   when is_binary(_B) andalso (is_list(_K) orelse is_binary(_K)) -> {I,undefined};
 convert_input([B,K]) when is_binary(B), is_binary(K) -> {{B,K},undefined};
 convert_input([B,K,D]) when is_binary(B), is_binary(K) -> {{B,K},D};
+convert_input({struct, [{<<"not_found">>,
+                     {struct, [{<<"bucket">>, Bucket},
+                               {<<"key">>, Key}]}}]}) ->
+    {not_found, {Bucket, Key}};
 convert_input(I) -> I.
 
 start_executors(Ring, Inputs, QTerm, Timeout) ->
