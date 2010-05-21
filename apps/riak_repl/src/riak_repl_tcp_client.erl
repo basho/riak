@@ -162,9 +162,12 @@ update_site_ips(TheirReplConfig, SiteName) ->
                            OurRing, sets:to_list(ToRemove)),
     OurRing2 = lists:foldl(fun(E,A) -> riak_repl_ring:add_site_addr(A, SiteName, E) end,
                            OurRing1, sets:to_list(ToAdd)),
-    _MyNewRC = riak_repl_ring:get_repl_config(OurRing2),
-    {ok, _OurRing3} = riak_core_ring_manager:get_my_ring().
-    %OurRing4 = riak_repl_ring:set_repl_config(OurRing3, MyNewRC),
-    %riak_core_ring_manager:set_my_ring(OurRing4).
+    MyNewRC = riak_repl_ring:get_repl_config(OurRing2),
+    F = fun(InRing, ReplConfig) ->
+                {new_ring, riak_repl_ring:set_repl_config(InRing, ReplConfig)}
+        end,
+    riak_core_ring_manager:ring_trans(F, MyNewRC),
+    ok.    
+
 
     
