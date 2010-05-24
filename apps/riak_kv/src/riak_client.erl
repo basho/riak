@@ -61,8 +61,7 @@ mapred(Inputs,Query) -> mapred(Inputs,Query,?DEFAULT_TIMEOUT).
 
 %% @spec mapred(Inputs :: list(),
 %%              Query :: [riak_kv_mapred_query:mapred_queryterm()],
-%%              TimeoutMillisecs :: integer()  | 'infinity',
-%%              ResultTransformer :: function()) ->
+%%              TimeoutMillisecs :: integer()  | 'infinity') ->
 %%       {ok, riak_kv_mapred_query:mapred_result()} |
 %%       {error, {bad_qterm, riak_kv_mapred_query:mapred_queryterm()}} |
 %%       {error, timeout} |

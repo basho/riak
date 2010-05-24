@@ -391,7 +391,7 @@ config_stats() ->
     [{ring_creation_size, app_helper:get_env(riak_core, ring_creation_size)},
      {storage_backend, app_helper:get_env(riak_kv, storage_backend)}].
 
-%% @spec pbc_stats(state()) -> proplist()
+%% @spec pbc_stats(integer(), state()) -> proplist()
 %% @doc Get stats on the disk, as given by the disksup module
 %%      of the os_mon application.
 pbc_stats(Moment, State=#state{pbc_connects_total=NCT, pbc_active=Active}) ->

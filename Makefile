@@ -66,8 +66,12 @@ stage : rel
 ## Doc targets
 ##
 docs:
-	@erl -noshell -run edoc_run application riak '"apps/riak"' '[]' 
-	@cp -R apps/riak/doc doc/riak
+	@erl -noshell -run edoc_run application luke '"apps/luke"' '[]' 
+	@cp -R apps/luke/doc doc/luke
+	@erl -noshell -run edoc_run application riak_core '"apps/riak_core"' '[]' 
+	@cp -R apps/riak_core/doc doc/riak_core
+	@erl -noshell -run edoc_run application riak_kv '"apps/riak_kv"' '[]' 
+	@cp -R apps/riak_kv/doc doc/riak_kv
 
 orgs: orgs-doc orgs-README
 

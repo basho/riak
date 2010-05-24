@@ -120,7 +120,7 @@ random_node(State) ->
     lists:nth(crypto:rand_uniform(1, length(L)+1), L).
 
 % @doc Return a randomly-chosen node from amongst the owners other than this one.
-% @spec random_node(State :: chstate()) -> Node :: term() | no_node
+% @spec random_other_node(State :: chstate()) -> Node :: term() | no_node
 random_other_node(State) ->
     case lists:delete(node(), all_members(State)) of
         [] ->

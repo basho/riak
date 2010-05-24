@@ -56,6 +56,6 @@ send_flow_complete(FlowPid) ->
 %% @doc Sends flow results to the flow pid
 %%      This is sent by phases which are configured
 %%      to accumulate their results
-%% @spec send_flow_results(pid(), any()) -> ok
+%% @spec send_flow_results(pid(), any(), any()) -> ok
 send_flow_results(FlowPid, Id, Results) ->
     gen_fsm:send_event(FlowPid, {results, Id, Results}).
