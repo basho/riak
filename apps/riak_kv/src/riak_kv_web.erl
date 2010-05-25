@@ -24,7 +24,7 @@
 %%      of Riak.  This module loads parameters from the application
 %%      environment:
 %%
-%%</dd><dt> raw_name
+%%<dl><dt> raw_name
 %%</dt><dd>   the base path under which the riak_kv_wm_raw
 %%            should be exposed; defaulted to "raw"
 %%</dd></dl>

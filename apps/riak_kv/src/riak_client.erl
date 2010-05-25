@@ -27,10 +27,10 @@
 -module(riak_client, [Node,ClientId]).
 -author('Justin Sheehy <justin@basho.com>').
 
--export([mapred/2,mapred/3]).
--export([mapred_stream/2,mapred_stream/3]).
+-export([mapred/2,mapred/3,mapred/4]).
+-export([mapred_stream/2,mapred_stream/3,mapred_stream/4]).
 -export([mapred_bucket/2,mapred_bucket/3,mapred_bucket/4]).
--export([mapred_bucket_stream/3,mapred_bucket_stream/4,mapred_bucket_stream/5]).
+-export([mapred_bucket_stream/3,mapred_bucket_stream/4,mapred_bucket_stream/6]).
 -export([get/3,get/4]).
 -export([put/2,put/3,put/4,put/5]).
 -export([delete/3,delete/4]).
@@ -68,11 +68,24 @@ mapred(Inputs,Query) -> mapred(Inputs,Query,?DEFAULT_TIMEOUT).
 %%       {error, Err :: term()}
 %% @doc Perform a map/reduce job across the cluster.
 %%      See the map/reduce documentation for explanation of behavior.
-mapred(Inputs,Query,Timeout)
+mapred(Inputs,Query,Timeout) ->
+    mapred(Inputs,Query,undefined,Timeout).
+
+%% @spec mapred(Inputs :: list(),
+%%              Query :: [riak_kv_mapred_query:mapred_queryterm()],
+%%              TimeoutMillisecs :: integer()  | 'infinity',
+%%              ResultTransformer :: function()) ->
+%%       {ok, riak_kv_mapred_query:mapred_result()} |
+%%       {error, {bad_qterm, riak_kv_mapred_query:mapred_queryterm()}} |
+%%       {error, timeout} |
+%%       {error, Err :: term()}
+%% @doc Perform a map/reduce job across the cluster.
+%%      See the map/reduce documentation for explanation of behavior.
+mapred(Inputs,Query,ResultTransformer,Timeout)
   when is_list(Inputs), is_list(Query),
        (is_integer(Timeout) orelse Timeout =:= infinity) ->
     Me = self(),
-    case mapred_stream(Query,Me,Timeout) of
+    case mapred_stream(Query,Me,ResultTransformer,Timeout) of
         {ok, {ReqId, FlowPid}} ->
             luke_flow:add_inputs(FlowPid, Inputs),
             luke_flow:finish_inputs(FlowPid),
@@ -99,11 +112,23 @@ mapred_stream(Query,ClientPid) ->
 %%       {error, Err :: term()}
 %% @doc Perform a streaming map/reduce job across the cluster.
 %%      See the map/reduce documentation for explanation of behavior.
-mapred_stream(Query,ClientPid,Timeout)
+mapred_stream(Query, ClientPid, Timeout) ->
+    mapred_stream(Query, ClientPid, undefined, Timeout).
+
+%% @spec mapred_stream(Query :: [riak_kv_mapred_query:mapred_queryterm()],
+%%                     ClientPid :: pid(),
+%%                     TimeoutMillisecs :: integer() | 'infinity',
+%%                     ResultTransformer :: function()) ->
+%%       {ok, {ReqId :: term(), MR_FSM_PID :: pid()}} |
+%%       {error, {bad_qterm, riak_kv_mapred_query:mapred_queryterm()}} |
+%%       {error, Err :: term()}
+%% @doc Perform a streaming map/reduce job across the cluster.
+%%      See the map/reduce documentation for explanation of behavior.
+mapred_stream(Query,ClientPid,ResultTransformer,Timeout)
   when is_list(Query), is_pid(ClientPid),
        (is_integer(Timeout) orelse Timeout =:= infinity) ->
     ReqId = mk_reqid(),
-    case riak_kv_mapred_query:start(Node, ClientPid, ReqId, Query, Timeout) of
+    case riak_kv_mapred_query:start(Node, ClientPid, ReqId, Query, ResultTransformer, Timeout) of
         {ok, Pid} ->
             {ok, {ReqId, Pid}};
         Error ->
@@ -114,10 +139,10 @@ mapred_bucket_stream(Bucket, Query, ClientPid) ->
     mapred_bucket_stream(Bucket, Query, ClientPid, ?DEFAULT_TIMEOUT).
 
 mapred_bucket_stream(Bucket, Query, ClientPid, Timeout) ->
-    mapred_bucket_stream(Bucket, Query, ClientPid, Timeout, ?DEFAULT_ERRTOL).
+    mapred_bucket_stream(Bucket, Query, ClientPid, undefined, Timeout, ?DEFAULT_ERRTOL).
 
-mapred_bucket_stream(Bucket, Query, ClientPid, Timeout, ErrorTolerance) ->
-    {ok,{MR_ReqId,MR_FSM}} = mapred_stream(Query,ClientPid,Timeout),
+mapred_bucket_stream(Bucket, Query, ClientPid, ResultTransformer, Timeout, ErrorTolerance) ->
+    {ok,{MR_ReqId,MR_FSM}} = mapred_stream(Query,ClientPid,ResultTransformer,Timeout),
     {ok,_Stream_ReqID} = stream_list_keys(Bucket, Timeout, ErrorTolerance,
                                   MR_FSM, mapred),
     {ok,MR_ReqId}.
@@ -126,12 +151,15 @@ mapred_bucket(Bucket, Query) ->
     mapred_bucket(Bucket, Query, ?DEFAULT_TIMEOUT).
 
 mapred_bucket(Bucket, Query, Timeout) ->
-    mapred_bucket(Bucket, Query, Timeout, ?DEFAULT_ERRTOL).
+    mapred_bucket(Bucket, Query, undefined, Timeout, ?DEFAULT_ERRTOL).
 
-mapred_bucket(Bucket, Query, Timeout, ErrorTolerance) ->
+mapred_bucket(Bucket, Query, ResultTransformer, Timeout) ->
+    mapred_bucket(Bucket, Query, ResultTransformer, Timeout, ?DEFAULT_ERRTOL).
+
+mapred_bucket(Bucket, Query, ResultTransformer, Timeout, ErrorTolerance) ->
     Me = self(),
     {ok,MR_ReqId} = mapred_bucket_stream(Bucket, Query, Me,
-                                         Timeout, ErrorTolerance),
+                                         ResultTransformer, Timeout, ErrorTolerance),
     luke_flow:collect_output(MR_ReqId, Timeout).
 
 %% @spec get(riak_object:bucket(), riak_object:key(), R :: integer()) ->

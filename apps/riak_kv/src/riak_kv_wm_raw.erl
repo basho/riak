@@ -1133,7 +1133,7 @@ encode_value(V) when is_binary(V) ->
 encode_value(V) ->
     term_to_binary(V).
     
-%% @spec accept_value(binary()) -> term()
+%% @spec accept_value(string(), binary()) -> term()
 %% @doc Accept the object value as a binary - content type can be used
 %%      to decode
 accept_value("application/x-erlang-binary",V) ->

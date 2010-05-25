@@ -123,7 +123,8 @@ reduce_sum(Acc) ->
 
 %% @spec reduce_sum([number()], term()) -> [number()]
 %% @doc reduce phase function for reduce_sum/1
-reduce_sum(List, _) -> [lists:foldl(fun erlang:'+'/2, 0, List)].
+reduce_sum(List, _) ->
+    [lists:foldl(fun erlang:'+'/2, 0, not_found_filter(List))].
 
 %% @spec reduce_plist_sum(boolean()) -> reduce_phase_spec()
 %% @doc Produces a spec for a reduce phase that expects a proplist or
@@ -169,7 +170,7 @@ reduce_string_to_integer(Acc) ->
 %% @spec reduce_string_to_integer([number()], term()) -> [number()]
 %% @doc reduce phase function for reduce_sort/1
 reduce_string_to_integer(List, _) ->
-    [value_to_integer(I) || I <- List].
+    [value_to_integer(I) || I <- not_found_filter(List)].
 
 value_to_integer(V) when is_list(V) ->
     list_to_integer(V);
@@ -178,8 +179,16 @@ value_to_integer(V) when is_binary(V) ->
 value_to_integer(V) when is_integer(V) ->
     V.
 
-%% unit tests %%
+%% Helper functions
+not_found_filter(Values) ->
+    [Value || Value <- Values,
+              is_datum(Value)].
+is_datum({not_found, _}) ->
+    false;
+is_datum(_) ->
+    true.
 
+%% unit tests %%
 map_identity_test() ->
     O1 = riak_object:new(<<"a">>, <<"1">>, "value1"),
     [O1] = map_identity(O1, test, test).

@@ -25,6 +25,7 @@
 -module(riak_kv_mapred_json).
 
 -export([parse_request/1, parse_inputs/1, parse_query/1]).
+-export([jsonify_not_found/1, dejsonify_not_found/1]).
 
 -define(QUERY_TOKEN, <<"query">>).
 -define(INPUTS_TOKEN, <<"inputs">>).
@@ -34,7 +35,7 @@
 parse_request(Req) ->
     case catch mochijson2:decode(Req) of
         {struct, MapReduceDesc} ->
-            Timeout = case proplists:get_value(?TIMEOUT_TOKEN, MapReduceDesc, 
+            Timeout = case proplists:get_value(?TIMEOUT_TOKEN, MapReduceDesc,
                                                ?DEFAULT_TIMEOUT) of
                           X when is_number(X) andalso X > 0 ->
                               X;
@@ -154,6 +155,19 @@ parse_query([Phase|_], _Accum) ->
 parse_query(Invalid, _Accum) ->
     {error, ["The value of the \"query\" field was not a list:\n"
              "   ",mochijson2:encode(Invalid),"\n"]}.
+
+dejsonify_not_found({struct, [{<<"not_found">>,
+                     {struct, [{<<"bucket">>, Bucket},
+                               {<<"key">>, Key}]}}]}) ->
+    {not_found, {Bucket, Key}};
+dejsonify_not_found(Data) ->
+    Data.
+
+jsonify_not_found({not_found, {Bucket, Key}}) ->
+    {struct, [{not_found, {struct, [{<<"bucket">>, Bucket},
+                                    {<<"key">>, Key}]}}]};
+jsonify_not_found(Data) ->
+    Data.
 
 parse_link_step(StepDef) ->
     Bucket = proplists:get_value(<<"bucket">>, StepDef, <<"_">>),

@@ -60,13 +60,13 @@
 
 -module(riak_kv_mapred_query).
 
--export([start/5]).
+-export([start/6]).
 
-start(Node, Client, ReqId, Query0, Timeout) ->
+start(Node, Client, ReqId, Query0, ResultTransformer, Timeout) ->
     EffectiveTimeout = erlang:trunc(Timeout  * 1.1),
     case check_query_syntax(Query0) of
         {ok, Query} ->
-            luke:new_flow(Node, Client, ReqId, Query, EffectiveTimeout);
+            luke:new_flow(Node, Client, ReqId, Query, ResultTransformer, EffectiveTimeout);
         {bad_qterm, QTerm} ->
             {stop, {bad_qterm, QTerm}}
     end.
