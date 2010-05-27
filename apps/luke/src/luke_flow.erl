@@ -20,7 +20,7 @@
 -behaviour(gen_fsm).
 
 %% API
--export([start_link/4,
+-export([start_link/5,
          add_inputs/2,
          finish_inputs/1,
          collect_output/2]).
@@ -43,6 +43,7 @@
                 client,
                 flow_timeout,
                 tref,
+                xformer,
                 results=[]}).
 
 %% @doc Add inputs to the flow. Inputs will be sent to the
@@ -68,11 +69,11 @@ collect_output(FlowId, Timeout) ->
 get_phases(FlowPid) ->
     gen_fsm:sync_send_event(FlowPid, get_phases).
 
-start_link(Client, FlowId, FlowDesc, Timeout) when is_list(FlowDesc),
-                                                   is_pid(Client) ->
-    gen_fsm:start_link(?MODULE, [Client, FlowId, FlowDesc, Timeout], []).
+start_link(Client, FlowId, FlowDesc, FlowTransformer, Timeout) when is_list(FlowDesc),
+                                                                    is_pid(Client) ->
+    gen_fsm:start_link(?MODULE, [Client, FlowId, FlowDesc, FlowTransformer, Timeout], []).
 
-init([Client, FlowId, FlowDesc, Timeout]) ->
+init([Client, FlowId, FlowDesc, FlowTransformer, Timeout]) ->
     process_flag(trap_exit, true),
     Tref = case Timeout of
                infinity ->
@@ -83,7 +84,7 @@ init([Client, FlowId, FlowDesc, Timeout]) ->
            end,
     case start_phases(FlowDesc, Timeout) of
         {ok, FSMs} ->
-            {ok, executing, #state{fsms=FSMs, flow_id=FlowId, flow_timeout=Timeout, client=Client, tref=Tref}};
+            {ok, executing, #state{fsms=FSMs, flow_id=FlowId, flow_timeout=Timeout, client=Client, xformer=FlowTransformer, tref=Tref}};
         Error ->
             {stop, Error}
     end.
@@ -100,7 +101,8 @@ executing(timeout, #state{client=Client, flow_id=FlowId}=State) ->
 executing({results, done}, #state{client=Client, flow_id=FlowId}=State) ->
     Client ! {flow_results, FlowId, done},
     {stop, normal, State};
-executing({results, PhaseId, Result}, #state{client=Client, flow_id=FlowId}=State) ->
+executing({results, PhaseId, Result0}, #state{client=Client, flow_id=FlowId, xformer=XFormer}=State) ->
+    Result = transform_results(XFormer, Result0),
     Client ! {flow_results, PhaseId, FlowId, Result},
     {next_state, executing, State}.
 
@@ -220,3 +222,10 @@ accumulate_results(PhaseId, Results, Accum) ->
         {ok, PhaseAccum} ->
             dict:store(PhaseId, [Results|PhaseAccum], Accum)
     end.
+
+transform_results(undefined, Results) ->
+    Results;
+transform_results(Xformer, Results) when is_list(Results) ->
+    [Xformer(R) || R <- Results];
+transform_results(Xformer, Results) ->
+    Xformer(Results).

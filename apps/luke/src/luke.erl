@@ -33,7 +33,8 @@
 -export([new_flow/2,
          new_flow/3,
          new_flow/4,
-         new_flow/5]).
+         new_flow/5,
+         new_flow/6]).
 
 new_flow(FlowId, FlowDesc) ->
     new_flow(self(), FlowId, FlowDesc, ?DEFAULT_TIMEOUT).
@@ -45,7 +46,11 @@ new_flow(Client, FlowId, FlowDesc, Timeout) ->
     luke_flow_sup:new_flow(Client, FlowId, FlowDesc, Timeout).
 
 new_flow(Node, Client, FlowId, FlowDesc, Timeout) ->
-    luke_flow_sup:new_flow(Node, Client, FlowId, FlowDesc, Timeout).
+    new_flow(Node, Client, FlowId, FlowDesc, undefined, Timeout).
+
+new_flow(Node, Client, FlowId, FlowDesc, ResultTransformer, Timeout) ->
+    luke_flow_sup:new_flow(Node, Client, FlowId, FlowDesc, ResultTransformer, Timeout).
+
 
 start() ->
     application:start(luke).

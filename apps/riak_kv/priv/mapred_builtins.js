@@ -22,7 +22,19 @@ var Riak = function() {
       }
       return undefined;
     },
+    filterNotFound: function(values) {
+      return values.filter(function(value, index, data) {
+			     if (typeof value === 'object') {
+			       return value['not_found'] === undefined;
+			     }
+			     else {
+			       return true;
+			     } });
+    },
     mapValues: function(value, keyData, arg) {
+      if (value["not_found"]) {
+	return [value];
+      }
       var data = value["values"][0]["data"];
       if (Riak.getClassName(data) !== "Array") {
 	return [data];
@@ -31,12 +43,20 @@ var Riak = function() {
 	return data;
       }},
      mapValuesJson: function(value, keyData, arg) {
+      if (value["not_found"]) {
+	return [value];
+      }
       var newValues = Riak.mapValues(value, keyData, arg);
       return newValues.map(function(nv) { return JSON.parse(nv); });
     },
     reduceSum: function(values, arg) {
-      return [values.reduce(function(prev, curr, index, array) { return prev + curr; })];
-    },
+      values = Riak.filterNotFound(values);
+      if (values.length > 0) {
+	return [values.reduce(function(prev, curr, index, array) { return prev + curr; } )];
+      }
+      else {
+	return [0];
+      }},
     reduceMin: function(values, arg) {
       values.sort();
       return [values[0]];

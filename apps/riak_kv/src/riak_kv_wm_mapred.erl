@@ -30,6 +30,8 @@
 
 -include_lib("webmachine/include/webmachine.hrl").
 
+-define(DEFAULT_TIMEOUT, 60000).
+
 
 -record(state, {client, inputs, timeout, mrquery, boundary}).
 
@@ -79,6 +81,7 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query, timeout=Timeout}=State) ->
             {ok, ReqId} =
                 if is_list(Inputs) ->
                         {ok, {RId, FSM}} = Client:mapred_stream(Query, Me,
+                                                                fun riak_kv_mapred_json:jsonify_not_found/1,
                                                                 Timeout),
                         luke_flow:add_inputs(FSM, Inputs),
                         luke_flow:finish_inputs(FSM),
@@ -94,9 +97,12 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query, timeout=Timeout}=State) ->
         Param when Param =:= "false";
                    Param =:= undefined ->
             Results = if is_list(Inputs) ->
-                              Client:mapred(Inputs, Query);
+                              Client:mapred(Inputs, Query,
+                                            fun riak_kv_mapred_json:jsonify_not_found/1,
+                                            ?DEFAULT_TIMEOUT);
                          is_binary(Inputs) ->
-                              Client:mapred_bucket(Inputs, Query)
+                              Client:mapred_bucket(Inputs, Query, fun riak_kv_mapred_json:jsonify_not_found/1,
+                                                   ?DEFAULT_TIMEOUT)
                       end,
             RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
             case Results of
@@ -146,7 +152,7 @@ verify_body(Body, State) ->
                                    mrquery=ParsedQuery,
                                    timeout=Timeout}};
         {error, {'query', Message}} ->
-            {false, ["An error occurred parsing the \"query\" field.\n", 
+            {false, ["An error occurred parsing the \"query\" field.\n",
                      Message], State};
         {error, {inputs, Message}} ->
             {false, ["An error occurred parsing the \"inputs\" field.\n",
