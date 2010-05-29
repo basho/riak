@@ -342,8 +342,6 @@ invoke_hook(_, _, _, _, RObj) ->
 merge_robjs(RObjs0,AllowMult) ->
     RObjs1 = [X || X <- RObjs0,
                    X /= undefined],
-    %%RObjs1 = [X || X <- [riak_kv_util:obj_not_deleted(O) ||
-    %%                        O <- RObjs0], X /= undefined],
     case RObjs1 of
         [] -> {error, notfound};
         _ -> riak_object:reconcile(RObjs1,AllowMult)
