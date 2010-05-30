@@ -70,7 +70,7 @@ init([ReqId,RObj0,W,DW,Timeout,Client,Options0]) ->
     AllowMult = proplists:get_value(allow_mult,BucketProps),
     {ok, RClient} = riak:local_client(),
     Bucket = riak_object:bucket(RObj0),
-    Key = riak_object:key(RObj0),    
+    Key = riak_object:key(RObj0),
     StateData0 = #state{robj=RObj0, client=Client, w=W, dw=DW, bkey={Bucket, Key},
                         req_id=ReqId, timeout=Timeout, ring=Ring,
                         rclient=RClient, options=proplists:unfold(Options),
@@ -82,7 +82,7 @@ init([ReqId,RObj0,W,DW,Timeout,Client,Options0]) ->
 handle_options(State=#state{options=Options}) ->
     handle_options(Options, State).
 %% @private
-handle_options([], State) -> 
+handle_options([], State) ->
     State;
 handle_options([{returnbody, true}|T], State=#state{w=W}) ->
     handle_options(T, State#state{returnbody=true,dw=W, reply_arity=2});
@@ -93,7 +93,7 @@ handle_options([{returnbody, false}|T], State=#state{w=W}) ->
             handle_options(T, State#state{options=Options,
                                           returnbody=true,
                                           dw=W,
-                                          reply_arity=2});
+                                          reply_arity=1});
         false ->
             handle_options(T, State#state{returnbody=false})
     end;
@@ -196,7 +196,7 @@ waiting_vnode_dw({dw, Idx, ReqId},
             {next_state,waiting_vnode_dw,NewStateData}
     end;
 waiting_vnode_dw({dw, Idx, ResObj, ReqId},
-                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0, 
+                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0,
                                   allowmult=AllowMult, reply_arity=ReplyArity,
                                   rclient=RClient, resobjs=ResObjs0}) ->
     Replied = [Idx|Replied0],
@@ -332,6 +332,7 @@ invoke_hook(postcommit, Mod0, Fun0, undefined, Obj) ->
     Mod = binary_to_atom(Mod0, utf8),
     Fun = binary_to_atom(Fun0, utf8),
     proc_lib:spawn(fun() -> Mod:Fun(Obj) end);
+
 invoke_hook(postcommit, undefined, undefined, _JSName, _Obj) ->
     error_logger:warning_msg("Javascript post-commit hooks aren't implemented");
 %% NOP to handle all other cases
@@ -339,8 +340,8 @@ invoke_hook(_, _, _, _, RObj) ->
     RObj.
 
 merge_robjs(RObjs0,AllowMult) ->
-    RObjs1 = [X || X <- [riak_kv_util:obj_not_deleted(O) ||
-                            O <- RObjs0], X /= undefined],
+    RObjs1 = [X || X <- RObjs0,
+                   X /= undefined],
     case RObjs1 of
         [] -> {error, notfound};
         _ -> riak_object:reconcile(RObjs1,AllowMult)
@@ -348,4 +349,3 @@ merge_robjs(RObjs0,AllowMult) ->
 
 has_postcommit_hooks(Bucket) ->
     lists:flatten(proplists:get_all_values(postcommit, riak_core_bucket:get_bucket(Bucket))) /= [].
-
