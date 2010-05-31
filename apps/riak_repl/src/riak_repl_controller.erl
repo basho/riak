@@ -6,152 +6,171 @@
 -export([start_link/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
--export([ring_actions/1]).
+-export([set_repl_config/1]).
 
 -include("riak_repl.hrl").
 
--type(ets_tid() :: term()).
+-type(ets_tid()  :: term()).
 -type(mon_item() :: #repl_listener{} | #repl_site{}).
 
 -record(state, {
-          sites     :: ets_tid(), 
-          listeners :: ets_tid(), 
-          monitors  :: ets_tid()}).
+          repl_config :: dict(),
+          sites       :: ets_tid(), 
+          listeners   :: ets_tid(), 
+          monitors    :: ets_tid()}).
 
 -record(repl_monitor, {
+          id     :: tuple(),
+          item   :: mon_item(),
           monref :: reference(),
-          item :: mon_item(),
-          pid :: pid()}).
+          pid    :: pid()}).
+
+%% api
           
 start_link() ->
     gen_server:start_link({local, ?MODULE}, ?MODULE, [], []).
+
+set_repl_config(ReplConfig) ->
+    gen_server:call(?MODULE, {set_repl_config, ReplConfig}).
+
+%% gen_server 
 
 init([]) ->
     Sites = ets:new(repl_sites, [{keypos, 2}]),
     Listeners = ets:new(repl_listeners, [{keypos, 2}]),
     Monitors = ets:new(repl_monitors, [{keypos, 2}]),
-    {ok, #state{sites=Sites, listeners=Listeners, monitors=Monitors}}.
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    ReplConfig = 
+        case riak_repl_ring:get_repl_config(Ring) of
+            undefined ->
+                riak_repl_ring:initial_config();
+            RC -> RC
+        end,
+    {ok, #state{repl_config=ReplConfig,
+                sites=Sites, 
+                listeners=Listeners, 
+                monitors=Monitors}}.
 
-ring_actions(Actions) when is_list(Actions) ->
-    gen_server:call(?MODULE, {ring_actions, Actions}).
-
-handle_call({ring_actions, Actions}, _From, State) ->
-    handle_actions(Actions, State),
-    {reply, ok, State}.
+handle_call({set_repl_config, ReplConfig}, _From, State) ->
+    handle_set_repl_config(ReplConfig, State),
+    {reply, ok, State#state{repl_config=ReplConfig}}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
-handle_info({'DOWN', MonRef, process, Pid, _}, State=#state{monitors=M}) -> 
-    case ets:lookup(M, MonRef) of
-        [] -> {noreply, State};
-        [#repl_monitor{monref=MonRef,pid=Pid,item=#repl_listener{}=I}=MonRec] ->
-            ets:delete_object(M, MonRec),
-            start_listener(I, State),
-            {noreply, State};
-        [#repl_monitor{monref=MonRef,pid=Pid,item=#repl_site{}=I}=MonRec] ->
-            ets:delete_object(MonRec),
-            start_site(I, State)
-    end.
+
+handle_info({'DOWN', MonRef, process, Pid, _}, State) ->
+    handle_down(MonRef, Pid, State),
+    {noreply, State}.
+
 terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
-handle_actions([], State) -> State;
-handle_actions([A|T], State) -> handle_actions(T, handle_action(A, State)).
+%% handler functions
 
-handle_action({start, R=#repl_listener{}}, State) -> start_listener(R, State);
-handle_action({start, R=#repl_site{}}, State) ->     start_site(R, State);
-handle_action({stop, R=#repl_listener{}}, State) ->  stop_listener(R, State);
-handle_action({stop, R=#repl_site{}}, State) ->      stop_site(R, State).
+handle_down(_MonRef, _Pid, _State) -> ok.
 
-start_listener(R=#repl_listener{nodename=N},
-               State=#state{listeners=L, monitors=M}) when N =:= node() ->
-    case ets:lookup(L, N) of
-        [] ->
-            ets:insert(L, R),
-            {ok, Pid} = riak_repl_listener_sup:start_listener(R),
-            ets:insert(M, make_monitor(R, Pid)),
-            State;
-        [#repl_listener{}=I] -> 
-            %% already have record, see if it's running
-            case ets:match_object(M, #repl_monitor{item=I,monref='_',pid='_'}) of
-                [] ->
-                    {ok, Pid} = riak_repl_listener_sup:start_listener(I),
-                    ets:insert(M, make_monitor(R, Pid)),
-                    State;
-                [#repl_monitor{item=I}] ->
-                    %% ignore, already running
-                    State
-            end
-    end;
-start_listener(#repl_listener{}, State) -> State.
+handle_set_repl_config(NewReplConfig,State=#state{repl_config=OldReplConfig}) ->
+    handle_listeners(NewReplConfig, State),
+    handle_sites(NewReplConfig, State).
 
-stop_listener(#repl_listener{nodename=N}, 
-              State=#state{listeners=L, monitors=M}) when N =:= node() ->
-    case ets:lookup(L,N) of
-        [] -> State;
-        [#repl_listener{}=I] ->
-            case ets:match_object(M, #repl_monitor{item=I,monref='_',pid='_'}) of
-                [] ->
-                    ets:delete_object(L, I),
-                    State;
-                [#repl_monitor{item=I,pid=Pid}=MonRec] ->
-                    ets:delete_object(L, I),
-                    ets:delete_object(M, MonRec),
-                    {IP, Port} = I#repl_listener.listen_addr,
-                    error_logger:info_msg("Stopping replication listener on ~s:~p~n",
-                                          [IP, Port]),
-                    riak_repl_listener:stop(Pid),
-                    State
-            end
-    end;
-stop_listener(#repl_listener{}, State) -> State.
+%% site management
 
-start_site(R=#repl_site{name=N}, State=#state{sites=S, monitors=M}) ->
-    case ets:lookup(S, N) of
-        [] -> 
-            case riak_repl_leader:leader_node() =:= node() of
-                true ->
-                    {IP, Port} = hd(R#repl_site.addrs),
-                    riak_repl_util:ensure_site_dir(N),
-                    {ok, Pid} = riak_repl_connector_sup:start_connector(IP, Port, N),
-                    ets:insert(M, make_monitor(R, Pid)),
-                    State;
-                false ->
-                    State
-            end;
-        [#repl_site{}=I] ->  
-            %% already have record, see if it's running
-            case ets:match_object(M, #repl_monitor{item=I,monref='_',pid='_'}) of
-                [] ->
-                    {IP, Port} = hd(R#repl_site.addrs),
-                    riak_repl_util:ensure_site_dir(N),
-                    {ok, Pid} = riak_repl_connector_sup:start_connector(IP, Port, N),
-                    ets:insert(M, make_monitor(R, Pid)),
-                    State;
-                [#repl_monitor{item=I}] ->
-                    %% ignore, already running
-                    State
-            end
+handle_sites(NewReplConfig,State=#state{repl_config=OldReplConfig}) ->
+    NewSites = dict:fetch(sites, NewReplConfig),
+    ensure_sites(NewSites, State).
 
+stop_sites([], _State) -> ok;
+stop_sites([Site|Rest], State) ->
+    stop_site(Site, State),
+    stop_sites(Rest, State).
+
+stop_site(_S, _State) -> ok.
+
+ensure_sites([], _State) -> ok;
+ensure_sites([Site|Rest], State) ->
+    ensure_site(Site, State),
+    ensure_sites(Rest, State).
+
+ensure_site(S, State) ->
+    io:format("ensuring site: ~p~n", [S]),
+    case get_monitor(S, State) of
+        not_found ->
+            {ok, Pid} = riak_repl_connector_sup:start_connector(S),
+            monitor_item(S, Pid, State);
+        _ ->
+            ignore
+    end.    
+%% listener management
+
+handle_listeners(NewReplConfig, State=#state{repl_config=OldReplConfig}) ->
+    OldListeners = dict:fetch(listeners, OldReplConfig),
+    NewListeners = dict:fetch(listeners, NewReplConfig),
+    ToStop = sets:to_list(
+               sets:subtract(
+                 sets:from_list(OldListeners), 
+                 sets:from_list(NewListeners))),
+    stop_listeners(ToStop, State),
+    ensure_listeners(NewListeners, State).
+
+stop_listeners([], _State) -> ok;
+stop_listeners([Listener|Rest], State=#state{monitors=T}) ->
+    stop_listener(Listener, State),
+    stop_listeners(Rest, State).
+
+stop_listener(L, State) ->
+    case get_monitor(L, State) of
+        not_found ->
+            ignore;
+        #repl_monitor{pid=Pid, monref=MonRef} ->
+            erlang:demonitor(MonRef),
+            {IP, Port} = L#repl_listener.listen_addr,
+            error_logger:info_msg("Stopping replication listener on ~s:~p~n",
+                                  [IP, Port]),
+            riak_repl_listener:stop(Pid),
+            del_monitor(L, State)
+    end.
+    
+ensure_listeners([], _State) -> ok;
+ensure_listeners([Listener|Rest], State) ->
+    ensure_listener(Listener, State),
+    ensure_listeners(Rest, State).
+    
+ensure_listener(L, State=#state{monitors=T}) ->
+    case get_monitor(L, State) of
+        not_found ->
+            {ok, Pid} = riak_repl_listener_sup:start_listener(L),
+            monitor_item(L, Pid, State);
+        _ ->
+            ignore
     end.
 
-stop_site(_R=#repl_site{}, State=#state{sites=_S, monitors=_M}) ->
-    State.
+%% ets/monitor book-keeping
 
-make_monitor(I=#repl_listener{}, Pid) -> 
-    MonRef = erlang:monitor(process, Pid),
-    #repl_monitor{item=I, monref=MonRef, pid=Pid};
-make_monitor(I=#repl_site{}, Pid) -> 
-    MonRef = erlang:monitor(process, Pid),
-    #repl_monitor{item=I, monref=MonRef, pid=Pid}.
-    
+monitor_item(I, Pid, #state{monitors=M}) ->
+    MonRec = #repl_monitor{item=monitor_id(I),
+                           monref=erlang:monitor(process,Pid), 
+                           pid=Pid},
+    ets:insert(M, MonRec).
 
+get_monitor(I, #state{monitors=M}) ->
+    case ets:match_object(M,#repl_monitor{item=monitor_id(I),
+                                          monref='_',
+                                          pid='_'}) of
+        [] -> not_found;
+        [#repl_monitor{}=R] -> R
+    end.
+
+del_monitor(I=#repl_monitor{}, #state{monitors=M}) -> ets:delete_object(M, I);
+del_monitor(I, S=#state{monitors=M}) ->
+    case get_monitor(I, S) of
+        not_found -> nop;
+        R -> ets:delete_object(M, R)
+    end.
     
-    
+monitor_id(#repl_listener{nodename=NodeName}) -> {repl_listener, NodeName};
+monitor_id(#repl_site{name=SiteName}) -> {repl_site, SiteName}.
+
 
 
 
                      
-                         
-
-
-
+         
