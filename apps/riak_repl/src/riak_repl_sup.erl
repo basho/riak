@@ -8,19 +8,11 @@
 -export([start_link/0]).
 %% supervisor callbacks
 -export([init/1]).
--export([start_config/0]).
 
 %% @spec start_link() -> ServerRet
 %% @doc API for starting the supervisor.
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
-
-start_config() ->
-    ChildSpec = 
-        {riak_repl_config,
-         {riak_repl_config, start_link, []},
-         permanent, 5000, worker, [riak_config]},
-    supervisor:start_child(?MODULE, ChildSpec).
 
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
@@ -31,6 +23,12 @@ init([]) ->
                  {riak_repl_connector_sup,
                   {riak_repl_connector_sup, start_link, []},
                   permanent, infinity, supervisor, [riak_repl_connector_sup]},
+                 {riak_repl_client_sup,
+                  {riak_repl_client_sup, start_link, []},
+                  permanent, infinity, supervisor, [riak_repl_client_sup]},
+                 {riak_repl_server_sup,
+                  {riak_repl_server_sup, start_link, []},
+                  permanent, infinity, supervisor, [riak_repl_server_sup]},
                  {riak_repl_controller,
                   {riak_repl_controller, start_link, []},
                   permanent, 5000, worker, [riak_repl_controller]},
