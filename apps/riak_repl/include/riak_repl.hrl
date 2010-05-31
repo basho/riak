@@ -9,7 +9,7 @@
 -define(MERKLE_BUFSZ, 1048576*10).
 -define(MERKLE_CHUNKSZ, 65536).
 -define(FSM_SOCKOPTS, [{active, once}, {packet, 4}]).
--define(REPL_VERSION, 2).
+-define(REPL_VERSION, 3).
 
 -type(ip_addr_str() :: string()).
 -type(ip_portnum() :: non_neg_integer()).
