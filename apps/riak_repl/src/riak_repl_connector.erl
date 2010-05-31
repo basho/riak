@@ -24,27 +24,27 @@ init([Site]) ->
 handle_call(_Request, _From, State) -> {reply, ok, State}.
 handle_cast(_Msg, State) -> {noreply, State}.
 
-handle_info({connect, ok, {Host, Port}, Pid}, State) ->
-    io:format("connect ok to ~p:~p~n", [Host, Port]),
+handle_info({connect, ok, {_Host, _Port}, Pid}, State) ->
+    %%io:format("connect ok to ~p:~p~n", [Host, Port]),
     _MonRef = erlang:monitor(process, Pid),
     {noreply, State};
-handle_info({connect, error, {Host, Port}, _Reason}, State) ->
+handle_info({connect, error, {_Host, _Port}, _Reason}, State) ->
     %%io:format("connect fail to ~p:~p:  ~p~n", [Host, Port, _Reason]),
-    erlang:send_after(?REPL_CONN_RETRY, self(), {retry_connect, Host, Port}),
+    erlang:send_after(?REPL_CONN_RETRY, self(), retry_connect),
     {noreply, State};
 handle_info({'DOWN',_MonRef,process,_P,_I},State) ->
-    io:format("got down message for process ~p~n", [_P]),
-    %%erlang:send_after(?REPL_CONN_RETRY, self(), {retry_connect, Host, Port}),
+    %%io:format("got down message for process ~p~n", [_P]),
+    erlang:send_after(?REPL_CONN_RETRY, self(), retry_connect),
     {noreply, State};
 
 handle_info(retry_connect, State=#state{site=Site}) ->
-    io:format("retry_connect: ~p~n", [State]),
+    {{Host, Port}, NewState} = next_connect_addr(State),
     %%io:format("retrying connect to to ~p:~p~n", [Host, Port]),
     Self = self(),
-    %%spawn_link(fun() -> do_connect(Host, Port, SiteName, Self) end),
-    {noreply, State};
-handle_info({redirect, Host, Port}, State) ->
-    io:format("redirecting to ~p~p~n", [Host, Port]),
+    spawn_link(fun() -> do_connect(Host, Port, Site#repl_site.name, Self) end),
+    {noreply, NewState};
+handle_info({redirect, _Host, _Port}, State) ->
+    %%io:format("redirecting to ~p~p~n", [Host, Port]),
     %%{noreply, State#state{host=Host, port=Port}};
     {noreply, State};
 handle_info(_Info, State) -> {noreply, State}.
@@ -63,3 +63,8 @@ do_connect(Host, Port, SiteName, PPid) ->
         {error, Reason} ->
             PPid ! {connect, error, {Host, Port}, Reason}
     end.
+
+next_connect_addr(State=#state{pending=[], tried=[Addr|NewPending]}) ->
+    {Addr, State#state{pending=NewPending, tried=[Addr]}};
+next_connect_addr(State=#state{pending=[Addr|NewPending], tried=T}) ->
+    {Addr, State#state{pending=NewPending, tried=[Addr|T]}}.
