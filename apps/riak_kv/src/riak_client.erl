@@ -282,8 +282,9 @@ list_keys(Bucket, Timeout) ->
 list_keys(Bucket, Timeout, ErrorTolerance) ->
     Me = self(),
     ReqId = mk_reqid(),
+    FSM_Timeout = trunc(Timeout / 8),
     spawn(Node, riak_kv_keys_fsm, start,
-          [ReqId,Bucket,Timeout,plain,ErrorTolerance,Me]),
+          [ReqId,Bucket,FSM_Timeout,plain,ErrorTolerance,Me]),
     wait_for_listkeys(ReqId, Timeout).
 
 stream_list_keys(Bucket) ->
