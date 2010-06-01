@@ -13,6 +13,7 @@ deps:
 
 clean:
 	./rebar clean
+	make -C apps/riak_jmx/java_src clean
 
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
