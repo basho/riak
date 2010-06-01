@@ -2,9 +2,6 @@ package com.basho.riak.jmx;
 
 public interface RiakMBean {
 
-	public String getClusterName();
-	public void setClusterName(String clusterName);
-
 	public int getCPUNProcs();
 	public void setCPUNProcs(int nprocs);
 	
@@ -61,5 +58,36 @@ public interface RiakMBean {
 	
 	public int getCpuAvg15();
 	public void setCpuAvg15(int cpuAvg15);
+	
+	public float getNodeGetFsmTimeMax();
+	public void setNodeGetFsmTimeMax(float nodeGetFsmTimeMax);
+	
+	public float getNodeGetFsmTimeMean();
+	public void setNodeGetFsmTimeMean(float nodeGetFsmTimeMean);
+	
+	public float getNodeGetFsmTimeMedian();
+	public void setNodeGetFsmTimeMedian(float nodeGetFsmTimeMedian);
+	
+	public float getNodeGetFsmTime95();
+	public void setNodeGetFsmTime95(float nodeGetFsmTime95);
+	
+	public float getNodeGetFsmTime99();
+	public void setNodeGetFsmTime99(float nodeGetFsmTime99);
+
+	public float getNodePutFsmTimeMax();	
+	public void setNodePutFsmTimeMax(float nodePutFsmTimeMax);
+
+	public float getNodePutFsmTimeMean();
+	public void setNodePutFsmTimeMean(float nodePutFsmTimeMean);
+
+	public float getNodePutFsmTimeMedian();
+	public void setNodePutFsmTimeMedian(float nodePutFsmTimeMedian);
+	
+	public float getNodePutFsmTime95();
+	public void setNodePutFsmTime95(float nodePutFsmTime95);
+
+	public float getNodePutFsmTime99();
+	public void setNodePutFsmTime99(float nodePutFsmTime99);
+
 
 }

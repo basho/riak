@@ -43,8 +43,25 @@ public class Riak implements RiakMBean {
 			Riak.this.setRingCreationSize(stats.getInt("ring_creation_size"));
 			Riak.this.setCpuAvg1(stats.getInt("cpu_avg1"));
 			Riak.this.setCpuAvg5(stats.getInt("cpu_avg5"));			
-			Riak.this.setCpuAvg15(stats.getInt("cpu_avg15"));						
-			
+			Riak.this.setCpuAvg15(stats.getInt("cpu_avg15"));
+			Riak.this.setNodeGetFsmTime95(getStat(stats, "node_get_fsm_time_95"));
+			Riak.this.setNodeGetFsmTime99(getStat(stats, "node_get_fsm_time_99"));
+			Riak.this.setNodeGetFsmTimeMax(getStat(stats, "node_get_fsm_time_100"));			
+			Riak.this.setNodeGetFsmTimeMean(getStat(stats, "node_get_fsm_time_mean"));						
+			Riak.this.setNodeGetFsmTimeMedian(getStat(stats, "node_get_fsm_time_median"));			
+			Riak.this.setNodePutFsmTime95(getStat(stats, "node_put_fsm_time_95"));
+			Riak.this.setNodePutFsmTime99(getStat(stats, "node_put_fsm_time_99"));
+			Riak.this.setNodePutFsmTimeMax(getStat(stats, "node_put_fsm_time_100"));			
+			Riak.this.setNodePutFsmTimeMean(getStat(stats, "node_put_fsm_time_mean"));						
+			Riak.this.setNodePutFsmTimeMedian(getStat(stats, "node_put_fsm_time_median"));						
+		}
+		
+		private float getStat(JSONObject obj, String key) throws Exception {
+			Object val = obj.get(key);
+			if (val.equals("undefined")) {
+				return -1;
+			}
+			return Float.parseFloat(val.toString());
 		}
 		
 		protected JSONObject fetch() throws IOException, JSONException {
@@ -57,7 +74,7 @@ public class Riak implements RiakMBean {
             while ((json = reader.readLine()) != null) {
                     sb.append(json);
             }
-            System.out.println(new JSONObject(sb.toString()).toString(4));
+            //System.out.println(new JSONObject(sb.toString()).toString(4));
             return new JSONObject(sb.toString());
 		}
 	}
@@ -84,6 +101,17 @@ public class Riak implements RiakMBean {
 	int cpuAvg1;
 	int cpuAvg5;
 	int cpuAvg15;
+	float nodeGetFsmTimeMax;
+	float nodeGetFsmTimeMean;
+	float nodeGetFsmTimeMedian;
+	float nodeGetFsmTime95;
+	float nodeGetFsmTime99;
+	float nodePutFsmTimeMax;
+	float nodePutFsmTimeMean;
+	float nodePutFsmTimeMedian;
+	float nodePutFsmTime95;
+	float nodePutFsmTime99;	
+	
 	
 
 	public Riak(String host, int port) throws Exception {
@@ -96,18 +124,8 @@ public class Riak implements RiakMBean {
 		try {
 			this.fetcher.update();
 		} catch (Exception e) {
-			e.printStackTrace();
+			System.exit(1);
 		}
-	}
-
-	@Override
-	public String getClusterName() {
-		return "default";
-	}
-
-	@Override
-	synchronized public void setClusterName(String clusterName) {
-		
 	}
 
 	@Override
@@ -299,5 +317,104 @@ public class Riak implements RiakMBean {
 	synchronized public void setCpuAvg15(int cpuAvg15) {
 		this.cpuAvg15 = cpuAvg15;
 	}
+	
+	@Override
+	public float getNodeGetFsmTimeMax() {
+		return nodeGetFsmTimeMax;
+	}
 
+	@Override
+	synchronized public void setNodeGetFsmTimeMax(float nodeGetFsmTimeMax) {
+		this.nodeGetFsmTimeMax = nodeGetFsmTimeMax;
+	}
+
+	@Override
+	public float getNodeGetFsmTimeMean() {
+		return nodeGetFsmTimeMean;
+	}
+
+	@Override
+	synchronized public void setNodeGetFsmTimeMean(float nodeGetFsmTimeMean) {
+		this.nodeGetFsmTimeMean = nodeGetFsmTimeMean;
+	}
+
+	@Override
+	public float getNodeGetFsmTimeMedian() {
+		return nodeGetFsmTimeMedian;
+	}
+
+	@Override
+	synchronized public void setNodeGetFsmTimeMedian(float nodeGetFsmTimeMedian) {
+		this.nodeGetFsmTimeMedian = nodeGetFsmTimeMedian;
+	}
+
+	@Override
+	public float getNodeGetFsmTime95() {
+		return nodeGetFsmTime95;
+	}
+
+	@Override
+	synchronized public void setNodeGetFsmTime95(float nodeGetFsmTime95) {
+		this.nodeGetFsmTime95 = nodeGetFsmTime95;
+	}
+
+	@Override
+	public float getNodeGetFsmTime99() {
+		return nodeGetFsmTime99;
+	}
+	
+	@Override
+	synchronized public void setNodeGetFsmTime99(float nodeGetFsmTime99) {
+		this.nodeGetFsmTime99 = nodeGetFsmTime99;
+	}
+	
+	@Override
+	public float getNodePutFsmTimeMax() {
+		return nodePutFsmTimeMax;
+	}
+
+	@Override
+	synchronized public void setNodePutFsmTimeMax(float nodePutFsmTimeMax) {
+		this.nodePutFsmTimeMax = nodePutFsmTimeMax;
+	}
+
+	@Override
+	public float getNodePutFsmTimeMean() {
+		return nodePutFsmTimeMean;
+	}
+	
+	@Override
+	synchronized public void setNodePutFsmTimeMean(float nodePutFsmTimeMean) {
+		this.nodePutFsmTimeMean = nodePutFsmTimeMean;
+	}
+
+	@Override
+	public float getNodePutFsmTimeMedian() {
+		return nodePutFsmTimeMedian;
+	}
+
+	@Override
+	synchronized public void setNodePutFsmTimeMedian(float nodePutFsmTimeMedian) {
+		this.nodePutFsmTimeMedian = nodePutFsmTimeMedian;
+	}
+
+	@Override
+	public float getNodePutFsmTime95() {
+		return nodePutFsmTime95;
+	}
+
+	@Override
+	synchronized public void setNodePutFsmTime95(float nodePutFsmTime95) {
+		this.nodePutFsmTime95 = nodePutFsmTime95;
+	}
+
+	@Override
+	public float getNodePutFsmTime99() {
+		return nodePutFsmTime99;
+	}
+	
+	@Override
+	synchronized public void setNodePutFsmTime99(float nodePutFsmTime99) {
+		this.nodePutFsmTime99 = nodePutFsmTime99;
+	}
 }
