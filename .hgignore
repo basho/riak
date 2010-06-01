@@ -37,3 +37,4 @@ c_src/.*(\.o|\.a)$
 erlang_js/priv/.*.so$
 client_lib/python/.*.pyc
 apps/riak_jmx/java_src/build
+apps/riak_jmx/priv/riak_jmx.jar
