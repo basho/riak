@@ -1,0 +1,50 @@
+Riak JMX Monitoring
+===================
+
+Riak exposes monitoring data via JMX.  To enable JMX monitoring, edit the
+app.config file and set the 'enabled' property of the 'riak_jmx' 
+section to true, as follows:
+
+    {riak_jmx, [
+        {enabled, true}
+      ]}
+
+To view JMX data, launch JConsole, select the 'com.basho.riak.jmx.Main'
+entry in the "Local Processes" table, and press the 'Connect' button.
+
+Once connected, click on the 'MBeans' tab, expand the 'com.basho.riak' 
+tree view, and select 'Attributes'.  The attributes listed below will
+be displayed.
+
+
+Exported JMX attributes 
+=======================
+
+CPUNProcs::int              : Number of running processes
+CpuAvg1::int                : 1 minute load average
+CpuAvg5::int                : 5 minute load average
+CpuAvg15::int               : 15 minute load average
+NodeGetFsmTime95::float     : 95th percentile GET time (microseconds)
+NodeGetFsmTime99::float     : 99th percentile GET time (microseconds)
+NodeGetFsmTimeMax::float    : Maximum GET time (microseconds)
+NodeGetFsmTimeMean::float   : Mean GET time (microseconds)
+NodeGetFsmTimeMedian::float : Median GET time (microseconds)
+NodeGets::int               : Number of GETs in past minute
+NodeGetsTotal::int          : Number of GETs since node start
+NodeName::string            : Node name 
+NodePutFsmTime95::float     : 95th percentile PUT time (microseconds)
+NodePutFsmTime99::float     : 99th percentile PUT time (microseconds)
+NodePutFsmTimeMax::float    : Maximum PUT time (microseconds)
+NodePutFsmTimeMean::float   : Mean PUT time (microseconds)
+NodePutFsmTimeMedian::float : Median PUT time (microseconds)
+NodePuts::int               : Number of PUTs in past minute
+NodePutsTotal::int          : Number of PUTs since node start
+PBCActive::int              : Number of active Protocol Buffers connections
+PBCConnects::int            : # of Protocol Buffers connections in past minute
+PBCConnectsTotal::int       : # of Protocol Buffers connections since node start
+RingCreationSize::int       : Number of partitions in Riak ring 
+VnodeGets::int              : # of vnode-level GETs in past minute
+VnodeGetsTotal::int         : # of vnode-level GETs since node start
+VnodePuts::int              : # of vnode-level PUTs in past minute
+VnodePutsTotal::int         : # of vnode-level PUTs since node start
+
