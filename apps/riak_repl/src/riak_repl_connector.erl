@@ -43,10 +43,9 @@ handle_info(retry_connect, State=#state{site=Site}) ->
     Self = self(),
     spawn_link(fun() -> do_connect(Host, Port, Site#repl_site.name, Self) end),
     {noreply, NewState};
-handle_info({redirect, _Host, _Port}, State) ->
-    %%io:format("redirecting to ~p~p~n", [Host, Port]),
-    %%{noreply, State#state{host=Host, port=Port}};
-    {noreply, State};
+handle_info({redirect, Host, Port}, State) ->
+    NewState = State#state{pending=[{Host,Port}|State#state.pending]},
+    handle_info(retry_connect, NewState);
 handle_info(_Info, State) -> {noreply, State}.
 terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
