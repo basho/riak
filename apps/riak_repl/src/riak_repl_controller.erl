@@ -147,14 +147,16 @@ ensure_listeners([Listener|Rest], State) ->
     ensure_listener(Listener, State),
     ensure_listeners(Rest, State).
     
-ensure_listener(L, State) ->
+ensure_listener(L, State) when L#repl_listener.nodename =:= node() ->
     case get_monitor(L, State) of
         not_found ->
             {ok, Pid} = riak_repl_listener_sup:start_listener(L),
             monitor_item(L, Pid, State);
         _ ->
             ignore
-    end.
+    end;
+ensure_listener(_L, _State) -> ignore.
+
 
 %% ets/monitor book-keeping
 
