@@ -107,7 +107,6 @@ do_list_handoff(TargetNode, BKeyList, StateData=#state{idx=Idx}) ->
 
 %% @private
 delete_and_exit(StateData=#state{idx=Idx, mod=Mod, modstate=ModState}) ->
-    error_logger:info_msg("Dropping partition ~p~n", [Idx]),
     ok = Mod:drop(ModState),
     gen_server:cast(riak_kv_vnode_master, {add_exclusion, Idx}),
     {stop, normal, StateData}.
