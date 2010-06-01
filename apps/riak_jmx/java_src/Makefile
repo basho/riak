@@ -1,0 +1,14 @@
+
+all: jar
+
+compile:
+	@mkdir -p build
+	@javac -d build `find src -name "*.java"`
+
+jar: compile
+	@mkdir -p dist
+	@jar cvf dist/riak_jmx.jar -C build .
+
+clean:
+	@rm -rf build dist
+
