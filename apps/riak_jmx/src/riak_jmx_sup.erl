@@ -17,5 +17,8 @@ start_link() ->
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
 init([]) ->
-    Processes = [],
+    Processes = [{riak_jmx_monitor,
+                  {riak_jmx_monitor, start_link, []},
+                  permanent, 5000, worker, [riak_jmx_monitor]}
+                ],
     {ok, {{one_for_one, 10, 10}, Processes}}.
