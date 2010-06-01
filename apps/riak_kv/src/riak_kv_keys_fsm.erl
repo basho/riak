@@ -90,9 +90,9 @@ waiting_kl({kl, Keys, Idx, ReqId},
         _ -> reduce_pls(StateData)
     end;
 
-waiting_kl(timeout, StateData=#state{pls=PLS,wait_pls=WPL,timeout=Timeout}) ->
+waiting_kl(timeout, StateData=#state{pls=PLS,wait_pls=WPL}) ->
     NewPLS = lists:append(PLS, [W_PL || {_W_Idx,_W_Node,W_PL} <- WPL]),
-    {next_state, waiting_kl, StateData#state{pls=NewPLS,wait_pls=[]}, Timeout}.
+    reduce_pls(StateData#state{pls=NewPLS,wait_pls=[]}).
 
 finish(StateData=#state{req_id=ReqId,client=Client,client_type=ClientType}) ->
     case ClientType of
@@ -115,15 +115,20 @@ reduce_pls(StateData0=#state{timeout=Timeout, req_id=ReqId,wait_pls=WPL,
                 false -> {next_state, waiting_kl, StateData, Timeout}
             end;
         {[{Idx,Node}|RestPL],PLS} ->
-            ask_vn({Idx,Node},ReqId,{self(), Bucket, ReqId}),
-            WaitPLS = [{Idx,Node,RestPL}|WPL],
-            StateData = StateData0#state{pls=PLS, wait_pls=WaitPLS},
-            case length(WaitPLS) > Simul_PLS of
-                true ->
-                    {next_state, waiting_kl, StateData, Timeout};
-                false ->
-                    reduce_pls(StateData)
-            end
+            case net_adm:ping(Node) of
+                pong ->
+                    ask_vn({Idx,Node},ReqId,{self(), Bucket, ReqId}),
+                    WaitPLS = [{Idx,Node,RestPL}|WPL],
+                    StateData = StateData0#state{pls=PLS, wait_pls=WaitPLS},
+                    case length(WaitPLS) > Simul_PLS of
+                        true ->
+                            {next_state, waiting_kl, StateData, Timeout};
+                        false ->
+                            reduce_pls(StateData)
+                    end;
+                pang ->
+                    reduce_pls(StateData0#state{pls=[RestPL|PLS]})
+            end                        
     end.
 
 find_free_pl(StateData) -> find_free_pl1(StateData, []).
