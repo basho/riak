@@ -59,11 +59,13 @@ handle_call({set_leader, true}, _From, State=#state{is_leader=true}) ->
 handle_call({set_leader, false}, _From, State=#state{is_leader=false}) ->
     {reply, ok, State#state{is_leader=false}};
 handle_call({set_leader, true}, _From, State=#state{is_leader=false}) ->
-    handle_became_leader(State),
-    {reply, ok, State#state{is_leader=true}};
+    NewState = State#state{is_leader=true},
+    handle_became_leader(NewState),
+    {reply, ok, NewState};
 handle_call({set_leader, false}, _From, State=#state{is_leader=true}) ->
-    handle_lost_leader(State),
-    {reply, ok, State#state{is_leader=false}}.
+    NewState = State#state{is_leader=false},
+    handle_lost_leader(NewState),
+    {reply, ok, NewState}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
 
@@ -119,14 +121,16 @@ ensure_sites([Site|Rest], State) ->
     ensure_site(Site, State),
     ensure_sites(Rest, State).
 
-ensure_site(S, State) ->
+ensure_site(S, State) when State#state.is_leader =:= true ->
     case get_monitor(S, State) of
         not_found ->
             {ok, Pid} = riak_repl_connector_sup:start_connector(S),
             monitor_item(S, Pid, State);
         _ ->
             ignore
-    end.    
+    end;
+ensure_site(_S, _State) -> ignore.
+    
 
 %% listener management
 
