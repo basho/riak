@@ -29,7 +29,7 @@ sock_opts() -> [binary,
 new_connection(Socket, State) ->
     case gen_tcp:recv(Socket, 0) of
         {ok, SiteName} ->
-            case riak_repl_tcp_server:start(Socket, binary_to_list(SiteName)) of
+            case riak_repl_server_sup:start_server(Socket, binary_to_list(SiteName)) of
                 {ok, Pid} ->       connection_made(Socket, Pid, State);
                 {error, Reason} -> connection_error(Reason, binary_to_list(SiteName),
                                                     State);

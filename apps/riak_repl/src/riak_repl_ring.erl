@@ -167,6 +167,8 @@ initial_config() ->
 
 %% unit tests
 
+-ifdef(TEST).
+
 mock_ring() ->
     riak_core_ring:fresh(16, 'test@test').
 
@@ -215,3 +217,5 @@ del_listener_test() ->
     Ring1 = del_listener(Ring0, #repl_listener{nodename='test@test', 
                                                listen_addr={"127.0.0.1", 9010}}),
     ?assertEqual(undefined, get_listener(Ring1, {"127.0.0.1", 9010})).
+
+-endif.

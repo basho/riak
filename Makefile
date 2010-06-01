@@ -6,6 +6,7 @@ all: deps compile
 
 compile:
 	./rebar compile
+	make -C apps/riak_jmx/java_src
 
 deps:
 	./rebar get-deps
