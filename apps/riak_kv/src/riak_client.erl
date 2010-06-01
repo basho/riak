@@ -268,7 +268,7 @@ delete(Bucket,Key,RW,Timeout) ->
 %%      out of date if called immediately after a put or delete.
 %% @equiv list_keys(Bucket, default_timeout()*8)
 list_keys(Bucket) ->
-    list_keys(Bucket, ?DEFAULT_TIMEOUT).
+    list_keys(Bucket, ?DEFAULT_TIMEOUT*8).
 
 %% @spec list_keys(riak_object:bucket(), TimeoutMillisecs :: integer()) ->
 %%       {ok, [Key :: riak_object:key()]} |
@@ -282,9 +282,10 @@ list_keys(Bucket, Timeout) ->
 list_keys(Bucket, Timeout, ErrorTolerance) ->
     Me = self(),
     ReqId = mk_reqid(),
+    FSM_Timeout = trunc(Timeout / 8),
     spawn(Node, riak_kv_keys_fsm, start,
-          [ReqId,Bucket,Timeout,plain,ErrorTolerance,Me]),
-    wait_for_listkeys(ReqId, Timeout*8).
+          [ReqId,Bucket,FSM_Timeout,plain,ErrorTolerance,Me]),
+    wait_for_listkeys(ReqId, Timeout).
 
 stream_list_keys(Bucket) ->
     stream_list_keys(Bucket, ?DEFAULT_TIMEOUT).
