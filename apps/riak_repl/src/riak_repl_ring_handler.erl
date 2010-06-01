@@ -34,6 +34,7 @@ handle_event({ring_update, NewRing0}, State=#state{ring=Ring}) ->
                   {new_ring, riak_repl_ring:set_repl_config(InRing, ReplConfig)}
                 end,
             {ok, NewRing} = riak_core_ring_manager:ring_trans(F, NewReplConfig),
+            riak_core_ring_manager:write_ringfile(),
             {ok, State#state{ring=NewRing, initialized=true}}
     end;
 handle_event(_Event, State) -> {ok, State}.

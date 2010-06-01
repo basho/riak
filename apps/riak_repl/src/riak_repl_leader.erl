@@ -42,10 +42,12 @@ add_receiver_pid(Pid) when is_pid(Pid) ->
 
 elected(State, _NewElection, _Node) ->
     error_logger:info_msg("Elected as replication leader~n"),
+    riak_repl_controller:set_is_leader(true),
     {ok, {i_am_leader, node()}, State#state{leader_node=node()}}.
 
 surrendered(State, {i_am_leader, Node}, _NewElection) ->
     error_logger:info_msg("Replication leadership surrendered to ~p~n", [Node]),
+    riak_repl_controller:set_is_leader(false),
     {ok, State#state{leader_node=Node}}.
 
 handle_leader_call({add_receiver_pid, Pid}, _From, 
