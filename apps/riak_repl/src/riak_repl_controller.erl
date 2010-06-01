@@ -54,8 +54,16 @@ init([]) ->
 handle_call({set_repl_config, ReplConfig}, _From, State) ->
     handle_set_repl_config(ReplConfig, State),
     {reply, ok, State#state{repl_config=ReplConfig}};
-handle_call({set_leader, IsLeader}, _From, State) ->
-    {reply, ok, State#state{is_leader=IsLeader}}.
+handle_call({set_leader, true}, _From, State=#state{is_leader=true}) ->
+    {reply, ok, State#state{is_leader=true}};
+handle_call({set_leader, false}, _From, State=#state{is_leader=false}) ->
+    {reply, ok, State#state{is_leader=false}};
+handle_call({set_leader, true}, _From, State=#state{is_leader=false}) ->
+    handle_became_leader(State),
+    {reply, ok, State#state{is_leader=true}};
+handle_call({set_leader, false}, _From, State=#state{is_leader=true}) ->
+    handle_lost_leader(State),
+    {reply, ok, State#state{is_leader=false}}.
 
 handle_cast(_Msg, State) -> {noreply, State}.
 
@@ -70,6 +78,13 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 %% handler functions
+
+handle_became_leader(State=#state{repl_config=RC}) ->
+    handle_sites(RC, State).
+
+handle_lost_leader(State=#state{monitors=T}) ->
+    Sites = [I || {repl_monitor, {repl_site, _}, I, _, _} <- ets:tab2list(T)],
+    stop_sites(Sites, State).
 
 handle_down(_MonRef, _Pid, _State) -> ok.
 
@@ -93,8 +108,9 @@ stop_site(S, State) ->
     case get_monitor(S, State) of
         not_found ->
             ignore;
-        #repl_monitor{pid=_Pid, monref=MonRef} ->
+        #repl_monitor{pid=Pid, monref=MonRef} ->
             erlang:demonitor(MonRef),
+            riak_repl_connector:stop(Pid),
             del_monitor(S, State)
     end.
 

@@ -4,46 +4,53 @@
 -author('Andy Gross <andy@andygross.org>').
 -include("riak_repl.hrl").
 -behaviour(gen_server).
--export([start_link/1]).
+-export([start_link/1, stop/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
 -record(state, {site        :: #repl_site{}, 
                 pending     :: list(), 
-                current     :: repl_addr(),
                 tried = []  :: list(),
+                monref      :: reference(),
                 tref        :: reference()}).
 
 start_link(Site) ->
     gen_server:start_link(?MODULE, [Site], []).
 
 init([Site]) ->
-    erlang:send_after(?REPL_CONN_RETRY, self(), retry_connect),
-    {ok, #state{site=Site, pending=Site#repl_site.addrs, tried=[]}}.
+    TRef = erlang:send_after(?REPL_CONN_RETRY, self(), retry_connect),
+    {ok, #state{site=Site, 
+                pending=Site#repl_site.addrs, 
+                tried=[],
+                tref=TRef}}.
+
+stop(Pid) ->
+    gen_server:cast(Pid, stop).
 
 handle_call(_Request, _From, State) -> {reply, ok, State}.
-handle_cast(_Msg, State) -> {noreply, State}.
+handle_cast(stop, State) -> 
+    {stop, normal, State}.
 
 handle_info({connect, ok, {_Host, _Port}, Pid}, State) ->
     %%io:format("connect ok to ~p:~p~n", [Host, Port]),
-    _MonRef = erlang:monitor(process, Pid),
-    {noreply, State};
+    MonRef = erlang:monitor(process, Pid),
+    {noreply, State#state{monref=MonRef}};
 handle_info({connect, error, {_Host, _Port}, _Reason}, State) ->
     %%io:format("connect fail to ~p:~p:  ~p~n", [Host, Port, _Reason]),
-    erlang:send_after(?REPL_CONN_RETRY, self(), retry_connect),
-    {noreply, State};
+    TRef = erlang:send_after(?REPL_CONN_RETRY, self(), retry_connect),
+    {noreply, State#state{tref=TRef}};
 handle_info({'DOWN',_MonRef,process,_P,_I},State) ->
     %%io:format("got down message for process ~p~n", [_P]),
     erlang:send_after(?REPL_CONN_RETRY, self(), retry_connect),
     {noreply, State};
-
 handle_info(retry_connect, State=#state{site=Site}) ->
     {{Host, Port}, NewState} = next_connect_addr(State),
-    %%io:format("retrying connect to to ~p:~p~n", [Host, Port]),
+    io:format("retrying connect to to ~p:~p~n", [Host, Port]),
     Self = self(),
     spawn_link(fun() -> do_connect(Host, Port, Site#repl_site.name, Self) end),
     {noreply, NewState};
 handle_info({redirect, Host, Port}, State) ->
+    io:format("redirect to ~p:~p~n", [Host, Port]),
     NewState = State#state{pending=[{Host,Port}|State#state.pending]},
     handle_info(retry_connect, NewState);
 handle_info(_Info, State) -> {noreply, State}.
