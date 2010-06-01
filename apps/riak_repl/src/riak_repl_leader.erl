@@ -65,9 +65,7 @@ handle_leader_cast({repl, Msg}, State, _Election) ->
 
 from_leader({i_am_leader, Node}, State, _NewElection) ->
     {ok, State#state{leader_node=Node}};
-from_leader(Command, State, _NewElection) ->
-    error_logger:info_msg("from_leader: ~p~n", [Command]),
-    {ok, State}.
+from_leader(_Command, State, _NewElection) -> {ok, State}.
 
 handle_call(leader_node, _From, State, _E) ->
     {reply, State#state.leader_node, State}.
@@ -75,9 +73,7 @@ handle_cast(_Message, State, _E) -> {noreply, State}.
 
 handle_DOWN(_Node, State, _Election) ->
     {ok, State}.
-handle_info(_Info, State) ->
-    io:format("got other info: ~p~n", [_Info]),
-    {noreply, State}.
+handle_info(_Info, State) -> {noreply, State}.
 
 terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Election, _Extra) -> {ok, State}.
