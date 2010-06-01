@@ -39,6 +39,12 @@ public class Riak implements RiakMBean {
 			Riak.this.setPbcActive(stats.getInt("pbc_active"));
 			Riak.this.setPbcConnects(stats.getInt("pbc_connects"));
 			Riak.this.setPbcConnectsTotal(stats.getInt("pbc_connects_total"));
+			Riak.this.setNodeName(stats.getString("nodename"));
+			Riak.this.setRingCreationSize(stats.getInt("ring_creation_size"));
+			Riak.this.setCpuAvg1(stats.getInt("cpu_avg1"));
+			Riak.this.setCpuAvg5(stats.getInt("cpu_avg5"));			
+			Riak.this.setCpuAvg15(stats.getInt("cpu_avg15"));						
+			
 		}
 		
 		protected JSONObject fetch() throws IOException, JSONException {
@@ -51,7 +57,7 @@ public class Riak implements RiakMBean {
             while ((json = reader.readLine()) != null) {
                     sb.append(json);
             }
-            //System.out.println(new JSONObject(sb.toString()).toString(4));
+            System.out.println(new JSONObject(sb.toString()).toString(4));
             return new JSONObject(sb.toString());
 		}
 	}
@@ -73,7 +79,13 @@ public class Riak implements RiakMBean {
 	int pbcActive;
 	int pbcConnects;
 	int pbcConnectsTotal;
+	String nodeName;
+	int ringCreationSize;
+	int cpuAvg1;
+	int cpuAvg5;
+	int cpuAvg15;
 	
+
 	public Riak(String host, int port) throws Exception {
 		super();
 		this.fetcher = new RiakStatsFetcher(host, port);
@@ -236,6 +248,56 @@ public class Riak implements RiakMBean {
 	@Override
 	synchronized public void setPbcConnectsTotal(int pbcConnectsTotal) {
 		this.pbcConnectsTotal = pbcConnectsTotal;
+	}
+
+	@Override
+	public String getNodeName() {
+		return nodeName;
+	}
+
+	@Override
+	synchronized public void setNodeName(String nodeName) {
+		this.nodeName = nodeName;
+	}
+
+	@Override
+	public int getRingCreationSize() {
+		return ringCreationSize;
+	}
+
+	@Override
+	synchronized public void setRingCreationSize(int ringCreationSize) {
+		this.ringCreationSize = ringCreationSize;
+	}
+	
+	@Override
+	public int getCpuAvg1() {
+		return cpuAvg1;
+	}
+
+	@Override
+	synchronized public void setCpuAvg1(int cpuAvg1) {
+		this.cpuAvg1 = cpuAvg1;
+	}
+
+	@Override
+	public int getCpuAvg5() {
+		return cpuAvg5;
+	}
+
+	@Override
+	synchronized public void setCpuAvg5(int cpuAvg5) {
+		this.cpuAvg5 = cpuAvg5;
+	}
+
+	@Override
+	public int getCpuAvg15() {
+		return cpuAvg15;
+	}
+
+	@Override
+	synchronized public void setCpuAvg15(int cpuAvg15) {
+		this.cpuAvg15 = cpuAvg15;
 	}
 
 }

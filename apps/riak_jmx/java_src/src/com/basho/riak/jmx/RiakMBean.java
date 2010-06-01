@@ -46,5 +46,20 @@ public interface RiakMBean {
 	
 	public int getPbcConnectsTotal();
 	public void setPbcConnectsTotal(int pbcConnectsTotal);
+	
+	public String getNodeName();
+	public void setNodeName(String nodeName);
+	
+	public int getRingCreationSize();
+	public void setRingCreationSize(int ringCreationSize);
+	
+	public int getCpuAvg1();
+	public void setCpuAvg1(int cpuAvg1);
+	
+	public int getCpuAvg5();
+	public void setCpuAvg5(int cpuAvg5);
+	
+	public int getCpuAvg15();
+	public void setCpuAvg15(int cpuAvg15);
 
 }
