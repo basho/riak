@@ -25,6 +25,7 @@ test:
 ## Release targets
 ##
 rel: deps
+	make -C apps/riak_jmx/java_src
 	./rebar compile generate 
 
 relclean:
@@ -39,6 +40,7 @@ devrel: dev1 dev2 dev3 dev4 dev5 dev6
 dev: 
 	mkdir dev
 	cp -R rel/overlay rel/reltool.config dev
+	make -C apps/riak_jmx/java_src
 	./rebar compile && cd dev && ../rebar generate
 
 dev1 dev2 dev3 dev4 dev5 dev6: dev
