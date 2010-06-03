@@ -192,6 +192,12 @@ handle_call({ring_trans, Fun, Args}, _From, State) ->
     case catch Fun(Ring, Args) of
         {new_ring, NewRing} ->
             mochiglobal:put(?RING_KEY, NewRing),
+            case riak_core_ring:random_other_node(NewRing) of
+                no_node ->
+                    ignore;
+                Node ->
+                    riak_core_gossip:send_ring(Node)
+            end,
             riak_core_ring_events:ring_update(NewRing),
             {reply, {ok, NewRing}, State};
         ignore ->
