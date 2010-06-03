@@ -24,7 +24,7 @@
 
 -module(riak_kv_console).
 
--export([join/1, status/1, reip/1]).
+-export([join/1, leave/1, status/1, reip/1]).
 
 join([NodeStr]) ->
     case riak:join(NodeStr) of
@@ -38,6 +38,11 @@ join([NodeStr]) ->
 join(_) ->
     io:format("Join requires a node to join with.\n"),
     error.
+
+leave([]) ->
+    {ok, C} = riak:local_client(),
+    Res = C:remove_from_cluster(node()),
+    io:format("~p\n", [Res]).
 
 status([]) ->
     case whereis(riak_kv_stat) of
