@@ -8,7 +8,13 @@ RUNNER_LOG_DIR=$RUNNER_BASE_DIR/log
 RUNNER_USER=
 
 # Make sure this script is running as the appropriate user
-if [ ! -z "$RUNNER_USER" ] && [ `whoami` != "$RUNNER_USER" ]; then
+if [ "x$LOGNAME" != "x$RUNNER_USER" ]; then
+    type -p sudo > /dev/null 2>&1
+    if [ $? -ne 0 ]; then
+        echo "sudo doesn't appear to be installed and your EUID isn't $RUNNER_USER" 1>&2
+        exit 1
+    fi
+    echo "Attempting to restart script through sudo -u $RUNNER_USER"
     exec sudo -u $RUNNER_USER -i $0 $@
 fi
 
