@@ -57,6 +57,7 @@ maybe_redirect(Socket, PeerInfo) ->
         OtherNode -> 
             OtherListener = listener_for_node(OtherNode),
             {Ip, Port} = OtherListener#repl_listener.listen_addr,
+            io:format("redirecting to: ~p~p~n", [Ip, Port]),
             send(Socket, {redirect, Ip, Port}),
             redirect
     end.
@@ -64,7 +65,7 @@ maybe_redirect(Socket, PeerInfo) ->
 listener_for_node(Node) ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     ReplConfig = riak_repl_ring:get_repl_config(Ring),
-    Listeners = dict:to_list(dict:fetch(listeners, ReplConfig)),
+    Listeners = dict:fetch(listeners, ReplConfig),
     NodeListeners = [L || L <- Listeners,
                           L#repl_listener.nodename =:= Node],
     hd(NodeListeners).
