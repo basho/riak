@@ -281,13 +281,25 @@ get_meta(Key, State) ->
 % @spec update_meta(Key :: term(), Val :: term(), State :: chstate()) ->
 %     State :: chstate() | error
 update_meta(Key, Val, State) ->
-    M = #meta_entry { 
-        lastmod = calendar:datetime_to_gregorian_seconds(
-                    calendar:universal_time()),
-        value = Val
-    },    
-    VClock = vclock:increment(State#chstate.nodename, State#chstate.vclock),
-    State#chstate{vclock=VClock, meta=dict:store(Key, M, State#chstate.meta)}.
+    Change = case dict:find(Key, State#chstate.meta) of
+                 {ok, OldM} ->
+                     Val /= OldM#meta_entry.value;
+                 error ->
+                     true
+             end,
+    if Change ->
+            M = #meta_entry { 
+              lastmod = calendar:datetime_to_gregorian_seconds(
+                          calendar:universal_time()),
+              value = Val
+             },
+            VClock = vclock:increment(State#chstate.nodename,
+                                      State#chstate.vclock),
+            State#chstate{vclock=VClock,
+                          meta=dict:store(Key, M, State#chstate.meta)};
+       true ->
+            State
+    end.
 
 sequence_test() ->
     I1 = 365375409332725729550921208179070754913983135744,
