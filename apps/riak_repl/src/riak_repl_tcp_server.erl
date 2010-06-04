@@ -33,8 +33,8 @@
 start(Socket, SiteName) -> gen_fsm:start(?MODULE, [Socket, SiteName], []).
 
 init([Socket, SiteName]) ->
-    io:format("~p starting, sock=~p, sitename=~p~n", 
-              [?MODULE, Socket, SiteName]),
+    %io:format("~p starting, sock=~p, sitename=~p~n", 
+    %          [?MODULE, Socket, SiteName]),
     Props = riak_repl_fsm:common_init(Socket, SiteName),
     State = #state{
       socket=Socket,

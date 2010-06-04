@@ -61,7 +61,12 @@ handle_ring_update(OldRing, NewRing0) ->
         {OldRC0, undefined} -> {OldRC0, OldRC0};                         
         _ -> {OldRC0, NewRC0}
     end,
-    riak_repl_ring:set_repl_config(NewRing0, NewRC).
+    case OldRC0 =:= NewRC of
+        true ->
+            NewRing0;
+        false ->
+            riak_repl_ring:set_repl_config(NewRing0, NewRC)
+    end.
 
 diff_hosts(R1, R2) ->
     H1 = lists:sort(riak_core_ring:all_members(R1)),
