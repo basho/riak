@@ -57,7 +57,6 @@ maybe_redirect(Socket, PeerInfo) ->
         OtherNode -> 
             OtherListener = listener_for_node(OtherNode),
             {Ip, Port} = OtherListener#repl_listener.listen_addr,
-            io:format("redirecting to: ~p~p~n", [Ip, Port]),
             send(Socket, {redirect, Ip, Port}),
             redirect
     end.
