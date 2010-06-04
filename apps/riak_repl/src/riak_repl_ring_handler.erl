@@ -44,6 +44,13 @@ terminate(_Reason, _State) -> ok.
 code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 handle_ring_update(OldRing, NewRing0) ->
+    case diff_hosts(OldRing, NewRing0) of
+        true ->
+            supervisor:terminate_child(riak_repl_sup, riak_repl_leader),
+            supervisor:restart_child(riak_repl_sup, riak_repl_leader);
+        false ->
+            ignore
+    end,
     OldRC0 = riak_repl_ring:get_repl_config(OldRing),
     NewRC0 = riak_repl_ring:get_repl_config(NewRing0),
     {_OldRC, NewRC} = case {OldRC0, NewRC0} of
@@ -56,7 +63,7 @@ handle_ring_update(OldRing, NewRing0) ->
     end,
     riak_repl_ring:set_repl_config(NewRing0, NewRC).
 
-
-    
-    
-    
+diff_hosts(R1, R2) ->
+    H1 = lists:sort(riak_core_ring:all_members(R1)),
+    H2 = lists:sort(riak_core_ring:all_members(R2)),
+    H1 /=  H2.
