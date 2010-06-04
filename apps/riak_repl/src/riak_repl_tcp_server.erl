@@ -51,10 +51,23 @@ init([Socket, SiteName]) ->
     end.
 
 maybe_redirect(Socket, PeerInfo) ->
-    case riak_repl_leader:leader_node() =:= node() of
-        true -> ok = send(Socket, {peerinfo, PeerInfo});
-        false -> send(Socket, {redirect, "127.0.0.1", 9011}), redirect
+    OurNode = node(),
+    case riak_repl_leader:leader_node()  of
+        OurNode -> ok = send(Socket, {peerinfo, PeerInfo});
+        OtherNode -> 
+            OtherListener = listener_for_node(OtherNode),
+            {Ip, Port} = OtherListener#repl_listener.listen_addr,
+            send(Socket, {redirect, Ip, Port}),
+            redirect
     end.
+
+listener_for_node(Node) ->
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    ReplConfig = riak_repl_ring:get_repl_config(Ring),
+    Listeners = dict:to_list(dict:fetch(listeners, ReplConfig)),
+    NodeListeners = [L || L <- Listeners,
+                          L#repl_listener.nodename =:= Node],
+    hd(NodeListeners).
 
 wait_peerinfo({peerinfo, TheirPeerInfo}, State=#state{my_pi=MyPeerInfo}) ->
     case riak_repl_util:validate_peer_info(TheirPeerInfo, MyPeerInfo) of
