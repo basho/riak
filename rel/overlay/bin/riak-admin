@@ -1,6 +1,7 @@
 #!/bin/bash
 
 RUNNER_SCRIPT_DIR=$(cd ${0%/*} && pwd)
+RUNNER_SCRIPT=${0##*/}
 
 RUNNER_BASE_DIR=${RUNNER_SCRIPT_DIR%/*}
 RUNNER_ETC_DIR=$RUNNER_BASE_DIR/etc
@@ -15,7 +16,7 @@ if [ ! -z "$RUNNER_USER" ] && [ "x$LOGNAME" != "x$RUNNER_USER" ]; then
         exit 1
     fi
     echo "Attempting to restart script through sudo -u $RUNNER_USER"
-    exec sudo -u $RUNNER_USER -i $0 $@
+    exec sudo -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 fi
 
 # Make sure CWD is set to runner base dir
