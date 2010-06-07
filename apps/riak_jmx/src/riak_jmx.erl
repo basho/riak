@@ -1,5 +1,5 @@
 %% Riak EnterpriseDS
-%% @copyright 2007-2010 Basho Technologies, Inc.
+%% @copyright 2007-2010 Basho Technologies, Inc. All Rights Reserved.
 -module(riak_jmx).
 -export([start/0, stop/0, stop/1]).
 

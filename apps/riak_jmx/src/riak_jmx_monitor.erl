@@ -1,3 +1,5 @@
+%% Riak EnterpriseDS
+%% @copyright 2007-2010 Basho Technologies, Inc. All Rights Reserved.
 -module(riak_jmx_monitor).
 -behaviour(gen_server).
 
