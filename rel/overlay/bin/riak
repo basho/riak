@@ -10,7 +10,7 @@ PIPE_DIR=/tmp/$RUNNER_BASE_DIR/
 RUNNER_USER=
 
 # Make sure this script is running as the appropriate user
-if [ ! -z "$RUNNER_USER" ] && [ "x$LOGNAME" != "x$RUNNER_USER" ]; then
+if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
     type -p sudo > /dev/null 2>&1
     if [ $? -ne 0 ]; then
         echo "sudo doesn't appear to be installed and your EUID isn't $RUNNER_USER" 1>&2
