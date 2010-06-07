@@ -9,5 +9,5 @@
                   'riak_jmx_sup']},
   {registered,   []},
   {mod,          {riak_jmx_app, []}},
-  {env,          [{enabled, true}]},
+  {env,          [{enabled, false}]},
   {applications, [kernel, stdlib, sasl, crypto]}]}.
