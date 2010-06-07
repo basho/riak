@@ -1,4 +1,5 @@
-%% @doc 
+%% Riak EnterpriseDS
+%% Copyright 2007-2010 Basho Technologies, Inc. All Rights Reserved.
 -module(riak_snmp_stat_poller).
 
 -behaviour(gen_server).

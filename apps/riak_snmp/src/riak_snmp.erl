@@ -1,4 +1,5 @@
-%% @copyright 2007-2009 Basho Technologies, Inc.
+%% Riak EnterpriseDS
+%% Copyright 2007-2010 Basho Technologies, Inc. All Rights Reserved.
 -module(riak_snmp).
 -export([start/0, stop/0, stop/1]).
 -export([start_snmp/0]).
