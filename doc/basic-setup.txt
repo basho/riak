@@ -53,17 +53,17 @@ file.  The syntax is simply:
 Normally, this will look something like:
 
 [
- {riak, [
-         {storage_backend, riak_dets_backend},
-         {riak_dets_backend_root, "data/dets"}
+ {riak_kv, [
+         {storage_backend, riak_kv_dets_backend},
+         {riak_kv_dets_backend_root, "data/dets"}
         ]},
  {sasl, [
          {sasl_error_logger, {file, "log/sasl-error.log"}}
         ]}
 ].
 
-This would set the 'storage_backend' and 'riak_dets_backend_root'
-options for the 'riak' application, and the 'sasl_error_logger' option
+This would set the 'storage_backend' and 'riak_kv_dets_backend_root'
+options for the 'riak_kv' application, and the 'sasl_error_logger' option
 for the 'sasl' application.
 
 The following parameters can be used in app.config to configure Riak
@@ -98,7 +98,7 @@ storage_backend: atom
   riak_ets_backend, and riak_dets_backend. Some
   backends have their own set of configuration parameters.
 
-  riak_fs_backend:
+  riak_kv_fs_backend:
     A backend that uses the filesystem directly to store data.  Data
     are stored in Erlang binary format in files in a directory
     structure on disk.
@@ -106,13 +106,13 @@ storage_backend: atom
     riak_fs_backend_root: string
       The directory under which this backend will store its files.
 
-  riak_ets_backend:
+  riak_kv_ets_backend:
     A backend that uses ETS to store its data.
 
-  riak_dets_backend:
+  riak_kv_dets_backend:
     A backend that uses DETS to store its data.
 
-    riak_dets_backend_root: string
+    riak_kv_dets_backend_root: string
       The directory under which this backend will store its files.
 
 
@@ -142,16 +142,16 @@ bit.  Some recommended changes:
   riak@VISIBLE.HOSTNAME.  This will allow Riak nodes separate machines
   to communicate.
 
-* Change 'riak_web_ip' in app.config if you'll be accessing that
-  interface from a non-host-local client.
+* Change 'web_ip' in the 'riak_core' section of app.config if you'll be 
+  accessing that interface from a non-host-local client.
 
 * Consider adding a 'ring_creation_size' entry to app.config, and
   setting it to a number higher than the default of 64.  More
   partitions will allow you to add more Riak nodes later, if you need
   to.
 
-* Consider changing the 'riak_storage_backend' entry in app.config.
-  Depending on your use case, riak_dets_backend may not be your best
+* Consider changing the 'storage_backend' entry in app.config.
+  Depending on your use case, riak_kv_dets_backend may not be your best
   choice.
 
 To get the cluster, up and running, first start Riak on each node with
@@ -167,10 +167,10 @@ all nodes are represented:
 
 $ bin/riak attach
 Attaching to /tmp/erlang.pipe.1 (^D to exit)
-(riak@box1.example.com)1> {ok, R} = riak_ring_manager:get_my_ring().
+(riak@box1.example.com)1> {ok, R} = riak_core_ring_manager:get_my_ring().
 {ok,{chstate,'riak@box1.example.com',
 ...snip...
-(riak@box1.example.com)2> riak_ring:all_members(R).
+(riak@box1.example.com)2> riak_core_ring:all_members(R).
 ['riak@box1.example.com','riak@box2.example.com']
 
 

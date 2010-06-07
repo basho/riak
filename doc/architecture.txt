@@ -59,14 +59,15 @@ vnode that "claims" the partition in which the key resides, as well as
 to the next N-1 partitions.  The request also specifies R (=< N), the
 number of vnodes that must reply before a response is returned.
 
-The riak node startup is defined by the riak_sup module.
+The riak node startup are defined by the riak_core_sup and riak_kv_sup
+modules.
 
-The riak ring is defined by the riak_ring module.
+The riak ring is defined by the riak_core_ring module.
 
-Vnodes are defined by the riak_vnode module.
+Vnodes are defined by the riak_kv_vnode module.
 
-Gets and Puts are driven by the riak_get_fsm and riak_put_fsm modules,
-respectively.
+Gets and Puts are driven by the riak_kv_get_fsm and riak_kv_put_fsm 
+modules, respectively.
 
 
 Gossiping
@@ -78,8 +79,8 @@ announces its change via this protocol.  It also periodically
 re-announces what it knows about the ring, in case any nodes missed
 previous updates.
 
-This gossip protocol is defined in the riak_ring_gossiper and
-riak_ring_manager modules.
+This gossip protocol is defined in the riak_core_gossip and
+riak_core_ring_manager modules.
 
 
 Vclocks
@@ -133,11 +134,11 @@ make decisions about how best to store them.
 
 Four backends are packaged with Riak:
 
- 1. riak_fs_backend, which stores data directly to files in a nested
+ 1. riak_kv_fs_backend, which stores data directly to files in a nested
     directory structure on disk
- 2. riak_ets_backend, which stores data in ETS tables (which makes it
+ 2. riak_kv_ets_backend, which stores data in ETS tables (which makes it
     volatile storage, but great for debugging)
- 3. riak_dets_backend, which stores data on-disk in DETS tables
+ 3. riak_kv_dets_backend, which stores data on-disk in DETS tables
 
 [1] http://s3.amazonaws.com/AllThingsDistributed/sosp/amazon-dynamo-sosp2007.pdf
 [2] http://portal.acm.org/citation.cfm?doid=564585.564601
