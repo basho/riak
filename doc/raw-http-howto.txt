@@ -1,10 +1,10 @@
 How to Use the Riak HTTP Interface
 
 Step 1 in using the Riak HTTP interface is to enable the Riak web
-interface.  Add these two lines to your riak config:
+interface.  Add these two lines to your riak config, in the 'riak_core' section:
 
-   {riak_web_ip, "127.0.0.1"}.
-   {riak_web_port, 8098}.
+   {web_ip, "127.0.0.1"}.
+   {web_port, 8098}.
 
 Now start Riak with your config file, and you'll find the HTTP
 interface at http://127.0.0.1:8098/riak/...  If you'd rather have some

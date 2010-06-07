@@ -9,7 +9,7 @@
 
   As always, questions are welcome on the [[http://lists.basho.com/mailman/listinfo/riak-users_lists.basho.com][Riak mailing list]],
   riak-users@basho.com.  The latest version of this document, and
-  other Riak information is available at [[http://riak.basho.com/]].
+  other Riak information is available at [[http://wiki.basho.com/]].
 
 
 * Downloading Riak
@@ -35,8 +35,8 @@
     Riak can be installed in binary form on many RPM based systems,
     the current target platforms are RHEL and CentOS. Riak can be
     download in both 64bit and 32bit binaries in rpm format here:
-    32bit: http://downloads.basho.com/riak/riak-0.9/riak-0.9.1-1.i386.rpm
-    64bit: http://downloads.basho.com/riak/riak-0.9/riak-0.9.1-1.x86_64.rpm
+    32bit: http://downloads.basho.com/riak/riak-0.11/riak-0.11.0-1.i386.rpm
+    64bit: http://downloads.basho.com/riak/riak-0.11/riak-0.11.0-1.x86_64.rpm
     
     Note: On 32bit systems you may need to disable SE Linux if 
     it is enabled.
@@ -47,15 +47,15 @@
    Debian packaging system, the current target platforms are
    Ubuntu and Debian.  Riak can be download in both 64bit and 32bit
    binaries in deb format here:
-   32bit: http://downloads.basho.com/riak/riak-0.9/riak_0.9.1-1_i386.deb
-   64bit: http://downloads.basho.com/riak/riak-0.9/riak_0.9.1-1_amd64.deb
+   32bit: http://downloads.basho.com/riak/riak-0.11/riak_0.11.0-1_i386.deb
+   64bit: http://downloads.basho.com/riak/riak-0.11/riak_0.11.0-1_amd64.deb
 
 *** Mac OS X
 
   Riak can be downloaded and ran from a precompiled tarball for OS X.
   You can download the 32bit and 64bit builds here:
-  32bit:  http://downloads.basho.com/riak/riak-0.9/riak-0.9.1.osx.i386.tar.gz
-  64bit:  http://downloads.basho.com/riak/riak-0.9/riak_0.9.1.osx.x86_64.tar.gz
+  32bit:  http://downloads.basho.com/riak/riak-0.11/riak-0.11.0.osx.i386.tar.gz
+  64bit:  http://downloads.basho.com/riak/riak-0.11/riak_0.11.0.osx.x86_64.tar.gz
 
 ** Source Releases
 *** Prerequisites
@@ -66,7 +66,7 @@
 *** Obtaining Riak Source
 
     The source for tagged Riak releases is available as tarballs at
-    http://hg.basho.com/riak/get/riak-0.9.1.tar.gz.  Once downloaded, unpack the
+    http://hg.basho.com/riak/get/riak-0.11.0.tar.gz.  Once downloaded, unpack the
     tarball in a convenient location.
 
     If you prefer to follow the latest Riak development, use Mercurial
@@ -322,8 +322,8 @@
 #+BEGIN_SRC erlang
    [
     {riak, [
-            {storage_backend, riak_dets_backend},
-            {riak_dets_backend_root, "data/dets"}
+            {storage_backend, riak_kv_dets_backend},
+            {riak_kv_dets_backend_root, "data/dets"}
 
             %% More Riak settings...
            ]}
@@ -361,13 +361,13 @@
          in the cluster, without worrying about underuse due to owning
          too few partitions.
 
-    + =riak_web_ip= :: the ip address on which Riak's HTTP interface
+    + =web_ip= :: the ip address on which Riak's HTTP interface
                        should listen (default: ="127.0.0.1"=)
 
                        Riak's HTTP interface will not be started if
                        this setting is not defined.
 
-    + =riak_web_port= :: the port on which Riak's HTTP interface should
+    + =web_port= :: the port on which Riak's HTTP interface should
          listen (default: =8098=)
 
          Riak's HTTP interface will not be started if
@@ -382,7 +382,7 @@
                     =/bar/Bucket/Key=.
 
     + =storage_backend= :: module name of the storage backend that
-         Riak should use (default: =riak_dets_backend=)
+         Riak should use (default: =riak_kv_bitcask_backend=)
 
          The storage format Riak uses is configurable.  Riak will
          refuse to start if no storage backend is specified.
@@ -390,28 +390,28 @@
          Available backends, and their additional configuration
          options are:
 
-         - =riak_dets_backend= :: data is stored in DETS files
+         - =riak_kv_dets_backend= :: data is stored in DETS files
 
-              * =riak_dets_backend_root= :: root directory where DETS
+              * =riak_kv_dets_backend_root= :: root directory where DETS
                    files are stored (default: "data/dets")
 
-         - =riak_ets_backend= :: data is stored in ETS tables
+         - =riak_kv_ets_backend= :: data is stored in ETS tables
               (in-memory)
 
-         - =riak_gb_trees_backend= :: data is stored in ETS tables
+         - =riak_kv_gb_trees_backend= :: data is stored in ETS tables
               (in-memory)
 
-         - =riak_fs_backend= :: data is stored in binary files on the
+         - =riak_kv_fs_backend= :: data is stored in binary files on the
               filesystem
 
-              * =riak_fs_backend_root= :: root directory where files
+              * =riak_kv_fs_backend_root= :: root directory where files
                    are stored
 
-         - =riak_multi_backend= :: enables storing data for different
+         - =riak_kv_multi_backend= :: enables storing data for different
               buckets in different backends
 
               Specify the backend to use for a bucket with
-              =riak_bucket:set_bucket(BucketName, [{backend, BackendName}])=
+              =riak_core_bucket:set_bucket(BucketName, [{backend, BackendName}])=
 
               * =multi_backend_default= :: default backend to use if
                    none is specified for a bucket (one of the
@@ -429,17 +429,17 @@
                    a parameter that will be passed to the =start/2=
                    function of the backend module.
 
-         - =riak_cache_backend= :: a backend that behaves as an
+         - =riak_kv_cache_backend= :: a backend that behaves as an
               LRU-with-timed-expiry cache
 
-              * =riak_cache_backend_memory= :: maximum amount of
+              * =riak_kv_cache_backend_memory= :: maximum amount of
                    memory to allocate, in megabytes (default: 100)
 
-              * =riak_cache_backend_ttl= :: amount by which to extend
+              * =riak_kv_cache_backend_ttl= :: amount by which to extend
                    an object's expiry lease on each access, in seconds
                    (default: 600)
 
-              * =riak_cache_backend_max_ttl= :: maximum allowed lease
+              * =riak_kv_cache_backend_max_ttl= :: maximum allowed lease
                    time (default: 3600)
 
     + =add_paths= :: a list of paths to add to the Erlang code path
@@ -452,7 +452,7 @@
          default
 
          Properties in this list will override the hardcoded defaults
-         in riak_bucket:defaults/0.  This setting is the best way to
+         in riak_core_bucket:defaults/0.  This setting is the best way to
          set things like:
 
          - the default N-value for Riak objects (=n_val=)
@@ -462,7 +462,7 @@
     + =riak_stat= ::
       enable the statistics-aggregator (default: false)
 
-    + =riak_handoff_port= :: 
+    + =handoff_port= :: 
          TCP port number for the handoff listener (default: 8099)
                      
     + =handoff_concurrency= :: 
@@ -603,9 +603,9 @@
    claimed partitions by attaching to a console in the cluster and
    requesting a copy of the claim ring:
 
-: 1> {ok, R} = riak_ring_manager:get_my_ring().
+: 1> {ok, R} = riak_core_ring_manager:get_my_ring().
 : {ok,{chstate,...
-: 2> riak_ring:all_members(R).
+: 2> riak_core_ring:all_members(R).
 : ['riak@10.0.0.1','riak@10.0.0.2','riak@10.0.0.3']
 
    You should see the names of all the nodes in your cluster in the
