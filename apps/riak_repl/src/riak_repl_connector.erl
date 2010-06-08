@@ -42,7 +42,7 @@ handle_info({connect, error, {_Host, _Port}, _Reason}, State) ->
     TRef = erlang:send_after(?REPL_CONN_RETRY, self(), retry_connect),
     {noreply, State#state{tref=TRef, connecting=false}};
 handle_info({'DOWN',_MonRef,process,_P,_I},State) ->
-    io:format("got down message for process ~p~n", [_P]),
+    %io:format("got down message for process ~p~n", [_P]),
     case State#state.connecting of
         true -> 
             {noreply, State};
@@ -58,7 +58,7 @@ handle_info(retry_connect, State=#state{site=Site, tref=TRef}) ->
     spawn_link(fun() -> do_connect(Host, Port, Site#repl_site.name, Self) end),
     {noreply, NewState#state{connecting=true}};
 handle_info({redirect, Host, Port}, State) ->
-    io:format("redirect to ~p:~p~n", [Host, Port]),
+    %io:format("redirect to ~p:~p~n", [Host, Port]),
     NewState = State#state{pending=[{Host,Port}|State#state.pending]},
     handle_info(retry_connect, NewState#state{connecting=true});
 handle_info(_Info, State) -> {noreply, State}.
@@ -71,7 +71,7 @@ do_connect(Host, Port, SiteName, PPid) ->
                                       {keepalive, true},
                                       {nodelay, true}], 15000) of
         {ok, Socket} ->
-            {ok, Pid} = riak_repl_tcp_client:start(Socket, SiteName, PPid),
+            {ok, Pid} = riak_repl_client_sup:start_client(Socket, SiteName, PPid),
             ok = gen_tcp:controlling_process(Socket, Pid),
             PPid ! {connect, ok, {Host, Port}, Pid};
         {error, Reason} ->

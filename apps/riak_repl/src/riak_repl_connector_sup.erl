@@ -7,8 +7,8 @@
 -export([start_link/0, init/1, stop/1]).
 -export([start_connector/1]).
 
-start_connector(Site=#repl_site{}) ->
-    error_logger:info_msg("Starting connector for site ~p~n", [Site]),
+start_connector(Site=#repl_site{name=Name}) ->
+    error_logger:info_msg("Starting connector for site ~p~n", [Name]),
     supervisor:start_child(?MODULE, [Site]).
 
 start_link() ->

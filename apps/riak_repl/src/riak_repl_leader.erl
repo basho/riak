@@ -3,7 +3,7 @@
 -module(riak_repl_leader).
 -author('Andy Gross <andy@basho.com>').
 -behaviour(gen_leader).
--export([start_link/0,init/1,elected/3,surrendered/3,handle_leader_call/4, 
+-export([start_link/3,init/1,elected/3,surrendered/3,handle_leader_call/4, 
          handle_leader_cast/3, from_leader/3, handle_call/4,
          handle_cast/3, handle_DOWN/3, handle_info/2, terminate/2,
          code_change/4]).
@@ -17,18 +17,23 @@
           receivers=[] :: list(),
           leader_node=undefined :: atom()}).
 
-start_link() ->
+start_link(Candidates, Workers, InstallHook) ->
+    %%io:format("riak_repl_leader: c=~p, w=~p, h=~p~n", [Candidates, Workers, InstallHook]),
     process_flag(trap_exit, true),
-    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-    Candidates = riak_core_ring:all_members(Ring),
     {ok, DataRootDir} = application:get_env(riak_repl, data_root),
     VarDir = filename:join(DataRootDir, "leader"),
     ok = filelib:ensure_dir(filename:join(VarDir, ".empty")),
     [net_adm:ping(C) || C <- Candidates],
-    gen_leader:start_link(?MODULE, Candidates,?LEADER_OPTS,?MODULE, [], []).
+    LOpts = [{workers, Workers}|?LEADER_OPTS],
+    gen_leader:start_link(?MODULE,Candidates,LOpts,?MODULE, [InstallHook], []).
 
-init([]) ->
-    riak_repl:install_hook(),
+init([InstallHook]) ->
+    case InstallHook of
+        true ->
+            riak_repl:install_hook();
+        false ->
+            ignore
+    end,
     {ok, #state{}}.
 
 leader_node() ->

@@ -371,7 +371,7 @@ handle_sync_event({diffobj,{BKey,BinObj}}, _From, StateName, StateData) ->
             {reply, {error, Err}, StateName, StateData, ?TIMEOUT}
     end;
 handle_sync_event(get_vnode_index, _From, StateName, StateData) ->
-    {reply, StateData#state.idx, StateName, StateData};
+    {reply, StateData#state.idx, StateName, StateData, ?TIMEOUT};
 handle_sync_event(_Even, _From, _StateName, StateData) ->
     {stop,badmsg,StateData}.
 
@@ -379,10 +379,10 @@ handle_sync_event(_Even, _From, _StateName, StateData) ->
 handle_info(vnode_shutdown, _StateName, StateData) ->
     {stop,normal,StateData};
 handle_info(ok, StateName, StateData) ->
-    {next_state, StateName, StateData};
+    {next_state, StateName, StateData, ?TIMEOUT};
 handle_info({Mod, Msg}, StateName, #state { mod = Mod } = StateData) ->
     Mod:handle_info(StateData#state.modstate, Msg),
-    {next_state, StateName, StateData}.
+    {next_state, StateName, StateData, ?TIMEOUT}.
 
 %% @private
 terminate(_Reason, _StateName, _State) ->
