@@ -1,0 +1,37 @@
+-------------------------
+Riak 0.11.0 Release Notes
+-------------------------
+
+Bitcask has arrived as the new default backend for Riak.  Bitcask is Basho's
+new key/value store that should provide good balanced performance out
+of the box on most systems.  Read more about it from the initial
+announcement here http://blog.basho.com/2010/04/27/hello,-bitcask/
+
+Users that wish to upgrade from another backend will need to backup their
+cluster (using riak-admin) before changing the backend in app.config, restart 
+riak and restore from the backup into bitcask.
+
+The protocol buffers client (PBC) interface has been enhanced to 
+add map/reduce support and access to simple bucket properties.  The
+erlang and python clients have been updated accordingly.
+
+Put operations using the local erlang client that request a returnbody
+have received a performance enhancement.  Internally the put operation
+now returns the body directly, so an additional get is no longer 
+required.  The PBC and HTTP interfaces have been updated to use
+this new mechanism.
+  
+Enhancements
+--------
+ 58 - provide default content-type of application/octet-stream if none
+      present in the object.
+ 74 - create ring directory if non-existant
+142 - riak-admin leave restored
+
+Bugs Fixed
+----------
+ 35 - {error, blah} messages are now passed on to javascript map/reduce jobs
+104 - missing bucket/key into map/reduce job crashed it. Fixed.
+193 - list keys sometimes uses downed nodes. Fixed.
+208 - deleting a key with a post-commit hook set crashed riak. Fixed.
+
