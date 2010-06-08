@@ -66,8 +66,9 @@
 % @spec fresh(NumPartitions :: integer(), SeedNode :: node()) -> chash()
 fresh(NumPartitions, SeedNode) ->
     Inc = ?RINGTOP div NumPartitions,
-    {NumPartitions, [{IndexAsInt, SeedNode} ||
-           IndexAsInt <- lists:seq(0,(?RINGTOP-1),Inc)]}.
+    NodeEntries = [{IndexAsInt, SeedNode} ||
+                      IndexAsInt <- lists:seq(0,(?RINGTOP-1),Inc)],
+    {length(NodeEntries), NodeEntries}.
 
 % @doc Find the Node that owns the partition identified by IndexAsInt.
 % @spec lookup(IndexAsInt :: integer(), CHash :: chash()) -> node()

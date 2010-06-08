@@ -16,7 +16,7 @@
 
   Riak can be downloaded as a pre-built, binary release for many
   popular platforms, or as source code, ready to build on most
-  platforms supporting [[http://erlang.org/][Erlang]] releases R13B03 and later.
+  platforms supporting [[http://erlang.org/][Erlang]] releases R13B04 and later.
 
 ** Binary Releases
 *** Overview
@@ -60,7 +60,7 @@
 ** Source Releases
 *** Prerequisites
 
-    To build Riak from source, you will need Erlang/OTP version R13B03
+    To build Riak from source, you will need Erlang/OTP version R13B04
     or later installed.  Erlang is available at [[http://erlang.org/]].
 
 *** Obtaining Riak Source
@@ -547,6 +547,13 @@
              cluster to which to connect.  Example:
 
              : $ bin/riak-admin join riak2@example.com
+   
+   + leave :: leave a running Riak cluster
+
+             This command will remove the node from a running cluster and force 
+             handoff of the partitions the node claims.  Example:
+
+             : $ bin/riak-admin leave
 
    + backup :: backup the data in the cluster to a file
 
@@ -560,15 +567,6 @@
    + restore :: restore data into a cluster from a backup file
 
                 This command expects the same parameters as =backup=.
-
-   + logger :: attach the riak event logger to the cluster
-
-               This command requires at least two options: the node in
-               the running cluster to which to connect, and the Erlang
-               cookie for that node.  With just these two parameters,
-               the log will print on the console.  Adding a filename
-               as a third parameter will cause the log to be written
-               to that file.
 
    + js\_reload :: reload all Javascript virtual machines
 
@@ -645,19 +643,12 @@
    slice of the cluster's data.
 
    To change ring ownership, such that a node is no longer responsible
-   for storing any data, first get a riak client, then use
-   =remove_from_cluster/1= to move that node's claims to other nodes:
+   for storing any data, first get a riak client, then use:
 
-: $ bin/riak attach
-: Attaching to ... (^D to exit)
-:
-: (riak@10.0.0.1)1> {ok, C} = riak:local_client().
-: {ok,{riak_client,'riak@10.0.0.1',<<0,166,141,137>>}}
-: (riak@10.0.0.1)2> C:remove_from_cluster('riak@10.0.0.3').
-: [ok,ok,ok,ok|...]
+: $ bin/riak leave
 
    If the node that is leaving is alive and connected to the cluster,
-   it will start transfering data to the nodes that have claimed the
+   it will start transferring data to the nodes that have claimed the
    partitions it just owned.  If the node is down, no data transfer
    happens.
 
@@ -678,9 +669,9 @@
 
 ** Build Errors
 
-*** Rebar requires at least erts 5.7.4; ...
+*** Rebar requires at least erts 5.7.5; ...
 
-    Riak supports only Erlang/OTP version R13B03 and later.  To check
+    Riak supports only Erlang/OTP version R13B04 and later.  To check
     your installed OTP version:
 
 #+BEGIN_EXAMPLE
@@ -689,10 +680,10 @@
 
     Eshell Vx.x.x (abort with ^G)
     1> erlang:system_info(otp_release).
-    "R13B03"
+    "R13B04"
 #+END_EXAMPLE
 
-    If the version printed is earlier than R13B03 (for example R13B02,
+    If the version printed is earlier than R13B04 (for example R13B03,
     or R12B), you will need to upgrade your Erlang installation before
     being able to build Riak from source.
 
