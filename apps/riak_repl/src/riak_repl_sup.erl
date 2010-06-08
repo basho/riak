@@ -5,7 +5,7 @@
 -behaviour(supervisor).
 
 %% External exports
--export([start_link/0]).
+-export([start_link/0, start_leader/1, stop_leader/0]).
 %% supervisor callbacks
 -export([init/1]).
 
@@ -13,6 +13,16 @@
 %% @doc API for starting the supervisor.
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
+
+start_leader(Args) ->
+    ChildSpec = {riak_repl_leader,
+                 {riak_repl_leader, start_link, Args},
+                 permanent, 5000, worker, [riak_repl_leader]},
+    supervisor:start_child(?MODULE, ChildSpec).
+
+stop_leader() ->
+    supervisor:terminate_child(?MODULE, riak_repl_leader),
+    supervisor:delete_child(?MODULE, riak_repl_leader).
 
 %% @spec init([]) -> SupervisorTree
 %% @doc supervisor callback.
@@ -34,8 +44,5 @@ init([]) ->
                   permanent, 5000, worker, [riak_repl_controller]},
                  {riak_repl_stats,
                   {riak_repl_stats, start_link, []},
-                  permanent, 5000, worker, [riak_repl_stat]},
-                 {riak_repl_leader,
-                  {riak_repl_leader, start_link, []},
-                  permanent, 5000, worker, [riak_repl_leader]}],
+                  permanent, 5000, worker, [riak_repl_stat]}],
     {ok, {{one_for_one, 9, 10}, Processes}}.

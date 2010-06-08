@@ -88,6 +88,7 @@ handle_lost_leader(State=#state{monitors=T}) ->
     Sites = [I || {repl_monitor, {repl_site, _}, I, _, _} <- ets:tab2list(T)],
     stop_sites(Sites, State).
 
+
 handle_down(_MonRef, _Pid, _State) -> ok.
 
 handle_set_repl_config(NewReplConfig,State) ->
@@ -205,9 +206,3 @@ del_monitor(I, S=#state{monitors=M}) ->
     
 monitor_id(#repl_listener{nodename=NodeName}) -> {repl_listener, NodeName};
 monitor_id(#repl_site{name=SiteName}) -> {repl_site, SiteName}.
-
-
-
-
-                     
-         

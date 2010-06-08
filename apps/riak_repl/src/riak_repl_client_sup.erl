@@ -7,8 +7,8 @@
 -export([start_link/0, init/1, stop/1]).
 -export([start_client/3]).
 
-start_client(Host, Port, Sitename) ->
-    supervisor:start_child(?MODULE, [Host, Port, Sitename]).
+start_client(Socket, Sitename, ConnectorPid) ->
+    supervisor:start_child(?MODULE, [Socket, Sitename, ConnectorPid]).
 
 start_link() ->
     supervisor:start_link({local, ?MODULE}, ?MODULE, []).
@@ -20,5 +20,5 @@ init([]) ->
     {ok, 
      {{simple_one_for_one, 10, 10}, 
       [{undefined,
-        {riak_repl_tcp_client, start_link, []},
+        {riak_repl_tcp_client, start, []},
         temporary, brutal_kill, worker, [riak_repl_tcp_client]}]}}.
