@@ -3,14 +3,17 @@ Riak JMX Monitoring
 
 Riak exposes monitoring data via JMX.  To enable JMX monitoring, edit the
 app.config file and set the 'enabled' property of the 'riak_jmx' 
-section to true, as follows:
+section to true, as follows.  The TCP port the JMX provider listens on
+is also configurable in this section (the default JMX port is 41110).
 
     {riak_jmx, [
-        {enabled, true}
+        {enabled, true},
+        {port, 41110}
       ]}
 
-To view JMX data, launch JConsole, select the 'com.basho.riak.jmx.Main'
-entry in the "Local Processes" table, and press the 'Connect' button.
+To view JMX data, launch JConsole as follows:
+
+   % jconsole <hostname_to_monitor>:<jmx_port> 
 
 Once connected, click on the 'MBeans' tab, expand the 'com.basho.riak' 
 tree view, and select 'Attributes'.  The attributes listed below will

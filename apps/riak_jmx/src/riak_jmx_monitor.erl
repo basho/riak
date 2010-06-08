@@ -37,9 +37,11 @@ init([]) ->
         {ok, true} ->
             %% Trap exits so that we get a chance to stop the JMX process
             process_flag(trap_exit, true),
-
+            {ok, JMXPort} = application:get_env(riak_jmx, port),
             %% Spin up the JMX server
-            Cmd = ?FMT("./riak_jmx.sh ~s ~s", [WebIp, integer_to_list(WebPort)]),
+            Cmd = ?FMT("./riak_jmx.sh ~s ~s ~s", [WebIp, 
+                                                  integer_to_list(WebPort),
+                                                  integer_to_list(JMXPort)]),
             case start_sh(Cmd, priv_dir()) of
                 {ok, State} ->
                     error_logger:info_msg("JMX server monitor ~s started.\n",
