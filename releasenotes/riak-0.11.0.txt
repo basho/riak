@@ -2,7 +2,7 @@
 Riak 0.11.0 Release Notes
 -------------------------
 
-Bitcask has arrive as the new default backend for Riak.  Bitcask is Basho's
+Bitcask has arrived as the new default backend for Riak.  Bitcask is Basho's
 new key/value store that should provide good balanced performance out
 of the box on most systems.  Read more about it from the initial
 announcement here http://blog.basho.com/2010/04/27/hello,-bitcask/
@@ -15,11 +15,11 @@ The protocol buffers client (PBC) interface has been enhanced to
 add map/reduce support and access to simple bucket properties.  The
 erlang and python clients have been updated accordingly.
 
-Put operations using the local erlang client that rqeuest a returnbody
-have received an performance enhancement.  Internally the put operation
-now returns the body directly rather so an additional get is no longer 
+Put operations using the local erlang client that request a returnbody
+have received a performance enhancement.  Internally the put operation
+now returns the body directly, so an additional get is no longer 
 required.  The PBC and HTTP interfaces have been updated to use
-the new mechanism.
+this new mechanism.
   
 Enhancements
 --------
