@@ -35,7 +35,7 @@ Welcome to Riak.
 
 ** Building Riak
 
-   Assuming you have a working Erlang (R13B03 or later) installation,
+   Assuming you have a working Erlang (R13B04 or later) installation,
    building Riak should be as simple as:
 
 #+BEGIN_EXAMPLE
