@@ -169,8 +169,8 @@ randomnode(NodeA,NodeB) -> lists:nth(crypto:rand_uniform(1,3),[NodeA,NodeB]).
 % @doc Return the number of partitions in the ring.
 % @spec size(CHash :: chash()) -> integer()
 size(CHash) ->
-    {NumPartitions,_Nodes} = CHash,
-    NumPartitions.
+    {_NumPartitions,Nodes} = CHash,
+    length(Nodes).
 
 update_test() ->
     Node = 'old@host', NewNode = 'new@host',
