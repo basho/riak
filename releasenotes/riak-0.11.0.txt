@@ -35,3 +35,9 @@ Bugs Fixed
 193 - list keys sometimes uses downed nodes. Fixed.
 208 - deleting a key with a post-commit hook set crashed riak. Fixed.
 
+Known Issues
+------------
+ * During testing we discovered an issue where nodes do not leave the ring
+   cleanly is the number of partitions is not a power of 2. Until this is
+   resolved, only ring sizes that are powers of 2 should be chosen (e.g.
+   16, 32, 64, 256, 1024). The default ring size is 64 and is unaffected.
