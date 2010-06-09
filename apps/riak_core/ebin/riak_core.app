@@ -44,7 +44,8 @@
          %% Default location of ringstate
          {ring_state_dir, "data/ring"},
 
-         %% Default ring creation size
+         %% Default ring creation size.  Make sure it is a power of 2,
+         %% e.g. 16, 32, 64, 128, 256, 512 etc
          {ring_creation_size, 64},
 
          %% Default gossip interval (milliseconds)
