@@ -66,9 +66,8 @@
 % @spec fresh(NumPartitions :: integer(), SeedNode :: node()) -> chash()
 fresh(NumPartitions, SeedNode) ->
     Inc = ?RINGTOP div NumPartitions,
-    NodeEntries = [{IndexAsInt, SeedNode} ||
-                      IndexAsInt <- lists:seq(0,(?RINGTOP-1),Inc)],
-    {length(NodeEntries), NodeEntries}.
+    {NumPartitions, [{IndexAsInt, SeedNode} ||
+           IndexAsInt <- lists:seq(0,(?RINGTOP-1),Inc)]}.
 
 % @doc Find the Node that owns the partition identified by IndexAsInt.
 % @spec lookup(IndexAsInt :: integer(), CHash :: chash()) -> node()
@@ -177,14 +176,14 @@ update_test() ->
     Node = 'old@host', NewNode = 'new@host',
     
     % Create a fresh ring...
-    CHash = chash:fresh(4, Node),
+    CHash = chash:fresh(5, Node),
     GetNthIndex = fun(N, {_, Nodes}) -> {Index, _} = lists:nth(N, Nodes), Index end,
     
     % Test update...
     FirstIndex = GetNthIndex(1, CHash),
     ThirdIndex = GetNthIndex(3, CHash),
-    {4, [{_, NewNode}, {_, Node}, {_, Node}, {_, Node}]} = update(FirstIndex, NewNode, CHash),
-    {4, [{_, Node}, {_, Node}, {_, NewNode}, {_, Node}]} = update(ThirdIndex, NewNode, CHash).
+    {5, [{_, NewNode}, {_, Node}, {_, Node}, {_, Node}, {_, Node}, {_, Node}]} = update(FirstIndex, NewNode, CHash),
+    {5, [{_, Node}, {_, Node}, {_, NewNode}, {_, Node}, {_, Node}, {_, Node}]} = update(ThirdIndex, NewNode, CHash).
 
 contains_test() ->
     CHash = chash:fresh(8, the_node),
