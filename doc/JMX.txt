@@ -11,13 +11,23 @@ is also configurable in this section (the default JMX port is 41110).
         {port, 41110}
       ]}
 
-To view JMX data, launch JConsole as follows:
+To view JMX data if you have the Sun JDK installed, launch JConsole
+as follows:
 
    % jconsole <hostname_to_monitor>:<jmx_port> 
 
 Once connected, click on the 'MBeans' tab, expand the 'com.basho.riak' 
 tree view, and select 'Attributes'.  The attributes listed below will
 be displayed.
+
+Riak JMX has been tested with the Sun JRE 1.6.0_12 and 1.6.0_20.  Some
+older/non-sun JREs do not work (e.g. the default java-gcj JRE installed
+on debian lenny).  If you have problems with JMX or see this message
+
+=INFO REPORT==== 9-Jun-2010::08:14:57 ===
+JMX server monitor <pid> exited with code <non-zero>.
+
+Please try upgrading to the Sun JRE.
 
 
 Exported JMX attributes 
