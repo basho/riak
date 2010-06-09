@@ -63,8 +63,11 @@ Migrating to Riak 0.11 from earlier versions of Riak
 
        $ riak-admin restore riak@127.0.0.1 riak riak-backup.dat
 
-       Run this command for each backup you made, altering the node
-       name, just like when you made them.
+       If you used the whole-cluster ("all") backup mode, you're now
+       finished.  If you backed up each node individually, you'll need
+       to run this command for each of those backup files (note that
+       they have node names appended to what you provided on the
+       backup command line).
 
     Once the restore script exits, all data should be restored to the
     cluster.  After checking that this is true, you may remove the
@@ -96,6 +99,12 @@ Migrating to Riak 0.11 from earlier versions of Riak
 
     5. When all nodes are running on the new backend, shutdown the new
        node you set up in step 1 (if you wish, or leave it up if you like).
+
+    Note: You can skip step 1 if you are running a cluster of more
+    than one node, and your cluster can tolerate (capacity- and
+    throughput-wise) being temporarily one node smaller.  Step 1 is
+    merely an attempt to add extra capacity to the system before
+    beging an expensive operation.
 
 * Riak 0.9 and earlier to 0.11
 
