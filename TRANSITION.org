@@ -1,6 +1,114 @@
 #+OPTIONS: author:nil timestamp:nil
 
-Migrating from Riak 0.9.x to 0.10
+Migrating to Riak 0.11 from earlier versions of Riak
+
+* Riak 0.10 to 0.11
+
+** Customized configuration, not switching backends
+
+   If you have customized your configuration file (etc/app.config),
+   and you will be keeping your customized configuration file, your
+   transition should be as easy as stopping the 0.10 node, installing
+   the 0.11 binaries, and starting the node back up.  The node should
+   find its ring and data in the same location as before, and will
+   continue working as if nothing changed.
+
+** Default configuration, or switching backends
+
+   If you're using the default Riak configuration file, you'll need to
+   be aware that the default storage backend has changed from DETS to
+   Basho's new Bitcask.  You'll need to choose one of two upgrade
+   paths in order to migrate your data from your old storage backend
+   to the new one (these steps will also work, in general, from any
+   backend to any other backend).  Your options are: backup/restore,
+   and online rolling upgrade.
+
+*** Backup/Restore
+
+    The easiest way to migrate from one storage backend to another is
+    to backup the cluster as it stands, shut it down, switch the
+    backend (by upgrading or editing the config file), start the
+    cluster back up, and then restore the data to the cluster.  Follow
+    these steps to do this:
+
+    1. With a running cluster, use the "riak-admin backup" command to
+       backup the cluster's data:
+
+       $ riak-admin backup riak@127.0.0.1 riak riak-backup.dat all
+
+       This script will exit when backup is complete.  If your cluster
+       has a lot of data, you can backup each node individually by
+       switching "all" to "node" in the command line above, and then
+       running the command once for each node, changing the node name
+       in the command line.
+
+    2. Shut down the cluster.
+
+       $ riak stop
+
+       Run this command on each node.
+
+    3. Upgrade each node by installing the new 0.11 package.  If
+       you're just switching backends (not upgrading), modify the
+       configuration file in this step.
+
+    4. Start the cluster
+
+       $ riak start
+
+       Run this command on each node.  The nodes will automatically
+       reconnect to each other.
+
+    5. Reload the cluster's data
+
+       $ riak-admin restore riak@127.0.0.1 riak riak-backup.dat
+
+       Run this command for each backup you made, altering the node
+       name, just like when you made them.
+
+    Once the restore script exits, all data should be restored to the
+    cluster.  After checking that this is true, you may remove the
+    data directories for the old storage backend.
+
+*** Online Rolling Upgrade
+
+    If you need your Riak cluster to remain running during the backend
+    transition, and you have spare network capacity, you can use
+    Riak's easy node addition/removal process to switch backends.
+
+    1. Configure a new node, with the new backend you want to use, and
+       add it to the cluster.
+
+       newnode$ riak start
+       newnode$ riak-admin join oldclusternode@10.0.0.100
+
+    2. Remove one of the old-backend nodes from the cluster.
+
+       oldnode0$ riak-admin leave
+
+    3. When the old-backend node completes handoff, it will exit (use
+       'ps' or similar to watch for it to shut down).  Once it has
+       exited, upgrade to 0.11 (or switch the backend) and restart the
+       node.
+
+    4. Repeat steps 2 and 3 for each other old-backend node in the
+       cluster.
+
+    5. When all nodes are running on the new backend, shutdown the new
+       node you set up in step 1 (if you wish, or leave it up if you like).
+
+* Riak 0.9 and earlier to 0.11
+
+  If you are upgrading from a Riak version earlier than 0.10, your
+  only option for upgrade is backup and restore.  Please use the
+  backup/restore method described in the 0.10-to-0.11-transition
+  section above.
+
+  You will also be interested in the following section, which
+  discusses migration from 0.9 to 0.10.
+
+
+* Migrating from Riak 0.9.x to 0.10
 
 * Overview
   Riak has undergone significant restructuring in the transition from
