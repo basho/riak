@@ -19,6 +19,12 @@ longer_list(K, G) ->
 non_empty(G) ->
     ?SUCHTHAT(X, G, X /= [] andalso X /= <<>>).
 
+%% Make sure at least one node is up - code in riak_kv_util makes
+%% some assumptions that the node the get FSM is running on is
+%% in the cluster causing problems if it isn't.
+at_least_one_up(G) ->
+    ?SUCHTHAT(X, G, lists:member(up, X)).
+
 largenat() ->
     ?LET(X, largeint(), abs(X)).
 
@@ -222,7 +228,7 @@ prop_basic_get() ->
     ?FORALL({RSeed,NQdiff,Objects,ReqId,PartVals,NodeStatus0},
             {largenat(),choose(0,4096),
              riak_objects(), noshrink(largeint()),
-             partvals(),non_empty(longer_list(10, node_status()))},
+             partvals(),at_least_one_up(longer_list(10, node_status()))},
     begin
         N = length(PartVals),
         R = (RSeed rem N) + 1,
@@ -332,8 +338,8 @@ check_repair(Objects, RepairH, H) ->
     Heads  = merge_heads([ Lineage || {_, {ok, Lineage}} <- H ]),
     
     AllDeleted = lists:all(fun({_, {ok, Lineage}}) ->
-                                Obj = proplists:get_value(Lineage, Objects),
-                                riak_kv_util:is_x_deleted(Obj);
+                                Obj1 = proplists:get_value(Lineage, Objects),
+                                riak_kv_util:is_x_deleted(Obj1);
                               (_) -> true
                            end, H),
     Expected = case AllDeleted of
@@ -342,7 +348,7 @@ check_repair(Objects, RepairH, H) ->
         end,
 
     RepairObject  = (catch build_merged_object(Heads, Objects)),
-    RepairObjects = [ Obj || {vnode_put, _, {_, _, Obj, _, _}} <- RepairH ],
+    RepairObjects = [ Obj || {vnode_put, _, {_, _, Obj, _, _, _}} <- RepairH ],
 
     conjunction(
         [{puts, equals(lists:sort(Expected), lists:sort(Actual))},
