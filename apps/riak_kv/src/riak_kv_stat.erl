@@ -366,7 +366,7 @@ system_stats() ->
      {sys_otp_release, list_to_binary(erlang:system_info(otp_release))},
      {sys_process_count, erlang:system_info(process_count)},
      {sys_smp_support, erlang:system_info(smp_support)},
-     {sys_system_version, list_to_binary(erlang:system_info(system_version))},
+     {sys_system_version, list_to_binary(string:strip(erlang:system_info(system_version), right, $\n))},
      {sys_system_architecture, list_to_binary(erlang:system_info(system_architecture))},
      {sys_threads_enabled, erlang:system_info(threads)},
      {sys_thread_pool_size, erlang:system_info(thread_pool_size)},
