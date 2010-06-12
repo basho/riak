@@ -228,7 +228,8 @@ maybe_do_read_repair(Sent,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
                 {Idx,Node,Fallback} = lists:keyfind(Target, 1, Sent),
                 gen_server:cast({riak_kv_vnode_master, Fallback},
                                 {vnode_put, {Idx,Node}, Msg})
-             end || Target <- Targets]
+             end || Target <- Targets],
+            riak_kv_stat:update(read_repairs)
     end.
 
 %% @private
@@ -296,4 +297,4 @@ ancestor_indices({ok, Final},AnnoObjects) ->
 
 update_stats(#state{startnow=StartNow}) ->
     EndNow = now(),
-    riak_kv_stat:update({get_fsm_time, timer:now_diff(EndNow, StartNow)}).
+    riak_kv_stat:update({get_fsm_time, timer:now_diff(EndNow, StartNow)}).    
