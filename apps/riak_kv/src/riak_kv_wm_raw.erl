@@ -591,16 +591,16 @@ produce_bucket_body(RD, Ctx=#ctx{bucket=B, client=C}) ->
         end,
     {KeyPart, KeyRD} =
         case wrq:get_qs_value(?Q_KEYS, RD) of
-            ?Q_FALSE -> {[], RD};
             ?Q_STREAM -> {stream, RD};
-            _ ->
+            ?Q_TRUE ->
                 {ok, KeyList} = C:list_keys(B),
                 {[{?Q_KEYS, KeyList}],
                  lists:foldl(
                    fun(K, Acc) ->
                            add_link_head(B, K, "contained", Acc, Ctx)
                    end,
-                   RD, KeyList)}
+                   RD, KeyList)};
+            _ -> {[], RD}
         end,
     case KeyPart of
         stream -> {{stream, {mochijson2:encode({struct, SchemaPart}),
