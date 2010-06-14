@@ -36,7 +36,8 @@ init([QTerm]) ->
 handle_input(Inputs0, #state{ring=Ring, qterm=QTerm, fsms=FSMs0}=State, Timeout) ->
     Inputs = [convert_input(I) || I <- Inputs0],
     NewFSMs = start_executors(Ring, Inputs, QTerm, Timeout),
-    {no_output, State#state{fsms=NewFSMs ++ FSMs0}}.
+    NewState = State#state{fsms=NewFSMs ++ FSMs0},
+    {no_output, NewState}.
 
 handle_input_done(#state{fsms=[]}=State) ->
     luke_phase:complete(),
@@ -80,7 +81,9 @@ convert_input([B,K,D]) when is_binary(B), is_binary(K) -> {{B,K},D};
 convert_input({struct, [{<<"not_found">>,
                      {struct, [{<<"bucket">>, Bucket},
                                {<<"key">>, Key}]}}]}) ->
-    {not_found, {Bucket, Key}};
+    {{Bucket, Key}, undefined};
+convert_input({not_found, {Bucket, Key}, KD}) ->
+    {{Bucket, Key}, KD};
 convert_input(I) -> I.
 
 start_executors(Ring, Inputs, QTerm, Timeout) ->
