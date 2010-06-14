@@ -40,7 +40,7 @@ dev:
 	./rebar compile && cd dev && ../rebar generate
 
 dev1 dev2 dev3: dev
-	cp -Rn dev/riak dev/$@
+	yes n | cp -Ri dev/riak dev/$@
 	rm -rf dev/$@/data
 	mkdir -p dev/$@/data/ring
 	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
