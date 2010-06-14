@@ -314,7 +314,7 @@ run_hooks(HookType, RObj, [{struct, Hook}|T]) ->
 invoke_hook(precommit, Mod0, Fun0, undefined, RObj) ->
     Mod = binary_to_atom(Mod0, utf8),
     Fun = binary_to_atom(Fun0, utf8),
-    Mod:Fun(RObj);
+    wrap_hook(Mod, Fun, RObj);
 invoke_hook(precommit, undefined, undefined, JSName, RObj) ->
     case riak_kv_js_manager:blocking_dispatch({{jsfun, JSName}, RObj}) of
         {ok, <<"fail">>} ->
@@ -331,13 +331,21 @@ invoke_hook(precommit, undefined, undefined, JSName, RObj) ->
 invoke_hook(postcommit, Mod0, Fun0, undefined, Obj) ->
     Mod = binary_to_atom(Mod0, utf8),
     Fun = binary_to_atom(Fun0, utf8),
-    proc_lib:spawn(fun() -> Mod:Fun(Obj) end);
-
+    proc_lib:spawn(fun() -> wrap_hook(Mod, Fun, Obj) end);
 invoke_hook(postcommit, undefined, undefined, _JSName, _Obj) ->
     error_logger:warning_msg("Javascript post-commit hooks aren't implemented");
 %% NOP to handle all other cases
 invoke_hook(_, _, _, _, RObj) ->
     RObj.
+
+wrap_hook(Mod, Fun, Obj)->
+    try Mod:Fun(Obj)
+    catch
+        EType:X ->
+            error_logger:error_msg("problem invoking hook ~p:~p -> ~p:~p~n~p~n",
+                                   [Mod,Fun,EType,X,erlang:get_stacktrace()]),
+            fail
+    end.
 
 merge_robjs(RObjs0,AllowMult) ->
     RObjs1 = [X || X <- RObjs0,
