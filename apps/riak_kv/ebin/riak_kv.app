@@ -47,7 +47,6 @@
              riak_kv_util,
              riak_kv_vnode,
              riak_kv_vnode_old,
-             riak_kv_vnode_sup,
              riak_kv_web,
              riak_kv_wm_link_walker,
              riak_kv_wm_mapred,

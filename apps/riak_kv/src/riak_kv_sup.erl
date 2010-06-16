@@ -41,10 +41,6 @@ start_link() ->
 init([]) ->
     [ webmachine_router:add_route(R)
       || R <- lists:reverse(riak_kv_web:dispatch_table()) ],
-
-    VSup = {riak_kv_vnode_sup,
-            {riak_kv_vnode_sup, start_link, []},
-            permanent, infinity, supervisor, [riak_kv_vnode_sup]},
     VMaster = {riak_kv_vnode_master,
                {riak_core_vnode_master, start_link, [riak_kv_vnode]},
                permanent, 5000, worker, [riak_core_vnode_master]},
@@ -76,7 +72,6 @@ init([]) ->
 
     % Build the process list...
     Processes = lists:flatten([
-        VSup,
         ?IF(HasStorageBackend, VMaster, []),
         HandoffListen,
         ?IF(IsPbConfigured, RiakPb, []),

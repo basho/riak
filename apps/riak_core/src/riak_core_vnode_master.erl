@@ -33,22 +33,19 @@
 
 make_name(VNodeMod,Suffix) -> list_to_atom(atom_to_list(VNodeMod)++Suffix).
 reg_name(VNodeMod) ->  make_name(VNodeMod, "_master").
-sup_name(VNodeMod) ->  make_name(VNodeMod, "_sup").
-idx_name(VNodeMod) ->  make_name(VNodeMod, "_idx").
 
 start_link(VNodeMod) -> 
-    gen_server:start_link({local, reg_name(VNodeMod)}, ?MODULE, [VNodeMod], []).
+    RegName = reg_name(VNodeMod),
+    gen_server:start_link({local, RegName}, ?MODULE, [VNodeMod,RegName], []).
 
 %% @private
-init([VNodeMod]) ->
+init([VNodeMod, RegName]) ->
     %% Get the current list of vnodes running in the supervisor. We use this
     %% to rebuild our ETS table for routing messages to the appropriate
     %% vnode.
-    SupName = sup_name(VNodeMod),
-    IdxName = idx_name(VNodeMod),
     VnodePids = [Pid || {_, Pid, worker, _}
-                            <- supervisor:which_children(SupName)],
-    IdxTable = ets:new(IdxName, [{keypos, 2}]),
+                            <- supervisor:which_children(riak_core_vnode_sup)],
+    IdxTable = ets:new(RegName, [{keypos, 2}]),
     
     F = fun(Pid) ->
                 Idx = VNodeMod:get_vnode_index(Pid),
@@ -57,7 +54,6 @@ init([VNodeMod]) ->
         end,
     true = ets:insert_new(IdxTable, [F(Pid) || Pid <- VnodePids]),
     {ok, #state{idxtab=IdxTable,
-                sup_name=SupName,
                 vnode_mod=VNodeMod}}.
 
 handle_cast({Partition, start_vnode}, State=#state{excl=Excl}) ->
@@ -77,40 +73,20 @@ handle_call({Partition, Msg}, From, State) ->
     gen_fsm:send_event(Pid, {From, Msg}),
     {noreply, State}.
 
-%% @private
-%handle_cast({start_vnode, Partition}, 
-%    _Pid = get_vnode(Partition, State),
 %    
 %handle_cast({vnode_map, {Partition,_Node},
 %             {ClientPid,QTerm,BKey,KeyData}}, State) ->
 %    Pid = get_vnode(Partition, State),
 %    gen_fsm:send_event(Pid, {map, ClientPid, QTerm, BKey, KeyData}),
 %    {noreply, State};
-%handle_cast({vnode_put, {Partition,_Node},
-%             {FSM_pid,BKey,RObj,ReqID,FSMTime,Options}}, State) ->
-%    Pid = get_vnode(Partition, State),
-%    gen_fsm:send_event(Pid, {put, FSM_pid, BKey, RObj, ReqID, FSMTime,Options}),
-%    {noreply, State};
-%handle_cast({vnode_get, {Partition,_Node},
-%             {FSM_pid,BKey,ReqID}}, State) ->
-%    Pid = get_vnode(Partition, State),
-%    gen_fsm:send_event(Pid, {get, FSM_pid, BKey, ReqID}),
-%    {noreply, State};
 %handle_cast({vnode_merkle, {RemoteVN,Partition,Merkle,ObjList}}, State) ->
 %    Pid = get_vnode(Partition, State),
 %    gen_fsm:send_event(Pid, {vnode_merkle, {RemoteVN,Merkle,ObjList}}),
-%    {noreply, State};
-%handle_cast({vnode_list_bucket, {Partition,_Node},
-%            {FSM_pid, Bucket, ReqID}}, State) ->
-%    Pid = get_vnode(Partition, State),
-%    gen_fsm:send_event(Pid, {list_bucket, FSM_pid, Bucket, ReqID}),
 %    {noreply, State};
 %handle_cast({add_exclusion, Partition}, State=#state{excl=Excl}) ->
 %    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
 %    riak_core_ring_events:ring_update(Ring),
 %    {noreply, State#state{excl=ordsets:add_element(Partition, Excl)}}.
-
-%% @private
 %handle_call(all_possible_vnodes, _From, State) ->
 %    {reply, make_all_active(State), State};
 %handle_call(all_vnodes, _From, State) ->
@@ -165,10 +141,10 @@ delmon(MonRef, _State=#state{idxtab=T}) ->
 add_vnode_rec(I,  _State=#state{idxtab=T}) -> ets:insert(T,I).
 
 %% @private
-get_vnode(Idx, State=#state{sup_name=SupName, vnode_mod=Mod}) ->
+get_vnode(Idx, State=#state{vnode_mod=Mod}) ->
     case idx2vnode(Idx, State) of
         no_match ->
-            {ok, Pid} = SupName:start_vnode(Mod, Idx),
+            {ok, Pid} = riak_core_vnode_sup:start_vnode(Mod, Idx),
             MonRef = erlang:monitor(process, Pid),
             add_vnode_rec(#idxrec{idx=Idx,pid=Pid,monref=MonRef}, State),
             Pid;
