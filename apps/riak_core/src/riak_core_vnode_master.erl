@@ -25,7 +25,7 @@
 -module(riak_core_vnode_master).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
 -behaviour(gen_server).
--export([start_link/1]).
+-export([start_link/1, command/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 -record(idxrec, {idx, pid, monref}).
@@ -38,6 +38,13 @@ idx_name(VNodeMod) ->  make_name(VNodeMod, "_idx").
 
 start_link(VNodeMod) -> 
     gen_server:start_link({local, reg_name(VNodeMod)}, ?MODULE, [VNodeMod], []).
+
+%% Send the command to the preflist given
+command([], _Msg, _VMaster) ->
+    ok;
+command([{Index,Node}|Rest], Msg, VMaster) ->
+    gen_server:cast({VMaster, Node}, make_request(Msg, Index)),
+    command(Rest, Msg, VMaster).
 
 %% @private
 init([VNodeMod]) ->
@@ -182,3 +189,10 @@ get_vnode(Idx, State=#state{sup_name=SupName, vnode_mod=Mod}) ->
 %make_all_active(State) ->
 %    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
 %    [{I,get_vnode(I,State)} || I <- riak_core_ring:my_indices(Ring)].
+
+-spec make_request(vnode_req(), partition()) -> #riak_vnode_req_v1{}.
+make_request(Request, Index) ->
+    #riak_vnode_req_v1{
+              index=Index,
+              sender={fsm, make_ref(), self()},
+              request=Request}.
