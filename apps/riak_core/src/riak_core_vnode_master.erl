@@ -165,10 +165,10 @@ delmon(MonRef, _State=#state{idxtab=T}) ->
 add_vnode_rec(I,  _State=#state{idxtab=T}) -> ets:insert(T,I).
 
 %% @private
-get_vnode(Idx, State=#state{sup_name=SupName}) ->
+get_vnode(Idx, State=#state{sup_name=SupName, vnode_mod=Mod}) ->
     case idx2vnode(Idx, State) of
         no_match ->
-            {ok, Pid} = SupName:start_vnode(Idx),
+            {ok, Pid} = SupName:start_vnode(Mod, Idx),
             MonRef = erlang:monitor(process, Pid),
             add_vnode_rec(#idxrec{idx=Idx,pid=Pid,monref=MonRef}, State),
             Pid;

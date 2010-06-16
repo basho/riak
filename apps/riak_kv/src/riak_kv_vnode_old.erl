@@ -22,7 +22,7 @@
 
 %% @doc a single node's management of a single partition of data
 
--module(riak_kv_vnode).
+-module(riak_kv_vnode_old).
 -behaviour(gen_fsm).
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").
 -export([start_link/1,

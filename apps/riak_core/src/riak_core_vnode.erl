@@ -1,7 +1,7 @@
 -module(riak_core_vnode).
 -behaviour(gen_fsm).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
--export([start_link/1]).
+-export([start_link/2]).
 -export([init/1, 
          active/2, 
          active/3, 
@@ -21,11 +21,12 @@
           modstate :: term(),
           handoff_q = not_in_handoff :: not_in_handoff | list()}).
 
-start_link(Index) ->
-    gen_fsm:start_link(?MODULE, [Index], []).
+start_link(Mod, Index) ->
+    gen_fsm:start_link(?MODULE, [Mod, Index], []).
 
-init([Index]) ->
-    {ok, active, #state{index=Index}}.
+init([Mod, Index]) ->
+    {ok, ModState} = Mod:init([Index]),
+    {ok, active, #state{index=Index, mod=Mod, modstate=ModState}}.
 
 get_index(VNode) ->
     gen_fsm:sync_send_all_state_event(VNode, get_index).
