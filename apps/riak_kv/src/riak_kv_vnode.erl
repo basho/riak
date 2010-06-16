@@ -24,13 +24,12 @@
 
 -module(riak_kv_vnode).
 -behaviour(gen_fsm).
-
+-include_lib("riak_kv/include/riak_kv_commands.hrl").
 -export([start_link/1,
          get_vnode_index/1]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 -export([active/2,active/3]).
-
 -define(TIMEOUT, 60000).
 -define(LOCK_RETRY_TIMEOUT, 10000).
 
@@ -143,6 +142,25 @@ active({put, FSM_pid, BKey, RObj, ReqID, FSMTime, Options},
     {next_state,
      active,StateData#state{mapcache=orddict:erase(BKey,Cache),
                             handoff_q=HQ},?TIMEOUT};
+active(#riak_kv_put_command{sender=Sender,
+                            bucket=Bucket,
+                            key=Key,
+                            object=Object,
+                            req_id=ReqId,
+                            start_time=StartTime,
+                            options=Options}, 
+       StateData=#state{idx=Idx,mapcache=Cache,handoff_q=HQ0}) ->
+    BKey = {Bucket, Key},
+    HQ = 
+        case HQ0 of
+            not_in_handoff -> not_in_handoff;
+            _  -> [BKey|HQ0]
+        end,
+    gen_fsm:send_event(Sender, {w, Idx, ReqId}),
+    do_put(Sender, BKey,  Object, ReqId, StartTime, Options, StateData),
+    {next_state, 
+     active, StateData#state{mapcache=orddict:erase(BKey, Cache),
+                             handoff_q=HQ}, ?TIMEOUT};
 active({get, FSM_pid, BKey, ReqID}, StateData) ->
     do_get(FSM_pid, BKey, ReqID, StateData),
     {next_state,active,StateData,?TIMEOUT};

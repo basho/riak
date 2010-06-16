@@ -24,6 +24,7 @@
 
 -module(riak_kv_put_fsm).
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("riak_kv/include/riak_kv_commands.hrl").
 -behaviour(gen_fsm).
 -define(DEFAULT_OPTS, [{returnbody, false}]).
 -export([start/6,start/7]).
@@ -116,14 +117,22 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
             RealStartTime = riak_core_util:moment(),
             BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
             DocIdx = riak_core_util:chash_key({Bucket, Key}),
-            Msg = {self(), {Bucket,Key}, RObj1, ReqId, RealStartTime, Options},
+            Cmd = #riak_kv_put_command{
+              sender = self(),
+              bucket = Bucket,
+              key = Key,
+              object = RObj1,
+              req_id = ReqId,
+              start_time = RealStartTime,
+              options = Options},
+            %%Msg = {self(), {Bucket,Key}, RObj1, ReqId, RealStartTime, Options},
             N = proplists:get_value(n_val,BucketProps),
             Preflist = riak_core_ring:preflist(DocIdx, Ring),
             {Targets, Fallbacks} = lists:split(N, Preflist),
-            {Sent1, Pangs1} = riak_kv_util:try_cast(vnode_put, Msg, nodes(), Targets),
+            {Sent1, Pangs1} = riak_kv_util:try_cast(Cmd, nodes(), Targets),
             Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
                        true -> Sent1;
-                       false -> Sent1 ++ riak_kv_util:fallback(vnode_put,Msg,Pangs1,Fallbacks)
+                       false -> Sent1 ++ riak_kv_util:fallback(Cmd,Pangs1,Fallbacks)
                    end,
             StateData = StateData0#state{
                           robj=RObj1, n=N, preflist=Preflist,
