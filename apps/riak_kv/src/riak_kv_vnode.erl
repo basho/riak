@@ -23,8 +23,10 @@ handle_command(?KV_PUT_REQ{bucket=Bucket,
     {noreply, State};
 
 handle_command(?KV_GET_REQ{bucket=Bucket,key=Key,req_id=ReqId},Sender,State) ->
-    do_get(Sender, {Bucket, Key}, ReqId, State).
-
+    do_get(Sender, {Bucket, Key}, ReqId, State);
+handle_command(?KV_LISTKEYS_REQ{bucket=Bucket, req_id=ReqId}, _Sender, 
+               State=#state{mod=Mod, modstate=ModState, idx=Idx}) ->
+    do_list_bucket(ReqId,Bucket,Mod,ModState,Idx,State).
 
 %% old vnode helper functions
 
@@ -128,3 +130,9 @@ do_get(_Sender, BKey, ReqID,
 %% @private
 do_get_binary(BKey, Mod, ModState) ->
     Mod:get(ModState,BKey).
+
+
+%% @private
+do_list_bucket(ReqID,Bucket,Mod,ModState,Idx,State) ->
+    RetVal = Mod:list_bucket(ModState,Bucket),
+    {reply, {kl, RetVal, Idx, ReqID}, State}.

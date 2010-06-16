@@ -24,7 +24,7 @@
 
 -module(riak_kv_keys_fsm).
 -behaviour(gen_fsm).
-
+-include_lib("riak_kv/include/riak_kv_vnode.hrl").
 -export([start/6]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
@@ -101,9 +101,10 @@ finish(StateData=#state{req_id=ReqId,client=Client,client_type=ClientType}) ->
     end,
     {stop,normal,StateData}.
                                              
-ask_vn({Index,Node},ReqId,Msg) ->
-    gen_server:cast({riak_kv_vnode_master, Node},
-                    {vnode_list_bucket,{Index,ReqId},Msg}).
+ask_vn({Index,Node},Msg) ->
+    gen_server:cast({riak_kv_vnode_master, Node}, 
+                    riak_kv_util:make_request(Msg, Index)).
+%%                    {vnode_list_bucket,{Index,ReqId},Msg}).
 
 reduce_pls(StateData0=#state{timeout=Timeout, req_id=ReqId,wait_pls=WPL,
                              simul_pls=Simul_PLS, bucket=Bucket}) ->
@@ -117,7 +118,10 @@ reduce_pls(StateData0=#state{timeout=Timeout, req_id=ReqId,wait_pls=WPL,
         {[{Idx,Node}|RestPL],PLS} ->
             case net_adm:ping(Node) of
                 pong ->
-                    ask_vn({Idx,Node},ReqId,{self(), Bucket, ReqId}),
+                    Req = ?KV_LISTKEYS_REQ{
+                             bucket=Bucket,
+                             req_id=ReqId},
+                    ask_vn({Idx,Node},Req),
                     WaitPLS = [{Idx,Node,RestPL}|WPL],
                     StateData = StateData0#state{pls=PLS, wait_pls=WaitPLS},
                     case length(WaitPLS) > Simul_PLS of

@@ -68,16 +68,16 @@ active(?VNODE_REQ{sender=Sender, request=Request}, State) ->
 
 active(_Event, _From, State) ->
     Reply = ok,
-    {reply, Reply, active, State}.
+    {reply, Reply, active, State, ?TIMEOUT}.
 
 handle_event(_Event, StateName, State) ->
-    {next_state, StateName, State}.
+    {next_state, StateName, State, ?TIMEOUT}.
 
 handle_sync_event(get_index, _From, StateName, State=#state{index=Idx}) ->
     {reply, Idx, StateName, State, ?TIMEOUT}.
 
 handle_info(_Info, StateName, State) ->
-    {next_state, StateName, State}.
+    {next_state, StateName, State, ?TIMEOUT}.
 
 terminate(_Reason, _StateName, _State) ->
     ok.
