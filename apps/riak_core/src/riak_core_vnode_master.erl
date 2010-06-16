@@ -23,7 +23,7 @@
 %% @doc dispatch to vnodes
 
 -module(riak_core_vnode_master).
-
+-include_lib("riak_core/include/riak_core_vnode.hrl").
 -behaviour(gen_server).
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -31,23 +31,21 @@
 -record(idxrec, {idx, pid, monref}).
 -record(state, {idxtab, excl=ordsets:new(), sup_name, vnode_mod}).
 
-make_name(VNType,Suffix) -> list_to_atom("riak_"++atom_to_list(VNType)++Suffix).
-reg_name(VNType) ->  make_name(VNType, "_vnode_master").
-sup_name(VNType) ->  make_name(VNType, "_vnode_sup").
-idx_name(VNType) ->  make_name(VNType, "_vnode_idx").
-vnode_mod(VNType) -> make_name(VNType, "vnode").
+make_name(VNodeMod,Suffix) -> list_to_atom(atom_to_list(VNodeMod)++Suffix).
+reg_name(VNodeMod) ->  make_name(VNodeMod, "_master").
+sup_name(VNodeMod) ->  make_name(VNodeMod, "_sup").
+idx_name(VNodeMod) ->  make_name(VNodeMod, "_idx").
 
-start_link(VNType) -> 
-    gen_server:start_link({local, reg_name(VNType)}, ?MODULE, [VNType], []).
+start_link(VNodeMod) -> 
+    gen_server:start_link({local, reg_name(VNodeMod)}, ?MODULE, [VNodeMod], []).
 
 %% @private
-init([VNType]) ->
+init([VNodeMod]) ->
     %% Get the current list of vnodes running in the supervisor. We use this
     %% to rebuild our ETS table for routing messages to the appropriate
     %% vnode.
-    SupName = sup_name(VNType),
-    IdxName = idx_name(VNType),
-    VNodeMod = vnode_mod(VNType),
+    SupName = sup_name(VNodeMod),
+    IdxName = idx_name(VNodeMod),
     VnodePids = [Pid || {_, Pid, worker, _}
                             <- supervisor:which_children(SupName)],
     IdxTable = ets:new(IdxName, [{keypos, 2}]),
@@ -65,6 +63,10 @@ init([VNType]) ->
 handle_cast({Partition, start_vnode}, State=#state{excl=Excl}) ->
     get_vnode(Partition, State),
     {noreply, State#state{excl=ordsets:del_element(Partition, Excl)}};    
+handle_cast(Req=?VNODE_REQ{index=Idx}, State) ->
+    Pid = get_vnode(Idx, State),
+    gen_fsm:send_event(Pid, Req),
+    {noreply, State};
 handle_cast({Partition, Msg}, State) ->
     Pid = get_vnode(Partition, State),
     gen_fsm:send_event(Pid, Msg),

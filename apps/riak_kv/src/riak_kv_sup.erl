@@ -46,7 +46,7 @@ init([]) ->
             {riak_kv_vnode_sup, start_link, []},
             permanent, infinity, supervisor, [riak_kv_vnode_sup]},
     VMaster = {riak_kv_vnode_master,
-               {riak_core_vnode_master, start_link, [kv]},
+               {riak_core_vnode_master, start_link, [riak_kv_vnode]},
                permanent, 5000, worker, [riak_core_vnode_master]},
     HandoffListen = {riak_kv_handoff_listener,
                {riak_kv_handoff_listener, start_link, []},

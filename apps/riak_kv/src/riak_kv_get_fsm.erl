@@ -22,7 +22,7 @@
 
 -module(riak_kv_get_fsm).
 -behaviour(gen_fsm).
-
+-include_lib("riak_kv/include/riak_kv_commands.hrl").
 -export([start/6]).
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
@@ -64,16 +64,20 @@ initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
     StartNow = now(),
     TRef = erlang:send_after(Timeout, self(), timeout),
     DocIdx = riak_core_util:chash_key({Bucket, Key}),
-    Msg = {self(), {Bucket,Key}, ReqId},
+    Req = #riak_kv_get_req_v1{
+      bucket = Bucket,
+      key = Key,
+      req_id = ReqId
+     },
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     N = proplists:get_value(n_val,BucketProps),
     AllowMult = proplists:get_value(allow_mult,BucketProps),
     Preflist = riak_core_ring:preflist(DocIdx, Ring),
     {Targets, Fallbacks} = lists:split(N, Preflist),
-    {Sent1, Pangs1} = riak_kv_util:try_cast(vnode_get, Msg, nodes(), Targets),
+    {Sent1, Pangs1} = riak_kv_util:try_cast(Req, nodes(), Targets),
     Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
         true -> Sent1;
-        false -> Sent1 ++ riak_kv_util:fallback(vnode_get,Msg,Pangs1,Fallbacks)
+        false -> Sent1 ++ riak_kv_util:fallback(Req, Pangs1,Fallbacks)
     end,
     StateData = StateData0#state{n=N,allowmult=AllowMult,repair_sent=[],
                        preflist=Preflist,final_obj=undefined,

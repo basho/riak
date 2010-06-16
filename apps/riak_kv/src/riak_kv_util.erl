@@ -30,6 +30,8 @@
          try_cast/3,
          fallback/3]).
 
+-include_lib("riak_kv/include/riak_kv_commands.hrl").
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
@@ -75,8 +77,7 @@ try_cast(Msg, UpNodes, [{Index,Node}|Targets], Sent, Pangs) ->
         false ->
             try_cast(Msg, UpNodes, Targets, Sent, [{Index,Node}|Pangs]);
         true ->
-            gen_server:cast({riak_kv_vnode_master, Node},
-                            {Index, Msg}),
+            gen_server:cast({riak_kv_vnode_master, Node}, make_request(Msg, Index)),
             try_cast(Msg, UpNodes, Targets, [{Index,Node,Node}|Sent],Pangs)
     end.
 
@@ -96,10 +97,16 @@ fallback(Cmd, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
     case lists:member(FN, [node()|nodes()]) of
         false -> fallback(Cmd, [{Index,Node}|Pangs], Fallbacks, Sent);
         true ->
-            gen_server:cast({riak_kv_vnode_master, FN},
-                            {Index, Cmd}),
+            gen_server:cast({riak_kv_vnode_master, FN}, make_request(Cmd, Index)),
             fallback(Cmd, Pangs, Fallbacks, [{Index,Node,FN}|Sent])
     end.
+
+-spec make_request(vnode_req(), partition()) -> #riak_vnode_req_v1{}.
+make_request(Request, Index) ->
+    #riak_vnode_req_v1{
+              index=Index,
+              sender={fsm, make_ref(), self()},
+              request=Request}.
 
 %% ===================================================================
 %% EUnit tests
