@@ -33,13 +33,16 @@ get_index(VNode) ->
 continue(State) ->
     {next_state, active, State, ?TIMEOUT}.
 
+continue(State, NewModState) ->
+    continue(State#state{modstate=NewModState}).
+
 vnode_command(Sender, Request, State=#state{mod=Mod, modstate=ModState}) ->
     case Mod:handle_command(Request, Sender, ModState) of
         {reply, Reply, NewModState} ->
             reply(Sender, Reply),
-            continue(State#state{modstate=NewModState});
+            continue(State, NewModState);
         {noreply, NewModState} ->
-            continue(State#state{modstate=NewModState});
+            continue(State, NewModState);
         {stop, Reason, NewModState} ->
             {stop, Reason, State#state{modstate=NewModState}}
     end.
