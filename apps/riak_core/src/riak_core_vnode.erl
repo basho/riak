@@ -1,5 +1,5 @@
 -module(riak_core_vnode).
--include_lib("riak_kv/include/riak_kv_commands.hrl").
+-include_lib("riak_core/include/riak_core_vnode.hrl").
 -export([reply/2, test/2]).
 
 -spec reply(sender(), term()) -> true.

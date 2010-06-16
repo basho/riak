@@ -24,7 +24,7 @@
 
 -module(riak_kv_put_fsm).
 -include_lib("eunit/include/eunit.hrl").
--include_lib("riak_kv/include/riak_kv_commands.hrl").
+-include_lib("riak_kv/include/riak_kv_vnode.hrl").
 -behaviour(gen_fsm).
 -define(DEFAULT_OPTS, [{returnbody, false}]).
 -export([start/6,start/7]).

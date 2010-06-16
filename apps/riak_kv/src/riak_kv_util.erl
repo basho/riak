@@ -30,7 +30,7 @@
          try_cast/3,
          fallback/3]).
 
--include_lib("riak_kv/include/riak_kv_commands.hrl").
+-include_lib("riak_kv/include/riak_kv_vnode.hrl").
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").

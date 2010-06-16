@@ -24,7 +24,7 @@
 
 -module(riak_kv_vnode).
 -behaviour(gen_fsm).
--include_lib("riak_kv/include/riak_kv_commands.hrl").
+-include_lib("riak_kv/include/riak_kv_vnode.hrl").
 -export([start_link/1,
          get_vnode_index/1]).
 -export([init/1, handle_event/3, handle_sync_event/4,
