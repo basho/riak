@@ -3,7 +3,7 @@
 -record(riak_kv_put_req_v1, {
           bucket :: binary(),
           key :: binary(),
-          object :: tuple(),
+          object :: term(),
           req_id :: non_neg_integer(),
           start_time :: tuple(),
           options :: list()}).
