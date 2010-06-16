@@ -13,6 +13,7 @@
              json_pp,
              merkerl,
              priority_queue,
+             riak_core_apl,
              riak_core_app,
              riak_core_bucket,
              riak_core_claim,
