@@ -1,6 +1,88 @@
 -module(riak_core_vnode).
+-behaviour(gen_fsm).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
+-export([start_link/1]).
+-export([init/1, 
+         active/2, 
+         active/3, 
+         handle_event/3,
+         handle_sync_event/4, 
+         handle_info/3, 
+         terminate/3, 
+         code_change/4]).
 -export([reply/2, test/2]).
+-export([get_index/1]).
+
+-define(TIMEOUT, 60000).
+
+-record(state, {
+          index :: partition(),
+          mod :: module(),
+          modstate :: term(),
+          handoff_q = not_in_handoff :: not_in_handoff | list()}).
+
+start_link(Index) ->
+    gen_fsm:start_link(?MODULE, [Index], []).
+
+init([Index]) ->
+    {ok, active, #state{index=Index}}.
+
+get_index(VNode) ->
+    gen_fsm:sync_send_all_state_event(VNode, get_index).
+
+continue(State) ->
+    {next_state, active, State, ?TIMEOUT}.
+
+vnode_command(Sender, Request, State=#state{mod=Mod, modstate=ModState}) ->
+    case Mod:handle_command(Request, Sender, ModState) of
+        {reply, Reply, NewModState} ->
+            reply(Sender, Reply),
+            continue(State#state{modstate=NewModState});
+        {noreply, NewModState} ->
+            continue(State#state{modstate=NewModState});
+        {stop, Reason, NewModState} ->
+            {stop, Reason, State#state{modstate=NewModState}}
+    end.
+
+active(timeout, State=#state{index=Idx}) ->
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    Me = node(),
+    case riak_core_ring:index_owner(Ring, Idx) of
+        Me ->
+            continue(State);
+        TargetNode ->
+            case net_adm:ping(TargetNode) of
+                pang ->
+                    continue(State);
+                pong ->
+                    %% do handoff here
+                    continue(State)
+            end
+    end;
+active(?VNODE_REQ{sender=Sender, request=Request}, State) ->
+    vnode_command(Sender, Request, State).
+
+active(_Event, _From, State) ->
+    Reply = ok,
+    {reply, Reply, active, State}.
+
+handle_event(_Event, StateName, State) ->
+    {next_state, StateName, State}.
+
+handle_sync_event(get_index, _From, StateName, State=#state{index=Idx}) ->
+    {reply, Idx, StateName, State, ?TIMEOUT}.
+
+handle_info(_Info, StateName, State) ->
+    {next_state, StateName, State}.
+
+terminate(_Reason, _StateName, _State) ->
+    ok.
+
+code_change(_OldVsn, StateName, State, _Extra) ->
+    {ok, StateName, State}.
+
+
+
 
 -spec reply(sender(), term()) -> true.
 reply({Type, _Ref, Pid}, Reply) ->
