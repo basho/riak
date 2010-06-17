@@ -53,13 +53,16 @@ init([VNodeMod, RegName]) ->
     VnodePids = [Pid || {_, Pid, worker, _}
                             <- supervisor:which_children(riak_core_vnode_sup)],
     IdxTable = ets:new(RegName, [{keypos, 2}]),
-    
-    F = fun(Pid) ->
-                Idx = VNodeMod:get_vnode_index(Pid),
+    PidIdxs = [{Pid, riak_core_vnode:get_mod_index(Pid)} || Pid <- VnodePids],
+
+    %% Populate the ETS table with processes running this VNodeMod (filtered
+    %% in the list comprehension)
+    F = fun(Pid, Idx) ->
                 Mref = erlang:monitor(process, Pid),
                 #idxrec { idx = Idx, pid = Pid, monref = Mref }
         end,
-    true = ets:insert_new(IdxTable, [F(Pid) || Pid <- VnodePids]),
+    IdxRecs = [F(Pid, Idx) || {Pid, {Mod, Idx}} <- PidIdxs, Mod =:= VNodeMod],
+    true = ets:insert_new(IdxTable, IdxRecs),
     {ok, #state{idxtab=IdxTable,
                 vnode_mod=VNodeMod}}.
 

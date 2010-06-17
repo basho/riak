@@ -11,7 +11,7 @@
          terminate/3, 
          code_change/4]).
 -export([reply/2, test/2]).
--export([get_index/1]).
+-export([get_mod_index/1]).
 
 -define(TIMEOUT, 60000).
 
@@ -28,8 +28,8 @@ init([Mod, Index]) ->
     {ok, ModState} = Mod:init([Index]),
     {ok, active, #state{index=Index, mod=Mod, modstate=ModState}}.
 
-get_index(VNode) ->
-    gen_fsm:sync_send_all_state_event(VNode, get_index).
+get_mod_index(VNode) ->
+    gen_fsm:sync_send_all_state_event(VNode, get_mod_index).
 
 continue(State) ->
     {next_state, active, State, ?TIMEOUT}.
@@ -73,8 +73,9 @@ active(_Event, _From, State) ->
 handle_event(_Event, StateName, State) ->
     {next_state, StateName, State, ?TIMEOUT}.
 
-handle_sync_event(get_index, _From, StateName, State=#state{index=Idx}) ->
-    {reply, Idx, StateName, State, ?TIMEOUT}.
+handle_sync_event(get_mod_index, _From, StateName,
+                  State=#state{index=Idx,mod=Mod}) ->
+    {reply, {Mod, Idx}, StateName, State, ?TIMEOUT}.
 
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State, ?TIMEOUT}.
