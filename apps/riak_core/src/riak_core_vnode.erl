@@ -90,14 +90,16 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 
 -spec reply(sender(), term()) -> true.
-reply({Type, _Ref, Pid}, Reply) ->
+reply({Type, Ref, From}, Reply) ->
     case Type of
         fsm ->
-            gen_fsm:send_event(Pid, Reply);
+            %% Perhaps this should send {Ref, Reply}
+            gen_fsm:send_event(From, Reply);
         server ->
-            gen_server:reply(Pid, Reply);
+            %% Do not send the Ref - included in the 
+            gen_server:reply(From, Reply);
         raw ->
-            Pid ! Reply
+            From ! {Ref, Reply}
     end.
                    
 
