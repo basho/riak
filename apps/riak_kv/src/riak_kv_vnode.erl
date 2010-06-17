@@ -1,8 +1,16 @@
 -module(riak_kv_vnode).
 -export([init/1, handle_command/3]).
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").
--record(state, {idx, mod,modstate}).
--record(putargs, {returnbody,lww,bkey,robj,reqid,bprops,prunetime}).
+-record(state, {idx :: partition(), 
+                mod :: module(),
+                modstate :: term()}).
+-record(putargs, {returnbody :: boolean(),
+                  lww :: boolean(),
+                  bkey :: {binary(), binary()},
+                  robj :: term(),
+                  reqid :: non_neg_integer(), 
+                  bprops :: maybe_improper_list(),
+                  prunetime :: non_neg_integer()}).
 
 init([Index]) ->
     Mod = app_helper:get_env(riak_kv, storage_backend),
@@ -23,42 +31,54 @@ handle_command(?KV_PUT_REQ{bucket=Bucket,
     {noreply, State};
 
 handle_command(?KV_GET_REQ{bucket=Bucket,key=Key,req_id=ReqId},Sender,State) ->
-    do_get(Sender, {Bucket, Key}, ReqId, State).
-
+    do_get(Sender, {Bucket, Key}, ReqId, State);
+handle_command(?KV_LISTKEYS_REQ{bucket=Bucket, req_id=ReqId}, _Sender, 
+               State=#state{mod=Mod, modstate=ModState, idx=Idx}) ->
+    do_list_bucket(ReqId,Bucket,Mod,ModState,Idx,State).
 
 %% old vnode helper functions
+
+
+%store_call(State=#state{mod=Mod, modstate=ModState}, Msg) ->
+%    Mod:call(ModState, Msg).
 
 %% @private
 % upon receipt of a client-initiated put
 do_put(Sender, {Bucket,_Key}=BKey, RObj, ReqID, PruneTime, Options, State) ->
     {ok,Ring} = riak_core_ring_manager:get_my_ring(),
     BProps = riak_core_bucket:get_bucket(Bucket, Ring),
-    PutArgs = #putargs{returnbody=proplists:get_value(returnbody, Options, false),
+    PutArgs = #putargs{returnbody=proplists:get_value(returnbody,Options,false),
                        lww=proplists:get_value(last_write_wins, BProps, false),
                        bkey=BKey,
                        robj=RObj,
                        reqid=ReqID,
                        bprops=BProps,
                        prunetime=PruneTime},
-    riak_core_vnode:reply(Sender, perform_put(prepare_put(State, PutArgs), State, PutArgs)),
+    Reply = perform_put(prepare_put(State, PutArgs), State, PutArgs),
+    riak_core_vnode:reply(Sender, Reply),
     riak_kv_stat:update(vnode_put).
 
 prepare_put(#state{}, #putargs{lww=true, robj=RObj}) -> 
     {true, RObj};
-prepare_put(#state{mod=Mod,modstate=ModState}, 
-            #putargs{bkey=BKey,robj=RObj,reqid=ReqID,bprops=BProps,prunetime=PruneTime}) ->
+prepare_put(#state{mod=Mod,modstate=ModState}, #putargs{bkey=BKey,
+                                                        robj=RObj,
+                                                        reqid=ReqID,
+                                                        bprops=BProps,
+                                                        prunetime=PruneTime}) ->
     case syntactic_put_merge(Mod, ModState, BKey, RObj, ReqID) of
         {oldobj, OldObj} ->
             {false, OldObj};
         {newobj, NewObj} ->
             VC = riak_object:vclock(NewObj),
             AMObj = enforce_allow_mult(NewObj, BProps),
-            ObjToStore = riak_object:set_vclock(AMObj,
-                                                vclock:prune(VC,PruneTime,BProps)),
+            ObjToStore = riak_object:set_vclock(
+                           AMObj,
+                           vclock:prune(VC,PruneTime,BProps)
+                           ),
             {true, ObjToStore}
     end.
 
-perform_put({false, Obj}, #state{idx=Idx}, #putargs{returnbody=true,reqid=ReqID}) ->
+perform_put({false, Obj},#state{idx=Idx},#putargs{returnbody=true,reqid=ReqID}) ->
     {dw, Idx, Obj, ReqID};
 perform_put({false, _Obj}, #state{idx=Idx}, #putargs{returnbody=false,reqid=ReqId}) ->
     {dw, Idx, ReqId};
@@ -128,3 +148,9 @@ do_get(_Sender, BKey, ReqID,
 %% @private
 do_get_binary(BKey, Mod, ModState) ->
     Mod:get(ModState,BKey).
+
+
+%% @private
+do_list_bucket(ReqID,Bucket,Mod,ModState,Idx,State) ->
+    RetVal = Mod:list_bucket(ModState,Bucket),
+    {reply, {kl, RetVal, Idx, ReqID}, State}.

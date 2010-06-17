@@ -26,6 +26,7 @@
              riak_core_util,
              riak_core_vnode,
              riak_core_vnode_master,
+             riak_core_vnode_sup,
              riak_core_web,
              slide,
              spiraltime,

@@ -22,7 +22,7 @@
 
 %% @doc supervise riak_vnode processes
 
--module(riak_kv_vnode_sup).
+-module(riak_core_vnode_sup).
 -behaviour(supervisor).
 -export([start_link/0, init/1, stop/1]).
 -export([start_vnode/2]).
