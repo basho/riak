@@ -277,7 +277,8 @@ produce_stats(State) ->
        system_stats(),
        ring_stats(),
        config_stats(),
-       pbc_stats(Moment, State)
+       pbc_stats(Moment, State),
+       app_stats()
       ]).
 
 %% @spec spiral_minute(integer(), integer(), state()) -> integer()
@@ -380,6 +381,10 @@ system_stats() ->
      {sys_threads_enabled, erlang:system_info(threads)},
      {sys_thread_pool_size, erlang:system_info(thread_pool_size)},
      {sys_wordsize, erlang:system_info(wordsize)}].
+
+app_stats() ->
+    [{list_to_atom(atom_to_list(A) ++ "_version"), list_to_binary(V)} 
+     || {A,_,V} <- application:which_applications()].
 
 ring_stats() ->
     {ok, R} = riak_core_ring_manager:get_my_ring(),

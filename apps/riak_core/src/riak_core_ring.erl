@@ -370,7 +370,7 @@ exclusion_test() ->
     Ring1 = transfer_node(0,x,Ring0),
     ?assertEqual(0, random_other_index(Ring1,[730750818665451459101842416358141509827966271488])),
     ?assertEqual(no_indices, random_other_index(Ring1, [0])),
-    ?assertEqual([{730750818665451459101842416358141509827966271488,nonode@nohost},{0,x}],
+    ?assertEqual([{730750818665451459101842416358141509827966271488,node()},{0,x}],
                  preflist(<<1:160/integer>>, Ring1)).
 
 random_other_node_test() ->

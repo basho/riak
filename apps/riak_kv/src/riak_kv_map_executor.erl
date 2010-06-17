@@ -80,8 +80,8 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
             end
     end.
 
-try_vnode(#state{vnodes=[], bkey=BKey, phase_pid=PhasePid}) ->
-    riak_kv_phase_proto:mapexec_result(PhasePid, [{not_found, BKey}]),
+try_vnode(#state{vnodes=[], keydata=KD, bkey=BKey, phase_pid=PhasePid}) ->
+    riak_kv_phase_proto:mapexec_result(PhasePid, [{not_found, BKey, KD}]),
     {error, {no_vnodes, BKey}};
 try_vnode(#state{qterm=QTerm, bkey=BKey, keydata=KeyData, vnodes=[{P, VN}|VNs]}=StateData) ->
     case lists:member(VN, nodes() ++ [node()]) of
@@ -95,8 +95,8 @@ try_vnode(#state{qterm=QTerm, bkey=BKey, keydata=KeyData, vnodes=[{P, VN}|VNs]}=
             StateData#state{vnodes=VNs, vnode_timer=TRef}
     end.
 
-wait(timeout, StateData=#state{bkey=BKey, phase_pid=PhasePid,vnodes=[]}) ->
-    riak_kv_phase_proto:mapexec_result(PhasePid, [{not_found, BKey}]),
+wait(timeout, StateData=#state{bkey=BKey, keydata=KD, phase_pid=PhasePid,vnodes=[]}) ->
+    riak_kv_phase_proto:mapexec_result(PhasePid, [{not_found, BKey, KD}]),
     {stop,normal,StateData};
 wait(timeout, #state{timeout=Timeout}=StateData) ->
     case try_vnode(StateData) of
@@ -106,9 +106,9 @@ wait(timeout, #state{timeout=Timeout}=StateData) ->
             {next_state, wait, NewState, Timeout}
     end;
 wait({mapexec_error, _VN, _ErrMsg},
-     StateData=#state{bkey=BKey, phase_pid=PhasePid,vnodes=[], vnode_timer=TRef}) ->
+     StateData=#state{bkey=BKey, keydata=KD, phase_pid=PhasePid,vnodes=[], vnode_timer=TRef}) ->
     timer:cancel(TRef),
-    riak_kv_phase_proto:mapexec_result(PhasePid, [{not_found, BKey}]),
+    riak_kv_phase_proto:mapexec_result(PhasePid, [{not_found, BKey, KD}]),
     {stop,normal,StateData};
 wait({mapexec_error_noretry, _VN, ErrMsg}, #state{phase_pid=PhasePid, vnode_timer=TRef}=StateData) ->
     timer:cancel(TRef),
