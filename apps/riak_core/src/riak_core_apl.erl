@@ -35,23 +35,23 @@
 -type preflist() :: [{index(), node()}].
 
 %% Get the active preflist taking account of which nodes are up
--spec get_apl(index(), n_val()) -> preflist().
-get_apl(IndexAsInt, N) ->
-    Ring = riak_core_ring_manager:get_my_ring(),
-    get_apl(IndexAsInt, N, Ring, nodes()).
+-spec get_apl(binary(), n_val()) -> preflist().
+get_apl(DocIdx, N) ->
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    get_apl(DocIdx, N, Ring, [node()|nodes()]).
 
 %% Get the active preflist taking account of which nodes are up
 %% for a given ring/upnodes list
--spec get_apl(index(), n_val(), ring(), [node()]) -> preflist().
-get_apl(IndexAsInt, N, Ring, UpNodes) ->
+-spec get_apl(binary(), n_val(), ring(), [node()]) -> preflist().
+get_apl(DocIdx, N, Ring, UpNodes) ->
     UpNodes1 = ordsets:from_list(UpNodes),
-    Preflist = riak_core_ring:preflist(<<IndexAsInt:160/integer>>, Ring),
+    Preflist = riak_core_ring:preflist(DocIdx, Ring),
     {Primaries, Fallbacks} = lists:split(N, Preflist),
     {Up, Pangs} = check_up(Primaries, UpNodes1, [], []),
     lists:reverse(Up) ++ find_fallbacks(Pangs, Fallbacks, UpNodes1, []).
 
 %% Split a preference list into up and down lists
--spec check_up(index(), [node()], preflist(), preflist()) -> {preflist(), preflist()}.
+-spec check_up(preflist(), [node()], preflist(), preflist()) -> {preflist(), preflist()}.
 check_up([], _UpNodes, Up, Pangs) ->
     {Up, Pangs};
 check_up([{Partition,Node}|Rest], UpNodes, Up, Pangs) ->
@@ -84,7 +84,7 @@ is_up(Node, UpNodes) ->
 
 smallest_test() ->
     Ring = riak_core_ring:fresh(1,node()),
-    ?assertEqual([{0,node()}],  get_apl(0, 1, Ring, [node()])).
+    ?assertEqual([{0,node()}],  get_apl(last_in_ring(), 1, Ring, [node()])).
 
 four_node_test() ->
     Nodes = [nodea, nodeb, nodec, noded],
@@ -122,5 +122,5 @@ perfect_ring(RingSize, Nodes) when RingSize rem length(Nodes) =:= 0 ->
     PerfectRing.
 
 last_in_ring() ->
-    1461501637330902918203684832716283019655932542975.
+    <<1461501637330902918203684832716283019655932542975:160/unsigned>>.
 -endif.
