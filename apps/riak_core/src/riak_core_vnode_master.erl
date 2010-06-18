@@ -25,7 +25,7 @@
 -module(riak_core_vnode_master).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
 -behaviour(gen_server).
--export([start_link/1, command/3, command/4]).
+-export([start_link/1, command/3, command/4, sync_command/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 -record(idxrec, {idx, pid, monref}).
@@ -46,7 +46,21 @@ command([], _Msg, _Sender, _VMaster) ->
     ok;
 command([{Index,Node}|Rest], Msg, Sender, VMaster) ->
     gen_server:cast({VMaster, Node}, make_request(Msg, Sender, Index)),
-    command(Rest, Msg, Sender, VMaster).
+    command(Rest, Msg, Sender, VMaster);
+
+%% Send the command to an individual Index/Node combination
+command({Index,Node}, Msg, Sender, VMaster) ->
+    gen_server:cast({VMaster, Node}, make_request(Msg, Sender, Index)).
+
+%% Send a synchronus command to an individual Index/Node combination.
+%% Will not return until the vnode has returned
+sync_command({Index,Node}, Msg, VMaster) ->
+    %% Issue the call to the master, it will update the Sender with
+    %% the From for handle_call so that the {reply} return gets 
+    %% sent here.
+    gen_server:call({VMaster, Node}, 
+                    make_request(Msg, {server, undefined, undefined}, Index)).
+
 
 %% @private
 init([VNodeMod, RegName]) ->
@@ -80,9 +94,9 @@ handle_cast({Partition, Msg}, State) ->
     Pid = get_vnode(Partition, State),
     gen_fsm:send_event(Pid, Msg),
     {noreply, State}.
-handle_call(Req=?VNODE_REQ{index=Idx}, State) ->
+handle_call(Req=?VNODE_REQ{index=Idx, sender={server, undefined, undefined}}, From, State) ->
     Pid = get_vnode(Idx, State),
-    gen_fsm:send_event(Pid, Req),
+    gen_fsm:send_event(Pid, Req?VNODE_REQ{sender={server, undefined, From}}),
     {noreply, State};
 handle_call({Partition, Msg}, From, State) ->
     Pid = get_vnode(Partition, State),
