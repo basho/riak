@@ -141,9 +141,18 @@ client_test(Node) ->
 join(NodeStr) when is_list(NodeStr) ->
     join(riak_core_util:str_to_node(NodeStr));
 join(Node) when is_atom(Node) ->
+    {ok, OurRingSize} = application:get_env(riak_core, ring_creation_size),
     case net_adm:ping(Node) of
         pong ->
-            riak_core_gossip:send_ring(Node, node());
+            case rpc:call(Node,
+                          application,
+                          get_env, 
+                          [riak_core, ring_creation_size]) of
+                {ok, OurRingSize} ->
+                    riak_core_gossip:send_ring(Node, node());
+                _ -> 
+                    {error, different_ring_sizes}
+            end;
         pang ->
             {error, not_reachable}
     end.

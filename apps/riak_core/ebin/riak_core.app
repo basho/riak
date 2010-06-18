@@ -56,7 +56,7 @@
          {gossip_interval, 60000},
 
          %% Target N value
-         {target_n_val, 3},
+         {target_n_val, 4},
 
          %% Default claims functions
          {wants_claim_fun, {riak_core_claim, default_wants_claim}},
