@@ -80,11 +80,15 @@ handle_cast({Partition, Msg}, State) ->
     Pid = get_vnode(Partition, State),
     gen_fsm:send_event(Pid, Msg),
     {noreply, State}.
-
+handle_call(Req=?VNODE_REQ{index=Idx}, State) ->
+    Pid = get_vnode(Idx, State),
+    gen_fsm:send_event(Pid, Req),
+    {noreply, State};
 handle_call({Partition, Msg}, From, State) ->
     Pid = get_vnode(Partition, State),
     gen_fsm:send_event(Pid, {From, Msg}),
     {noreply, State}.
+
 
 %    
 %handle_cast({vnode_map, {Partition,_Node},
