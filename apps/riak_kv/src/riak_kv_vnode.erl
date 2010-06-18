@@ -1,4 +1,5 @@
 -module(riak_kv_vnode).
+-export([del/3, put/6]).
 -export([init/1, handle_command/3]).
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").
 -record(state, {idx :: partition(), 
@@ -12,20 +13,37 @@
                   bprops :: maybe_improper_list(),
                   prunetime :: non_neg_integer()}).
 
+%% API
+del(Preflist, BKey, ReqId) ->
+    riak_core_vnode_master:sync_command(Preflist,
+                                        ?KV_DELETE_REQ{bkey=BKey,
+                                                       req_id=ReqId},
+                                        riak_kv_vnode_master).
+
+put(Preflist, BKey, Obj, ReqId, StartTime, Options) ->   
+    riak_core_vnode_master:command(Preflist,
+                                   ?KV_PUT_REQ{
+                                      bkey = BKey,
+                                      object = Obj,
+                                      req_id = ReqId,
+                                      start_time = StartTime,
+                                      options = Options},
+                                   riak_kv_vnode_master).
+
+%% VNode callbacks
+
 init([Index]) ->
     Mod = app_helper:get_env(riak_kv, storage_backend),
     Configuration = app_helper:get_env(riak_kv),
     {ok, ModState} = Mod:start(Index, Configuration),
     {ok, #state{idx=Index, mod=Mod, modstate=ModState}}.
 
-handle_command(?KV_PUT_REQ{bucket=Bucket,
-                           key=Key,
+handle_command(?KV_PUT_REQ{bkey=BKey,
                            object=Object,
                            req_id=ReqId,
                            start_time=StartTime,
                            options=Options},
                Sender, State=#state{idx=Idx}) ->
-    BKey = {Bucket, Key},
     riak_core_vnode:reply(Sender, {w, Idx, ReqId}),
     do_put(Sender, BKey,  Object, ReqId, StartTime, Options, State),
     {noreply, State};
@@ -34,7 +52,15 @@ handle_command(?KV_GET_REQ{bucket=Bucket,key=Key,req_id=ReqId},Sender,State) ->
     do_get(Sender, {Bucket, Key}, ReqId, State);
 handle_command(?KV_LISTKEYS_REQ{bucket=Bucket, req_id=ReqId}, _Sender, 
                State=#state{mod=Mod, modstate=ModState, idx=Idx}) ->
-    do_list_bucket(ReqId,Bucket,Mod,ModState,Idx,State).
+    do_list_bucket(ReqId,Bucket,Mod,ModState,Idx,State);
+handle_command(?KV_DELETE_REQ{bkey=BKey, req_id=ReqId}, _Sender, 
+               State=#state{mod=Mod, modstate=ModState, idx=Idx}) ->
+    case Mod:delete(ModState, BKey) of
+        ok ->
+            {reply, {del, Idx, ReqId}, State};
+        {error, _Reason} ->
+            {reply, {fail, Idx, ReqId}, State}
+    end.
 
 %% old vnode helper functions
 

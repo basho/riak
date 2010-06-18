@@ -209,9 +209,7 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
                     case lists:all(fun(X) -> riak_kv_util:is_x_deleted(X) end,
                                    [O || {O,_I} <- RepliedR]) of
                         true -> % and every response was X-Deleted, go!
-                            [gen_server2:call({riak_kv_vnode_master, Node},
-                                             {vnode_del, {Idx,Node},
-                                              {BKey,ReqId}}) ||
+                            [riak_kv_vnode:del({Idx,Node}, BKey,ReqId) ||
                                 {Idx,Node} <- IdealNodes];
                         _ -> nop
                     end;
@@ -224,17 +222,17 @@ maybe_finalize_delete(_StateData=#state{replied_notfound=NotFound,n=N,
 maybe_do_read_repair(Sent,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
     Targets = ancestor_indices(Final, RepliedR) ++ NotFound,
     {ok, FinalRObj} = Final,
-    Msg = {self(), BKey, FinalRObj, ReqId, StartTime, [{returnbody, false}]},
     case Targets of
         [] -> nop;
         _ ->
             [begin 
-                {Idx,Node,Fallback} = lists:keyfind(Target, 1, Sent),
-                gen_server:cast({riak_kv_vnode_master, Fallback},
-                                {vnode_put, {Idx,Node}, Msg})
+                 {Idx,Node,_Fallback} = lists:keyfind(Target, 1, Sent),
+                 riak_kv_vnode:put({Idx, Node}, BKey, FinalRObj, ReqId, 
+                                   StartTime, [{returnbody, false}])
              end || Target <- Targets],
             riak_kv_stat:update(read_repairs)
     end.
+
 
 %% @private
 handle_event(_Event, _StateName, StateData) ->

@@ -102,7 +102,7 @@ handle_options([{_,_}|T], State) -> handle_options(T, State).
 
 %% @private
 initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
-                                      timeout=Timeout, ring=Ring, bkey={Bucket,Key},
+                                      timeout=Timeout, ring=Ring, bkey={Bucket,Key}=BKey,
                                       rclient=RClient, options=Options}) ->
     case invoke_hook(precommit, RClient, update_metadata(RObj0)) of
         fail ->
@@ -118,14 +118,14 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId, client=Client,
             BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
             DocIdx = riak_core_util:chash_key({Bucket, Key}),
             Req = ?KV_PUT_REQ{
-              bucket = Bucket,
-              key = Key,
+              bkey = BKey,
               object = RObj1,
               req_id = ReqId,
               start_time = RealStartTime,
               options = Options},
             N = proplists:get_value(n_val,BucketProps),
             Preflist = riak_core_ring:preflist(DocIdx, Ring),
+            %% TODO: Replace this with call to riak_kv_vnode:put/6
             {Targets, Fallbacks} = lists:split(N, Preflist),
             {Sent1, Pangs1} = riak_kv_util:try_cast(Req, nodes(), Targets),
             Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
