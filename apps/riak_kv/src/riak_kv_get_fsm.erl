@@ -58,8 +58,10 @@ init([ReqId,Bucket,Key,R,Timeout,Client]) ->
                 req_id=ReqId, bkey={Bucket,Key}, ring=Ring},
     {ok,initialize,StateData,0}.
 
+
+
 %% @private
-initialize(timeout, StateData0=#state{timeout=Timeout, r=R, req_id=ReqId,
+initialize(timeout, StateData0=#state{timeout=Timeout, r=R0, req_id=ReqId,
                                       bkey={Bucket,Key}, ring=Ring,
                                       client=Client}) ->
     StartNow = now(),
@@ -68,6 +70,7 @@ initialize(timeout, StateData0=#state{timeout=Timeout, r=R, req_id=ReqId,
     Msg = {self(), {Bucket,Key}, ReqId},
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     N = proplists:get_value(n_val,BucketProps),
+    R = riak_kv_util:normalize_rw_value(R0, N),
     case R > N of
         true ->
             Client ! {ReqId, {error, {n_val_violation, N}}},
@@ -86,7 +89,8 @@ initialize(timeout, StateData0=#state{timeout=Timeout, r=R, req_id=ReqId,
                                                             Msg,Pangs1,
                                                             Fallbacks)
                 end,
-            StateData = StateData0#state{n=N,allowmult=AllowMult,repair_sent=[],
+            StateData = StateData0#state{n=N,r=R,
+                                         allowmult=AllowMult,repair_sent=[],
                                          preflist=Preflist,final_obj=undefined,
                                          replied_r=[],replied_fail=[],
                                          replied_notfound=[],

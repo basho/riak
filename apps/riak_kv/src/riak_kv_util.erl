@@ -28,7 +28,8 @@
 -export([is_x_deleted/1,
          obj_not_deleted/1,
          try_cast/4,
-         fallback/4]).
+         fallback/4,
+         normalize_rw_value/2]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -101,10 +102,21 @@ fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
             fallback(Cmd, Msg, Pangs, Fallbacks, [{Index,Node,FN}|Sent])
     end.
 
+normalize_rw_value(RW, _N) when is_integer(RW) -> RW;
+normalize_rw_value(one, _N) -> 1;
+normalize_rw_value(quorum, N) -> erlang:trunc((N/2)+1);
+normalize_rw_value(all, N) -> N.
+
 %% ===================================================================
 %% EUnit tests
 %% ===================================================================
 -ifdef(TEST).
+
+normalize_test() ->
+    3 = normalize_rw_value(3, 3),
+    1 = normalize_rw_value(one, 3),
+    2 = normalize_rw_value(quorum, 3),
+    3 = normalize_rw_value(all, 3).
 
 deleted_test() ->
     O = riak_object:new(<<"test">>, <<"k">>, "v"),
