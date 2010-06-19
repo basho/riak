@@ -424,7 +424,9 @@ content_types_provided(RD, Ctx0) ->
                       {"multipart/mixed", produce_multipart_body}], RD, DocCtx}
             end;
         {error, notfound} ->
-            {[{"text/plain", produce_error_message}], RD, DocCtx}
+            {[{"text/plain", produce_error_message}], RD, DocCtx};
+        {error, timeout} ->
+            {[{"text/plain", produce_error_body}], RD, DocCtx}
     end.
 
 %% @spec charsets_provided(reqdata(), context()) ->
@@ -463,6 +465,8 @@ charsets_provided(RD, Ctx0) ->
                     {no_charset, RD, DocCtx}
             end;
         {error, notfound} ->
+            {no_charset, RD, DocCtx};
+        {error, timeout} ->
             {no_charset, RD, DocCtx}
     end.
 
@@ -492,6 +496,8 @@ encodings_provided(RD, Ctx0) ->
                     {default_encodings(), RD, DocCtx}
             end;
         {error, notfound} ->
+            {default_encodings(), RD, DocCtx};
+        {error, timeout} ->
             {default_encodings(), RD, DocCtx}
     end.
 
@@ -565,7 +571,9 @@ resource_exists(RD, Ctx0) ->
                      RD, DocCtx#ctx{vtag=Vtag}}
             end;
         {error, notfound} ->
-            {false, RD, DocCtx}
+            {false, RD, DocCtx};
+        {error, timeout} ->
+            {{halt, 503}, RD, DocCtx}
     end.
 
 %% @spec produce_bucket_body(reqdata(), context()) -> {binary(), reqdata(), context()}
