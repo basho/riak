@@ -366,9 +366,9 @@ malformed_rw_params(RD, Ctx) ->
 %%      string-encoded integer.  Store its result in context() if it
 %%      is, or print an error message in reqdata() if it is not.
 malformed_rw_param({Idx, Name, Default}, {Result, RD, Ctx}) ->
-    case catch list_to_integer(wrq:get_qs_value(Name, Default, RD)) of
-        N when is_integer(N) ->
-            {Result, RD, setelement(Idx, Ctx, N)};
+    case catch normalize_rw_param(wrq:get_qs_value(Name, Default, RD)) of
+        P when (is_atom(P) orelse is_integer(P)) ->
+            {Result, RD, setelement(Idx, Ctx, P)};
         _ ->
             {true,
              wrq:append_to_resp_body(
@@ -377,6 +377,11 @@ malformed_rw_param({Idx, Name, Default}, {Result, RD, Ctx}) ->
                wrq:set_resp_header(?HEAD_CTYPE, "text/plain", RD)),
              Ctx}
     end.
+
+normalize_rw_param("one") -> one;
+normalize_rw_param("quorum") -> quorum;
+normalize_rw_param("all") -> all;
+normalize_rw_param(V) -> list_to_integer(V).
 
 %% @spec malformed_link_headers(reqdata(), context()) ->
 %%          {boolean(), reqdata(), context()}
