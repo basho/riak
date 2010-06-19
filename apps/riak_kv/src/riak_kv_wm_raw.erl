@@ -426,7 +426,9 @@ content_types_provided(RD, Ctx0) ->
         {error, notfound} ->
             {[{"text/plain", produce_error_message}], RD, DocCtx};
         {error, timeout} ->
-            {[{"text/plain", produce_error_body}], RD, DocCtx}
+            {[{"text/plain", produce_error_body}], RD, DocCtx};
+        {error, {n_val_violation, _}} ->
+            {[{"text/plain", produce_error_body}], RD, DocCtx}               
     end.
 
 %% @spec charsets_provided(reqdata(), context()) ->
@@ -467,6 +469,8 @@ charsets_provided(RD, Ctx0) ->
         {error, notfound} ->
             {no_charset, RD, DocCtx};
         {error, timeout} ->
+            {no_charset, RD, DocCtx};
+        {error, {n_val_violation, _}} ->
             {no_charset, RD, DocCtx}
     end.
 
@@ -498,6 +502,8 @@ encodings_provided(RD, Ctx0) ->
         {error, notfound} ->
             {default_encodings(), RD, DocCtx};
         {error, timeout} ->
+            {default_encodings(), RD, DocCtx};
+        {error, {n_val_violation, _}} ->
             {default_encodings(), RD, DocCtx}
     end.
 
@@ -573,7 +579,11 @@ resource_exists(RD, Ctx0) ->
         {error, notfound} ->
             {false, RD, DocCtx};
         {error, timeout} ->
-            {{halt, 503}, RD, DocCtx}
+            {{halt, 503}, RD, DocCtx};
+        {error, {n_val_violation, N}} ->
+            Msg = io_lib:format("Specified r/w/dw values invalid for bucket"
+                                " n value of ~p~n", [N]),
+            {{halt, 400}, wrq:append_to_response_body(Msg, RD), DocCtx}
     end.
 
 %% @spec produce_bucket_body(reqdata(), context()) -> {binary(), reqdata(), context()}
@@ -774,6 +784,10 @@ accept_doc_body(RD, Ctx=#ctx{bucket=B, key=K, client=C, links=L}) ->
             {{halt, 403}, send_precommit_error(RD, undefined), Ctx};
         {error, {precommit_fail, Reason}} ->
             {{halt, 403}, send_precommit_error(RD, Reason), Ctx};
+        {error, {n_val_violation, N}} ->
+            Msg = io_lib:format("Specified r/w/dw values invalid for bucket"
+                                " n value of ~p~n", [N]),
+            {{halt, 400}, wrq:append_to_response_body(Msg, RD), Ctx};
         ok ->
             {true, RD, Ctx#ctx{doc={ok, Doc}}};
         {ok, RObj} ->
