@@ -354,10 +354,10 @@ bucket_format_message(RD) ->
 malformed_rw_params(RD, Ctx) ->
     lists:foldl(fun malformed_rw_param/2,
                 {false, RD, Ctx},
-                [{#ctx.r, "r", "2"},
-                 {#ctx.w, "w", "2"},
-                 {#ctx.dw, "dw", "0"},
-                 {#ctx.rw, "rw", "2"}]).
+                [{#ctx.r, "r", "default"},
+                 {#ctx.w, "w", "default"},
+                 {#ctx.dw, "dw", "default"},
+                 {#ctx.rw, "rw", "default"}]).
 
 %% @spec malformed_rw_param({Idx::integer(), Name::string(), Default::string()},
 %%                          {boolean(), reqdata(), context()}) ->
@@ -378,6 +378,7 @@ malformed_rw_param({Idx, Name, Default}, {Result, RD, Ctx}) ->
              Ctx}
     end.
 
+normalize_rw_param("default") -> default;
 normalize_rw_param("one") -> one;
 normalize_rw_param("quorum") -> quorum;
 normalize_rw_param("all") -> all;

@@ -109,17 +109,17 @@ get_default_rw_val(Type, BucketProps) ->
           proplists:get_value(Type, DefaultProps)} of
         {undefined, Val} -> Val;
         {Val, undefined} -> Val;
-        {Val, Val} -> Val
+        {Val1, _Val2} -> Val1
     end.
             
-                                                      
-
 expand_rw_value(Type, default, BucketProps, N) ->
     normalize_rw_value(get_default_rw_val(Type, BucketProps), N);    
 expand_rw_value(_Type, Val, _BucketProps, N) ->
     normalize_rw_value(Val, N).
 
 normalize_rw_value(RW, _N) when is_integer(RW) -> RW;
+normalize_rw_value(RW, N) when is_binary(RW) ->
+    normalize_rw_value(binary_to_atom(RW, utf8), N);
 normalize_rw_value(one, _N) -> 1;
 normalize_rw_value(quorum, N) -> erlang:trunc((N/2)+1);
 normalize_rw_value(all, N) -> N.
