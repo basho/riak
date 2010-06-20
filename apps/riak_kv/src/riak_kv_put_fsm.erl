@@ -68,8 +68,8 @@ init([ReqId,RObj0,W0,DW0,Timeout,Client,Options0]) ->
     {ok,Ring} = riak_core_ring_manager:get_my_ring(),
     BucketProps = riak_core_bucket:get_bucket(riak_object:bucket(RObj0), Ring),
     N = proplists:get_value(n_val,BucketProps),
-    W = riak_kv_util:normalize_rw_value(W0, N),
-    DW = riak_kv_util:normalize_rw_value(DW0, N),
+    W = riak_kv_util:expand_rw_value(w, W0, BucketProps, N),
+    DW = riak_kv_util:expand_rw_value(dw, DW0, BucketProps, N),
     case (W > N) or (DW > N) of
         true ->
             Client ! {ReqId, {error, {n_val_violation, N}}},

@@ -52,7 +52,11 @@ start(_Type, _StartArgs) ->
        {old_vclock, 86400},
        {young_vclock, 20},
        {big_vclock, 50},
-       {small_vclock, 10}]),
+       {small_vclock, 10},
+       {r, quorum},
+       {w, quorum},
+       {dw, quorum},
+       {rw, quorum}]),
 
     %% Check the storage backend
     StorageBackend = app_helper:get_env(riak_kv, storage_backend),

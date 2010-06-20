@@ -70,7 +70,7 @@ initialize(timeout, StateData0=#state{timeout=Timeout, r=R0, req_id=ReqId,
     Msg = {self(), {Bucket,Key}, ReqId},
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     N = proplists:get_value(n_val,BucketProps),
-    R = riak_kv_util:normalize_rw_value(R0, N),
+    R = riak_kv_util:expand_rw_value(r, R0, BucketProps, N),
     case R > N of
         true ->
             Client ! {ReqId, {error, {n_val_violation, N}}},
@@ -194,12 +194,12 @@ finalize(StateData) ->
     end.
 
 really_finalize(StateData=#state{final_obj=Final,
-                          waiting_for=Sent,
-                          replied_r=RepliedR,
-                          bkey=BKey,
-                          req_id=ReqId,
-                          replied_notfound=NotFound,
-                          starttime=StartTime}) ->
+                                 waiting_for=Sent,
+                                 replied_r=RepliedR,
+                                 bkey=BKey,
+                                 req_id=ReqId,
+                                 replied_notfound=NotFound,
+                                 starttime=StartTime}) ->
     case Final of
         tombstone ->
             maybe_finalize_delete(StateData);

@@ -29,6 +29,7 @@
          obj_not_deleted/1,
          try_cast/4,
          fallback/4,
+         expand_rw_value/4,
          normalize_rw_value/2]).
 
 -ifdef(TEST).
@@ -101,6 +102,22 @@ fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
                             {Cmd, {Index,Node}, Msg}),
             fallback(Cmd, Msg, Pangs, Fallbacks, [{Index,Node,FN}|Sent])
     end.
+
+get_default_rw_val(Type, BucketProps) ->
+    {ok, DefaultProps} = application:get_env(riak_core, default_bucket_props),
+    case {proplists:get_value(Type, BucketProps),
+          proplists:get_value(Type, DefaultProps)} of
+        {undefined, Val} -> Val;
+        {Val, undefined} -> Val;
+        {Val, Val} -> Val
+    end.
+            
+                                                      
+
+expand_rw_value(Type, default, BucketProps, N) ->
+    normalize_rw_value(get_default_rw_val(Type, BucketProps), N);    
+expand_rw_value(_Type, Val, _BucketProps, N) ->
+    normalize_rw_value(Val, N).
 
 normalize_rw_value(RW, _N) when is_integer(RW) -> RW;
 normalize_rw_value(one, _N) -> 1;
