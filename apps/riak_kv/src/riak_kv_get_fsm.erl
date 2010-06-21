@@ -83,14 +83,12 @@ initialize(timeout, StateData0=#state{timeout=Timeout, r=R0, req_id=ReqId,
             AllowMult = proplists:get_value(allow_mult,BucketProps),
             Preflist = riak_core_ring:preflist(DocIdx, Ring),
             {Targets, Fallbacks} = lists:split(N, Preflist),
-            {Sent1, Pangs1} = riak_kv_util:try_cast(vnode_get, Msg, 
-                                                    nodes(), Targets),
+            {Sent1, Pangs1} = riak_kv_util:try_cast(Req, nodes(), Targets),
             Sent = 
                 % Sent is [{Index,TargetNode,SentNode}]
                 case length(Sent1) =:= N of   
                     true -> Sent1;
-                    false -> Sent1 ++ riak_kv_util:fallback(vnode_get,
-                                                            Msg,Pangs1,
+                    false -> Sent1 ++ riak_kv_util:fallback(Req, Pangs1,
                                                             Fallbacks)
                 end,
             StateData = StateData0#state{n=N,r=R,
@@ -244,8 +242,8 @@ maybe_do_read_repair(Sent,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
         [] -> nop;
         _ ->
             [begin 
-                 {Idx,Node,_Fallback} = lists:keyfind(Target, 1, Sent),
-                 riak_kv_vnode:put({Idx, Node}, BKey, FinalRObj, ReqId, 
+                 {Idx,_Node,Fallback} = lists:keyfind(Target, 1, Sent),
+                 riak_kv_vnode:put({Idx, Fallback}, BKey, FinalRObj, ReqId, 
                                    StartTime, [{returnbody, false}])
              end || Target <- Targets],
             riak_kv_stat:update(read_repairs)
