@@ -162,12 +162,7 @@ process_message(rpbgetserverinforeq, State) ->
 
 process_message(#rpbgetreq{bucket=B, key=K, r=R0}, 
                 #state{client=C} = State) ->
-    R = case R0 of 
-        ?RIAKC_RW_ONE -> one;
-        ?RIAKC_RW_QUORUM -> quorum;
-        ?RIAKC_RW_ALL -> all;
-        Other  -> Other
-        end,
+    R = normalize_rw_value(R0),
     case C:get(B, K, default_r(R)) of
         {ok, O} ->
             PbContent = riakc_pb:pbify_rpbcontents(riak_object:get_contents(O), []),
@@ -188,18 +183,8 @@ process_message(#rpbputreq{bucket=B, key=K, vclock=PbVC, content=RpbContent,
     O1 = update_rpbcontent(O0, RpbContent),
     O  = update_pbvc(O1, PbVC),
     % erlang_protobuffs encodes as 1/0/undefined
-    W = case W0 of
-            ?RIAKC_RW_ONE -> one;
-            ?RIAKC_RW_ALL -> all;
-            ?RIAKC_RW_QUORUM -> quorum;
-            Other  -> Other
-        end,
-    DW = case DW0 of
-            ?RIAKC_RW_ONE -> one;
-            ?RIAKC_RW_ALL -> all;
-            ?RIAKC_RW_QUORUM -> quorum;
-            Other1 -> Other1
-        end,
+    W = normalize_rw_value(W0),
+    DW = normalize_rw_value(DW0),
     Options = case ReturnBody of 1 -> [returnbody]; _ -> [] end,
     case C:put(O, default_w(W), default_dw(DW), default_timeout(), Options) of
         ok ->
@@ -217,12 +202,7 @@ process_message(#rpbputreq{bucket=B, key=K, vclock=PbVC, content=RpbContent,
 
 process_message(#rpbdelreq{bucket=B, key=K, rw=RW0}, 
                 #state{client=C} = State) ->
-    RW = case RW0 of 
-        ?RIAKC_RW_ONE -> one;
-        ?RIAKC_RW_QUORUM -> quorum;
-        ?RIAKC_RW_ALL -> all;
-        Other -> Other
-        end,    
+    RW = normalize_rw_value(RW0),
     case C:delete(B, K, default_rw(RW)) of
         ok ->
             send_msg(rpbdelresp, State);
@@ -330,22 +310,22 @@ update_pbvc(O0, PbVc) ->
 %% Set default values in the options record if none are provided.
 %% Erlang protobuffs does not support default, so have to do it here.
 default_r(undefined) ->
-    2;
+    default;
 default_r(R) ->
     R.
 
 default_w(undefined) ->
-    2;
+    default;
 default_w(W) ->
     W.
 
 default_dw(undefined) ->
-    0;
+    default;
 default_dw(DW) ->
     DW.
 
 default_rw(undefined) ->
-    2;
+    default;
 default_rw(RW) ->
     RW.
 
@@ -385,3 +365,10 @@ encode_mapred_phase(Res, <<"application/x-erlang-binary">>) ->
 encode_mapred_phase(_Res, ContentType) ->
     {error, {unknown_content_type, ContentType}}.
 
+normalize_rw_value(?RIAKC_RW_ONE) -> one;
+normalize_rw_value(?RIAKC_RW_QUORUM) -> quorum;
+normalize_rw_value(?RIAKC_RW_ALL) -> all;
+normalize_rw_value(?RIAKC_RW_DEFAULT) -> default;
+normalize_rw_value(V) -> V.
+    
+    
