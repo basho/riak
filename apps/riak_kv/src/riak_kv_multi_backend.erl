@@ -22,7 +22,7 @@
 
 -module (riak_kv_multi_backend).
 -export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,is_empty/1,drop/1,fold/3]).
-
+-export([handle_info/2]).
 -include_lib("eunit/include/eunit.hrl").
 
 -record (state, {backends, default_backend}).
@@ -148,6 +148,13 @@ fold(State, Fun, Extra) ->
     lists:foldl(fun({_, Module, SubState}, Acc) ->
                         Module:fold(SubState, Fun, Acc)
                 end, Extra, State#state.backends).
+
+handle_info(State, Msg) ->
+    F = fun(_Name, Module, SubState) ->
+                Module:handle_info(SubState, Msg)
+        end,
+    [F(X) || X <- State#state.backends],
+    ok.
 
 % Given a Bucket name and the State, return the
 % backend definition. (ie: {Name, Module, SubState})

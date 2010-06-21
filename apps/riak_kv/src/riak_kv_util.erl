@@ -27,8 +27,10 @@
 
 -export([is_x_deleted/1,
          obj_not_deleted/1,
-         try_cast/3,
-         fallback/3,
+         try_cast/4,
+         fallback/4,
+         expand_rw_value/4,
+         normalize_rw_value/2]).
          make_request/2]).
 
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").
@@ -102,6 +104,7 @@ fallback(Cmd, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
             fallback(Cmd, Pangs, Fallbacks, [{Index,Node,FN}|Sent])
     end.
 
+
 -spec make_request(vnode_req(), partition()) -> #riak_vnode_req_v1{}.
 make_request(Request, Index) ->
     #riak_vnode_req_v1{
@@ -109,10 +112,38 @@ make_request(Request, Index) ->
               sender={fsm, make_ref(), self()},
               request=Request}.
 
+get_default_rw_val(Type, BucketProps) ->
+    {ok, DefaultProps} = application:get_env(riak_core, default_bucket_props),
+    case {proplists:get_value(Type, BucketProps),
+          proplists:get_value(Type, DefaultProps)} of
+        {undefined, Val} -> Val;
+        {Val, undefined} -> Val;
+        {Val1, _Val2} -> Val1
+    end.
+            
+expand_rw_value(Type, default, BucketProps, N) ->
+    normalize_rw_value(get_default_rw_val(Type, BucketProps), N);    
+expand_rw_value(_Type, Val, _BucketProps, N) ->
+    normalize_rw_value(Val, N).
+
+normalize_rw_value(RW, _N) when is_integer(RW) -> RW;
+normalize_rw_value(RW, N) when is_binary(RW) ->
+    normalize_rw_value(binary_to_atom(RW, utf8), N);
+normalize_rw_value(one, _N) -> 1;
+normalize_rw_value(quorum, N) -> erlang:trunc((N/2)+1);
+normalize_rw_value(all, N) -> N.
+
+
 %% ===================================================================
 %% EUnit tests
 %% ===================================================================
 -ifdef(TEST).
+
+normalize_test() ->
+    3 = normalize_rw_value(3, 3),
+    1 = normalize_rw_value(one, 3),
+    2 = normalize_rw_value(quorum, 3),
+    3 = normalize_rw_value(all, 3).
 
 deleted_test() ->
     O = riak_object:new(<<"test">>, <<"k">>, "v"),
