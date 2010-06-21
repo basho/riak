@@ -27,10 +27,10 @@
 
 -export([is_x_deleted/1,
          obj_not_deleted/1,
-         try_cast/4,
-         fallback/4,
+         try_cast/3,
+         fallback/3,
          expand_rw_value/4,
-         normalize_rw_value/2]).
+         normalize_rw_value/2,
          make_request/2]).
 
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").

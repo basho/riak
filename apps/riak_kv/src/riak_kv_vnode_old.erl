@@ -142,26 +142,26 @@ active({put, FSM_pid, BKey, RObj, ReqID, FSMTime, Options},
     {next_state,
      active,StateData#state{mapcache=orddict:erase(BKey,Cache),
                             handoff_q=HQ},?TIMEOUT};
-active(?VNODE_REQ{sender=Sender,
-                  request=?KV_PUT_REQ{
-                             bucket=Bucket,
-                             key=Key,
-                             object=Object,
-                             req_id=ReqId,
-                             start_time=StartTime,
-                             options=Options}},
-       StateData=#state{idx=Idx,mapcache=Cache,handoff_q=HQ0}) ->
-    BKey = {Bucket, Key},
-    HQ = 
-        case HQ0 of
-            not_in_handoff -> not_in_handoff;
-            _  -> [BKey|HQ0]
-        end,
-    riak_core_vnode:reply(Sender, {w, Idx, ReqId}),
-    do_put(Sender, BKey,  Object, ReqId, StartTime, Options, StateData),
-    {next_state, 
-     active, StateData#state{mapcache=orddict:erase(BKey, Cache),
-                             handoff_q=HQ}, ?TIMEOUT};
+%% active(?VNODE_REQ{sender=Sender,
+%%                   request=?KV_PUT_REQ{
+%%                              bucket=Bucket,
+%%                              key=Key,
+%%                              object=Object,
+%%                              req_id=ReqId,
+%%                              start_time=StartTime,
+%%                              options=Options}},
+%%        StateData=#state{idx=Idx,mapcache=Cache,handoff_q=HQ0}) ->
+%%     BKey = {Bucket, Key},
+%%     HQ = 
+%%         case HQ0 of
+%%             not_in_handoff -> not_in_handoff;
+%%             _  -> [BKey|HQ0]
+%%         end,
+%%     riak_core_vnode:reply(Sender, {w, Idx, ReqId}),
+%%     do_put(Sender, BKey,  Object, ReqId, StartTime, Options, StateData),
+%%     {next_state, 
+%%      active, StateData#state{mapcache=orddict:erase(BKey, Cache),
+%%                              handoff_q=HQ}, ?TIMEOUT};
 active({get, FSM_pid, BKey, ReqID}, StateData) ->
     do_get(FSM_pid, BKey, ReqID, StateData),
     {next_state,active,StateData,?TIMEOUT};
