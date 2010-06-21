@@ -44,8 +44,7 @@ dev:
 	./rebar compile && cd dev && ../rebar generate
 
 dev1 dev2 dev3 dev4 dev5 dev6: dev
-	cp -Rn dev/riak dev/$@
-	rm -rf dev/$@/data
+	yes n | cp -Ri dev/riak dev/$@
 	mkdir -p dev/$@/data/ring
 	mkdir -p dev/$@/data/snmp/agent/db
 	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
@@ -97,7 +96,7 @@ dialyzer: compile
 # Generates a tarball that includes all the deps sources so no checkouts are necessary
 
 distdir:
-	$(if $(findstring tip,$(RIAK_TIP)),$(error "You can't generate a release tarball from tip"))
+	$(if $(findstring tip,$(RIAK_TAG)),$(error "You can't generate a release tarball from tip"))
 	mkdir distdir
 	hg clone . distdir/riak-clone
 	cd distdir/riak-clone; \

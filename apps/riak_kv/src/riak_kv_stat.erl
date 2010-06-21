@@ -154,7 +154,8 @@
 -record(state,{vnode_gets,vnode_puts,vnode_gets_total,vnode_puts_total,
                node_gets_total, node_puts_total,
                get_fsm_time,put_fsm_time,
-               pbc_connects,pbc_connects_total,pbc_active}).
+               pbc_connects,pbc_connects_total,pbc_active,read_repairs,
+               read_repairs_total}).
 
 %% @spec start_link() -> {ok,Pid} | ignore | {error,Error}
 %% @doc Start the server.  Also start the os_mon application, if it's
@@ -189,7 +190,9 @@ init([]) ->
                 put_fsm_time=slide:fresh(),
                 pbc_connects=spiraltime:fresh(),
                 pbc_connects_total=0,
-                pbc_active=0}}.
+                pbc_active=0,
+                read_repairs=spiraltime:fresh(),
+                read_repairs_total=0}}.
 
 %% @private
 handle_call(get_stats, _From, State) ->
@@ -235,6 +238,8 @@ update(pbc_connect, Moment, State=#state{pbc_connects_total=NCT, pbc_active=Acti
                                                          pbc_active=Active+1});
 update(pbc_disconnect, _Moment, State=#state{pbc_active=Active}) ->
     State#state{pbc_active=decrzero(Active)};
+update(read_repairs, Moment, State=#state{read_repairs_total=RRT}) ->
+    spiral_incr(#state.read_repairs, Moment, State#state{read_repairs_total=RRT+1});
 update(_, _, State) ->
     State.
 
@@ -272,7 +277,8 @@ produce_stats(State) ->
        system_stats(),
        ring_stats(),
        config_stats(),
-       pbc_stats(Moment, State)
+       pbc_stats(Moment, State),
+       app_stats()
       ]).
 
 %% @spec spiral_minute(integer(), integer(), state()) -> integer()
@@ -305,7 +311,8 @@ vnode_stats(Moment, State=#state{vnode_gets_total=VGT, vnode_puts_total=VPT}) ->
     lists:append(
       [{F, spiral_minute(Moment, Elt, State)}
        || {F, Elt} <- [{vnode_gets, #state.vnode_gets},
-                       {vnode_puts, #state.vnode_puts}]],
+                       {vnode_puts, #state.vnode_puts},
+                       {read_repairs,#state.read_repairs}]],
       [{vnode_gets_total, VGT}, 
        {vnode_puts_total, VPT}]).
           
@@ -313,7 +320,9 @@ vnode_stats(Moment, State=#state{vnode_gets_total=VGT, vnode_puts_total=VPT}) ->
 
 %% @spec node_stats(integer(), state()) -> proplist()
 %% @doc Get the node stats proplist.
-node_stats(Moment, State=#state{node_gets_total=NGT, node_puts_total=NPT}) ->
+node_stats(Moment, State=#state{node_gets_total=NGT, 
+                                node_puts_total=NPT,
+                                read_repairs_total=RRT}) ->
     {Gets, GetMean, {GetMedian, GetNF, GetNN, GetH}} =
         slide_minute(Moment, #state.get_fsm_time, State),
     {Puts, PutMean, {PutMedian, PutNF, PutNN, PutH}} =
@@ -331,7 +340,8 @@ node_stats(Moment, State=#state{node_gets_total=NGT, node_puts_total=NPT}) ->
      {node_put_fsm_time_median, PutMedian},
      {node_put_fsm_time_95, PutNF},
      {node_put_fsm_time_99, PutNN},
-     {node_put_fsm_time_100, PutH}].
+     {node_put_fsm_time_100, PutH},
+     {read_repairs_total, RRT}].
 
 %% @spec cpu_stats() -> proplist()
 %% @doc Get stats on the cpu, as given by the cpu_sup module
@@ -366,11 +376,15 @@ system_stats() ->
      {sys_otp_release, list_to_binary(erlang:system_info(otp_release))},
      {sys_process_count, erlang:system_info(process_count)},
      {sys_smp_support, erlang:system_info(smp_support)},
-     {sys_system_version, list_to_binary(erlang:system_info(system_version))},
+     {sys_system_version, list_to_binary(string:strip(erlang:system_info(system_version), right, $\n))},
      {sys_system_architecture, list_to_binary(erlang:system_info(system_architecture))},
      {sys_threads_enabled, erlang:system_info(threads)},
      {sys_thread_pool_size, erlang:system_info(thread_pool_size)},
      {sys_wordsize, erlang:system_info(wordsize)}].
+
+app_stats() ->
+    [{list_to_atom(atom_to_list(A) ++ "_version"), list_to_binary(V)} 
+     || {A,_,V} <- application:which_applications()].
 
 ring_stats() ->
     {ok, R} = riak_core_ring_manager:get_my_ring(),

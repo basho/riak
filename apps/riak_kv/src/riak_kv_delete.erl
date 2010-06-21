@@ -31,8 +31,12 @@
 %%           -> term()
 %% @doc Delete the object at Bucket/Key.  Direct return value is uninteresting,
 %%      see riak_client:delete/3 for expected gen_server replies to Client.
-delete(ReqId,Bucket,Key,RW,Timeout,Client) ->           
+delete(ReqId,Bucket,Key,RW0,Timeout,Client) ->           
     RealStartTime = riak_core_util:moment(),
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
+    N = proplists:get_value(n_val,BucketProps),
+    RW = riak_kv_util:expand_rw_value(rw, RW0, BucketProps, N),
     {ok,C} = riak:local_client(),
     case C:get(Bucket,Key,RW,Timeout) of
         {ok, OrigObj} ->

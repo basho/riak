@@ -158,14 +158,16 @@ parse_query(Invalid, _Accum) ->
 
 dejsonify_not_found({struct, [{<<"not_found">>,
                      {struct, [{<<"bucket">>, Bucket},
-                               {<<"key">>, Key}]}}]}) ->
-    {not_found, {Bucket, Key}};
+                               {<<"key">>, Key},
+                               {<<"keydata">>, KeyData}]}}]}) ->
+    {not_found, {Bucket, Key}, KeyData};
 dejsonify_not_found(Data) ->
     Data.
 
-jsonify_not_found({not_found, {Bucket, Key}}) ->
+jsonify_not_found({not_found, {Bucket, Key}, KeyData}) ->
     {struct, [{not_found, {struct, [{<<"bucket">>, Bucket},
-                                    {<<"key">>, Key}]}}]};
+                                    {<<"key">>, Key},
+                                    {<<"keydata">>, KeyData}]}}]};
 jsonify_not_found(Data) ->
     Data.
 

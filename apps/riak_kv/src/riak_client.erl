@@ -31,9 +31,9 @@
 -export([mapred_stream/2,mapred_stream/3,mapred_stream/4]).
 -export([mapred_bucket/2,mapred_bucket/3,mapred_bucket/4]).
 -export([mapred_bucket_stream/3,mapred_bucket_stream/4,mapred_bucket_stream/6]).
--export([get/3,get/4]).
--export([put/2,put/3,put/4,put/5]).
--export([delete/3,delete/4]).
+-export([get/2, get/3,get/4]).
+-export([put/1, put/2,put/3,put/4,put/5]).
+-export([delete/2,delete/3,delete/4]).
 -export([list_keys/1,list_keys/2,list_keys/3]).
 -export([stream_list_keys/1,stream_list_keys/2,stream_list_keys/3,
          stream_list_keys/4,stream_list_keys/5]).
@@ -162,10 +162,26 @@ mapred_bucket(Bucket, Query, ResultTransformer, Timeout, ErrorTolerance) ->
                                          ResultTransformer, Timeout, ErrorTolerance),
     luke_flow:collect_output(MR_ReqId, Timeout).
 
+%% 
+
+%% 
+
+%% @spec get(riak_object:bucket(), riak_object:key()) ->
+%%       {ok, riak_object:riak_object()} |
+%%       {error, notfound} |
+%%       {error, timeout} |
+%%       {error, {n_val_violation, N::integer()}} |
+%%       {error, Err :: term()}
+%% @doc Fetch the object at Bucket/Key.  Return a value as soon as the default
+%%      R-value for the nodes have responded with a value or error.
+%% @equiv get(Bucket, Key, R, default_timeout())
+get(Bucket, Key) -> get(Bucket, Key, default, ?DEFAULT_TIMEOUT).
+
 %% @spec get(riak_object:bucket(), riak_object:key(), R :: integer()) ->
 %%       {ok, riak_object:riak_object()} |
 %%       {error, notfound} |
 %%       {error, timeout} |
+%%       {error, {n_val_violation, N::integer()}} |
 %%       {error, Err :: term()}
 %% @doc Fetch the object at Bucket/Key.  Return a value as soon as R
 %%      nodes have responded with a value or error.
@@ -177,20 +193,34 @@ get(Bucket, Key, R) -> get(Bucket, Key, R, ?DEFAULT_TIMEOUT).
 %%       {ok, riak_object:riak_object()} |
 %%       {error, notfound} |
 %%       {error, timeout} |
+%%       {error, {n_val_violation, N::integer()}} |
 %%       {error, Err :: term()}
 %% @doc Fetch the object at Bucket/Key.  Return a value as soon as R
 %%      nodes have responded with a value or error, or TimeoutMillisecs passes.
 get(Bucket, Key, R, Timeout) when is_binary(Bucket), is_binary(Key),
-                                  is_integer(R), is_integer(Timeout) ->
+                                  (is_atom(R) or is_integer(R)), 
+                                  is_integer(Timeout) ->
     Me = self(),
     ReqId = mk_reqid(),
     spawn(Node, riak_kv_get_fsm, start, [ReqId,Bucket,Key,R,Timeout,Me]),
     wait_for_reqid(ReqId, Timeout).
 
+%% @spec put(RObj :: riak_object:riak_object()) ->
+%%        ok |
+%%       {error, too_many_fails} |
+%%       {error, timeout} |
+%%       {error, {n_val_violation, N::integer()}}
+%% @doc Store RObj in the cluster.
+%%      Return as soon as the default W value number of nodes for this bucket 
+%%      nodes have received the request.
+%% @equiv put(RObj, W, W, default_timeout())
+put(RObj) -> put(RObj, default, default, ?DEFAULT_TIMEOUT).
+
 %% @spec put(RObj :: riak_object:riak_object(), W :: integer()) ->
 %%        ok |
 %%       {error, too_many_fails} |
-%%       {error, timeout}
+%%       {error, timeout} |
+%%       {error, {n_val_violation, N::integer()}}
 %% @doc Store RObj in the cluster.
 %%      Return as soon as at least W nodes have received the request.
 %% @equiv put(RObj, W, W, default_timeout())
@@ -199,7 +229,8 @@ put(RObj, W) -> put(RObj, W, W, ?DEFAULT_TIMEOUT).
 %% @spec put(RObj::riak_object:riak_object(),W :: integer(),RW :: integer()) ->
 %%        ok |
 %%       {error, too_many_fails} |
-%%       {error, timeout}
+%%       {error, timeout} |
+%%       {error, {n_val_violation, N::integer()}}
 %% @doc Store RObj in the cluster.
 %%      Return as soon as at least W nodes have received the request, and
 %%      at least DW nodes have stored it in their storage backend.
@@ -210,7 +241,8 @@ put(RObj, W, DW) -> put(RObj, W, DW, ?DEFAULT_TIMEOUT).
 %%           TimeoutMillisecs :: integer()) ->
 %%        ok |
 %%       {error, too_many_fails} |
-%%       {error, timeout}
+%%       {error, timeout} |
+%%       {error, {n_val_violation, N::integer()}}
 %% @doc Store RObj in the cluster.
 %%      Return as soon as at least W nodes have received the request, and
 %%      at least DW nodes have stored it in their storage backend, or
@@ -221,7 +253,8 @@ put(RObj, W, DW, Timeout) -> put(RObj, W, DW, Timeout, []).
 %%           TimeoutMillisecs :: integer(), Options::list()) ->
 %%        ok |
 %%       {error, too_many_fails} |
-%%       {error, timeout}
+%%       {error, timeout} |
+%%       {error, {n_val_violation, N::integer()}}
 %% @doc Store RObj in the cluster.
 %%      Return as soon as at least W nodes have received the request, and
 %%      at least DW nodes have stored it in their storage backend, or
@@ -242,6 +275,17 @@ put(RObj, W, DW, Timeout, Options) ->
 %% @doc Delete the object at Bucket/Key.  Return a value as soon as RW
 %%      nodes have responded with a value or error.
 %% @equiv delete(Bucket, Key, RW, default_timeout())
+delete(Bucket,Key) -> delete(Bucket,Key,default,?DEFAULT_TIMEOUT).
+
+%% @spec delete(riak_object:bucket(), riak_object:key(), RW :: integer()) ->
+%%        ok |
+%%       {error, too_many_fails} |
+%%       {error, notfound} |
+%%       {error, timeout} |
+%%       {error, Err :: term()}
+%% @doc Delete the object at Bucket/Key.  Return a value as soon as RW
+%%      nodes have responded with a value or error.
+%% @equiv delete(Bucket, Key, RW, default_timeout())
 delete(Bucket,Key,RW) -> delete(Bucket,Key,RW,?DEFAULT_TIMEOUT).
 
 %% @spec delete(riak_object:bucket(), riak_object:key(), RW :: integer(),
@@ -250,6 +294,7 @@ delete(Bucket,Key,RW) -> delete(Bucket,Key,RW,?DEFAULT_TIMEOUT).
 %%       {error, too_many_fails} |
 %%       {error, notfound} |
 %%       {error, timeout} |
+%%       {error, {n_val_violation, N::integer()}} |
 %%       {error, Err :: term()}
 %% @doc Delete the object at Bucket/Key.  Return a value as soon as RW
 %%      nodes have responded with a value or error, or TimeoutMillisecs passes.

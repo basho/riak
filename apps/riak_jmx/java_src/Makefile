@@ -7,7 +7,7 @@ compile:
 
 jar: compile
 	@mkdir -p dist
-	@jar cvf ../priv/riak_jmx.jar -C build .
+	@jar cf ../priv/riak_jmx.jar -C build .
 
 clean:
 	@rm -rf build dist
