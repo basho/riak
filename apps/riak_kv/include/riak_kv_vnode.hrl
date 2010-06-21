@@ -1,8 +1,7 @@
 -include_lib("riak_core/include/riak_core_vnode.hrl").
 
 -record(riak_kv_put_req_v1, {
-          bucket :: binary(),
-          key :: binary(),
+          bkey :: {binary(),binary()},
           object :: term(),
           req_id :: non_neg_integer(),
           start_time :: tuple(),

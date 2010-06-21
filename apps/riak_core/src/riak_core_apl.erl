@@ -23,7 +23,8 @@
 %% substituted.
 %% -------------------------------------------------------------------
 -module(riak_core_apl).
--export([get_apl/2, get_apl/4]).
+-export([active_owners/0, active_owners/2,
+         get_apl/2, get_apl/4]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -33,6 +34,21 @@
 -type n_val() :: non_neg_integer().
 -type ring() :: term().
 -type preflist() :: [{index(), node()}].
+
+%% Return preflist of all active primary nodes (with no
+%% substituion of fallbacks).  Used to simulate a
+%% preflist with N=ring_size
+-spec active_owners() -> preflist().
+active_owners() ->
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    active_owners(Ring, [node()|nodes()]).
+
+-spec active_owners(ring(), [node()]) -> preflist().
+active_owners(Ring, UpNodes) ->
+    UpNodes1 = ordsets:from_list(UpNodes),
+    Primaries = riak_core_ring:all_owners(Ring),
+    {Up, _Pangs} = check_up(Primaries, UpNodes1, [], []),
+    lists:reverse(Up).
 
 %% Get the active preflist taking account of which nodes are up
 -spec get_apl(binary(), n_val()) -> preflist().
