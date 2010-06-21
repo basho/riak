@@ -1,0 +1,15 @@
+----------------------------
+Riak EE 0.11.1 Release Notes
+----------------------------
+
+Fixes
+-----
+     - HTTP connections were not handling timeouts correctly.  Manifests
+       as clients returning 400 errors.
+
+Known Issues
+------------
+
+     - JMX does not work on the default java-gcj JRE installed on Debian.
+       See doc/JMX.txt for more details.
+       
