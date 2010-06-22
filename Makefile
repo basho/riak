@@ -97,9 +97,9 @@ dialyzer: compile
 # Generates a tarball that includes all the deps sources so no checkouts are necessary
 
 distdir:
-	$(if $(findstring tip,$(RIAK_TIP)),$(error "You can't generate a release tarball from tip"))
+	$(if $(findstring tip,$(RIAK_TAG)),$(error "You can't generate a release tarball from tip"))
 	mkdir distdir
-	hg clone . distdir/riak-clone
+	hg clone -u $(RIAK_TAG) . distdir/riak-clone
 	cd distdir/riak-clone; \
 	hg archive ../$(RIAK_TAG); \
 	mkdir ../$(RIAK_TAG)/deps; \
