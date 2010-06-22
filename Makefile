@@ -34,24 +34,9 @@ relclean:
 
 devrel: dev1 dev2 dev3
 
-dev: 
-	mkdir dev
-	cp -R rel/overlay rel/reltool.config dev
-	./rebar compile && cd dev && ../rebar generate
-
-dev1 dev2 dev3: dev
-	yes n | cp -Ri dev/riak dev/$@
-	rm -rf dev/$@/data
-	mkdir -p dev/$@/data/ring
-	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
-	$(foreach dep,$(wildcard deps/*), rm -rf dev/$@/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$@/lib;)
-	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
-	perl -pi -e 's/web_port, \d+/web_port, 809$(subst dev,,$@)/g' \
-                    dev/$@/etc/app.config
-	perl -pi -e 's/pb_port, \d+/pb_port, 808$(subst dev,,$@)/g' \
-                    dev/$@/etc/app.config
-	perl -pi -e 's/handoff_port, \d+/handoff_port, 810$(subst dev,,$@)/g' \
-                    dev/$@/etc/app.config
+dev1 dev2 dev3:
+	mkdir -p dev
+	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
 
 devclean: clean
 	rm -rf dev
