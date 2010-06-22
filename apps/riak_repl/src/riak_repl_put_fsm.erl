@@ -27,7 +27,8 @@
                 tref    :: reference(),
                 ring :: riak_core_ring:riak_core_ring(),
                 startnow :: {pos_integer(), pos_integer(), pos_integer()},
-                options :: list()
+                options :: list(),
+                is_delete = false :: boolean()
                }).
 
 start(ReqId,RObj,W,DW,Timeout,From) ->
@@ -41,11 +42,12 @@ init([ReqId,RObj0,W,DW,Timeout,Client,Options0]) ->
     Options = case Options0 of [] -> ?DEFAULT_OPTS; _ -> Options0 end,
     {ok,Ring} = riak_core_ring_manager:get_my_ring(),
     Bucket = riak_object:bucket(RObj0),
-    Key = riak_object:key(RObj0),    
+    Key = riak_object:key(RObj0),
     StateData = #state{robj=RObj0, client=Client, w=W, dw=DW, 
-                        bkey={Bucket, Key},
-                        req_id=ReqId, timeout=Timeout, ring=Ring,
-                        options=proplists:unfold(Options)},
+                       bkey={Bucket, Key}, 
+                       is_delete=riak_kv_util:is_x_deleted(RObj0),
+                       req_id=ReqId, timeout=Timeout, ring=Ring,
+                       options=proplists:unfold(Options)},
     {ok,initialize,StateData,0}.
 
 %% @private
@@ -75,13 +77,17 @@ initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
     {next_state,waiting_vnode_w,StateData}.
 
 waiting_vnode_w({w, Idx, ReqId},
-                StateData=#state{w=W,dw=DW,req_id=ReqId,client=Client,replied_w=Replied0}) ->
+                StateData=#state{w=W,dw=DW,req_id=ReqId,client=Client,replied_w=Replied0, is_delete=IsDelete}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= W of
         true ->
             case DW of
                 0 ->
                     Client ! {ReqId, ok},
+                    case IsDelete of 
+                        true -> try_reap(StateData);
+                        false -> ignore
+                    end,
                     {stop,normal,StateData};
                 _ ->
                     NewStateData = StateData#state{replied_w=Replied},
@@ -114,11 +120,18 @@ waiting_vnode_dw({w, _Idx, ReqId},
           StateData=#state{req_id=ReqId}) ->
     {next_state,waiting_vnode_dw,StateData};
 waiting_vnode_dw({dw, Idx, ReqId},
-                 StateData=#state{dw=DW, client=Client, replied_dw=Replied0}) ->
+                 StateData=#state{dw=DW, 
+                                  client=Client, 
+                                  replied_dw=Replied0,
+                                  is_delete=IsDelete}) ->
     Replied = [Idx|Replied0],
     case length(Replied) >= DW of
         true ->
             Client ! {ReqId, ok},
+            case IsDelete of 
+                true -> try_reap(StateData);
+                false -> ignore
+            end,
             {stop,normal,StateData};
         false ->
             NewStateData = StateData#state{replied_dw=Replied},
@@ -162,3 +175,6 @@ terminate(Reason, _StateName, _State) ->
 %% @private
 code_change(_OldVsn, StateName, State, _Extra) -> {ok, StateName, State}.
 
+try_reap(#state{bkey={Bucket, Key}, timeout=Timeout, w=W}) ->
+    ReqId = erlang:phash2(erlang:now()),
+    riak_kv_get_fsm:start(ReqId,Bucket,Key,W,Timeout,self()).

@@ -354,10 +354,10 @@ bucket_format_message(RD) ->
 malformed_rw_params(RD, Ctx) ->
     lists:foldl(fun malformed_rw_param/2,
                 {false, RD, Ctx},
-                [{#ctx.r, "r", "2"},
-                 {#ctx.w, "w", "2"},
-                 {#ctx.dw, "dw", "0"},
-                 {#ctx.rw, "rw", "2"}]).
+                [{#ctx.r, "r", "default"},
+                 {#ctx.w, "w", "default"},
+                 {#ctx.dw, "dw", "default"},
+                 {#ctx.rw, "rw", "default"}]).
 
 %% @spec malformed_rw_param({Idx::integer(), Name::string(), Default::string()},
 %%                          {boolean(), reqdata(), context()}) ->
@@ -366,9 +366,9 @@ malformed_rw_params(RD, Ctx) ->
 %%      string-encoded integer.  Store its result in context() if it
 %%      is, or print an error message in reqdata() if it is not.
 malformed_rw_param({Idx, Name, Default}, {Result, RD, Ctx}) ->
-    case catch list_to_integer(wrq:get_qs_value(Name, Default, RD)) of
-        N when is_integer(N) ->
-            {Result, RD, setelement(Idx, Ctx, N)};
+    case catch normalize_rw_param(wrq:get_qs_value(Name, Default, RD)) of
+        P when (is_atom(P) orelse is_integer(P)) ->
+            {Result, RD, setelement(Idx, Ctx, P)};
         _ ->
             {true,
              wrq:append_to_resp_body(
@@ -377,6 +377,12 @@ malformed_rw_param({Idx, Name, Default}, {Result, RD, Ctx}) ->
                wrq:set_resp_header(?HEAD_CTYPE, "text/plain", RD)),
              Ctx}
     end.
+
+normalize_rw_param("default") -> default;
+normalize_rw_param("one") -> one;
+normalize_rw_param("quorum") -> quorum;
+normalize_rw_param("all") -> all;
+normalize_rw_param(V) -> list_to_integer(V).
 
 %% @spec malformed_link_headers(reqdata(), context()) ->
 %%          {boolean(), reqdata(), context()}
@@ -424,7 +430,11 @@ content_types_provided(RD, Ctx0) ->
                       {"multipart/mixed", produce_multipart_body}], RD, DocCtx}
             end;
         {error, notfound} ->
-            {[{"text/plain", produce_error_message}], RD, DocCtx}
+            {[{"text/plain", produce_error_message}], RD, DocCtx};
+        {error, timeout} ->
+            {[{"text/plain", produce_error_body}], RD, DocCtx};
+        {error, {n_val_violation, _}} ->
+            {[{"text/plain", produce_error_body}], RD, DocCtx}               
     end.
 
 %% @spec charsets_provided(reqdata(), context()) ->
@@ -463,6 +473,10 @@ charsets_provided(RD, Ctx0) ->
                     {no_charset, RD, DocCtx}
             end;
         {error, notfound} ->
+            {no_charset, RD, DocCtx};
+        {error, timeout} ->
+            {no_charset, RD, DocCtx};
+        {error, {n_val_violation, _}} ->
             {no_charset, RD, DocCtx}
     end.
 
@@ -492,6 +506,10 @@ encodings_provided(RD, Ctx0) ->
                     {default_encodings(), RD, DocCtx}
             end;
         {error, notfound} ->
+            {default_encodings(), RD, DocCtx};
+        {error, timeout} ->
+            {default_encodings(), RD, DocCtx};
+        {error, {n_val_violation, _}} ->
             {default_encodings(), RD, DocCtx}
     end.
 
@@ -565,7 +583,13 @@ resource_exists(RD, Ctx0) ->
                      RD, DocCtx#ctx{vtag=Vtag}}
             end;
         {error, notfound} ->
-            {false, RD, DocCtx}
+            {false, RD, DocCtx};
+        {error, timeout} ->
+            {{halt, 503}, RD, DocCtx};
+        {error, {n_val_violation, N}} ->
+            Msg = io_lib:format("Specified r/w/dw values invalid for bucket"
+                                " n value of ~p~n", [N]),
+            {{halt, 400}, wrq:append_to_response_body(Msg, RD), DocCtx}
     end.
 
 %% @spec produce_bucket_body(reqdata(), context()) -> {binary(), reqdata(), context()}
@@ -591,16 +615,16 @@ produce_bucket_body(RD, Ctx=#ctx{bucket=B, client=C}) ->
         end,
     {KeyPart, KeyRD} =
         case wrq:get_qs_value(?Q_KEYS, RD) of
-            ?Q_FALSE -> {[], RD};
             ?Q_STREAM -> {stream, RD};
-            _ ->
+            ?Q_TRUE ->
                 {ok, KeyList} = C:list_keys(B),
                 {[{?Q_KEYS, KeyList}],
                  lists:foldl(
                    fun(K, Acc) ->
                            add_link_head(B, K, "contained", Acc, Ctx)
                    end,
-                   RD, KeyList)}
+                   RD, KeyList)};
+            _ -> {[], RD}
         end,
     case KeyPart of
         stream -> {{stream, {mochijson2:encode({struct, SchemaPart}),
@@ -766,6 +790,10 @@ accept_doc_body(RD, Ctx=#ctx{bucket=B, key=K, client=C, links=L}) ->
             {{halt, 403}, send_precommit_error(RD, undefined), Ctx};
         {error, {precommit_fail, Reason}} ->
             {{halt, 403}, send_precommit_error(RD, Reason), Ctx};
+        {error, {n_val_violation, N}} ->
+            Msg = io_lib:format("Specified r/w/dw values invalid for bucket"
+                                " n value of ~p~n", [N]),
+            {{halt, 400}, wrq:append_to_response_body(Msg, RD), Ctx};
         ok ->
             {true, RD, Ctx#ctx{doc={ok, Doc}}};
         {ok, RObj} ->

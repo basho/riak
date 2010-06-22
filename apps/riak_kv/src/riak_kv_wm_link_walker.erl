@@ -120,6 +120,7 @@
 %% webmachine resource exports
 -export([
          init/1,
+         malformed_request/2,
          service_available/2,
          allowed_methods/2,
          content_types_provided/2,
@@ -139,7 +140,8 @@
 -record(ctx, {prefix,     %% string() - prefix for resource urls
               riak,       %% local | {node(), atom()} - params for riak client
               bucket,     %% binary() - Bucket name (from uri)
-              key,        %% binary() - Key (from uri)
+              key,        %% binary() - Key (from uri),
+              linkquery,
               start,      %% riak_object() - the starting point of the walk
               cache_secs, %% integer() - number of seconds to add for expires header
               client      %% riak_client() - the store client
@@ -197,6 +199,26 @@ init(Props) ->
               riak=proplists:get_value(riak, Props),
               cache_secs=proplists:get_value(cache_secs, Props, 600)
              }}.
+
+%% @spec malformed_request(reqdata(), context()) ->
+%%           {boolean(), reqdata(), context()}
+%% @doc Parse link walk query and determine if it's
+%%      valid.
+malformed_request(RD, Ctx) ->
+    case catch extract_query(RD) of
+        {'EXIT', _} ->
+            RD1 = send_malformed_error(RD),
+            {true, RD1, Ctx};
+        Query0 ->
+            Query = case Query0 of
+                        [{Bucket, Tag, false}] ->
+                            [{Bucket, Tag, true}];
+                        _ ->
+                            Query0
+                    end,
+            {false, RD, Ctx#ctx{linkquery=Query}}
+    end.
+
 
 %% @spec service_available(reqdata(), context()) ->
 %%          {boolean(), reqdata(), context()}
@@ -268,8 +290,8 @@ resource_exists(RD, Ctx=#ctx{bucket=B, key=K, client=C}) ->
 %% @doc Execute the link walking query, and build the response body.
 %%      This function has to explicitly set the Content-Type header,
 %%      because Webmachine doesn't know to add the "boundary" parameter to it.
-to_multipart_mixed(RD, Ctx=#ctx{start=Start, client=C}) ->
-    Results = execute_query(C, [Start], extract_query(RD)),
+to_multipart_mixed(RD, Ctx=#ctx{linkquery=Query, start=Start, client=C}) ->
+    Results = execute_query(C, [Start], Query),
     Boundary = riak_core_util:unique_id_62(),
     {multipart_mixed_encode(Results, Boundary, Ctx),
      %% reset content-type now that we now what it is
@@ -405,3 +427,9 @@ multipart_encode_body(RiakObject, #ctx{prefix=Prefix}) ->
        Prefix,
        riak_object:bucket(RiakObject),
        {MD,V})].
+
+send_malformed_error(RD) ->
+    RD1 = wrq:set_resp_header("Content-Type", "text/plain", RD),
+    Message = "Invalid link walk query submitted. Valid link walk query " ++
+              "format is: /riak/some_bucket/some_key/<bucket>,<riaktag>,0|1/...",
+    wrq:set_resp_body(Message, RD1).

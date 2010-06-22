@@ -1,0 +1,25 @@
+----------------------------
+Riak EE 0.11.0 Release Notes
+----------------------------
+
+This document contains information specific to Riak EE.  Please read
+the riak-0.11.0 release notes first.
+
+Riak EE has changed versioning schemes to match the Riak open source
+version from this release onwards.  The 0.11.0 release is the
+successor to riak_ee-113.
+
+Enhancements
+------------
+  72 - Replication Fault Tolerance - replication will now fail over
+&172   between the configured listeners at a site. The replication
+       reconnection issue has also been resolved.
+ 
+ 173 - Replication is much more resilient to fast configuration changes.
+
+Known Issues
+------------
+
+     - JMX does not work on the default java-gcj JRE installed on Debian.
+       See doc/JMX.txt for more details.
+       

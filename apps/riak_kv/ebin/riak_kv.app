@@ -62,7 +62,8 @@
                   stdlib,
                   sasl,
                   crypto,
-                  riak_core
+                  riak_core,
+                  erlang_js
                  ]},
   {registered, []},
   {mod, {riak_kv_app, []}},

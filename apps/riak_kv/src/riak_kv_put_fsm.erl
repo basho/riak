@@ -63,20 +63,31 @@ start(ReqId,RObj,W,DW,Timeout,From,Options) ->
     gen_fsm:start(?MODULE, [ReqId,RObj,W,DW,Timeout,From,Options], []).
 
 %% @private
-init([ReqId,RObj0,W,DW,Timeout,Client,Options0]) ->
+init([ReqId,RObj0,W0,DW0,Timeout,Client,Options0]) ->
     Options = case Options0 of [] -> ?DEFAULT_OPTS; _ -> Options0 end,
     {ok,Ring} = riak_core_ring_manager:get_my_ring(),
     BucketProps = riak_core_bucket:get_bucket(riak_object:bucket(RObj0), Ring),
-    AllowMult = proplists:get_value(allow_mult,BucketProps),
-    {ok, RClient} = riak:local_client(),
-    Bucket = riak_object:bucket(RObj0),
-    Key = riak_object:key(RObj0),
-    StateData0 = #state{robj=RObj0, client=Client, w=W, dw=DW, bkey={Bucket, Key},
-                        req_id=ReqId, timeout=Timeout, ring=Ring,
-                        rclient=RClient, options=proplists:unfold(Options),
-                        resobjs=[], allowmult=AllowMult, reply_arity=1},
-    StateData = handle_options(StateData0),
-    {ok,initialize,StateData,0}.
+    N = proplists:get_value(n_val,BucketProps),
+    W = riak_kv_util:expand_rw_value(w, W0, BucketProps, N),
+    DW = riak_kv_util:expand_rw_value(dw, DW0, BucketProps, N),
+    case (W > N) or (DW > N) of
+        true ->
+            Client ! {ReqId, {error, {n_val_violation, N}}},
+            {stop, normal, none};
+        false ->
+            AllowMult = proplists:get_value(allow_mult,BucketProps),
+            {ok, RClient} = riak:local_client(),
+            Bucket = riak_object:bucket(RObj0),
+            Key = riak_object:key(RObj0),
+            StateData0 = #state{robj=RObj0, 
+                                client=Client, w=W, dw=DW, bkey={Bucket, Key},
+                                req_id=ReqId, timeout=Timeout, ring=Ring,
+                                rclient=RClient, 
+                                options=proplists:unfold(Options),
+                                resobjs=[], allowmult=AllowMult, reply_arity=1},
+            StateData = handle_options(StateData0),
+            {ok,initialize,StateData,0}
+    end.
 
 %% @private
 handle_options(State=#state{options=Options}) ->
@@ -314,7 +325,7 @@ run_hooks(HookType, RObj, [{struct, Hook}|T]) ->
 invoke_hook(precommit, Mod0, Fun0, undefined, RObj) ->
     Mod = binary_to_atom(Mod0, utf8),
     Fun = binary_to_atom(Fun0, utf8),
-    Mod:Fun(RObj);
+    wrap_hook(Mod, Fun, RObj);
 invoke_hook(precommit, undefined, undefined, JSName, RObj) ->
     case riak_kv_js_manager:blocking_dispatch({{jsfun, JSName}, RObj}) of
         {ok, <<"fail">>} ->
@@ -331,13 +342,21 @@ invoke_hook(precommit, undefined, undefined, JSName, RObj) ->
 invoke_hook(postcommit, Mod0, Fun0, undefined, Obj) ->
     Mod = binary_to_atom(Mod0, utf8),
     Fun = binary_to_atom(Fun0, utf8),
-    proc_lib:spawn(fun() -> Mod:Fun(Obj) end);
-
+    proc_lib:spawn(fun() -> wrap_hook(Mod, Fun, Obj) end);
 invoke_hook(postcommit, undefined, undefined, _JSName, _Obj) ->
     error_logger:warning_msg("Javascript post-commit hooks aren't implemented");
 %% NOP to handle all other cases
 invoke_hook(_, _, _, _, RObj) ->
     RObj.
+
+wrap_hook(Mod, Fun, Obj)->
+    try Mod:Fun(Obj)
+    catch
+        EType:X ->
+            error_logger:error_msg("problem invoking hook ~p:~p -> ~p:~p~n~p~n",
+                                   [Mod,Fun,EType,X,erlang:get_stacktrace()]),
+            fail
+    end.
 
 merge_robjs(RObjs0,AllowMult) ->
     RObjs1 = [X || X <- RObjs0,
