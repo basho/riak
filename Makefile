@@ -74,7 +74,9 @@ dialyzer: compile
 distdir:
 	$(if $(findstring tip,$(RIAK_TAG)),$(error "You can't generate a release tarball from tip"))
 	mkdir distdir
-	hg clone -u $(RIAK_TAG) . distdir/riak-clone
+	hg clone . distdir/riak-clone
+	cd distdir/riak-clone; \
+	hg update -r $(RIAK_TAG)
 	cd distdir/riak-clone; \
 	hg archive ../$(RIAK_TAG); \
 	mkdir ../$(RIAK_TAG)/deps; \
