@@ -47,10 +47,9 @@ prop_simple() ->
     ?FORALL(Cmds, commands(?MODULE, {stopped, initial_state_data()}),
             aggregate(command_names(Cmds),
                       begin
-                          Pids = start_servers(),
-                          %io:format("Running Cmds: ~p\n", [Cmds]),
+                          start_servers(),
                           {H,S,Res} = run_commands(?MODULE, Cmds),
-                          [stop_pid(Pid) || Pid <- Pids],                     
+                          stop_servers(),            
                           ?WHENFAIL(
                              begin
                                  io:format("History: ~p\n", [H]),
@@ -97,7 +96,8 @@ next_state_data(_From,_To,S=#qcst{started=Started,
            counters=orddict:store(Index, 0, Counters)};
 %% Update the counters for the index if a command that changes them
 next_state_data(_From,_To,S=#qcst{counters=Counters},_R,
-                {call,mock_vnode,neverreply,[Preflist]}) ->
+                {call,_Mod,Func,[Preflist]})
+  when Func =:= neverreply; Func =:= returnreply; Func =:= latereply ->
     S#qcst{counters=lists:foldl(fun({I, _N}, C) ->
                                         orddict:update_counter(I, 1, C)
                                 end, Counters, Preflist)};
@@ -120,18 +120,19 @@ running(S) ->
      {history, {call,?MODULE,start_vnode,[index()]}},
      {history, {call,mock_vnode,get_index,[active_preflist1(S)]}},
      {history, {call,mock_vnode,get_counter,[active_preflist1(S)]}},
-     {history, {call,mock_vnode,neverreply,[active_preflist(S)]}}
+     {history, {call,mock_vnode,neverreply,[active_preflist(S)]}},
+     {history, {call,?MODULE,returnreply,[active_preflist(S)]}},
+     {history, {call,?MODULE,latereply,[active_preflist(S)]}},
+     {history, {call,?MODULE,restart_master,[]}}
      %% {history, {call,?MODULE,noop,[2]}},
      %%{history, {call,?MODULE,noop,[3]}}].
     ].
 
 precondition(_From,_To,#qcst{started=Started},{call,?MODULE,start_vnode,[Index]}) ->
     not lists:member(Index, Started);
-precondition(_From,_To,#qcst{started=Started},{call,mock_vnode,get_index,[Preflist]}) ->
-    preflist_is_active(Preflist, Started);
-precondition(_From,_To,#qcst{started=Started},{call,mock_vnode,get_counter,[Preflist]}) ->
-    preflist_is_active(Preflist, Started);
-precondition(_From,_To,#qcst{started=Started},{call,mock_vnode,neverreply,[Preflist]}) ->
+precondition(_From,_To,#qcst{started=Started},{call,_Mod,Func,[Preflist]}) 
+  when Func =:= get_index; Func =:= get_counter; Func =:= neverreply; Func =:= returnreply;
+       Func =:= latereply ->
     preflist_is_active(Preflist, Started);
 precondition(_From,_To,_S,_C) ->
     true.
@@ -141,25 +142,69 @@ postcondition(_From,_To,_S,
     Index =:= ReplyIndex;
 postcondition(_From,_To,#qcst{counters=Counters},
               {call,mock_vnode,get_counter,[{Index,_Node}]},{ok,ReplyCount}) ->
-    Expect = orddict:fetch(Index, Counters),
-%    io:format("Expect=~p ReplyCount=~p\n", [Expect, ReplyCount]),
-    Expect =:= ReplyCount;
+    orddict:fetch(Index, Counters) =:= ReplyCount;
+postcondition(_From,_To,_S,
+              {call,_Mod,Func,[]},Result)
+  when Func =:= neverreply; Func =:= returnreply; Func =:= latereply ->
+    Result =:= ok;
 postcondition(_From,_To,_S,_C,_R) ->
     true.
 
+%% Pre/post condition helpers
 
+preflist_is_active({Index,_Node}, Started) ->
+    lists:member(Index, Started);
+preflist_is_active(Preflist, Started) ->
+    lists:all(fun({Index,_Node}) -> lists:member(Index, Started) end, Preflist).
+
+
+%% Local versions of commands
 start_vnode(I) ->
     ok = mock_vnode:start_vnode(I).
 
+returnreply(Preflist) ->
+    {ok, Ref} = mock_vnode:returnreply(Preflist),
+    check_receive(length(Preflist), returnreply, Ref).
+
+latereply(Preflist) ->
+    {ok, Ref} = mock_vnode:latereply(Preflist),
+    check_receive(length(Preflist), latereply, Ref).
+                 
+check_receive(0, _Msg, _Ref) ->
+    ok;
+check_receive(Replies, Msg, Ref) ->
+    receive
+        {Ref, Msg} ->
+            check_receive(Replies-1, Msg, Ref);
+        {Ref, OtherMsg} ->
+            {error, {bad_msg, Msg, OtherMsg}}
+    after
+        1000 ->
+            {error, timeout}
+    end.
+
+%% Server start/stop infrastructure
+
 start_servers() ->
     %catch riak_core_vnode_master:stop(mock_vnode),
-    stop_pid(whereis(mock_vnode_master)),
-    stop_pid(whereis(riak_core_vnode_sup)),
-    {ok, Sup} = supervisor:start_link({local, riak_core_vnode_sup}, riak_core_vnode_sup, []),
-    {ok, VMaster} = riak_core_vnode_master:start_link(mock_vnode),
+    stop_servers(),
+    {ok, _Sup} = supervisor:start_link({local, riak_core_vnode_sup}, riak_core_vnode_sup, []),
+    {ok, _VMaster} = riak_core_vnode_master:start_link(mock_vnode).
+
+stop_servers() ->
     %% Make sure VMaster is killed before sup as start_vnode is a cast
     %% and there may be a pending request to start the vnode.
-    [VMaster, Sup].
+    stop_pid(whereis(mock_vnode_master)),
+    stop_pid(whereis(riak_core_vnode_sup)).
+
+restart_master() ->
+    %% Call get status to make sure the riak_core_vnode_master
+    %% has processed any commands that were cast to it.  Otherwise
+    %% commands like neverreply are not cast on to the vnode and the
+    %% counters are not updated correctly.
+    sys:get_status(mock_vnode_master),
+    stop_pid(whereis(mock_vnode_master)),
+    {ok, _VMaster} = riak_core_vnode_master:start_link(mock_vnode).
 
 stop_pid(undefined) ->
     ok;
@@ -167,12 +212,6 @@ stop_pid(Pid) ->
     unlink(Pid),
     exit(Pid, kill),
     ok = wait_for_pid(Pid).
-
-preflist_is_active({Index,_Node}, Started) ->
-    lists:member(Index, Started);
-preflist_is_active(Preflist, Started) ->
-    lists:all(fun({Index,_Node}) -> lists:member(Index, Started) end, Preflist).
-
 
 wait_for_pid(Pid) ->
     Mref = erlang:monitor(process, Pid),
@@ -183,9 +222,5 @@ wait_for_pid(Pid) ->
         5000 ->
             {error, didnotexit}
     end.
-
-
-noop(_Arg) ->
-    ok.
 
 -endif.

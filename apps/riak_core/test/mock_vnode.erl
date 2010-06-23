@@ -50,9 +50,7 @@ get_counter(Preflist) ->
     riak_core_vnode_master:sync_command(Preflist, get_counter, ?MASTER).
 
 neverreply(Preflist) ->
-    Ref = {neverreply, make_ref()},
-    riak_core_vnode_master:command(Preflist, neverreply, {raw, Ref, self()}, ?MASTER),
-    {ok, Ref}.
+    riak_core_vnode_master:command(Preflist, neverreply, ?MASTER).
 
 returnreply(Preflist) ->
     Ref = {neverreply, make_ref()},
@@ -60,7 +58,7 @@ returnreply(Preflist) ->
     {ok, Ref}.
 
 latereply(Preflist) ->
-    Ref = {neverreply, make_ref()},
+    Ref = {latereply, make_ref()},
     riak_core_vnode_master:command(Preflist, latereply, {raw, Ref, self()}, ?MASTER),
     {ok, Ref}.
 
@@ -81,7 +79,7 @@ handle_command(returnreply, _Sender, State = #state{counter=Counter}) ->
     {reply, returnreply, State#state{counter = Counter + 1}};
 handle_command(latereply, Sender, State = #state{counter=Counter}) ->
     spawn(fun() -> 
-                  timer:sleep(50),
+                  timer:sleep(1),
                   riak_core_vnode:reply(Sender, lateresponse)
           end),
     {noreply, State#state{counter = Counter + 1}}.
