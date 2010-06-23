@@ -16,14 +16,14 @@ clean:
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
-test: 
-	./rebar eunit
+test:
+	./rebar skip_deps=true eunit
 
 ##
 ## Release targets
 ##
 rel: deps
-	./rebar compile generate 
+	./rebar compile generate
 
 relclean:
 	rm -rf rel/riak
@@ -51,11 +51,9 @@ stage : rel
 ## Doc targets
 ##
 docs:
-	@erl -noshell -run edoc_run application luke '"apps/luke"' '[]' 
+	./rebar skip_deps=true doc
 	@cp -R apps/luke/doc doc/luke
-	@erl -noshell -run edoc_run application riak_core '"apps/riak_core"' '[]' 
 	@cp -R apps/riak_core/doc doc/riak_core
-	@erl -noshell -run edoc_run application riak_kv '"apps/riak_kv"' '[]' 
 	@cp -R apps/riak_kv/doc doc/riak_kv
 
 orgs: orgs-doc orgs-README
