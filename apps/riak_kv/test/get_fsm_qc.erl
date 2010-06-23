@@ -16,7 +16,7 @@
 longer_list(K, G) ->
     ?SIZED(Size, resize(trunc(K*Size), list(resize(Size, G)))).
 
-non_empty(G) ->
+not_empty(G) ->
     ?SUCHTHAT(X, G, X /= [] andalso X /= <<>>).
 
 %% Make sure at least one node is up - code in riak_kv_util makes
@@ -182,7 +182,7 @@ partval() ->
                {1,Shrink(error)}]).
 
 partvals() ->
-    non_empty(longer_list(2, partval())).
+    not_empty(longer_list(2, partval())).
 
 start_mock_servers() ->
     case whereis(riak_kv_vnode_master) of
