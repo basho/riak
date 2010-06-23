@@ -43,17 +43,17 @@ append_bucket_defaults(Items) when is_list(Items) ->
 %% @spec set_bucket(riak_object:bucket(), BucketProps::riak_core_bucketprops()) -> ok
 %% @doc Set the given BucketProps in Bucket.
 set_bucket(Name, BucketProps) ->
-    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-    OldBucket = get_bucket(Name),
-    NewKeys = proplists:get_keys(BucketProps),
-    PrunedOld = [{K,V} || {K,V} <- OldBucket, not lists:member(K,NewKeys)],
-    R1 = riak_core_ring:update_meta({bucket,Name},
-                               BucketProps ++ PrunedOld,
-                               Ring),
-    riak_core_ring_manager:set_my_ring(R1),
+    F = fun(Ring, _Args) ->
+            OldBucket = get_bucket(Name),
+            NewKeys = proplists:get_keys(BucketProps),
+            PrunedOld = [{K,V} || {K,V} <- OldBucket, 
+                                  not lists:member(K,NewKeys)],
+            {new_ring, riak_core_ring:update_meta({bucket,Name},
+                                                  BucketProps ++ PrunedOld,
+                                                  Ring)}
+        end,
+    riak_core_ring_manager:ring_trans(F, undefined),
     riak_core_ring_manager:write_ringfile(),
-    RandomNode = riak_core_ring:random_node(R1),
-    riak_core_gossip:send_ring(RandomNode),
     ok.
 
 
