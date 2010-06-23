@@ -89,7 +89,5 @@ ensure_vnodes_started(Ring) ->
         exit ->
             riak:stop("node removal completed, exiting.");
         _ ->
-            [begin
-                 gen_server:cast({riak_kv_vnode_master, node()}, {I, start_vnode})
-             end|| I <- VNodes2Start]
+            [riak_kv_vnode:start_vnode(I) || I <- VNodes2Start]
     end.

@@ -1,5 +1,5 @@
 -module(riak_kv_vnode).
--export([del/3, put/6]).
+-export([start_vnode/1, del/3, put/6]).
 -export([init/1, handle_command/3]).
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").
 -record(state, {idx :: partition(), 
@@ -14,6 +14,9 @@
                   prunetime :: non_neg_integer()}).
 
 %% API
+start_vnode(I) ->
+    riak_core_vnode_master:start_vnode(I, riak_kv_vnode_master).
+
 del(Preflist, BKey, ReqId) ->
     riak_core_vnode_master:sync_command(Preflist,
                                         ?KV_DELETE_REQ{bkey=BKey,

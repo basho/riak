@@ -1,6 +1,7 @@
 -module(riak_core_vnode).
 -behaviour(gen_fsm).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
+-export([behaviour_info/1]).
 -export([start_link/2]).
 -export([init/1, 
          active/2, 
@@ -12,6 +13,13 @@
          code_change/4]).
 -export([reply/2, test/2]).
 -export([get_mod_index/1]).
+
+-spec behaviour_info(atom()) -> 'undefined' | [{atom(), arity()}].
+behaviour_info(callbacks) ->
+    [{init,1},
+     {handle_command,3}];
+behaviour_info(_Other) ->
+    undefined.
 
 -define(TIMEOUT, 60000).
 
@@ -25,6 +33,7 @@ start_link(Mod, Index) ->
     gen_fsm:start_link(?MODULE, [Mod, Index], []).
 
 init([Mod, Index]) ->
+    %%TODO: Should init args really be an array if it just gets Init?
     {ok, ModState} = Mod:init([Index]),
     {ok, active, #state{index=Index, mod=Mod, modstate=ModState}}.
 

@@ -25,7 +25,7 @@
 -module(riak_core_vnode_master).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
 -behaviour(gen_server).
--export([start_link/1, command/3, command/4, sync_command/3]).
+-export([start_link/1, start_vnode/2, command/3, command/4, sync_command/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 -record(idxrec, {idx, pid, monref}).
@@ -38,6 +38,10 @@ start_link(VNodeMod) ->
     RegName = reg_name(VNodeMod),
     gen_server:start_link({local, RegName}, ?MODULE, [VNodeMod,RegName], []).
 
+start_vnode(Index, VNodeMod) ->
+    RegName = reg_name(VNodeMod),
+    gen_server:cast(RegName, {Index, start_vnode}).
+    
 command(Preflist, Msg, VMaster) ->
     command(Preflist, Msg, noreply, VMaster).
      
@@ -94,6 +98,7 @@ handle_cast({Partition, Msg}, State) ->
     Pid = get_vnode(Partition, State),
     gen_fsm:send_event(Pid, Msg),
     {noreply, State}.
+
 handle_call(Req=?VNODE_REQ{index=Idx, sender={server, undefined, undefined}}, From, State) ->
     Pid = get_vnode(Idx, State),
     gen_fsm:send_event(Pid, Req?VNODE_REQ{sender={server, undefined, From}}),

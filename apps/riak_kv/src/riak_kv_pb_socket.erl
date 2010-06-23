@@ -365,10 +365,10 @@ encode_mapred_phase(Res, <<"application/x-erlang-binary">>) ->
 encode_mapred_phase(_Res, ContentType) ->
     {error, {unknown_content_type, ContentType}}.
 
-%% normalize_rw_value(?RIAKC_RW_ONE) -> one;
-%% normalize_rw_value(?RIAKC_RW_QUORUM) -> quorum;
-%% normalize_rw_value(?RIAKC_RW_ALL) -> all;
-%% normalize_rw_value(?RIAKC_RW_DEFAULT) -> default;
+normalize_rw_value(?RIAKC_RW_ONE) -> one;
+normalize_rw_value(?RIAKC_RW_QUORUM) -> quorum;
+normalize_rw_value(?RIAKC_RW_ALL) -> all;
+normalize_rw_value(?RIAKC_RW_DEFAULT) -> default;
 normalize_rw_value(V) -> V.
     
     
