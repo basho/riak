@@ -30,7 +30,8 @@
          get_counter/1,
          neverreply/1,
          returnreply/1,
-         latereply/1]).
+         latereply/1,
+         stop/1]).
 -export([init/1,
          handle_command/3]).
 
@@ -62,6 +63,9 @@ latereply(Preflist) ->
     riak_core_vnode_master:command(Preflist, latereply, {raw, Ref, self()}, ?MASTER),
     {ok, Ref}.
 
+stop(Preflist) ->
+    riak_core_vnode_master:sync_command(Preflist, stop, ?MASTER).
+
 
 %% Callbacks
 
@@ -73,6 +77,12 @@ handle_command(get_index, _Sender, State) ->
 handle_command(get_counter, _Sender, State) ->
     {reply, {ok, State#state.counter}, State};
 
+handle_command(stop, Sender, State = #state{counter=Counter}) ->
+    %% Send reply here as vnode_master:sync_command does a call 
+    %% which is cast on to the vnode process.  Returning {stop,...}
+    %% does not provide for returning a response.
+    riak_core_vnode:reply(Sender, stopped),
+    {stop, normal, State#state{counter = Counter + 1}};
 handle_command(neverreply, _Sender, State = #state{counter=Counter}) ->
     {noreply, State#state{counter = Counter + 1}};
 handle_command(returnreply, _Sender, State = #state{counter=Counter}) ->
@@ -80,6 +90,6 @@ handle_command(returnreply, _Sender, State = #state{counter=Counter}) ->
 handle_command(latereply, Sender, State = #state{counter=Counter}) ->
     spawn(fun() -> 
                   timer:sleep(1),
-                  riak_core_vnode:reply(Sender, lateresponse)
+                  riak_core_vnode:reply(Sender, latereply)
           end),
     {noreply, State#state{counter = Counter + 1}}.

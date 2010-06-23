@@ -94,6 +94,11 @@ next_state_data(_From,_To,S=#qcst{started=Started,
                 {call,?MODULE,start_vnode,[Index]}) ->
     S#qcst{started=[Index|Started],
            counters=orddict:store(Index, 0, Counters)};
+next_state_data(_From,_To,S=#qcst{counters=Counters},_R,
+                {call,mock_vnode,stop,[{Index,_Node}]}) ->
+    %% If a node is stopped, reset the counter ready for next
+    %% time it is called which should start it
+    S#qcst{counters=orddict:store(Index, 0, Counters)};
 %% Update the counters for the index if a command that changes them
 next_state_data(_From,_To,S=#qcst{counters=Counters},_R,
                 {call,_Mod,Func,[Preflist]})
@@ -123,9 +128,8 @@ running(S) ->
      {history, {call,mock_vnode,neverreply,[active_preflist(S)]}},
      {history, {call,?MODULE,returnreply,[active_preflist(S)]}},
      {history, {call,?MODULE,latereply,[active_preflist(S)]}},
-     {history, {call,?MODULE,restart_master,[]}}
-     %% {history, {call,?MODULE,noop,[2]}},
-     %%{history, {call,?MODULE,noop,[3]}}].
+     {history, {call,?MODULE,restart_master,[]}},
+     {history, {call,mock_vnode,stop,[active_preflist1(S)]}}
     ].
 
 precondition(_From,_To,#qcst{started=Started},{call,?MODULE,start_vnode,[Index]}) ->
@@ -169,6 +173,7 @@ returnreply(Preflist) ->
 latereply(Preflist) ->
     {ok, Ref} = mock_vnode:latereply(Preflist),
     check_receive(length(Preflist), latereply, Ref).
+
                  
 check_receive(0, _Msg, _Ref) ->
     ok;
@@ -186,9 +191,8 @@ check_receive(Replies, Msg, Ref) ->
 %% Server start/stop infrastructure
 
 start_servers() ->
-    %catch riak_core_vnode_master:stop(mock_vnode),
     stop_servers(),
-    {ok, _Sup} = supervisor:start_link({local, riak_core_vnode_sup}, riak_core_vnode_sup, []),
+    {ok, _Sup} = riak_core_vnode_sup:start_link(),
     {ok, _VMaster} = riak_core_vnode_master:start_link(mock_vnode).
 
 stop_servers() ->
