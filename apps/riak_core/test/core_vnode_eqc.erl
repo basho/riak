@@ -38,7 +38,10 @@
                counters}).% Dict of counters for each index
                
 simple_test() ->
-    ?assertEqual(true, eqc:quickcheck(prop_simple())).
+    ?assertEqual(true, quickcheck(prop_simple())).
+
+simple_test(N) ->
+    ?assertEqual(true, quickcheck(numtests(N, prop_simple()))).
 
 prop_simple() ->
     ?FORALL(Cmds, commands(?MODULE, {stopped, initial_state_data()}),
@@ -60,8 +63,13 @@ prop_simple() ->
 active_index(#qcst{started=Started}) ->
     elements(Started).
 
+%% Generate a preflist element
 active_preflist1(S) ->
     {active_index(S), node()}.
+
+%% Generate a preflist - making sure the partitions are unique
+active_preflist(S) ->
+    ?SUCHTHAT(Xs,list(active_preflist1(S)),lists:sort(Xs)==Xs).
 
 initial_state() ->
     stopped.
@@ -81,14 +89,21 @@ initial_state_data() ->
     #qcst{started=[],
           counters=orddict:new()}.
 
+%% Mark the vnode as started
 next_state_data(_From,_To,S=#qcst{started=Started,
                                   counters=Counters},_R,
                 {call,?MODULE,start_vnode,[Index]}) ->
     S#qcst{started=[Index|Started],
            counters=orddict:store(Index, 0, Counters)};
+%% Update the counters for the index if a command that changes them
+next_state_data(_From,_To,S=#qcst{counters=Counters},_R,
+                {call,mock_vnode,neverreply,[Preflist]}) ->
+    S#qcst{counters=lists:foldl(fun({I, _N}, C) ->
+                                        orddict:update_counter(I, 1, C)
+                                end, Counters, Preflist)};
 next_state_data(_From,_To,S,_R,_C) ->
     S.
-%           counters=orddict:update_counter(Index, 1, Counters)};
+% 
 
 stopped(_S) ->
     [{running, {call,?MODULE,start_vnode,[index()]}}].
@@ -104,13 +119,20 @@ running(S) ->
     [
      {history, {call,?MODULE,start_vnode,[index()]}},
      {history, {call,mock_vnode,get_index,[active_preflist1(S)]}},
-     {history, {call,mock_vnode,get_counter,[active_preflist1(S)]}}
+     {history, {call,mock_vnode,get_counter,[active_preflist1(S)]}},
+     {history, {call,mock_vnode,neverreply,[active_preflist(S)]}}
      %% {history, {call,?MODULE,noop,[2]}},
      %%{history, {call,?MODULE,noop,[3]}}].
     ].
 
 precondition(_From,_To,#qcst{started=Started},{call,?MODULE,start_vnode,[Index]}) ->
     not lists:member(Index, Started);
+precondition(_From,_To,#qcst{started=Started},{call,mock_vnode,get_index,[Preflist]}) ->
+    preflist_is_active(Preflist, Started);
+precondition(_From,_To,#qcst{started=Started},{call,mock_vnode,get_counter,[Preflist]}) ->
+    preflist_is_active(Preflist, Started);
+precondition(_From,_To,#qcst{started=Started},{call,mock_vnode,neverreply,[Preflist]}) ->
+    preflist_is_active(Preflist, Started);
 precondition(_From,_To,_S,_C) ->
     true.
 
@@ -145,6 +167,12 @@ stop_pid(Pid) ->
     unlink(Pid),
     exit(Pid, kill),
     ok = wait_for_pid(Pid).
+
+preflist_is_active({Index,_Node}, Started) ->
+    lists:member(Index, Started);
+preflist_is_active(Preflist, Started) ->
+    lists:all(fun({Index,_Node}) -> lists:member(Index, Started) end, Preflist).
+
 
 wait_for_pid(Pid) ->
     Mref = erlang:monitor(process, Pid),
