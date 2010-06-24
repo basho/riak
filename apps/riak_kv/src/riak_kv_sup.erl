@@ -42,7 +42,8 @@ init([]) ->
     [ webmachine_router:add_route(R)
       || R <- lists:reverse(riak_kv_web:dispatch_table()) ],
     VMaster = {riak_kv_vnode_master,
-               {riak_core_vnode_master, start_link, [riak_kv_vnode]},
+               {riak_core_vnode_master, start_link,
+                [riak_kv_vnode, riak_kv_legacy_vnode]},
                permanent, 5000, worker, [riak_core_vnode_master]},
     HandoffListen = {riak_kv_handoff_listener,
                {riak_kv_handoff_listener, start_link, []},
