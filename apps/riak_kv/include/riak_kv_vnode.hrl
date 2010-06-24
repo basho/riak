@@ -8,8 +8,7 @@
           options :: list()}).
 
 -record(riak_kv_get_req_v1, {
-          bucket :: binary(),
-          key :: binary(),
+          bkey :: {binary(), binary()},
           req_id :: non_neg_integer()}).
 
 -record(riak_kv_listkeys_req_v1, {

@@ -165,12 +165,12 @@ active({put, FSM_pid, BKey, RObj, ReqID, FSMTime, Options},
 active({get, FSM_pid, BKey, ReqID}, StateData) ->
     do_get(FSM_pid, BKey, ReqID, StateData),
     {next_state,active,StateData,?TIMEOUT};
-active(?VNODE_REQ{sender=Sender,request=?KV_GET_REQ{bucket=Bucket,
-                                                    key=Key,
-                                                    req_id=ReqId}},
-       State) ->
-    do_get(Sender, {Bucket, Key}, ReqId, State),
-    {next_state, active, State, ?TIMEOUT};
+%% active(?VNODE_REQ{sender=Sender,request=?KV_GET_REQ{bucket=Bucket,
+%%                                                     key=Key,
+%%                                                     req_id=ReqId}},
+%%        State) ->
+%%     do_get(Sender, {Bucket, Key}, ReqId, State),
+%%     {next_state, active, State, ?TIMEOUT};
 active({list_bucket, FSM_pid, Bucket, ReqID},
        StateData=#state{mod=Mod,modstate=ModState,idx=Idx}) ->
     do_list_bucket(FSM_pid,ReqID,Bucket,Mod,ModState,Idx),

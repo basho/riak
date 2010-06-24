@@ -51,8 +51,8 @@ handle_command(?KV_PUT_REQ{bkey=BKey,
     do_put(Sender, BKey,  Object, ReqId, StartTime, Options, State),
     {noreply, State};
 
-handle_command(?KV_GET_REQ{bucket=Bucket,key=Key,req_id=ReqId},Sender,State) ->
-    do_get(Sender, {Bucket, Key}, ReqId, State);
+handle_command(?KV_GET_REQ{bkey=BKey,req_id=ReqId},Sender,State) ->
+    do_get(Sender, BKey, ReqId, State);
 handle_command(?KV_LISTKEYS_REQ{bucket=Bucket, req_id=ReqId}, _Sender, 
                State=#state{mod=Mod, modstate=ModState, idx=Idx}) ->
     do_list_bucket(ReqId,Bucket,Mod,ModState,Idx,State);

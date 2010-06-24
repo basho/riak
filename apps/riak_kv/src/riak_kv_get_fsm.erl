@@ -62,14 +62,13 @@ init([ReqId,Bucket,Key,R,Timeout,Client]) ->
 
 %% @private
 initialize(timeout, StateData0=#state{timeout=Timeout, r=R0, req_id=ReqId,
-                                      bkey={Bucket,Key}, ring=Ring,
+                                      bkey={Bucket,Key}=BKey, ring=Ring,
                                       client=Client}) ->
     StartNow = now(),
     TRef = erlang:send_after(Timeout, self(), timeout),
     DocIdx = riak_core_util:chash_key({Bucket, Key}),
     Req = #riak_kv_get_req_v1{
-      bucket = Bucket,
-      key = Key,
+      bkey = BKey,
       req_id = ReqId
      },
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
