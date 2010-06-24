@@ -101,11 +101,6 @@ finish(StateData=#state{req_id=ReqId,client=Client,client_type=ClientType}) ->
     end,
     {stop,normal,StateData}.
                                              
-ask_vn({Index,Node},Msg) ->
-    gen_server:cast({riak_kv_vnode_master, Node}, 
-                    riak_kv_util:make_request(Msg, Index)).
-%%                    {vnode_list_bucket,{Index,ReqId},Msg}).
-
 reduce_pls(StateData0=#state{timeout=Timeout, req_id=ReqId,wait_pls=WPL,
                              simul_pls=Simul_PLS, bucket=Bucket}) ->
     case find_free_pl(StateData0) of
@@ -118,10 +113,7 @@ reduce_pls(StateData0=#state{timeout=Timeout, req_id=ReqId,wait_pls=WPL,
         {[{Idx,Node}|RestPL],PLS} ->
             case net_adm:ping(Node) of
                 pong ->
-                    Req = ?KV_LISTKEYS_REQ{
-                             bucket=Bucket,
-                             req_id=ReqId},
-                    ask_vn({Idx,Node},Req),
+                    riak_kv_vnode:list_keys({Idx,Node},Bucket,ReqId),
                     WaitPLS = [{Idx,Node,RestPL}|WPL],
                     StateData = StateData0#state{pls=PLS, wait_pls=WaitPLS},
                     case length(WaitPLS) > Simul_PLS of

@@ -1,5 +1,5 @@
 -module(riak_kv_vnode).
--export([start_vnode/1, del/3, put/6]).
+-export([start_vnode/1, del/3, put/6, list_keys/3]).
 -export([init/1, handle_command/3]).
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").
 -record(state, {idx :: partition(), 
@@ -31,6 +31,14 @@ put(Preflist, BKey, Obj, ReqId, StartTime, Options) ->
                                       req_id = ReqId,
                                       start_time = StartTime,
                                       options = Options},
+                                   riak_kv_vnode_master).
+
+list_keys(Preflist, Bucket, ReqId) ->
+    riak_core_vnode_master:command(Preflist,
+                                   ?KV_LISTKEYS_REQ{
+                                      bucket=Bucket,
+                                      req_id=ReqId},
+                                   {fsm, undefined, self()},
                                    riak_kv_vnode_master).
 
 %% VNode callbacks
