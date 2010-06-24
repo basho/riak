@@ -27,7 +27,8 @@
 -behaviour(gen_server).
 -export([start_link/1, start_link/2,
          start_vnode/2, command/3, command/4, sync_command/3,
-         make_request/3]).
+         make_request/3,
+         all_nodes/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 -record(idxrec, {idx, pid, monref}).
@@ -79,6 +80,10 @@ make_request(Request, Sender, Index) ->
               sender=Sender,
               request=Request}.
 
+%% Request a list of Pids for all vnodes 
+all_nodes(VNodeMod) ->
+    RegName = reg_name(VNodeMod),
+    gen_server:call(RegName, all_nodes).
 
 %% @private
 init([VNodeMod, LegacyMod, RegName]) ->
@@ -129,6 +134,8 @@ handle_call(Req=?VNODE_REQ{index=Idx, sender={server, undefined, undefined}}, Fr
 %%     Pid = get_vnode(Partition, State),
 %%     gen_fsm:send_event(Pid, {From, Msg}),
 %%     {noreply, State};
+handle_call(all_nodes, _From, State) ->
+    {reply, lists:flatten(ets:match(State#state.idxtab, {idxrec, '_', '$1', '_'})), State};
 handle_call(Other, From, State=#state{legacy=Legacy}) when Legacy =/= undefined ->
     case catch Legacy:rewrite_call(Other, From) of
         {ok, ?VNODE_REQ{}=Req} ->

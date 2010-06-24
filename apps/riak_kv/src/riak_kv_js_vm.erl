@@ -131,7 +131,7 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsfun, JS}, Arg, _Acc}
     case invoke_js(Ctx, JS, [JsonValue, KeyData, JsonArg]) of
         {ok, R} ->
             %% Requestor should be the dispatching vnode
-            gen_fsm:send_event(Requestor, {mapcache, BKey, {JS, Arg, KeyData}, R}),
+            riak_kv_vnode:mapcache(Requestor, BKey, {JS, Arg, KeyData}, R),
             gen_fsm:send_event(FsmPid, {mapexec_reply, R, Requestor});
         Error ->
             gen_fsm:send_event(FsmPid, {mapexec_error_noretry, Requestor, Error})

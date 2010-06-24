@@ -88,9 +88,7 @@ try_vnode(#state{qterm=QTerm, bkey=BKey, keydata=KeyData, vnodes=[{P, VN}|VNs]}=
         false ->
             try_vnode(StateData#state{vnodes=VNs});
         true ->
-            gen_server:cast({riak_kv_vnode_master, VN},
-                            {vnode_map, {P,node()},
-                             {self(),QTerm,BKey,KeyData}}),
+            riak_kv_vnode:map({P,VN},self(),QTerm,BKey,KeyData),
             {ok, TRef} = timer:send_after(?VNODE_TIMEOUT, self(), timeout),
             StateData#state{vnodes=VNs, vnode_timer=TRef}
     end.

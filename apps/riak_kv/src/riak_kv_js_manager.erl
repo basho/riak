@@ -76,8 +76,7 @@ handle_call(reload_all_vm, _From, #state{tid=Tid}=State) ->
     ets:safe_fixtable(Tid, true),
     reload_children(ets:first(Tid), Tid),
     ets:safe_fixtable(Tid, false),
-    VNodes = gen_server2:call(riak_kv_vnode_master, all_vnodes),
-    lists:foreach(fun(VNode) -> gen_fsm:send_event(VNode, purge_mapcache) end, VNodes),
+    riak_kv_vnode:purge_mapcaches(),
     {reply, ok, State};
 
 handle_call(_Request, _From, State) ->

@@ -68,7 +68,7 @@ active_preflist1(S) ->
 
 %% Generate a preflist - making sure the partitions are unique
 active_preflist(S) ->
-    ?SUCHTHAT(Xs,list(active_preflist1(S)),lists:sort(Xs)==Xs).
+    ?SUCHTHAT(Xs,list(active_preflist1(S)),lists:sort(Xs)==lists:usort(Xs)).
 
 initial_state() ->
     stopped.
@@ -129,7 +129,8 @@ running(S) ->
      {history, {call,?MODULE,returnreply,[active_preflist(S)]}},
      {history, {call,?MODULE,latereply,[active_preflist(S)]}},
      {history, {call,?MODULE,restart_master,[]}},
-     {history, {call,mock_vnode,stop,[active_preflist1(S)]}}
+     {history, {call,mock_vnode,stop,[active_preflist1(S)]}},
+     {history, {call,riak_core_vnode_master,all_nodes,[mock_vnode]}}
     ].
 
 precondition(_From,_To,#qcst{started=Started},{call,?MODULE,start_vnode,[Index]}) ->
@@ -151,6 +152,10 @@ postcondition(_From,_To,_S,
               {call,_Mod,Func,[]},Result)
   when Func =:= neverreply; Func =:= returnreply; Func =:= latereply ->
     Result =:= ok;
+postcondition(_From,_To,_S,
+              {call,riak_core_vnode_master,all_nodes,[mock_vnode]},Result) ->
+    Pids = [Pid || {_,Pid,_,_} <- supervisor:which_children(riak_core_vnode_sup)],
+    lists:sort(Result) =:= lists:sort(Pids);
 postcondition(_From,_To,_S,_C,_R) ->
     true.
 

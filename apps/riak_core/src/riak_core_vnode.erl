@@ -2,7 +2,9 @@
 -behaviour(gen_fsm).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
 -export([behaviour_info/1]).
--export([start_link/2]).
+-export([start_link/2,
+         send_command/2,
+         send_command_after/2]).
 -export([init/1, 
          active/2, 
          active/3, 
@@ -31,6 +33,17 @@ behaviour_info(_Other) ->
 
 start_link(Mod, Index) ->
     gen_fsm:start_link(?MODULE, [Mod, Index], []).
+
+%% Send a command message for the vnode module by Pid - 
+%% typically to do some deferred processing after returning yourself
+send_command(Pid, Request) ->
+    gen_fsm:send_event(Pid, ?VNODE_REQ{request=Request}).
+
+%% Sends a command to the FSM that called it after Time 
+%% has passed.
+send_command_after(Time, Request) ->
+    gen_fsm:send_event_after(Time, ?VNODE_REQ{request=Request}).
+    
 
 init([Mod, Index]) ->
     %%TODO: Should init args really be an array if it just gets Init?
