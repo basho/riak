@@ -31,7 +31,8 @@
 
 -record(state, { up_nodes = [],
                  services = [],
-                 service_pids = [] }).
+                 service_pids = [],
+                 peers = []}).
 
 -define(QC_OUT(P),
         eqc:on_output(fun(Str, Args) -> io:format(user, Str, Args) end, P)).
@@ -45,6 +46,7 @@ prop_main() ->
     %% Initialize necessary env settings
     application:load(riak_core),
     application:set_env(riak_core, gossip_interval, 250),
+    application:set_env(riak_core, ring_creation_size, 8),
 
     %% Start supporting processes
     riak_core_ring_events:start_link(),
@@ -89,6 +91,7 @@ initial_state() ->
 
 command(S) ->
     oneof([
+           {call, ?MODULE, ring_update, [g_ring_nodes()]},
            {call, ?MODULE, local_service_up, [g_service()]},
            {call, ?MODULE, local_service_down, [g_service()]},
            {call, ?MODULE, local_service_kill, [g_service(), S]},
@@ -130,16 +133,18 @@ next_state(S, _Res, {call, _, local_node_down, []}) ->
     node_down(node(), S);
 
 next_state(S, _Res, {call, _, remote_service_up, [Node, Services]}) ->
-    S2 = services_up(Node, Services, S),
-    node_up(Node, S2);
+    peer_up(Node, Services, S);
 
 next_state(S, _Res, {call, _, Fn, [Node]})
   when Fn == remote_service_down; Fn == remote_service_down_disterl ->
-    node_down(Node, S);
+    peer_down(Node, S);
 
 next_state(S, _Res, {call, _, wait_for_bcast, _}) ->
-    S.
+    S;
 
+next_state(S, _Res, {call, _, ring_update, [Nodes]}) ->
+    Peers = ordsets:del_element(node(), ordsets:from_list(Nodes)),
+    peer_filter(S#state { peers = Peers }).
 
 
 
@@ -170,17 +175,37 @@ postcondition(S, {call, _, local_node_down, _}, _Res) ->
 
 postcondition(S, {call, _, remote_service_up, [Node, Services]}, _Res) ->
     ?assertEqual([], broadcasts()),
-    S2 = node_up(Node, services_up(Node, Services, S)),
+    S2 = peer_up(Node, Services, S),
     deep_validate(S2);
 
 postcondition(S, {call, _, Fn, [Node]}, _Res)
   when Fn == remote_service_down; Fn == remote_service_down_disterl ->
     ?assertEqual([], broadcasts()),
-    S2 = node_down(Node, S),
+    S2 = case is_peer(Node, S) of
+             true ->
+                 node_down(Node, S);
+             false ->
+                 S
+         end,
     deep_validate(S2);
 
 postcondition(S, {call, _, wait_for_bcast, _}, _Res) ->
-    validate_broadcast(S, S, service).
+    validate_broadcast(S, S, service);
+
+postcondition(S, {call, _, ring_update, [Nodes]}, _Res) ->
+    %% Ring update should generate a broadcast to all NEW peers
+    Bcasts = broadcasts(),
+    Peers = ordsets:del_element(node(), ordsets:from_list(Nodes)),
+    NewPeers = ordsets:subtract(Peers, S#state.peers),
+    case is_node_up(node(), S) of
+        true ->
+            ExpServices = services(node(), S),
+            ?assertEqual({{up, node(), ExpServices}, NewPeers}, hd(Bcasts));
+        false ->
+            ?assertEqual({{down, node()}, NewPeers}, hd(Bcasts))
+    end,
+    S2 = peer_filter(S#state { peers = Peers }),
+    deep_validate(S2).
 
 
 
@@ -201,18 +226,18 @@ deep_validate(S) ->
 validate_broadcast(S0, Sfinal, Op) ->
     Bcasts = broadcasts(),
     Transition = {is_node_up(node(), S0), is_node_up(node(), Sfinal), Op},
-%    io:format(user, "Transition: ~p\n", [Transition]),
+    ExpPeers = Sfinal#state.peers,
     case Transition of
         {false, true, _} -> %% down -> up
             ExpServices = services(node(), Sfinal),
-            ?assertEqual({{up, node(), ExpServices}, []}, hd(Bcasts));
+            ?assertEqual({{up, node(), ExpServices}, ExpPeers}, hd(Bcasts));
 
         {true, false, _} -> %% up -> down
-            ?assertEqual({{down, node()}, []}, hd(Bcasts));
+            ?assertEqual({{down, node()}, ExpPeers}, hd(Bcasts));
 
         {true, true, service} -> %% up -> up (service change)
             ExpServices = services(node(), Sfinal),
-            ?assertEqual({{up, node(), ExpServices}, []}, hd(Bcasts));
+            ?assertEqual({{up, node(), ExpServices}, ExpPeers}, hd(Bcasts));
 
         _ ->
             ?assertEqual([], Bcasts)
@@ -232,6 +257,10 @@ g_node() ->
 
 g_services() ->
     list(elements([s1, s2, s3, s4])).
+
+g_ring_nodes() ->
+    vector(app_helper:get_env(riak_core, ring_creation_size),
+           oneof([node(), 'n1@127.0.0.1', 'n2@127.0.0.1', 'n3@127.0.0.1'])).
 
 
 %% ====================================================================
@@ -277,6 +306,13 @@ wait_for_bcast() ->
     {ok, Interval} = application:get_env(riak_core, gossip_interval),
     timer:sleep(Interval + 50).
 
+ring_update(Nodes) ->
+    Ring = build_ring(Nodes),
+    Avsn0 = riak_core_node_watcher:avsn(),
+    gen_server:cast(riak_core_node_watcher, {ring_update, Ring}),
+    wait_for_avsn(Avsn0),
+    ?ORDSET(Nodes).
+
 
 %% ====================================================================
 %% State functions
@@ -300,8 +336,38 @@ services_up(Node, Services, S) ->
 service_down(Node, Svc, S) ->
     S#state { services = ordsets:del_element({Node, Svc}, S#state.services) }.
 
+
 is_node_up(Node, S) ->
     ordsets:is_element(Node, S#state.up_nodes).
+
+is_peer(Node, S) ->
+    ordsets:is_element(Node, S#state.peers).
+
+peer_up(Node, Services, S) ->
+    case is_peer(Node, S) of
+        true ->
+            node_up(Node, services_up(Node, Services, S));
+        false ->
+            S
+    end.
+
+peer_down(Node, S) ->
+    case is_peer(Node, S) of
+        true ->
+            Services = [{N, Svc} || {N, Svc} <- S#state.services,
+                                    N /= Node],
+            node_down(Node, S#state { services = Services });
+        false ->
+            S
+    end.
+
+peer_filter(S) ->
+    ThisNode = node(),
+    Services = [{N, Svc} || {N, Svc} <- S#state.services,
+                            is_peer(N, S) orelse N == ThisNode],
+    UpNodes = [N || N <- S#state.up_nodes,
+                    is_peer(N, S) orelse N == ThisNode],
+    S#state { services = Services, up_nodes = UpNodes }.
 
 services(S) ->
     ?ORDSET([Svc || {N, Svc} <- S#state.services,
@@ -366,5 +432,15 @@ service_loop() ->
         _Any ->
             service_loop()
     end.
+
+build_ring([Node | Rest]) ->
+    Inc = trunc(math:pow(2,160)-1) div app_helper:get_env(riak_core, ring_creation_size),
+    build_ring(Rest, 0, Inc, riak_core_ring:fresh(Node)).
+
+build_ring([], _Id, _Inc, R) ->
+    R;
+build_ring([Node | Rest], Id, Inc, R) ->
+    R2 = riak_core_ring:transfer_node(Id+Inc, Node, R),
+    build_ring(Rest, Id+Inc, Inc, R2).
 
 -endif.

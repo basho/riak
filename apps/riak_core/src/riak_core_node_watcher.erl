@@ -159,18 +159,16 @@ handle_cast({ring_update, R}, State) ->
     %% and broadcast out current status to those peers.
     Peers0 = ordsets:from_list(riak_core_ring:all_members(R)),
     Peers = ordsets:del_element(node(), Peers0),
-    NewPeers = ordsets:subtract(Peers, State#state.peers),
-    S2 = broadcast(NewPeers, State),
-    {noreply, update_avsn(S2#state { peers = Peers })};
+
+    S2 = peers_update(Peers, State),
+    {noreply, update_avsn(S2)};
 
 handle_cast({up, Node, Services}, State) ->
-    AffectedServices = node_update(Node, Services),
-    riak_core_node_watcher_events:service_update(AffectedServices),
+    node_up(Node, Services, State),
     {noreply, update_avsn(State)};
 
 handle_cast({down, Node}, State) ->
-    AffectedServices = node_delete(Node),
-    riak_core_node_watcher_events:service_update(AffectedServices),
+    node_down(Node, State),
     {noreply, update_avsn(State)}.
 
 
@@ -179,8 +177,7 @@ handle_info({nodeup, _Node}, State) ->
     {noreply, State};
 
 handle_info({nodedown, Node}, State) ->
-    AffectedServices = node_delete(Node),
-    riak_core_node_watcher_events:service_update(AffectedServices),
+    node_down(Node, State),
     {noreply, update_avsn(State)};
 
 handle_info({'DOWN', Mref, _, _Pid, _Info}, State) ->
@@ -270,6 +267,36 @@ schedule_broadcast(State) ->
     Tref = erlang:send_after(Interval, self(), broadcast),
     State#state { bcast_tref = Tref }.
 
+is_peer(Node, State) ->
+    ordsets:is_element(Node, State#state.peers).
+
+
+node_up(Node, Services, State) ->
+    case is_peer(Node, State) of
+        true ->
+            case node_update(Node, Services) of
+                [] ->
+                    ok;
+                AffectedServices ->
+                    riak_core_node_watcher_events:service_update(AffectedServices)
+            end;
+        false ->
+            ok
+    end.
+
+node_down(Node, State) ->
+    case is_peer(Node, State) of
+        true ->
+            case node_delete(Node) of
+                [] ->
+                    ok;
+                AffectedServices ->
+                    riak_core_node_watcher_events:service_update(AffectedServices)
+            end;
+        false ->
+            ok
+    end.
+
 
 node_delete(Node) ->
     Services = services(Node),
@@ -325,3 +352,28 @@ local_delete(State) ->
             riak_core_node_watcher_events:service_update(AffectedServices)
     end,
     broadcast(State#state.peers, State).
+
+peers_update(NewPeers, State) ->
+    %% Identify what peers have been added and deleted
+    Added   = ordsets:subtract(NewPeers, State#state.peers),
+    Deleted = ordsets:subtract(State#state.peers, NewPeers),
+
+    %% For peers that have been deleted, remove their entries from
+    %% the ETS table; we no longer care about their status
+    Services0 = (lists:foldl(fun(Node, Acc) ->
+                                    S = node_delete(Node),
+                                    S ++ Acc
+                            end, [], Deleted)),
+    Services = ordsets:from_list(Services0),
+
+    %% Notify local parties if any services are affected by this change
+    case Services of
+        [] ->
+            ok;
+        _  ->
+            riak_core_node_watcher_events:service_update(Services)
+    end,
+
+    %% Broadcast our current status to new peers
+    broadcast(Added, State#state { peers = NewPeers }).
+
