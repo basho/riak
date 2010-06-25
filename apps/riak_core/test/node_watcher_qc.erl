@@ -174,7 +174,21 @@ postcondition(S, {call, _, local_node_down, _}, _Res) ->
     deep_validate(S2);
 
 postcondition(S, {call, _, remote_service_up, [Node, Services]}, _Res) ->
-    ?assertEqual([], broadcasts()),
+    %% If the remote service WAS down, expect a broadcast to it, otherwise no
+    %% bcast should be present
+    Bcasts = broadcasts(),
+    case is_peer(Node, S) andalso not is_node_up(Node, S) of
+        true ->
+            case is_node_up(node(), S) of
+                true ->
+                    ExpServices = services(node(), S),
+                    ?assertEqual({{up, node(), ExpServices}, [Node]}, hd(Bcasts));
+                false ->
+                    ?assertEqual({{down, node()}, [Node]}, hd(Bcasts))
+            end;
+        false ->
+            ?assertEqual([], Bcasts)
+    end,
     S2 = peer_up(Node, Services, S),
     deep_validate(S2);
 

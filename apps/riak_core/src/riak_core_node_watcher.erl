@@ -164,8 +164,8 @@ handle_cast({ring_update, R}, State) ->
     {noreply, update_avsn(S2)};
 
 handle_cast({up, Node, Services}, State) ->
-    node_up(Node, Services, State),
-    {noreply, update_avsn(State)};
+    S2 = node_up(Node, Services, State),
+    {noreply, update_avsn(S2)};
 
 handle_cast({down, Node}, State) ->
     node_down(Node, State),
@@ -270,18 +270,32 @@ schedule_broadcast(State) ->
 is_peer(Node, State) ->
     ordsets:is_element(Node, State#state.peers).
 
+is_node_up(Node) ->
+    ets:member(?MODULE, Node).
+
 
 node_up(Node, Services, State) ->
     case is_peer(Node, State) of
         true ->
+            %% Before we alter the ETS table, see if this node was previously down. In
+            %% that situation, we'll go ahead broadcast out.
+            S2 = case is_node_up(Node) of
+                     false ->
+                         broadcast([Node], State);
+                     true ->
+                         State
+                 end,
+
             case node_update(Node, Services) of
                 [] ->
                     ok;
                 AffectedServices ->
                     riak_core_node_watcher_events:service_update(AffectedServices)
-            end;
+            end,
+            S2;
+
         false ->
-            ok
+            State
     end.
 
 node_down(Node, State) ->
@@ -301,6 +315,7 @@ node_down(Node, State) ->
 node_delete(Node) ->
     Services = services(Node),
     ets:match_delete(?MODULE, {{Node, '_'}, '_'}),
+    ets:delete(?MODULE, Node),
     Services.
 
 node_update(Node, Services) ->
