@@ -20,7 +20,6 @@
           req_id :: non_neg_integer()}).
 
 -record(riak_kv_map_req_v1, {
-          client_pid :: pid(),
           bkey :: {binary(), binary()},
           qterm :: term(),
           keydata :: term()}).

@@ -32,11 +32,16 @@
 
 %% @private
 
-%% rewrite_cast({vnode_map, {Partition,_Node},
-%%              {ClientPid,QTerm,BKey,KeyData}}, State) ->
-%%     Pid = get_vnode(Partition, State),
-%%     gen_fsm:send_event(Pid, {map, ClientPid, QTerm, BKey, KeyData}),
-%%     {noreply, State};
+rewrite_cast({vnode_map, {Partition,_Node},
+             {ClientPid,QTerm,BKey,KeyData}}) ->
+    Req = riak_core_vnode_master:make_request(
+            ?KV_MAP_REQ{
+               qterm = QTerm,
+               bkey = BKey,
+               keydata = KeyData},
+            {fsm, undefined, ClientPid},
+            Partition),
+    {ok, Req};
 rewrite_cast({vnode_put, {Partition,_Node},
               {FSM_pid,BKey,RObj,ReqID,FSMTime,Options}}) ->
     Req = riak_core_vnode_master:make_request(
@@ -180,6 +185,24 @@ legacy_kv_test_() ->
             receive
                 Msg ->
                     ?assertEqual({'$gen_event',{kl,[],0,789}}, Msg)
+            after
+                100 ->
+                    ?assert(false)
+            end
+        end)},
+       {"map", ?_test(
+        begin
+            FunTerm = {qfun, fun(Obj, _KeyData, _Arg) -> Obj end},
+            Arg = arg, 
+            QTerm = {erlang, {map, FunTerm, Arg, acc}},
+            KeyData = keydata,
+
+            BKey = {<<"bucket">>,<<"notakey">>},
+            send_0_11_0_cmd(vnode_map, {self(),QTerm,BKey,KeyData}),
+            receive
+                Msg ->
+                    {'$gen_event',{mapexec_reply, Result,_Pid}} = Msg,
+                    ?assertEqual({error, notfound}, Result)
             after
                 100 ->
                     ?assert(false)
