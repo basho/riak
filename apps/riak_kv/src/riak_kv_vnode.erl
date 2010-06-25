@@ -51,10 +51,10 @@ list_keys(Preflist, Bucket, ReqId) ->
 map(Preflist, ClientPid, QTerm, BKey, KeyData) ->
     riak_core_vnode_master:command(Preflist,
                                    ?KV_MAP_REQ{
-                                      client_pid=ClientPid,
                                       qterm=QTerm,
                                       bkey=BKey,
                                       keydata=KeyData},
+                                   {fsm, undefined, ClientPid},
                                    riak_kv_vnode_master).
 
 purge_mapcaches() ->
@@ -99,10 +99,9 @@ handle_command(?KV_DELETE_REQ{bkey=BKey, req_id=ReqId}, _Sender,
         {error, _Reason} ->
             {reply, {fail, Idx, ReqId}, NewState}
     end;
-handle_command(?KV_MAP_REQ{client_pid=ClientPid,bkey=BKey,qterm=QTerm,keydata=KeyData},
-               _Sender, State) ->
-    NewState = do_map(ClientPid,QTerm,BKey,KeyData,State,self()),
-    {noreply, NewState};
+handle_command(?KV_MAP_REQ{bkey=BKey,qterm=QTerm,keydata=KeyData},
+               Sender, State) ->
+    do_map(Sender,QTerm,BKey,KeyData,State,self());
 
 %% Commands originating from inside this vnode
 handle_command({mapcache, BKey,{FunName,Arg,KeyData}, MF_Res}, _Sender,
@@ -249,8 +248,8 @@ do_list_bucket(ReqID,Bucket,Mod,ModState,Idx,State) ->
     {reply, {kl, RetVal, Idx, ReqID}, State}.
 
 %% @private
-do_map(ClientPid, QTerm, BKey, KeyData, #state{mod=Mod, modstate=ModState, mapcache=Cache}=State, VNode) ->
-    {Reply, NewState} = case do_map(QTerm, BKey, Mod, ModState, KeyData, Cache, VNode, ClientPid) of
+do_map(Sender, QTerm, BKey, KeyData, #state{mod=Mod, modstate=ModState, mapcache=Cache}=State, VNode) ->
+    {Reply, NewState} = case do_map(QTerm, BKey, Mod, ModState, KeyData, Cache, VNode, Sender) of
                             map_executing ->
                                 {{mapexec_reply, executing, self()}, State};
                             {ok, Retval} ->
@@ -258,9 +257,9 @@ do_map(ClientPid, QTerm, BKey, KeyData, #state{mod=Mod, modstate=ModState, mapca
                             {error, Error} ->
                                 {{mapexec_error, self(), Error}, State}
                         end,
-    gen_fsm:send_event(ClientPid, Reply),
-    NewState.
-do_map({erlang, {map, FunTerm, Arg, _Acc}}, BKey, Mod, ModState, KeyData, Cache, VNode, _ClientPid) ->
+    {reply, Reply, NewState}.
+
+do_map({erlang, {map, FunTerm, Arg, _Acc}}, BKey, Mod, ModState, KeyData, Cache, VNode, _Sender) ->
     CacheKey = build_key(FunTerm, Arg, KeyData),
     CacheVal = cache_fetch(BKey, CacheKey, Cache),
     case CacheVal of
@@ -269,7 +268,7 @@ do_map({erlang, {map, FunTerm, Arg, _Acc}}, BKey, Mod, ModState, KeyData, Cache,
         CV ->
             {ok, CV}
     end;
-do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData, Cache, _VNode, ClientPid) ->
+do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData, Cache, _VNode, Sender) ->
     CacheKey = build_key(FunTerm, Arg, KeyData),
     CacheVal = cache_fetch(BKey, CacheKey, Cache),
     case CacheVal of
@@ -277,7 +276,7 @@ do_map({javascript, {map, FunTerm, Arg, _}=QTerm}, BKey, Mod, ModState, KeyData,
             case Mod:get(ModState, BKey) of
                 {ok, Binary} ->
                     V = binary_to_term(Binary),
-                    riak_kv_js_manager:dispatch({ClientPid, QTerm, V, KeyData, BKey}),
+                    riak_kv_js_manager:dispatch({Sender, QTerm, V, KeyData, BKey}),
                     map_executing;
                 {error, notfound} ->
                     {error, notfound}
