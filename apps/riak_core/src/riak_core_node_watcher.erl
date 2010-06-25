@@ -41,6 +41,7 @@
                  services = [],
                  peers = [],
                  avsn = 0,
+                 bcast_tref,
                  bcast_mod = {gen_server, abcast}}).
 
 
@@ -123,8 +124,8 @@ handle_call({service_up, Id, Pid}, _From, State) ->
     erlang:put(Id, Mref),
 
     %% Update our local ETS table and broadcast
-    local_update(S2),
-    {reply, ok, update_avsn(S2)};
+    S3 = local_update(S2),
+    {reply, ok, update_avsn(S3)};
 
 handle_call({service_down, Id}, _From, State) ->
     %% Update the set of active services locally
@@ -135,22 +136,20 @@ handle_call({service_down, Id}, _From, State) ->
     delete_service_mref(Id),
 
     %% Update local ETS table and broadcast
-    local_update(S2),
-    {reply, ok, update_avsn(S2)};
+    S3 = local_update(S2),
+    {reply, ok, update_avsn(S3)};
 
 handle_call({node_status, Status}, _From, State) ->
     Transition = {State#state.status, Status},
-    case Transition of
-        {up, down} -> %% up -> down
-            S2 = State#state { status = down },
-            local_delete(S2);
+    S2 = case Transition of
+             {up, down} -> %% up -> down
+                 local_delete(State#state { status = down });
 
-        {down, up} -> %% down -> up
-            S2 = State#state { status = up },
-            local_update(S2);
+             {down, up} -> %% down -> up
+                 local_update(State#state { status = up });
 
-        {Status, Status} -> %% noop
-            S2 = State
+             {Status, Status} -> %% noop
+                 State
     end,
     {reply, ok, update_avsn(S2)}.
 
@@ -161,8 +160,8 @@ handle_cast({ring_update, R}, State) ->
     Peers0 = ordsets:from_list(riak_core_ring:all_members(R)),
     Peers = ordsets:del_element(node(), Peers0),
     NewPeers = ordsets:subtract(Peers, State#state.peers),
-    broadcast(NewPeers, State),
-    {noreply, update_avsn(State#state { peers = Peers })};
+    S2 = broadcast(NewPeers, State),
+    {noreply, update_avsn(S2#state { peers = Peers })};
 
 handle_cast({up, Node, Services}, State) ->
     AffectedServices = node_update(Node, Services),
@@ -206,7 +205,11 @@ handle_info({'DOWN', Mref, _, _Pid, _Info}, State) ->
 handle_info({gen_event_EXIT, _, _}, State) ->
     %% Ring event handler has been removed for some reason; re-register
     watch_for_ring_events(),
-    {noreply, update_avsn(State)}.
+    {noreply, update_avsn(State)};
+
+handle_info(broadcast, State) ->
+    S2 = broadcast(State#state.peers, State),
+    {noreply, S2}.
 
 
 terminate(_Reason, State) ->
@@ -245,7 +248,6 @@ delete_service_mref(Id) ->
     end.
 
 
-
 broadcast(Nodes, State) ->
     case (State#state.status) of
         up ->
@@ -254,7 +256,20 @@ broadcast(Nodes, State) ->
             Msg = {down, node()}
     end,
     {Mod, Fn} = State#state.bcast_mod,
-    Mod:Fn(Nodes, ?MODULE, Msg).
+    Mod:Fn(Nodes, ?MODULE, Msg),
+    schedule_broadcast(State).
+
+
+schedule_broadcast(State) ->
+    case (State#state.bcast_tref) of
+        undefined ->
+            ok;
+        OldTref ->
+            erlang:cancel_timer(OldTref)
+    end,
+    Interval = app_helper:get_env(riak_core, gossip_interval),
+    Tref = erlang:send_after(Interval, self(), broadcast),
+    State#state { bcast_tref = Tref }.
 
 
 node_delete(Node) ->
@@ -284,29 +299,28 @@ node_update(Node, Services) ->
     %% Return the list of affected services (added or deleted)
     ordsets:union(Added, Deleted).
 
-local_update(#state { status = down }) ->
+local_update(#state { status = down } = State) ->
     %% Ignore subsystem changes when we're marked as down
-    ok;
+    State;
 local_update(State) ->
     %% Update our local ETS table
     case node_update(node(), State#state.services) of
         [] ->
             %% No material changes; nothing to broadcast
-            ok;
+            State;
 
         AffectedServices ->
             %% Generate a local notification about the affected services and
             %% also broadcast our status
             riak_core_node_watcher_events:service_update(AffectedServices),
-            broadcast(State#state.peers, State),
-            ok
+            broadcast(State#state.peers, State)
     end.
 
 local_delete(State) ->
     case node_delete(node()) of
         [] ->
             %% No services changed; no local notification required
-            ok;
+            State;
 
         AffectedServices ->
             riak_core_node_watcher_events:service_update(AffectedServices)

@@ -45,6 +45,7 @@ prop_main() ->
     ?FORALL(Cmds, commands(?MODULE),
             begin
                 %% Start the watcher and supporting processes
+                application:load(riak_core),
                 riak_core_ring_events:start_link(),
                 riak_core_node_watcher_events:start_link(),
                 {ok, Pid} = riak_core_node_watcher:start_link(),
