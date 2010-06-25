@@ -86,9 +86,9 @@ initialize(timeout, StateData0=#state{timeout=Timeout, r=R0, req_id=ReqId,
                 % Sent is [{Index,TargetNode,SentNode}]
                 case length(Sent1) =:= N of   
                     true -> Sent1;
-                    false -> Sent1 ++ riak_kv_util:fallback(vnode_get,
+                    false -> Sent1 ++ riak_kv_util:fallback(vnode_get, Msg,
                                                             UpNodes,
-                                                            Msg,Pangs1,
+                                                            Pangs1,
                                                             Fallbacks)
                 end,
             StateData = StateData0#state{n=N,r=R,
