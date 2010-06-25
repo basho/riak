@@ -101,7 +101,7 @@ init([]) ->
     %% Setup ETS table to track node status
     ets:new(?MODULE, [protected, named_table]),
 
-    {ok, #state{}}.
+    {ok, schedule_broadcast(#state{})}.
 
 handle_call({set_bcast_mod, Module, Fn}, _From, State) ->
     %% Call available for swapping out how broadcasts are generated
@@ -259,7 +259,6 @@ broadcast(Nodes, State) ->
     Mod:Fn(Nodes, ?MODULE, Msg),
     schedule_broadcast(State).
 
-
 schedule_broadcast(State) ->
     case (State#state.bcast_tref) of
         undefined ->
@@ -306,15 +305,15 @@ local_update(State) ->
     %% Update our local ETS table
     case node_update(node(), State#state.services) of
         [] ->
-            %% No material changes; nothing to broadcast
-            State;
+            %% No material changes; no local notification necessary
+            ok;
 
         AffectedServices ->
             %% Generate a local notification about the affected services and
             %% also broadcast our status
-            riak_core_node_watcher_events:service_update(AffectedServices),
-            broadcast(State#state.peers, State)
-    end.
+            riak_core_node_watcher_events:service_update(AffectedServices)
+    end,
+    broadcast(State#state.peers, State).
 
 local_delete(State) ->
     case node_delete(node()) of

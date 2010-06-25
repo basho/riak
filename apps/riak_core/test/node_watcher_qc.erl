@@ -39,16 +39,28 @@
 -define(ORDSET(L), ordsets:from_list(L)).
 
 qc_test_() ->
-    {timeout, 60, fun() -> ?assert(eqc:quickcheck(?QC_OUT(prop_main()))) end}.
+    {timeout, 120, fun() -> ?assert(eqc:quickcheck(?QC_OUT(prop_main()))) end}.
 
 prop_main() ->
+    %% Initialize necessary env settings
+    application:load(riak_core),
+    application:set_env(riak_core, gossip_interval, 250),
+
+    %% Start supporting processes
+    riak_core_ring_events:start_link(),
+    riak_core_node_watcher_events:start_link(),
+
     ?FORALL(Cmds, commands(?MODULE),
             begin
-                %% Start the watcher and supporting processes
-                application:load(riak_core),
-                riak_core_ring_events:start_link(),
-                riak_core_node_watcher_events:start_link(),
+                %% Setup ETS table to recv broadcasts
+                ets:new(?MODULE, [ordered_set, named_table, public]),
+                ets:insert_new(?MODULE, {bcast_id, 0}),
+
+                %% Start the watcher
                 {ok, Pid} = riak_core_node_watcher:start_link(),
+
+                %% Internal call to the node watcher to override default broadcast mechanism
+                gen_server:call(riak_core_node_watcher, {set_bcast_mod, ?MODULE, on_broadcast}),
 
                 %% Run the test
                 {_H, _S, Res} = run_commands(?MODULE, Cmds),
@@ -56,6 +68,9 @@ prop_main() ->
                 %% Unlink and kill our PID
                 unlink(Pid),
                 kill_and_wait(Pid),
+
+                %% Delete the ETS table
+                ets:delete(?MODULE),
 
                 case Res of
                     ok -> ok;
@@ -81,11 +96,14 @@ command(S) ->
            {call, ?MODULE, local_node_down, []},
            {call, ?MODULE, remote_service_up, [g_node(), g_services()]},
            {call, ?MODULE, remote_service_down, [g_node()]},
-           {call, ?MODULE, remote_service_down_disterl, [g_node()]}
+           {call, ?MODULE, remote_service_down_disterl, [g_node()]},
+           {call, ?MODULE, wait_for_bcast, []}
           ]).
 
 precondition(S, {call, _, local_service_kill, [Service, S]}) ->
     orddict:is_key(Service, S#state.service_pids);
+precondition(S, {call, _, wait_for_bcast, _}) ->
+    is_node_up(node(), S);
 precondition(_, _) ->
     true.
 
@@ -117,42 +135,54 @@ next_state(S, _Res, {call, _, remote_service_up, [Node, Services]}) ->
 
 next_state(S, _Res, {call, _, Fn, [Node]})
   when Fn == remote_service_down; Fn == remote_service_down_disterl ->
-    node_down(Node, S).
+    node_down(Node, S);
+
+next_state(S, _Res, {call, _, wait_for_bcast, _}) ->
+    S.
 
 
 
 
 postcondition(S, {call, _, local_service_up, [Service]}, _Res) ->
     S2 = service_up(node(), Service, S),
+    validate_broadcast(S, S2, service),
     deep_validate(S2);
 
 postcondition(S, {call, _, local_service_down, [Service]}, _Res) ->
     S2 = service_down(node(), Service, S),
+    validate_broadcast(S, S2, service),
     deep_validate(S2);
 
 postcondition(S, {call, _, local_service_kill, [Service, _]}, _Res) ->
     S2 = service_down(node(), Service, S),
+    validate_broadcast(S, S2, service),
     deep_validate(S2);
 
 postcondition(S, {call, _, local_node_up, _}, _Res) ->
     S2 = node_up(node(), S),
+    validate_broadcast(S, S2, node),
     deep_validate(S2);
 
 postcondition(S, {call, _, local_node_down, _}, _Res) ->
     S2 = node_down(node(), S),
+    validate_broadcast(S, S2, node),
     deep_validate(S2);
 
 postcondition(S, {call, _, remote_service_up, [Node, Services]}, _Res) ->
+    ?assertEqual([], broadcasts()),
     S2 = node_up(Node, services_up(Node, Services, S)),
     deep_validate(S2);
 
 postcondition(S, {call, _, Fn, [Node]}, _Res)
   when Fn == remote_service_down; Fn == remote_service_down_disterl ->
+    ?assertEqual([], broadcasts()),
     S2 = node_down(Node, S),
     deep_validate(S2);
 
-postcondition(_S, _Call, _Res) ->
-    true.
+postcondition(S, {call, _, wait_for_bcast, _}, _Res) ->
+    validate_broadcast(S, S, service).
+
+
 
 
 deep_validate(S) ->
@@ -166,6 +196,27 @@ deep_validate(S) ->
     ExpNodes = ?ORDSET([snodes(Svc, S) || Svc <- ExpAllServices]),
     ActNodes = ?ORDSET([?ORDSET(riak_core_node_watcher:nodes(Svc)) || Svc <- ExpAllServices]),
     ?assertEqual(ExpNodes, ActNodes),
+    true.
+
+validate_broadcast(S0, Sfinal, Op) ->
+    Bcasts = broadcasts(),
+    Transition = {is_node_up(node(), S0), is_node_up(node(), Sfinal), Op},
+%    io:format(user, "Transition: ~p\n", [Transition]),
+    case Transition of
+        {false, true, _} -> %% down -> up
+            ExpServices = services(node(), Sfinal),
+            ?assertEqual({{up, node(), ExpServices}, []}, hd(Bcasts));
+
+        {true, false, _} -> %% up -> down
+            ?assertEqual({{down, node()}, []}, hd(Bcasts));
+
+        {true, true, service} -> %% up -> up (service change)
+            ExpServices = services(node(), Sfinal),
+            ?assertEqual({{up, node(), ExpServices}, []}, hd(Bcasts));
+
+        _ ->
+            ?assertEqual([], Bcasts)
+    end,
     true.
 
 
@@ -222,6 +273,9 @@ remote_service_down_disterl(Node) ->
     riak_core_node_watcher ! {nodedown, Node},
     wait_for_avsn(Avsn0).
 
+wait_for_bcast() ->
+    {ok, Interval} = application:get_env(riak_core, gossip_interval),
+    timer:sleep(Interval + 50).
 
 
 %% ====================================================================
@@ -278,6 +332,16 @@ all_services(Node, S) ->
 %% ====================================================================
 %% Internal functions
 %% ====================================================================
+
+on_broadcast(Nodes, _Name, Msg) ->
+    Id = ets:update_counter(?MODULE, bcast_id, {2, 1}),
+    ets:insert_new(?MODULE, {Id, Msg, Nodes}).
+
+broadcasts() ->
+    Bcasts = [list_to_tuple(L) || L <- ets:match(?MODULE, {'_', '$1', '$2'})],
+    ets:match_delete(?MODULE, {'_', '_', '_'}),
+    Bcasts.
+
 
 kill_and_wait(Pid) ->
     Mref = erlang:monitor(process, Pid),
