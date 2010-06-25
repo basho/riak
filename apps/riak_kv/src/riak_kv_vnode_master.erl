@@ -85,6 +85,9 @@ handle_cast({add_exclusion, Partition}, State=#state{excl=Excl}) ->
     {noreply, State#state{excl=ordsets:add_element(Partition, Excl)}}.
 
 %% @private
+handle_call({start_vnode, Partition}, _From, State=#state{excl=Excl}) ->
+    _Pid = get_vnode(Partition, State),
+    {reply, ok, State#state{excl=ordsets:del_element(Partition, Excl)}};
 handle_call(all_possible_vnodes, _From, State) ->
     {reply, make_all_active(State), State};
 handle_call(all_vnodes, _From, State) ->
