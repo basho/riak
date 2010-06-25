@@ -107,10 +107,9 @@ fallback(Cmd, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
 
 -spec make_request(vnode_req(), partition()) -> #riak_vnode_req_v1{}.
 make_request(Request, Index) ->
-    #riak_vnode_req_v1{
-              index=Index,
-              sender={fsm, make_ref(), self()},
-              request=Request}.
+    riak_core_vnode_master:make_request(Request,
+                                        {fsm, undefined, self()},
+                                        Index).
 
 get_default_rw_val(Type, BucketProps) ->
     {ok, DefaultProps} = application:get_env(riak_core, default_bucket_props),

@@ -110,19 +110,23 @@ code_change(_OldVsn, StateName, State, _Extra) ->
 
 
 
-
+%% @doc Send a reply to a vnode request.  If 
+%%      the Ref is undefined just send the reply
+%%      for compatibility with pre-0.12 requestors.
+%%      If Ref is defined, send it along with the
+%%      reply.
+%%      
 -spec reply(sender(), term()) -> true.
-reply({Type, Ref, From}, Reply) ->
-    case Type of
-        fsm ->
-            %% Perhaps this should send {Ref, Reply}
-            gen_fsm:send_event(From, Reply);
-        server ->
-            %% Do not send the Ref - included in the 
-            gen_server:reply(From, Reply);
-        raw ->
-            From ! {Ref, Reply}
-    end.
+reply({fsm, undefined, From}, Reply) ->
+    gen_fsm:send_event(From, Reply);
+reply({fsm, Ref, From}, Reply) ->
+    gen_fsm:send_event(From, {Ref, Reply});
+reply({server, undefined, From}, Reply) ->
+    gen_server:reply(From, Reply);
+reply({server, Ref, From}, Reply) ->
+    gen_server:reply(From, {Ref, Reply});
+reply({raw, Ref, From}, Reply) ->
+    From ! {Ref, Reply}.
                    
 
 test(K, V) ->
