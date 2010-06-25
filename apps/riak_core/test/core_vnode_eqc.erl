@@ -38,7 +38,7 @@
                counters}).% Dict of counters for each index
                
 simple_test() ->
-    ?assertEqual(true, quickcheck(prop_simple())).
+    simple_test(100).
 
 simple_test(N) ->
     ?assertEqual(true, quickcheck(numtests(N, prop_simple()))).

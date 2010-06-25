@@ -123,13 +123,19 @@ start_servers() ->
     application:set_env(riak_core, default_bucket_props, []),
     Ring = riak_core_ring:fresh(16, node()),
     mochiglobal:put(?RING_KEY, Ring),
+    riak_kv_test_util:stop_process(riak_kv_vnode_master),
+    riak_kv_test_util:stop_process(riak_core_vnode_sup),
     {ok, _Sup} = riak_core_vnode_sup:start_link(),
     {ok, _Vmaster} = riak_core_vnode_master:start_link(riak_kv_vnode, ?MODULE),
     ok.
 
+stop_servers(_R) ->
+    riak_kv_test_util:stop_process(riak_kv_vnode_master),
+    riak_kv_test_util:stop_process(riak_core_vnode_sup).
+
 legacy_kv_test_() ->
     {spawn,
-     {setup, fun start_servers/0,
+     {setup, fun start_servers/0, fun stop_servers/1,
       [{"get", ?_test(
         begin
             send_0_11_0_cmd(vnode_get, {self(), {<<"bucket">>,<<"key">>}, 123}),

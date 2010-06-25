@@ -385,13 +385,16 @@ mapcache_delete_test() ->
     %% The put request generates a {w,...} and {dw,...} event
     flush_msgs().
 
-purge_mapcaches_test_() ->
-    {spawn,
-     ?_test(
-        begin
+purge_mapcaches_test() ->
             dummy_backend(),
 
+            %%
             %% Start up 3 vnodes
+            %%
+            
+            %% make sure we create the registered processes - no test hangovers
+            riak_kv_test_util:stop_process(riak_core_vnode_sup),
+            riak_kv_test_util:stop_process(riak_kv_vnode_master),
             {ok, _Sup} = riak_core_vnode_sup:start_link(),
             {ok, _VMaster} = riak_core_vnode_master:start_link(riak_kv_vnode),
             Partitions = lists:seq(0,2),
@@ -420,8 +423,10 @@ purge_mapcaches_test_() ->
             purge_mapcaches(),
 
             %% Check it is gone
-            [check_mapcache(I, QTerm, BKey, KeyData, {error, notfound}) || I <- Partitions]
-        end)}.
+            [check_mapcache(I, QTerm, BKey, KeyData, {error, notfound}) || I <- Partitions],
+    
+    riak_kv_test_util:stop_process(riak_core_vnode_sup),
+    riak_kv_test_util:stop_process(riak_kv_vnode_master).
      
 check_mapcache(Index, QTerm, BKey, KeyData, Expect) ->
     map({Index,node()}, self(), QTerm, BKey, KeyData),
