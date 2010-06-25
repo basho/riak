@@ -65,7 +65,7 @@ case "$1" in
         fi
         export HEART_COMMAND="$RUNNER_BASE_DIR/bin/$SCRIPT start"
         mkdir -p $PIPE_DIR
-        $ERTS_PATH/run_erl -daemon $PIPE_DIR $RUNNER_LOG_DIR "exec $RUNNER_BASE_DIR/bin/$SCRIPT console" 2>&1
+        $ERTS_PATH/run_erl -daemon $PIPE_DIR/ $RUNNER_LOG_DIR "exec $RUNNER_BASE_DIR/bin/$SCRIPT console" 2>&1
         ;;
 
     stop)

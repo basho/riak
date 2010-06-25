@@ -19,7 +19,7 @@
 %% under the License.
 %%
 %% -------------------------------------------------------------------
--module(riak_core_ring_events).
+-module(riak_core_node_watcher_events).
 
 -behaviour(gen_event).
 
@@ -29,7 +29,7 @@
          add_sup_handler/2,
          add_callback/1,
          add_sup_callback/1,
-         ring_update/1]).
+         service_update/1]).
 
 %% gen_event callbacks
 -export([init/1, handle_event/2, handle_call/2,
@@ -56,8 +56,8 @@ add_callback(Fn) when is_function(Fn) ->
 add_sup_callback(Fn) when is_function(Fn) ->
     gen_event:add_sup_handler(?MODULE, {?MODULE, make_ref()}, [Fn]).
 
-ring_update(Ring) ->
-    gen_event:notify(?MODULE, {ring_update, Ring}).
+service_update(Services) ->
+    gen_event:notify(?MODULE, {service_update, Services}).
 
 
 %% ===================================================================
@@ -65,12 +65,12 @@ ring_update(Ring) ->
 %% ===================================================================
 
 init([Fn]) ->
-    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-    Fn(Ring),
+    %% Get the initial list of available services
+    Fn(riak_core_node_watcher:services()),
     {ok, #state { callback = Fn }}.
 
-handle_event({ring_update, Ring}, State) ->
-    (State#state.callback)(Ring),
+handle_event({service_update, Services}, State) ->
+    (State#state.callback)(Services),
     {ok, State}.
 
 handle_call(_Request, State) ->
