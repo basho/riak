@@ -144,7 +144,7 @@ start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) -
     case Mod:is_empty(ModState) of
         {true, NewModState} ->
             {stop, Reason, NewModState1} = Mod:delete_and_exit(NewModState),
-            riak_core_handoff_manager:add_exclusion(?MODULE, Idx),
+            riak_core_handoff_manager:add_exclusion(Mod, Idx),
             {stop, Reason, State#state{modstate=NewModState1}};
         {false, NewModState} ->  
             case riak_core_handoff_manager:get_handoff_lock({Mod, Idx}) of
