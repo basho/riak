@@ -45,7 +45,6 @@ start_fold(TargetNode, Module, Partition, BKeyList, ParentPid) ->
                                     {active, once}], 15000),
     VMaster = list_to_atom(atom_to_list(Module) ++ "_master"),
     ModBin = atom_to_binary(Module, utf8),
-    
     M = <<0:8,Partition:160/integer,ModBin/binary>>,
     ok = gen_tcp:send(Socket, M),
     case BKeyList of

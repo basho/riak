@@ -93,8 +93,9 @@ active(timeout, State=#state{mod=Mod, modstate=ModState}) ->
 active(?VNODE_REQ{sender=Sender, request=Request}, State) ->
     vnode_command(Sender, Request, State);
 active(handoff_complete, State=#state{mod=Mod, index=Idx, handoff_token=HT}) ->
+    io:format("handoff complete for index ~p~n", [Idx]),
     riak_core_handoff_manager:release_handoff_lock({Mod, Idx}, HT),
-    continue(State).
+    active(timeout, State).
 
 active(_Event, _From, State) ->
     Reply = ok,
@@ -143,12 +144,14 @@ should_handoff(#state{index=Idx}) ->
 start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) ->
     case Mod:is_empty(ModState) of
         {true, NewModState} ->
+            io:format("delete and exit for idx ~p~n", [Idx]),
             {stop, Reason, NewModState1} = Mod:delete_and_exit(NewModState),
             riak_core_handoff_manager:add_exclusion(Mod, Idx),
             {stop, Reason, State#state{modstate=NewModState1}};
         {false, NewModState} ->  
             case riak_core_handoff_manager:get_handoff_lock({Mod, Idx}) of
                 {error, max_concurrency} ->
+                    io:format("failed to get lock for ~p~n", [Idx]),
                     {ok, NewModState1} = Mod:handoff_cancelled(NewModState),
                     NewState = State#state{modstate=NewModState1},
                     {next_state, active, NewState, ?LOCK_RETRY_TIMEOUT};

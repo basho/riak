@@ -1,5 +1,5 @@
 -module(riak_kv_vnode).
--export([start_vnode/1, del/3, put/6, list_keys/3,map/5]).
+-export([start_vnode/1, del/3, put/6, list_keys/3,map/5, fold/3]).
 -export([purge_mapcaches/0,mapcache/4]).
 -export([start_handoff/2, is_empty/1, delete_and_exit/1]).
 -export([handoff_cancelled/1, handle_handoff_data/3]).
@@ -60,6 +60,13 @@ map(Preflist, ClientPid, QTerm, BKey, KeyData) ->
                                       keydata=KeyData},
                                    {fsm, undefined, ClientPid},
                                    riak_kv_vnode_master).
+
+fold(Preflist, Fun, Acc0) ->
+    riak_core_vnode_master:sync_spawn_command(Preflist,
+                                              ?FOLD_REQ{
+                                                 foldfun=Fun,
+                                                 acc0=Acc0},
+                                              riak_kv_vnode_master).
 
 purge_mapcaches() ->
     VNodes = riak_core_vnode_master:all_nodes(?MODULE),

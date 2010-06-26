@@ -34,7 +34,7 @@ get_handoff_lock(LockId, Count) ->
     end.    
 
 release_handoff_lock(LockId, Token) ->
-    global:del_lock({Token, {node(), LockId}}, [node()]).
+    global:del_lock({{handoff_token,Token}, {node(), LockId}}, [node()]).
     
 handle_call({get_exclusions, Module}, _From, State=#state{excl=Excl}) ->
     Reply =  [I || {M, I} <- ordsets:to_list(Excl), M =:= Module],
