@@ -55,7 +55,7 @@ send_command_after(Time, Request) ->
 init([Mod, Index]) ->
     %%TODO: Should init args really be an array if it just gets Init?
     {ok, ModState} = Mod:init([Index]),
-    {ok, active, #state{index=Index, mod=Mod, modstate=ModState}}.
+    {ok, active, #state{index=Index, mod=Mod, modstate=ModState}, 0}.
 
 get_mod_index(VNode) ->
     gen_fsm:sync_send_all_state_event(VNode, get_mod_index).
@@ -92,10 +92,18 @@ active(timeout, State=#state{mod=Mod, modstate=ModState}) ->
     end;
 active(?VNODE_REQ{sender=Sender, request=Request}, State) ->
     vnode_command(Sender, Request, State);
-active(handoff_complete, State=#state{mod=Mod, index=Idx, handoff_token=HT}) ->
-    io:format("handoff complete for index ~p~n", [Idx]),
+active(handoff_complete, State=#state{mod=Mod, modstate=ModState,
+                                      index=Idx, handoff_token=HT, handoff_q=HQ}) ->
     riak_core_handoff_manager:release_handoff_lock({Mod, Idx}, HT),
-    active(timeout, State).
+    case HQ of
+        [] ->
+            Mod:delete_and_exit(ModState),
+            riak_core_handoff_manager:add_exclusion(Mod, Idx),
+            {stop, normal, State};
+        _ ->
+            %% XXX Blaire TODO: need to do "list handoff" here.
+            active(timeout, State)
+    end.
 
 active(_Event, _From, State) ->
     Reply = ok,
@@ -144,14 +152,12 @@ should_handoff(#state{index=Idx}) ->
 start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) ->
     case Mod:is_empty(ModState) of
         {true, NewModState} ->
-            io:format("delete and exit for idx ~p~n", [Idx]),
             {stop, Reason, NewModState1} = Mod:delete_and_exit(NewModState),
             riak_core_handoff_manager:add_exclusion(Mod, Idx),
             {stop, Reason, State#state{modstate=NewModState1}};
         {false, NewModState} ->  
             case riak_core_handoff_manager:get_handoff_lock({Mod, Idx}) of
                 {error, max_concurrency} ->
-                    io:format("failed to get lock for ~p~n", [Idx]),
                     {ok, NewModState1} = Mod:handoff_cancelled(NewModState),
                     NewState = State#state{modstate=NewModState1},
                     {next_state, active, NewState, ?LOCK_RETRY_TIMEOUT};
