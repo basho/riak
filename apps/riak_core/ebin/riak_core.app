@@ -18,6 +18,10 @@
              riak_core_bucket,
              riak_core_claim,
              riak_core_gossip,
+             riak_core_handoff_listener,
+             riak_core_handoff_manager,
+             riak_core_handoff_receiver,
+             riak_core_handoff_sender,
              riak_core_node_watcher,
              riak_core_node_watcher_events,
              riak_core_ring,
@@ -30,6 +34,7 @@
              riak_core_vnode_master,
              riak_core_vnode_sup,
              riak_core_web,
+             riakserver_pb,
              slide,
              spiraltime,
              vclock
@@ -70,7 +75,13 @@
                                  {last_write_wins,false},
                                  {precommit, []},
                                  {postcommit, []},
-                                 {chash_keyfun, {riak_core_util, chash_std_keyfun}}]}
+                                 {chash_keyfun, {riak_core_util, chash_std_keyfun}}]},
 
+         %% Number of VNodes allowed to do handoff concurrently.
+         {handoff_concurrency, 4},
+
+         %% Handoff IP/port
+         {handoff_port, 8099},
+         {handoff_ip, "0.0.0.0"}
         ]}
  ]}.

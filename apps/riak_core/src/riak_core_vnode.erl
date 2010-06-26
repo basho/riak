@@ -19,17 +19,24 @@
 -spec behaviour_info(atom()) -> 'undefined' | [{atom(), arity()}].
 behaviour_info(callbacks) ->
     [{init,1},
-     {handle_command,3}];
+     {handle_command,3},
+     {start_handoff,2},
+     {handoff_cancelled,2},
+     {handle_handoff_data,3},
+     {is_empty,1},
+     {delete_and_exit,1}];
 behaviour_info(_Other) ->
     undefined.
 
 -define(TIMEOUT, 60000).
+-define(LOCK_RETRY_TIMEOUT, 10000).
 
 -record(state, {
           index :: partition(),
           mod :: module(),
           modstate :: term(),
-          handoff_q = not_in_handoff :: not_in_handoff | list()}).
+          handoff_q = not_in_handoff :: not_in_handoff | list(),
+          handoff_token :: non_neg_integer()}).
 
 start_link(Mod, Index) ->
     gen_fsm:start_link(?MODULE, [Mod, Index], []).
@@ -58,6 +65,7 @@ continue(State) ->
 
 continue(State, NewModState) ->
     continue(State#state{modstate=NewModState}).
+    
 
 vnode_command(Sender, Request, State=#state{mod=Mod, modstate=ModState}) ->
     case Mod:handle_command(Request, Sender, ModState) of
@@ -70,23 +78,23 @@ vnode_command(Sender, Request, State=#state{mod=Mod, modstate=ModState}) ->
             {stop, Reason, State#state{modstate=NewModState}}
     end.
 
-active(timeout, State=#state{index=Idx}) ->
-    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-    Me = node(),
-    case riak_core_ring:index_owner(Ring, Idx) of
-        Me ->
-            continue(State);
-        TargetNode ->
-            case net_adm:ping(TargetNode) of
-                pang ->
-                    continue(State);
-                pong ->
-                    %% do handoff here
-                    continue(State)
-            end
+active(timeout, State=#state{mod=Mod, modstate=ModState}) ->
+    case should_handoff(State) of
+        {true, TargetNode} ->
+            case Mod:start_handoff(TargetNode, ModState) of
+                {true, NewModState} ->
+                    start_handoff(State#state{modstate=NewModState}, TargetNode);
+                {false, NewModState} ->
+                    continue(NewModState)
+            end;
+        false ->
+            continue(State)
     end;
 active(?VNODE_REQ{sender=Sender, request=Request}, State) ->
-    vnode_command(Sender, Request, State).
+    vnode_command(Sender, Request, State);
+active(handoff_complete, State=#state{mod=Mod, index=Idx, handoff_token=HT}) ->
+    riak_core_handoff_manager:release_handoff_lock({Mod, Idx}, HT),
+    continue(State).
 
 active(_Event, _From, State) ->
     Reply = ok,
@@ -97,7 +105,16 @@ handle_event(_Event, StateName, State) ->
 
 handle_sync_event(get_mod_index, _From, StateName,
                   State=#state{index=Idx,mod=Mod}) ->
-    {reply, {Mod, Idx}, StateName, State, ?TIMEOUT}.
+    {reply, {Mod, Idx}, StateName, State, ?TIMEOUT};
+handle_sync_event({diffobj,{BKey,BinObj}}, _From, StateName, 
+                  State=#state{mod=Mod, modstate=ModState}) ->
+    case Mod:handle_handoff_data(BKey, binary_to_term(BinObj), ModState) of
+        {reply, ok, NewModState} ->
+            {reply, ok, StateName, State#state{modstate=NewModState}, ?TIMEOUT};
+        {reply, {error, Err}, NewModState} ->
+            error_logger:error_msg("Error storing handoff obj: ~p~n", [Err]),            
+            {reply, {error, Err}, StateName, State#state{modstate=NewModState}, ?TIMEOUT}
+    end.
 
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State, ?TIMEOUT}.
@@ -108,7 +125,42 @@ terminate(_Reason, _StateName, _State) ->
 code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
+should_handoff(#state{index=Idx}) ->
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    Me = node(),
+    case riak_core_ring:index_owner(Ring, Idx) of
+        Me ->
+            false;
+        TargetNode ->
+            case net_adm:ping(TargetNode) of
+                pang ->
+                    false;
+                pong ->
+                    {true, TargetNode}
+            end
+    end.
 
+start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) ->
+    case Mod:is_empty(ModState) of
+        {true, NewModState} ->
+            {stop, Reason, NewModState1} = Mod:delete_and_exit(NewModState),
+            riak_core_handoff_manager:add_exclusion(?MODULE, Idx),
+            {stop, Reason, State#state{modstate=NewModState1}};
+        {false, NewModState} ->  
+            case riak_core_handoff_manager:get_handoff_lock({Mod, Idx}) of
+                {error, max_concurrency} ->
+                    {ok, NewModState1} = Mod:handoff_cancelled(NewModState),
+                    NewState = State#state{modstate=NewModState1},
+                    {next_state, active, NewState, ?LOCK_RETRY_TIMEOUT};
+                {ok, HandoffToken} ->
+                    NewState = State#state{modstate=NewModState, 
+                                           handoff_token=HandoffToken,
+                                           handoff_q=[]},
+                    riak_core_handoff_sender:start_link(TargetNode, Mod, Idx, all),
+                    {next_state, active, NewState, ?TIMEOUT}
+            end
+    end.
+            
 
 %% @doc Send a reply to a vnode request.  If 
 %%      the Ref is undefined just send the reply

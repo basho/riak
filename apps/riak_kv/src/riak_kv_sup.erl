@@ -45,9 +45,6 @@ init([]) ->
                {riak_core_vnode_master, start_link,
                 [riak_kv_vnode, riak_kv_legacy_vnode]},
                permanent, 5000, worker, [riak_core_vnode_master]},
-    HandoffListen = {riak_kv_handoff_listener,
-               {riak_kv_handoff_listener, start_link, []},
-               permanent, 5000, worker, [riak_kv_handoff_listener]},
     RiakPb = [{riak_kv_pb_listener,
                {riak_kv_pb_listener, start_link, []},
                permanent, 5000, worker, [riak_kv_pb_listener]},
@@ -74,7 +71,6 @@ init([]) ->
     % Build the process list...
     Processes = lists:flatten([
         ?IF(HasStorageBackend, VMaster, []),
-        HandoffListen,
         ?IF(IsPbConfigured, RiakPb, []),
         ?IF(IsStatEnabled, RiakStat, []),
         RiakJsSup,

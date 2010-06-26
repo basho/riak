@@ -22,33 +22,17 @@
 
 %% @doc send a partition's data via TCP-based handoff
 
--module(riak_kv_handoff_sender).
--export([start_link/3]).
+-module(riak_core_handoff_sender).
+-export([start_link/4]).
 -include("riakserver_pb.hrl").
 -define(ACK_COUNT, 1000).
 
-start_link(TargetNode, Partition, BKeyList) ->
-    TokenCount = app_helper:get_env(riak_kv, handoff_concurrency, 4),
-    case get_handoff_lock(Partition, TokenCount) of
-        {ok, HandoffToken} ->
-            Self = self(),
-            Pid = spawn_link(fun()->start_fold(TargetNode, Partition, BKeyList, Self) end),
-            {ok, Pid, HandoffToken};
-        {error, max_concurrency} ->
-            {error, locked}
-    end.
+start_link(TargetNode, Module, Partition, BKeyList) ->
+    Self = self(),
+    Pid = spawn_link(fun()->start_fold(TargetNode, Module,Partition, BKeyList, Self) end),
+    {ok, Pid}.
 
-get_handoff_lock(_Partition, 0) ->
-    {error, max_concurrency};
-get_handoff_lock(Partition, Count) ->
-    case global:set_lock({{handoff_token, Count}, {node(), Partition}}, [node()], 0) of
-        true ->
-            {ok, {handoff_token, Count}};
-        false ->
-            get_handoff_lock(Partition, Count-1)
-    end.
-
-start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
+start_fold(TargetNode, Module, Partition, BKeyList, ParentPid) ->
     error_logger:info_msg("Starting handoff of partition ~p to ~p~n", 
                           [Partition, TargetNode]),
     [_Name,Host] = string:tokens(atom_to_list(TargetNode), "@"),
@@ -58,7 +42,8 @@ start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
                                     {packet, 4}, 
                                     {header,1}, 
                                     {active, once}], 15000),
-    M = <<0:8,Partition:160/integer>>,
+    ModBin = atom_to_binary(Module, utf8),
+    M = <<0:8,Partition:160/integer,ModBin/binary>>,
     ok = gen_tcp:send(Socket, M),
     case BKeyList of
         all ->
@@ -104,7 +89,7 @@ visit_item({B,K}, V, {Socket, ParentPid, Acc}) ->
     
 
 get_handoff_port(Node) when is_atom(Node) ->
-    gen_server2:call({riak_kv_handoff_listener, Node}, handoff_port).
+    gen_server2:call({riak_core_handoff_listener, Node}, handoff_port).
 
 
 

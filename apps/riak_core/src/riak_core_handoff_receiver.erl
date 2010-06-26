@@ -22,7 +22,7 @@
 
 %% @doc incoming data handler for TCP-based handoff
 
--module(riak_kv_handoff_receiver).
+-module(riak_core_handoff_receiver).
 -include("riakserver_pb.hrl").
 -behaviour(gen_server2).
 
@@ -50,9 +50,10 @@ handle_info({tcp, _Sock, Data}, State=#state{sock=Socket}) ->
     {noreply, NewState}.
 
 process_message(0, MsgData, State) ->
-    <<Partition:160/integer>> = MsgData,
+    <<Partition:160/integer,VNodeModBin/binary>> = MsgData,
+    VNodeMod = binary_to_atom(VNodeModBin, utf8),
     error_logger:info_msg("Receiving handoff data for partition ~p~n", [Partition]),
-    {ok, VNode} = gen_server2:call(riak_kv_vnode_master, {get_vnode, Partition}, 60000),  
+    {ok, VNode} = riak_core_vnode_master:get_vnode_pid(Partition, VNodeMod),
     State#state{partition=Partition, vnode=VNode};
 process_message(1, MsgData, State=#state{vnode=VNode, count=Count}) ->
     % header of 1 is a riakobject_pb

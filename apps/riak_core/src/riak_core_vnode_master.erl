@@ -25,7 +25,7 @@
 -module(riak_core_vnode_master).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
 -behaviour(gen_server).
--export([start_link/1, start_link/2,
+-export([start_link/1, start_link/2, get_vnode_pid/2,
          start_vnode/2, command/3, command/4, sync_command/3,
          make_request/3,
          all_nodes/1]).
@@ -48,6 +48,10 @@ start_link(VNodeMod, LegacyMod) ->
 start_vnode(Index, VNodeMod) ->
     RegName = reg_name(VNodeMod),
     gen_server:cast(RegName, {Index, start_vnode}).
+
+get_vnode_pid(Index, VNodeMod) ->
+    RegName = reg_name(VNodeMod),
+    gen_server:call(RegName, {Index, get_vnode}).
     
 command(Preflist, Msg, VMaster) ->
     command(Preflist, Msg, noreply, VMaster).
@@ -136,6 +140,9 @@ handle_call(Req=?VNODE_REQ{index=Idx, sender={server, undefined, undefined}}, Fr
 %%     {noreply, State};
 handle_call(all_nodes, _From, State) ->
     {reply, lists:flatten(ets:match(State#state.idxtab, {idxrec, '_', '$1', '_'})), State};
+handle_call({Partition, get_vnode}, _From, State) ->
+    Pid = get_vnode(Partition, State),
+    {reply, {ok, Pid}, State};
 handle_call(Other, From, State=#state{legacy=Legacy}) when Legacy =/= undefined ->
     case catch Legacy:rewrite_call(Other, From) of
         {ok, ?VNODE_REQ{}=Req} ->

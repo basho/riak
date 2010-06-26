@@ -19,9 +19,6 @@
              riak_kv_fs_backend,
              riak_kv_gb_trees_backend,
              riak_kv_get_fsm,
-             riak_kv_handoff_listener,
-             riak_kv_handoff_receiver,
-             riak_kv_handoff_sender,
              riak_kv_js_manager,
              riak_kv_js_sup,
              riak_kv_js_vm,
@@ -54,8 +51,7 @@
              riak_kv_wm_ping,
              riak_kv_wm_raw,
              riak_kv_wm_stats,
-             riak_object,
-             riakserver_pb
+             riak_object
             ]},
   {applications, [
                   kernel,
@@ -68,13 +64,6 @@
   {registered, []},
   {mod, {riak_kv_app, []}},
   {env, [
-         %% Number of VNodes allowed to do handoff concurrently.
-         {handoff_concurrency, 4},
-
-         %% Handoff IP/port
-         {handoff_port, 8099},
-         {handoff_ip, "0.0.0.0"},
-
          %% Endpoint for system stats HTTP provider
          {stats_urlpath, "stats"},
 
