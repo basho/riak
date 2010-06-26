@@ -24,6 +24,7 @@
 
 -module(riak_core_handoff_sender).
 -export([start_link/4]).
+-include_lib("riak_core/include/riak_core_vnode.hrl").
 -include("riakserver_pb.hrl").
 -define(ACK_COUNT, 1000).
 
@@ -42,14 +43,18 @@ start_fold(TargetNode, Module, Partition, BKeyList, ParentPid) ->
                                     {packet, 4}, 
                                     {header,1}, 
                                     {active, once}], 15000),
+    VMaster = list_to_atom(atom_to_list(Module) ++ "_master"),
     ModBin = atom_to_binary(Module, utf8),
+    
     M = <<0:8,Partition:160/integer,ModBin/binary>>,
     ok = gen_tcp:send(Socket, M),
     case BKeyList of
         all ->
-            gen_server2:call(riak_kv_vnode_master, 
-                     {fold, {Partition, fun folder/3, {Socket, ParentPid, []}}},
-                     infinity);
+            riak_core_vnode_master:sync_command({Partition, node()},
+                                                ?FOLD_REQ{
+                                                   foldfun=fun folder/3,
+                                                   acc0={Socket,ParentPid,[]}},
+                                                VMaster);
         _ ->
             inner_fold({Socket,ParentPid,[]},BKeyList)
     end,

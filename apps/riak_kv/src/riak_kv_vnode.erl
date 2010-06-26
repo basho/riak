@@ -106,7 +106,9 @@ handle_command(?KV_DELETE_REQ{bkey=BKey, req_id=ReqId}, _Sender,
 handle_command(?KV_MAP_REQ{bkey=BKey,qterm=QTerm,keydata=KeyData},
                Sender, State) ->
     do_map(Sender,QTerm,BKey,KeyData,State,self());
-
+handle_command(?FOLD_REQ{foldfun=Fun, acc0=Acc},_Sender,State) ->
+    Reply = do_fold(Fun, Acc, State),
+    {reply, Reply, State};
 %% Commands originating from inside this vnode
 handle_command({mapcache, BKey,{FunName,Arg,KeyData}, MF_Res}, _Sender,
                State=#state{mapcache=Cache}) ->
@@ -269,6 +271,10 @@ do_get_binary(BKey, Mod, ModState) ->
 do_list_bucket(ReqID,Bucket,Mod,ModState,Idx,State) ->
     RetVal = Mod:list_bucket(ModState,Bucket),
     {reply, {kl, RetVal, Idx, ReqID}, State}.
+
+%% @private
+do_fold(Fun, Acc0, _State=#state{mod=Mod, modstate=ModState}) ->
+    Mod:fold(ModState, Fun, Acc0).
 
 %% @private
 % upon receipt of a handoff datum, there is no client FSM

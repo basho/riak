@@ -8,6 +8,11 @@
           sender=noreply :: sender(),
           request :: vnode_req()}).
 
--define(VNODE_REQ, #riak_vnode_req_v1).
 
+-record(riak_core_fold_req_v1, {
+          foldfun :: fun(),
+          acc0 :: term()}).
+
+-define(VNODE_REQ, #riak_vnode_req_v1).
+-define(FOLD_REQ, #riak_core_fold_req_v1).
 
