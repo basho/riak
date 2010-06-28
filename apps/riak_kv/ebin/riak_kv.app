@@ -38,7 +38,6 @@
              riak_kv_phase_proto,
              riak_kv_put_fsm,
              riak_kv_reduce_phase,
-             riak_kv_ring_handler,
              riak_kv_stat,
              riak_kv_sup,
              riak_kv_test_util,
