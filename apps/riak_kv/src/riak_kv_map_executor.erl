@@ -84,7 +84,8 @@ try_vnode(#state{vnodes=[], keydata=KD, bkey=BKey, phase_pid=PhasePid}) ->
     riak_kv_phase_proto:mapexec_result(PhasePid, [{not_found, BKey, KD}]),
     {error, {no_vnodes, BKey}};
 try_vnode(#state{qterm=QTerm, bkey=BKey, keydata=KeyData, vnodes=[{P, VN}|VNs]}=StateData) ->
-    case lists:member(VN, nodes() ++ [node()]) of
+    UpNodes = riak_core_node_watcher:nodes(riak_kv),
+    case lists:member(VN, UpNodes) of
         false ->
             try_vnode(StateData#state{vnodes=VNs});
         true ->

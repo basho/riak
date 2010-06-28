@@ -42,7 +42,7 @@
 
 %% API
 start_vnode(I) ->
-    riak_core_vnode_master:start_vnode(I, riak_kv_vnode).
+    riak_core_vnode_master:get_vnode_pid(I, riak_kv_vnode).
 
 del(Preflist, BKey, ReqId) ->
     riak_core_vnode_master:sync_command(Preflist,

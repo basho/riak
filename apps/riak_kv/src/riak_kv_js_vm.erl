@@ -52,15 +52,12 @@ reload(VMPid) ->
     gen_server:cast(VMPid, reload).
 
 init([Manager]) ->
-    HeapSize = case app_helper:get_env(riak_kv, js_max_vm_mem, 8) of
-                   N when is_integer(N) ->
-                       N;
-                   _ ->
-                       8
-               end,
-    case new_context(HeapSize) of
+    HeapSize = read_config(js_max_vm_mem, 8),
+    StackSize = read_config(js_thread_stack, 8),
+    case new_context(StackSize, HeapSize) of
         {ok, Ctx} ->
-            error_logger:info_msg("Spidermonkey VM (max heap: ~pMB) host starting (~p)~n", [HeapSize, self()]),
+            error_logger:info_msg("Spidermonkey VM (thread stack: ~pKB, max heap: ~pMB) host starting (~p)~n",
+                                  [StackSize, HeapSize, self()]),
             riak_kv_js_manager:add_to_manager(),
             erlang:monitor(process, Manager),
             {ok, #state{manager=Manager, ctx=Ctx}};
@@ -199,9 +196,9 @@ define_anon_js(JS, #state{ctx=Ctx, anon_funs=AnonFuns, next_funid=NextFunId}=Sta
             {ok, FunName, State}
     end.
 
-new_context(HeapSize) ->
+new_context(ThreadStack, HeapSize) ->
     InitFun = fun(Ctx) -> init_context(Ctx) end,
-    js_driver:new(HeapSize, InitFun).
+    js_driver:new(ThreadStack, HeapSize, InitFun).
 
 init_context(Ctx) ->
     load_user_builtins(Ctx),
@@ -242,3 +239,11 @@ jsonify_arg([H|_]=Other) when is_tuple(H);
     {struct, Other};
 jsonify_arg(Other) ->
     Other.
+
+read_config(Param, Default) ->
+    case app_helper:get_env(riak_kv, Param, 8) of
+        N when is_integer(N) ->
+            N;
+        _ ->
+            Default
+    end.

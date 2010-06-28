@@ -196,6 +196,10 @@ start_mock_servers() ->
     get_fsm_qc_vnode_master:start_link(),
     application:load(riak_core),
     application:start(crypto),
+    riak_core_ring_events:start_link(),
+    riak_core_node_watcher_events:start_link(),
+    riak_core_node_watcher:start_link(),
+    riak_core_node_watcher:service_up(riak_kv, self()),
     ok.
 
 node_status() ->
@@ -237,6 +241,8 @@ prop_basic_get() ->
         NodeStatus = cycle(Q, NodeStatus0),
         Ring = reassign_nodes(NodeStatus,
                               riak_core_ring:fresh(Q, node())),
+                              
+        
 
         ok = gen_server:call(riak_kv_vnode_master,
                          {set_data, Objects, PartVals}),
