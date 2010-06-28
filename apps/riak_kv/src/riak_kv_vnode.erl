@@ -1,9 +1,9 @@
 -module(riak_kv_vnode).
 -export([start_vnode/1, del/3, put/6, list_keys/3,map/5, fold/3]).
 -export([purge_mapcaches/0,mapcache/4]).
--export([start_handoff/2, is_empty/1, delete_and_exit/1]).
--export([handoff_cancelled/1, handle_handoff_data/3]).
--export([init/1, handle_command/3]).
+-export([is_empty/1, delete_and_exit/1]).
+-export([handoff_started/2, handoff_cancelled/1, handoff_finished/2, handle_handoff_data/3]).
+-export([init/1, handle_command/3, handle_handoff_command/3]).
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -139,11 +139,17 @@ handle_command(clear_mapcache, _Sender, State) ->
     schedule_clear_mapcache(),
     {noreply, State#state{mapcache=orddict:new()}}.
 
-start_handoff(_TargetNode, State) ->
+handle_handoff_command(_Request, _Sender, State) ->
+    {forward, State}.
+
+handoff_started(_TargetNode, State) ->
     {true, State#state{in_handoff=true}}.
 
 handoff_cancelled(State) ->
     {ok, State#state{in_handoff=false}}.
+
+handoff_finished(_TargetNode, State) ->
+    {ok, State}.
 
 handle_handoff_data(BKey, Obj, State) ->
     case do_diffobj_put(BKey, Obj, State) of

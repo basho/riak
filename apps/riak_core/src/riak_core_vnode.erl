@@ -20,8 +20,10 @@
 behaviour_info(callbacks) ->
     [{init,1},
      {handle_command,3},
-     {start_handoff,2},
-     {handoff_cancelled,2},
+     {handoff_starting,2},
+     {handoff_cancelled,1},
+     {handoff_finished,2},
+     {handle_handoff_command,3},
      {handle_handoff_data,3},
      {is_empty,1},
      {delete_and_exit,1}];
@@ -30,13 +32,14 @@ behaviour_info(_Other) ->
 
 -define(TIMEOUT, 60000).
 -define(LOCK_RETRY_TIMEOUT, 10000).
-
+-define(MODSTATE, State#state{mod=Mod,modstate=ModState}).
 -record(state, {
           index :: partition(),
           mod :: module(),
           modstate :: term(),
           handoff_q = not_in_handoff :: not_in_handoff | list(),
-          handoff_token :: non_neg_integer()}).
+          handoff_token :: non_neg_integer(),
+          handoff_node :: node()}).
 
 start_link(Mod, Index) ->
     gen_fsm:start_link(?MODULE, [Mod, Index], []).
@@ -74,6 +77,21 @@ vnode_command(Sender, Request, State=#state{mod=Mod, modstate=ModState}) ->
             continue(State, NewModState);
         {noreply, NewModState} ->
             continue(State, NewModState);
+        {forward, NewModState} ->
+            continue(State, NewModState);
+        {drop, NewModState} ->
+            continue(State, NewModState);
+        {stop, Reason, NewModState} ->
+            {stop, Reason, State#state{modstate=NewModState}}
+    end.
+
+vnode_handoff_command(Sender, Request, State=#state{mod=Mod, modstate=ModState}) ->
+    case Mod:handle_handoff_command(Request, Sender, ModState) of
+        {reply, Reply, NewModState} ->
+            reply(Sender, Reply),
+            continue(State, NewModState);
+        {noreply, NewModState} ->
+            continue(State, NewModState);
         {stop, Reason, NewModState} ->
             {stop, Reason, State#state{modstate=NewModState}}
     end.
@@ -81,7 +99,7 @@ vnode_command(Sender, Request, State=#state{mod=Mod, modstate=ModState}) ->
 active(timeout, State=#state{mod=Mod, modstate=ModState}) ->
     case should_handoff(State) of
         {true, TargetNode} ->
-            case Mod:start_handoff(TargetNode, ModState) of
+            case Mod:handoff_starting(TargetNode, ModState) of
                 {true, NewModState} ->
                     start_handoff(State#state{modstate=NewModState}, TargetNode);
                 {false, NewModState} ->
@@ -90,7 +108,9 @@ active(timeout, State=#state{mod=Mod, modstate=ModState}) ->
         false ->
             continue(State)
     end;
-active(?VNODE_REQ{sender=Sender, request=Request}, State) ->
+active(?VNODE_REQ{sender=Sender, request=Request},State=#state{handoff_q=[]}) ->
+    vnode_handoff_command(Sender, Request, State);
+active(?VNODE_REQ{sender=Sender, request=Request},State) ->
     vnode_command(Sender, Request, State);
 active(handoff_complete, State=#state{mod=Mod, modstate=ModState,
                                       index=Idx, handoff_token=HT, handoff_q=HQ}) ->
