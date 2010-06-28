@@ -17,6 +17,8 @@
              riak_core_bucket,
              riak_core_claim,
              riak_core_gossip,
+             riak_core_node_watcher,
+             riak_core_node_watcher_events,
              riak_core_ring,
              riak_core_ring_events,
              riak_core_ring_manager,
@@ -52,7 +54,7 @@
          {gossip_interval, 60000},
 
          %% Target N value
-         {target_n_val, 3},
+         {target_n_val, 4},
 
          %% Default claims functions
          {wants_claim_fun, {riak_core_claim, default_wants_claim}},

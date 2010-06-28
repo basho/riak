@@ -52,7 +52,11 @@ start(_Type, _StartArgs) ->
        {old_vclock, 86400},
        {young_vclock, 20},
        {big_vclock, 50},
-       {small_vclock, 10}]),
+       {small_vclock, 10},
+       {r, quorum},
+       {w, quorum},
+       {dw, quorum},
+       {rw, quorum}]),
 
     %% Check the storage backend
     StorageBackend = app_helper:get_env(riak_kv, storage_backend),
@@ -69,6 +73,12 @@ start(_Type, _StartArgs) ->
     case riak_kv_sup:start_link() of
         {ok, Pid} ->
             ok = riak_core_ring_events:add_handler(riak_kv_ring_handler, []),
+
+            %% Go ahead and mark the riak_kv service as up in the node watcher.
+            %% The riak_kv_ring_handler blocks until all vnodes have been started
+            %% synchronously.
+            riak_core_node_watcher:service_up(riak_kv, self()),
+
             {ok, Pid};
         {error, Reason} ->
             {error, Reason}

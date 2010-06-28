@@ -28,7 +28,9 @@
 -export([is_x_deleted/1,
          obj_not_deleted/1,
          try_cast/4,
-         fallback/4]).
+         fallback/5,
+         expand_rw_value/4,
+         normalize_rw_value/2]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -71,7 +73,7 @@ try_cast(Cmd, Msg, UpNodes, Targets) ->
     try_cast(Cmd, Msg, UpNodes, Targets, [], []).
 try_cast(_Cmd, _Msg, _UpNodes, [], Sent, Pangs) -> {Sent, Pangs};
 try_cast(Cmd, Msg, UpNodes, [{Index,Node}|Targets], Sent, Pangs) ->
-    case lists:member(Node, [node()|UpNodes]) of
+    case lists:member(Node, UpNodes) of
         false ->
             try_cast(Cmd, Msg, UpNodes, Targets, Sent, [{Index,Node}|Pangs]);
         true ->
@@ -88,23 +90,50 @@ try_cast(Cmd, Msg, UpNodes, [{Index,Node}|Targets], Sent, Pangs) ->
 %%      from the second element of the response tuple of a call to
 %%      try_cast/3.
 %%      Used in riak_kv_put_fsm and riak_kv_get_fsm
-fallback(Cmd, Msg, Pangs, Fallbacks) ->
-    fallback(Cmd, Msg, Pangs, Fallbacks, []).
-fallback(_Cmd, _Msg, [], _Fallbacks, Sent) -> Sent;
-fallback(_Cmd, _Msg, _Pangs, [], Sent) -> Sent;
-fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
-    case lists:member(FN, [node()|nodes()]) of
-        false -> fallback(Cmd, Msg, [{Index,Node}|Pangs], Fallbacks, Sent);
+fallback(Cmd, Msg, UpNodes, Pangs, Fallbacks) ->
+    fallback(Cmd, Msg, UpNodes, Pangs, Fallbacks, []).
+fallback(_Cmd, _Msg, _UpNodes, [], _Fallbacks, Sent) -> Sent;
+fallback(_Cmd, _Msg, _UpNodes, _Pangs, [], Sent) -> Sent;
+fallback(Cmd, Msg, UpNodes, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
+    case lists:member(FN, UpNodes) of
+        false -> fallback(Cmd, Msg, UpNodes, [{Index,Node}|Pangs], Fallbacks, Sent);
         true ->
             gen_server:cast({riak_kv_vnode_master, FN},
                             {Cmd, {Index,Node}, Msg}),
-            fallback(Cmd, Msg, Pangs, Fallbacks, [{Index,Node,FN}|Sent])
+            fallback(Cmd, Msg, UpNodes, Pangs, Fallbacks, [{Index,Node,FN}|Sent])
     end.
+
+get_default_rw_val(Type, BucketProps) ->
+    {ok, DefaultProps} = application:get_env(riak_core, default_bucket_props),
+    case {proplists:get_value(Type, BucketProps),
+          proplists:get_value(Type, DefaultProps)} of
+        {undefined, Val} -> Val;
+        {Val, undefined} -> Val;
+        {Val1, _Val2} -> Val1
+    end.
+            
+expand_rw_value(Type, default, BucketProps, N) ->
+    normalize_rw_value(get_default_rw_val(Type, BucketProps), N);    
+expand_rw_value(_Type, Val, _BucketProps, N) ->
+    normalize_rw_value(Val, N).
+
+normalize_rw_value(RW, _N) when is_integer(RW) -> RW;
+normalize_rw_value(RW, N) when is_binary(RW) ->
+    normalize_rw_value(binary_to_atom(RW, utf8), N);
+normalize_rw_value(one, _N) -> 1;
+normalize_rw_value(quorum, N) -> erlang:trunc((N/2)+1);
+normalize_rw_value(all, N) -> N.
 
 %% ===================================================================
 %% EUnit tests
 %% ===================================================================
 -ifdef(TEST).
+
+normalize_test() ->
+    3 = normalize_rw_value(3, 3),
+    1 = normalize_rw_value(one, 3),
+    2 = normalize_rw_value(quorum, 3),
+    3 = normalize_rw_value(all, 3).
 
 deleted_test() ->
     O = riak_object:new(<<"test">>, <<"k">>, "v"),

@@ -58,29 +58,49 @@ init([ReqId,Bucket,Key,R,Timeout,Client]) ->
                 req_id=ReqId, bkey={Bucket,Key}, ring=Ring},
     {ok,initialize,StateData,0}.
 
+
+
 %% @private
-initialize(timeout, StateData0=#state{timeout=Timeout, req_id=ReqId,
-                                      bkey={Bucket,Key}, ring=Ring}) ->
+initialize(timeout, StateData0=#state{timeout=Timeout, r=R0, req_id=ReqId,
+                                      bkey={Bucket,Key}, ring=Ring,
+                                      client=Client}) ->
     StartNow = now(),
     TRef = erlang:send_after(Timeout, self(), timeout),
     DocIdx = riak_core_util:chash_key({Bucket, Key}),
     Msg = {self(), {Bucket,Key}, ReqId},
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     N = proplists:get_value(n_val,BucketProps),
-    AllowMult = proplists:get_value(allow_mult,BucketProps),
-    Preflist = riak_core_ring:preflist(DocIdx, Ring),
-    {Targets, Fallbacks} = lists:split(N, Preflist),
-    {Sent1, Pangs1} = riak_kv_util:try_cast(vnode_get, Msg, nodes(), Targets),
-    Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
-        true -> Sent1;
-        false -> Sent1 ++ riak_kv_util:fallback(vnode_get,Msg,Pangs1,Fallbacks)
-    end,
-    StateData = StateData0#state{n=N,allowmult=AllowMult,repair_sent=[],
-                       preflist=Preflist,final_obj=undefined,
-                       replied_r=[],replied_fail=[],
-                       replied_notfound=[],starttime=riak_core_util:moment(),
-                       waiting_for=Sent,tref=TRef,startnow=StartNow},
-    {next_state,waiting_vnode_r,StateData}.
+    R = riak_kv_util:expand_rw_value(r, R0, BucketProps, N),
+    case R > N of
+        true ->
+            Client ! {ReqId, {error, {n_val_violation, N}}},
+            {stop, normal, StateData0};
+        false -> 
+            AllowMult = proplists:get_value(allow_mult,BucketProps),
+            Preflist = riak_core_ring:preflist(DocIdx, Ring),
+            {Targets, Fallbacks} = lists:split(N, Preflist),
+            UpNodes = riak_core_node_watcher:nodes(riak_kv),
+            {Sent1, Pangs1} = riak_kv_util:try_cast(vnode_get, Msg, 
+                                                    UpNodes, Targets),
+            Sent = 
+                % Sent is [{Index,TargetNode,SentNode}]
+                case length(Sent1) =:= N of   
+                    true -> Sent1;
+                    false -> Sent1 ++ riak_kv_util:fallback(vnode_get, Msg,
+                                                            UpNodes,
+                                                            Pangs1,
+                                                            Fallbacks)
+                end,
+            StateData = StateData0#state{n=N,r=R,
+                                         allowmult=AllowMult,repair_sent=[],
+                                         preflist=Preflist,final_obj=undefined,
+                                         replied_r=[],replied_fail=[],
+                                         replied_notfound=[],
+                                         starttime=riak_core_util:moment(),
+                                         waiting_for=Sent,tref=TRef,
+                                         startnow=StartNow},
+            {next_state,waiting_vnode_r,StateData}
+    end.
 
 waiting_vnode_r({r, {ok, RObj}, Idx, ReqId},
                   StateData=#state{r=R,allowmult=AllowMult,
@@ -176,12 +196,12 @@ finalize(StateData) ->
     end.
 
 really_finalize(StateData=#state{final_obj=Final,
-                          waiting_for=Sent,
-                          replied_r=RepliedR,
-                          bkey=BKey,
-                          req_id=ReqId,
-                          replied_notfound=NotFound,
-                          starttime=StartTime}) ->
+                                 waiting_for=Sent,
+                                 replied_r=RepliedR,
+                                 bkey=BKey,
+                                 req_id=ReqId,
+                                 replied_notfound=NotFound,
+                                 starttime=StartTime}) ->
     case Final of
         tombstone ->
             maybe_finalize_delete(StateData);
@@ -228,7 +248,8 @@ maybe_do_read_repair(Sent,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
                 {Idx,Node,Fallback} = lists:keyfind(Target, 1, Sent),
                 gen_server:cast({riak_kv_vnode_master, Fallback},
                                 {vnode_put, {Idx,Node}, Msg})
-             end || Target <- Targets]
+             end || Target <- Targets],
+            riak_kv_stat:update(read_repairs)
     end.
 
 %% @private
@@ -296,4 +317,4 @@ ancestor_indices({ok, Final},AnnoObjects) ->
 
 update_stats(#state{startnow=StartNow}) ->
     EndNow = now(),
-    riak_kv_stat:update({get_fsm_time, timer:now_diff(EndNow, StartNow)}).
+    riak_kv_stat:update({get_fsm_time, timer:now_diff(EndNow, StartNow)}).    

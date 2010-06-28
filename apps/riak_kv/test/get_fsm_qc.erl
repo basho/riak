@@ -16,7 +16,7 @@
 longer_list(K, G) ->
     ?SIZED(Size, resize(trunc(K*Size), list(resize(Size, G)))).
 
-non_empty(G) ->
+not_empty(G) ->
     ?SUCHTHAT(X, G, X /= [] andalso X /= <<>>).
 
 %% Make sure at least one node is up - code in riak_kv_util makes
@@ -182,7 +182,7 @@ partval() ->
                {1,Shrink(error)}]).
 
 partvals() ->
-    non_empty(longer_list(2, partval())).
+    not_empty(longer_list(2, partval())).
 
 start_mock_servers() ->
     case whereis(riak_kv_vnode_master) of
@@ -195,6 +195,10 @@ start_mock_servers() ->
     get_fsm_qc_vnode_master:start_link(),
     application:load(riak_core),
     application:start(crypto),
+    riak_core_ring_events:start_link(),
+    riak_core_node_watcher_events:start_link(),
+    riak_core_node_watcher:start_link(),
+    riak_core_node_watcher:service_up(riak_kv, self()),
     ok.
 
 node_status() ->
@@ -236,6 +240,8 @@ prop_basic_get() ->
         NodeStatus = cycle(Q, NodeStatus0),
         Ring = reassign_nodes(NodeStatus,
                               riak_core_ring:fresh(Q, node())),
+                              
+        
 
         ok = gen_server:call(riak_kv_vnode_master,
                          {set_data, Objects, PartVals}),
