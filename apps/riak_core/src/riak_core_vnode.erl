@@ -177,18 +177,18 @@ terminate(_Reason, _StateName, _State) ->
 code_change(_OldVsn, StateName, State, _Extra) ->
     {ok, StateName, State}.
 
-should_handoff(#state{index=Idx}) ->
+should_handoff(#state{index=Idx, mod=Mod}) ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     Me = node(),
     case riak_core_ring:index_owner(Ring, Idx) of
         Me ->
             false;
         TargetNode ->
-            case net_adm:ping(TargetNode) of
-                pang ->
-                    false;
-                pong ->
-                    {true, TargetNode}
+            ["riak", A, "vnode"] = string:tokens(atom_to_list(Mod), "_"),
+            App = list_to_atom("riak_" ++ A),
+            case lists:member(TargetNode, riak_core_node_watcher:nodes(App)) of
+                false  -> false;
+                true -> {true, TargetNode}
             end
     end.
 
