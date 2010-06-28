@@ -2,9 +2,9 @@
 %% Version 2.0 (the "License"); you may not use this file
 %% except in compliance with the License.  You may obtain
 %% a copy of the License at
-
+%%
 %%   http://www.apache.org/licenses/LICENSE-2.0
-
+%%
 %% Unless required by applicable law or agreed to in writing,
 %% software distributed under the License is distributed on an
 %% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
@@ -14,14 +14,12 @@
 
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 
--module(riak_kv_ring_handler).
-
+-module(riak_core_ring_handler).
 -behaviour(gen_event).
 
 %% gen_event callbacks
 -export([init/1, handle_event/2, handle_call/2,
          handle_info/2, terminate/2, code_change/3]).
-
 -record(state, {}).
 
 
@@ -38,23 +36,16 @@ init([]) ->
 handle_event({ring_update, Ring}, State) ->
     %% Make sure all vnodes are started...
     ensure_vnodes_started(Ring),
-    {ok, State};
-
-handle_event(_Event, State) ->
     {ok, State}.
 
-
-handle_call(_Request, State) ->
+handle_call(_Event, State) ->
     {ok, ok, State}.
-
 
 handle_info(_Info, State) ->
     {ok, State}.
 
-
 terminate(_Reason, _State) ->
     ok.
-
 
 code_change(_OldVsn, State, _Extra) ->
     {ok, State}.
@@ -66,28 +57,41 @@ code_change(_OldVsn, State, _Extra) ->
 %% ===================================================================
 
 ensure_vnodes_started(Ring) ->
+    case riak_core:vnode_modules() of
+        [] -> ok;
+        Mods ->
+            case ensure_vnodes_started(Mods, Ring, []) of
+                [] -> riak_core:stop("node removal completed, exiting.");
+                _ -> ok
+            end
+    end.
+
+ensure_vnodes_started([], _Ring, Acc) ->
+    lists:flatten(Acc);
+ensure_vnodes_started([H|T], Ring, Acc) ->
+    ensure_vnodes_started(T, Ring, [ensure_vnodes_started(H, Ring)|Acc]).
+
+ensure_vnodes_started(Mod, Ring) ->
+    Startable = startable_vnodes(Mod, Ring),
+    [Mod:start_vnode(I) || I <- Startable],
+    Startable.
+
+startable_vnodes(Mod, Ring) ->
     AllMembers = riak_core_ring:all_members(Ring),
-    VNodes2Start =
-        case {length(AllMembers), hd(AllMembers) =:= node()} of
-            {1, true} ->
-                riak_core_ring:my_indices(Ring);
-            _ ->
-                {ok, Excl} = riak_core_handoff_manager:get_exclusions(riak_kv_vnode),
-                case riak_core_ring:random_other_index(Ring, Excl) of
-                    no_indices ->
-                        case length(Excl) =:= riak_core_ring:num_partitions(Ring) of
-                            true ->
-                                exit;
-                            false ->
-                                riak_core_ring:my_indices(Ring)
-                        end;
-                    RO ->
-                        [RO | riak_core_ring:my_indices(Ring)]
-                end
-        end,
-    case VNodes2Start of
-        exit ->
-            riak:stop("node removal completed, exiting.");
+    case {length(AllMembers), hd(AllMembers) =:= node()} of
+        {1, true} ->
+            riak_core_ring:my_indices(Ring);
         _ ->
-            [riak_kv_vnode:start_vnode(I) || I <- VNodes2Start]
+            {ok, Excl} = riak_core_handoff_manager:get_exclusions(Mod),
+            case riak_core_ring:random_other_index(Ring, Excl) of
+                no_indices ->
+                    case length(Excl) =:= riak_core_ring:num_partitions(Ring) of
+                        true ->
+                            [];
+                        false ->
+                            riak_core_ring:my_indices(Ring)
+                    end;
+                RO ->
+                    [RO | riak_core_ring:my_indices(Ring)]
+            end
     end.

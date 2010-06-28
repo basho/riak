@@ -30,7 +30,6 @@
 %% @doc The application:start callback for riak.
 %%      Arguments are ignored as all configuration is done via the erlenv file.
 start(_Type, _StartArgs) ->
-
     %% Look at the epoch and generating an error message if it doesn't match up
     %% to our expectations
     check_epoch(),
@@ -70,23 +69,16 @@ start(_Type, _StartArgs) ->
     end,
 
     %% Spin up supervisor
-    case riak_kv_sup:start_link() of
-        {ok, Pid} ->
-            ok = riak_core_ring_events:add_handler(riak_kv_ring_handler, []),
-            {ok, Pid};
-        {error, Reason} ->
-            {error, Reason}
-    end.
+    {ok, Pid} = riak_kv_sup:start_link(),
+    riak_core:register_vnode_module(riak_kv_vnode),
+    {ok, Pid}.
+    
 
 
 %% @spec stop(State :: term()) -> ok
 %% @doc The application:stop callback for riak.
 stop(_State) ->
     ok.
-
-
-
-
 
 %% 719528 days from Jan 1, 0 to Jan 1, 1970
 %%  *86400 seconds/day

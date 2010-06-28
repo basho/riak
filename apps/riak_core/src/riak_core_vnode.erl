@@ -1,3 +1,21 @@
+%%
+%% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
+%%
+%% This file is provided to you under the Apache License,
+%% Version 2.0 (the "License"); you may not use this file
+%% except in compliance with the License.  You may obtain
+%% a copy of the License at
+%%
+%%   http://www.apache.org/licenses/LICENSE-2.0
+%%
+%% Unless required by applicable law or agreed to in writing,
+%% software distributed under the License is distributed on an
+%% "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+%% KIND, either express or implied.  See the License for the
+%% specific language governing permissions and limitations
+%% under the License.
+%%
+%% -------------------------------------------------------------------
 -module(riak_core_vnode).
 -behaviour(gen_fsm).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
@@ -58,6 +76,7 @@ send_command_after(Time, Request) ->
 init([Mod, Index]) ->
     %%TODO: Should init args really be an array if it just gets Init?
     {ok, ModState} = Mod:init([Index]),
+    riak_core_handoff_manager:remove_exclusion(Mod, Index),
     {ok, active, #state{index=Index, mod=Mod, modstate=ModState}, 0}.
 
 get_mod_index(VNode) ->
@@ -77,20 +96,26 @@ vnode_command(Sender, Request, State=#state{mod=Mod, modstate=ModState}) ->
             continue(State, NewModState);
         {noreply, NewModState} ->
             continue(State, NewModState);
-        {forward, NewModState} ->
-            continue(State, NewModState);
-        {drop, NewModState} ->
-            continue(State, NewModState);
         {stop, Reason, NewModState} ->
             {stop, Reason, State#state{modstate=NewModState}}
     end.
 
-vnode_handoff_command(Sender, Request, State=#state{mod=Mod, modstate=ModState}) ->
+vnode_handoff_command(Sender, Request, WrapperReq,
+                      State=#state{index=Index,
+                                   mod=Mod, 
+                                   modstate=ModState, 
+                                   handoff_node=HN}) ->
     case Mod:handle_handoff_command(Request, Sender, ModState) of
         {reply, Reply, NewModState} ->
             reply(Sender, Reply),
             continue(State, NewModState);
         {noreply, NewModState} ->
+            continue(State, NewModState);
+        {forward, NewModState} ->
+            riak_core_vnode_master:command({Index, HN}, WrapperReq, Sender, 
+                                           riak_core_vnode_master:reg_name(Mod)),
+            continue(State, NewModState);
+        {drop, NewModState} ->
             continue(State, NewModState);
         {stop, Reason, NewModState} ->
             {stop, Reason, State#state{modstate=NewModState}}
@@ -103,27 +128,25 @@ active(timeout, State=#state{mod=Mod, modstate=ModState}) ->
                 {true, NewModState} ->
                     start_handoff(State#state{modstate=NewModState}, TargetNode);
                 {false, NewModState} ->
-                    continue(NewModState)
+                    continue(State, NewModState)
             end;
         false ->
             continue(State)
     end;
-active(?VNODE_REQ{sender=Sender, request=Request},State=#state{handoff_q=[]}) ->
-    vnode_handoff_command(Sender, Request, State);
+active(VR=?VNODE_REQ{sender=Sender, request=Request},State=#state{handoff_q=[]}) ->
+    vnode_handoff_command(Sender, Request, VR, State);
 active(?VNODE_REQ{sender=Sender, request=Request},State) ->
     vnode_command(Sender, Request, State);
-active(handoff_complete, State=#state{mod=Mod, modstate=ModState,
-                                      index=Idx, handoff_token=HT, handoff_q=HQ}) ->
+active(handoff_complete, State=#state{mod=Mod, 
+                                      modstate=ModState,
+                                      index=Idx, 
+                                      handoff_node=HN,
+                                      handoff_token=HT}) ->
     riak_core_handoff_manager:release_handoff_lock({Mod, Idx}, HT),
-    case HQ of
-        [] ->
-            Mod:delete_and_exit(ModState),
-            riak_core_handoff_manager:add_exclusion(Mod, Idx),
-            {stop, normal, State};
-        _ ->
-            %% XXX Blaire TODO: need to do "list handoff" here.
-            active(timeout, State)
-    end.
+    Mod:handoff_finished(HN, ModState),
+    Mod:delete_and_exit(ModState),
+    riak_core_handoff_manager:add_exclusion(Mod, Idx),
+    {stop, normal, State}.
 
 active(_Event, _From, State) ->
     Reply = ok,
@@ -184,9 +207,10 @@ start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) -
                 {ok, HandoffToken} ->
                     NewState = State#state{modstate=NewModState, 
                                            handoff_token=HandoffToken,
+                                           handoff_node=TargetNode,
                                            handoff_q=[]},
                     riak_core_handoff_sender:start_link(TargetNode, Mod, Idx, all),
-                    {next_state, active, NewState, ?TIMEOUT}
+                    continue(NewState)
             end
     end.
             
