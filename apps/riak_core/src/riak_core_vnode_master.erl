@@ -138,10 +138,6 @@ handle_cast(Req=?VNODE_REQ{index=Idx}, State) ->
     Pid = get_vnode(Idx, State),
     gen_fsm:send_event(Pid, Req),
     {noreply, State};
-%% handle_cast({Partition, Msg}, State) ->
-%%     Pid = get_vnode(Partition, State),
-%%     gen_fsm:send_event(Pid, Msg),
-%%     {noreply, State};
 handle_cast(Other, State=#state{legacy=Legacy}) when Legacy =/= undefined ->
     case catch Legacy:rewrite_cast(Other) of
         {ok, ?VNODE_REQ{}=Req} ->
@@ -161,11 +157,6 @@ handle_call({spawn,
     spawn(
       fun() -> gen_fsm:send_all_state_event(Pid, Req?VNODE_REQ{sender=Sender}) end),
     {noreply, State};
-
-%% handle_call({Partition, Msg}, From, State) ->
-%%     Pid = get_vnode(Partition, State),
-%%     gen_fsm:send_event(Pid, {From, Msg}),
-%%     {noreply, State};
 handle_call(all_nodes, _From, State) ->
     {reply, lists:flatten(ets:match(State#state.idxtab, {idxrec, '_', '$1', '_'})), State};
 handle_call({Partition, get_vnode}, _From, State) ->
@@ -179,49 +170,6 @@ handle_call(Other, From, State=#state{legacy=Legacy}) when Legacy =/= undefined 
             {noreply, State}
     end.
 
-
-%    
-%handle_cast({vnode_map, {Partition,_Node},
-%             {ClientPid,QTerm,BKey,KeyData}}, State) ->
-%    Pid = get_vnode(Partition, State),
-%    gen_fsm:send_event(Pid, {map, ClientPid, QTerm, BKey, KeyData}),
-%    {noreply, State};
-%handle_cast({vnode_merkle, {RemoteVN,Partition,Merkle,ObjList}}, State) ->
-%    Pid = get_vnode(Partition, State),
-%    gen_fsm:send_event(Pid, {vnode_merkle, {RemoteVN,Merkle,ObjList}}),
-%    {noreply, State};
-%handle_cast({add_exclusion, Partition}, State=#state{excl=Excl}) ->
-%    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-%    riak_core_ring_events:ring_update(Ring),
-%    {noreply, State#state{excl=ordsets:add_element(Partition, Excl)}}.
-%handle_call(all_possible_vnodes, _From, State) ->
-%    {reply, make_all_active(State), State};
-%handle_call(all_vnodes, _From, State) ->
-%    {reply, all_vnodes(State), State};
-%handle_call({vnode_del, {Partition,_Node},
-%             {BKey,ReqID}}, From, State) ->
-%    Pid = get_vnode(Partition, State),
-%   gen_fsm:send_event(Pid, {delete, From, BKey, ReqID}),
-%    {noreply, State};
-%handle_call({get_merkle, Partition}, From, State) ->
-%    Pid = get_vnode(Partition, State),
-%    spawn(fun() -> gen_fsm:send_all_state_event(Pid, {get_merkle, From}) end),
-%    {noreply, State};
-%handle_call({get_vclocks,Partition,KeyList},From,State) ->
-%    Pid = get_vnode(Partition, State),
-%    spawn(fun() -> gen_fsm:send_all_state_event(
-%                     Pid,{get_vclocks,From,KeyList}) end),
-%    {noreply, State};
-%handle_call({fold, {Partition, Fun, Acc0}}, From, State) ->
-%    Pid = get_vnode(Partition, State),
-%    spawn(
-%      fun() -> gen_fsm:send_all_state_event(Pid, {fold, {Fun,Acc0,From}}) end),
-%    {noreply, State};
-%handle_call({get_vnode, Partition}, _From, State) ->
-%    {reply, {ok, get_vnode(Partition, State)}, State};
-%handle_call(get_exclusions, _From, State=#state{excl=Excl}) ->
-%    {reply, {ok, ordsets:to_list(Excl)}, State}.
-%%% @private
 handle_info({'DOWN', MonRef, process, _P, _I}, State) ->
     delmon(MonRef, State),
     {noreply, State}.
@@ -257,11 +205,3 @@ get_vnode(Idx, State=#state{vnode_mod=Mod}) ->
             Pid;
         X -> X
     end.
-
-%% @private
-%all_vnodes(_State=#state{idxtab=T}) ->
-%    lists:flatten(ets:match(T, {idxrec, '_', '$1', '_'})).
-
-%make_all_active(State) ->
-%    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-%    [{I,get_vnode(I,State)} || I <- riak_core_ring:my_indices(Ring)].
