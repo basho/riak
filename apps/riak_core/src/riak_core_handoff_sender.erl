@@ -22,33 +22,19 @@
 
 %% @doc send a partition's data via TCP-based handoff
 
--module(riak_kv_handoff_sender).
--export([start_link/3]).
+-module(riak_core_handoff_sender).
+-export([start_link/4]).
+-include_lib("riak_core/include/riak_core_vnode.hrl").
+-include_lib("riak_core/include/riak_core_handoff.hrl").
 -include("riakserver_pb.hrl").
 -define(ACK_COUNT, 1000).
 
-start_link(TargetNode, Partition, BKeyList) ->
-    TokenCount = app_helper:get_env(riak_kv, handoff_concurrency, 4),
-    case get_handoff_lock(Partition, TokenCount) of
-        {ok, HandoffToken} ->
-            Self = self(),
-            Pid = spawn_link(fun()->start_fold(TargetNode, Partition, BKeyList, Self) end),
-            {ok, Pid, HandoffToken};
-        {error, max_concurrency} ->
-            {error, locked}
-    end.
+start_link(TargetNode, Module, Partition, BKeyList) ->
+    Self = self(),
+    Pid = spawn_link(fun()->start_fold(TargetNode, Module,Partition, BKeyList, Self) end),
+    {ok, Pid}.
 
-get_handoff_lock(_Partition, 0) ->
-    {error, max_concurrency};
-get_handoff_lock(Partition, Count) ->
-    case global:set_lock({{handoff_token, Count}, {node(), Partition}}, [node()], 0) of
-        true ->
-            {ok, {handoff_token, Count}};
-        false ->
-            get_handoff_lock(Partition, Count-1)
-    end.
-
-start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
+start_fold(TargetNode, Module, Partition, BKeyList, ParentPid) ->
     error_logger:info_msg("Starting handoff of partition ~p to ~p~n", 
                           [Partition, TargetNode]),
     [_Name,Host] = string:tokens(atom_to_list(TargetNode), "@"),
@@ -58,13 +44,22 @@ start_fold(TargetNode, Partition, BKeyList, ParentPid) ->
                                     {packet, 4}, 
                                     {header,1}, 
                                     {active, once}], 15000),
-    M = <<0:8,Partition:160/integer>>,
+    VMaster = list_to_atom(atom_to_list(Module) ++ "_master"),
+    ModBin = atom_to_binary(Module, utf8),
+    Msg = <<?PT_MSG_OLDSYNC:8,ModBin/binary>>,
+    inet:setopts(Socket, [{active, false}]),
+    gen_tcp:send(Socket, Msg),
+    {ok,[?PT_MSG_OLDSYNC|<<"sync">>]} = gen_tcp:recv(Socket, 0),
+    inet:setopts(Socket, [{active, once}]),
+    M = <<?PT_MSG_INIT:8,Partition:160/integer>>,
     ok = gen_tcp:send(Socket, M),
     case BKeyList of
         all ->
-            gen_server2:call(riak_kv_vnode_master, 
-                     {fold, {Partition, fun folder/3, {Socket, ParentPid, []}}},
-                     infinity);
+            riak_core_vnode_master:sync_command({Partition, node()},
+                                                ?FOLD_REQ{
+                                                   foldfun=fun folder/3,
+                                                   acc0={Socket,ParentPid,[]}},
+                                                VMaster);
         _ ->
             inner_fold({Socket,ParentPid,[]},BKeyList)
     end,
@@ -89,22 +84,27 @@ folder({B,K}, V, AccIn) ->
     visit_item({B,K}, V, AccIn).
 
 visit_item({B,K}, V, {Socket, ParentPid, ?ACK_COUNT}) ->
-    M = <<2:8,"sync">>,
+    M = <<?PT_MSG_OLDSYNC:8,"sync">>,
     ok = gen_tcp:send(Socket, M),
     inet:setopts(Socket, [{active, false}]),
-    {ok,[2|<<"sync">>]} = gen_tcp:recv(Socket, 0),
+    {ok,[?PT_MSG_OLDSYNC|<<"sync">>]} = gen_tcp:recv(Socket, 0),
     inet:setopts(Socket, [{active, once}]),
     visit_item({B,K}, V, {Socket, ParentPid, 0});
 visit_item({B,K}, V, {Socket, ParentPid, Acc}) ->
     D = zlib:zip(riakserver_pb:encode_riakobject_pb(
                    #riakobject_pb{bucket=B, key=K, val=V})),
-    M = <<1:8,D/binary>>,
+    M = <<?PT_MSG_OBJ:8,D/binary>>,
     ok = gen_tcp:send(Socket, M),
     {Socket, ParentPid, Acc+1}.
     
 
 get_handoff_port(Node) when is_atom(Node) ->
-    gen_server2:call({riak_kv_handoff_listener, Node}, handoff_port).
+    case catch(gen_server2:call({riak_core_handoff_listener, Node}, handoff_port)) of
+        {'EXIT', _}  ->
+            gen_server2:call({riak_kv_handoff_listener, Node}, handoff_port);
+        Other -> Other
+    end.
+
 
 
 

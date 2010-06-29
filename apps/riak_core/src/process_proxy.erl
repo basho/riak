@@ -1,7 +1,4 @@
 %% -------------------------------------------------------------------
-%%
-%% riak_vnode_sup: supervise riak_vnode processes
-%%
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 %%
 %% This file is provided to you under the Apache License,
@@ -19,26 +16,25 @@
 %% under the License.
 %%
 %% -------------------------------------------------------------------
+-module(process_proxy).
+-export([start_link/2, init/1, stop/1]).
 
-%% @doc supervise riak_vnode processes
+start_link(RegName, ProxyTo) ->
+    proc_lib:start_link(?MODULE, init, [[self(), RegName, ProxyTo]]).
 
--module(riak_kv_vnode_sup).
--behaviour(supervisor).
--export([start_link/0, init/1, stop/1]).
--export([start_vnode/1]).
+init([ParentPid, RegName, ProxyTo]) ->
+    erlang:register(RegName, self()),
+    proc_lib:init_ack(ParentPid, {ok, self()}),
+    loop(ProxyTo).
 
-start_vnode(Index) when is_integer(Index) -> 
-    supervisor:start_child(?MODULE, [Index]).
+stop(Name) ->
+    Name ! stop.
 
-start_link() ->
-    supervisor:start_link({local, ?MODULE}, ?MODULE, []).
-
-stop(_S) -> ok.
-
-%% @private
-init([]) ->
-    {ok, 
-     {{simple_one_for_one, 10, 10}, 
-      [{undefined,
-        {riak_kv_vnode, start_link, []},
-      temporary, brutal_kill, worker, [riak_kv_vnode]}]}}.
+loop(ProxyTo) ->
+    receive
+        stop ->
+            exit(normal);
+        M ->
+            ProxyTo ! M,
+            loop(ProxyTo)
+    end.

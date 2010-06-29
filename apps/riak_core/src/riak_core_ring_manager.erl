@@ -43,9 +43,9 @@
 	 terminate/2, code_change/3]).
 
 -ifdef(TEST).
+-export([set_ring_global/1]).
 -include_lib("eunit/include/eunit.hrl").
 -endif.
-
 
 %% ===================================================================
 %% Public API
@@ -182,7 +182,7 @@ init([Mode]) ->
 
 
 handle_call({set_my_ring, Ring}, _From, State) ->
-    mochiglobal:put(?RING_KEY, Ring),
+    set_ring_global(Ring),
 
     % Notify any local observers that the ring has changed (async)
     riak_core_ring_events:ring_update(Ring),
@@ -246,3 +246,9 @@ back(N,X,[H|T]) ->
         true -> back(N,X,T);
         false -> [H]
     end.
+
+%% Set the ring in mochiglobal.  Exported during unit testing
+%% to make test setup simpler - no need to spin up a riak_core_ring_manager
+%% process.
+set_ring_global(Ring) ->
+    mochiglobal:put(?RING_KEY, Ring).

@@ -23,8 +23,13 @@
 %% @doc utilities for test scripts
 
 -module(riak_kv_test_util).
+
+-ifdef(TEST).
+
 -export([standard_backend_test/2,
-         call_unused_fsm_funs/1]).
+         call_unused_fsm_funs/1,
+         stop_process/1,
+         wait_for_pid/1]).
 -include_lib("eunit/include/eunit.hrl").
 
 standard_backend_test(BackendMod, Config) ->
@@ -67,3 +72,26 @@ call_unused_fsm_funs(Mod) ->
     
     
     
+%% Stop a running pid - unlink and exit(kill) the process
+%% 
+stop_process(undefined) ->
+    ok;
+stop_process(RegName) when is_atom(RegName) ->
+    stop_process(whereis(RegName));
+stop_process(Pid) when is_pid(Pid) ->
+    unlink(Pid),
+    exit(Pid, kill),
+    ok = wait_for_pid(Pid).
+
+%% Wait for a pid to exit
+wait_for_pid(Pid) ->
+    Mref = erlang:monitor(process, Pid),
+    receive
+        {'DOWN',Mref,process,_,_} ->
+            ok
+    after
+        5000 ->
+            {error, didnotexit}
+    end.
+
+-endif. % TEST

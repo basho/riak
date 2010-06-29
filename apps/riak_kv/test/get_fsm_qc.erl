@@ -4,6 +4,7 @@
 
 -include_lib("eqc/include/eqc.hrl").
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("riak_kv/include/riak_kv_vnode.hrl").
 
 -compile(export_all).
 -define(RING_KEY, riak_ring).
@@ -45,7 +46,7 @@ make_power_of_two(Q, P) when P >= Q -> P;
 make_power_of_two(Q, P) -> make_power_of_two(Q, P*2).
 
 all_distinct(Xs) ->
-    lists:sort(Xs) =:= lists:usort(Xs).
+    equals(lists:sort(Xs),lists:usort(Xs)).
 
 num_partitions() ->
     %% TODO: use some unfortunate parition counts (1, 50, etc.)
@@ -126,7 +127,7 @@ riak_objects() ->
 %%    
 lineage() ->
     elements([current, ancestor, brother, sister, otherbrother]).
-
+ 
 merge(ancestor, Lineage) -> Lineage;
 merge(Lineage, ancestor) -> Lineage;
 merge(_, current)        -> current;
@@ -271,7 +272,7 @@ prop_basic_get() ->
         Ok         = length([ ok || {_, {ok, _}} <- History ]),
         NotFound   = length([ ok || {_, notfound} <- History ]),
         NoReply    = length([ ok || {_, timeout}  <- History ]),
-        Partitions = [ P || {{P,_}, _} <- History ],
+        Partitions = [ P || {P, _} <- History ],
         Deleted    = [ {Lin, case riak_kv_util:obj_not_deleted(Obj) == undefined of
                                  true  -> deleted;
                                  false -> present
@@ -281,6 +282,11 @@ prop_basic_get() ->
         H          = [ V || {_, V} <- History ],
         ExpectedN  = lists:min([N, length([xx || up <- NodeStatus])]),
         Expected   = expect(Objects, H, N, R),
+        %% A perfect preference list has all owner partitions available
+        DocIdx = riak_core_util:chash_key({riak_object:bucket(Object),
+                                           riak_object:key(Object)}),
+        Preflist = lists:sublist(riak_core_ring:preflist(DocIdx, Ring), N),
+        PerfectPreflist = lists:all(fun({_Idx,Node}) -> Node =:= node() end, Preflist),
         ?WHENFAIL(
             begin
                 io:format("Ring: ~p~nRepair: ~p~nHistory: ~p~n",
@@ -296,7 +302,7 @@ prop_basic_get() ->
                 [{result, Res =:= Expected},
                  {n_value, equals(length(History), ExpectedN)},
                  {repair, check_repair(Objects, RepairHistory, History)},
-                 {delete, check_delete(Objects, RepairHistory, History)},
+                 {delete,  check_delete(Objects, RepairHistory, History, PerfectPreflist)},
                  {distinct, all_distinct(Partitions)}
                 ]))
     end).
@@ -335,12 +341,12 @@ expected_repairs(H) ->
         []   -> [];
         Lins ->
             Heads = merge_heads(Lins),
-            [ Part || {{Part, _Node}, V} <- H,
+            [ Part || {Part, V} <- H,
                       do_repair(Heads, V) ]
     end.
 
 check_repair(Objects, RepairH, H) ->
-    Actual = [ Part || {vnode_put, {Part, _}, _} <- RepairH ],
+    Actual = [ Part || {Part, ?KV_PUT_REQ{}} <- RepairH ],
     Heads  = merge_heads([ Lineage || {_, {ok, Lineage}} <- H ]),
     
     AllDeleted = lists:all(fun({_, {ok, Lineage}}) ->
@@ -354,7 +360,7 @@ check_repair(Objects, RepairH, H) ->
         end,
 
     RepairObject  = (catch build_merged_object(Heads, Objects)),
-    RepairObjects = [ Obj || {vnode_put, _, {_, _, Obj, _, _, _}} <- RepairH ],
+    RepairObjects = [ Obj || {_Idx, ?KV_PUT_REQ{object=Obj}} <- RepairH ],
 
     conjunction(
         [{puts, equals(lists:sort(Expected), lists:sort(Actual))},
@@ -365,13 +371,18 @@ check_repair(Objects, RepairH, H) ->
                           RepairObjects))}
         ]).
 
-check_delete(Objects, RepairH, H) ->
-    Deletes  = [ Part || {vnode_del, {Part,_Node}, _} <- RepairH ],
 
-    AllDeleted = lists:all(fun({{_,Node}, {ok, Lineage}}) ->
+check_delete(Objects, RepairH, H, PerfectPreflist) ->
+    Deletes  = [ Part || {Part, ?KV_DELETE_REQ{}} <- RepairH ],
+
+    %% Used to have a check for for node() - no longer easy
+    %% with new core vnode code.  Not sure it is necessary.
+    AllDeleted = lists:all(fun({_Idx, {ok, Lineage}}) ->
                                 Obj = proplists:get_value(Lineage, Objects),
-                                riak_kv_util:is_x_deleted(Obj) andalso Node == node();
-                              ({{_,Node}, notfound}) -> Node == node();
+                                Rc = riak_kv_util:is_x_deleted(Obj),
+                                %% io:format("AllDeleted Lineage=~p Obj=~p Rc=~p\n", [Lineage, Obj, Rc]),
+                                Rc;
+                              ({_Idx, notfound}) -> true;
                               ({_, error})    -> false;
                               ({_, timeout})  -> false
                            end, H),
@@ -380,13 +391,14 @@ check_delete(Objects, RepairH, H) ->
                          (_) -> false
                       end, H),
 
-    Expected = case AllDeleted andalso HasOk of
-        true  -> [ P || {{P, _N}, _} <- H ];  %% send deletes to notfound nodes as well
+    Expected = case AllDeleted andalso HasOk andalso PerfectPreflist of
+        true  -> [ P || {P, _} <- H ];  %% send deletes to notfound nodes as well
         false -> []
     end,
-
-    equals(lists:sort(Expected), lists:sort(Deletes)).
-
+    ?WHENFAIL(io:format("Objects: ~p\nExpected: ~p\nDeletes: ~p\nAllDeleted: ~p\nHasOk: ~p\nH: ~p\n",
+                        [Objects, Expected, Deletes, AllDeleted, HasOk, H]),
+              equals(lists:sort(Expected), lists:sort(Deletes))).
+   
 
 build_merged_object(Heads, Objects) ->
     Lineage = merge(Heads),

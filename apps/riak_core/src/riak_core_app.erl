@@ -48,6 +48,7 @@ start(_StartType, _StartArgs) ->
     %% Spin up the supervisor; prune ring files as necessary
     case riak_core_sup:start_link() of
         {ok, Pid} ->
+            ok = riak_core_ring_events:add_handler(riak_core_ring_handler, []),
             %% App is running; search for latest ring file and initialize with it
             riak_core_ring_manager:prune_ringfiles(),
             case riak_core_ring_manager:find_latest_ringfile() of

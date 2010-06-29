@@ -94,7 +94,7 @@ handle_cast(reload, #state{ctx=Ctx}=State) ->
     {noreply, State};
 
 %% Map phase with anonymous function
-handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc},
+handle_cast({dispatch, Requestor, _JobId, {Sender, {map, {jsanon, JS}, Arg, _Acc},
                                             Value,
                                             KeyData, _BKey}}, #state{ctx=Ctx}=State) ->
     {Result, UpdatedState} = case define_anon_js(JS, State) of
@@ -112,15 +112,15 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsanon, JS}, Arg, _Acc
                             end,
     case Result of
         {ok, ReturnValue} ->
-            gen_fsm:send_event(FsmPid, {mapexec_reply, ReturnValue, Requestor}),
+            riak_core_vnode:reply(Sender, {mapexec_reply, ReturnValue, Requestor}),
             {noreply, UpdatedState};
         ErrorResult ->
-            gen_fsm:send_event(FsmPid, {mapexec_error_noretry, Requestor, ErrorResult}),
+            riak_core_vnode:reply(Sender, {mapexec_error_noretry, Requestor, ErrorResult}),
             {noreply, State}
     end;
 
 %% Map phase with named function
-handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsfun, JS}, Arg, _Acc},
+handle_cast({dispatch, Requestor, _JobId, {Sender, {map, {jsfun, JS}, Arg, _Acc},
                                             Value,
                                             KeyData, BKey}}, #state{ctx=Ctx}=State) ->
     JsonValue = riak_object:to_json(Value),
@@ -128,10 +128,10 @@ handle_cast({dispatch, Requestor, _JobId, {FsmPid, {map, {jsfun, JS}, Arg, _Acc}
     case invoke_js(Ctx, JS, [JsonValue, KeyData, JsonArg]) of
         {ok, R} ->
             %% Requestor should be the dispatching vnode
-            gen_fsm:send_event(Requestor, {mapcache, BKey, {JS, Arg, KeyData}, R}),
-            gen_fsm:send_event(FsmPid, {mapexec_reply, R, Requestor});
+            riak_kv_vnode:mapcache(Requestor, BKey, {JS, Arg, KeyData}, R),
+            riak_core_vnode:reply(Sender, {mapexec_reply, R, Requestor});
         Error ->
-            gen_fsm:send_event(FsmPid, {mapexec_error_noretry, Requestor, Error})
+            riak_core_vnode:reply(Sender, {mapexec_error_noretry, Requestor, Error})
     end,
     {noreply, State};
 handle_cast(_Msg, State) ->

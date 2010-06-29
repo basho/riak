@@ -29,7 +29,8 @@
          add_sup_handler/2,
          add_callback/1,
          add_sup_callback/1,
-         ring_update/1]).
+         ring_update/1,
+         force_update/0]).
 
 %% gen_event callbacks
 -export([init/1, handle_event/2, handle_call/2,
@@ -55,6 +56,10 @@ add_callback(Fn) when is_function(Fn) ->
 
 add_sup_callback(Fn) when is_function(Fn) ->
     gen_event:add_sup_handler(?MODULE, {?MODULE, make_ref()}, [Fn]).
+
+force_update() ->
+    {ok, Ring} = riak_core_ring_manager:get_my_ring(),
+    gen_event:notify(?MODULE, {ring_update, Ring}).
 
 ring_update(Ring) ->
     gen_event:notify(?MODULE, {ring_update, Ring}).

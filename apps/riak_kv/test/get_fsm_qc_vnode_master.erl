@@ -8,6 +8,7 @@
 -module(get_fsm_qc_vnode_master).
 
 -behaviour(gen_server).
+-include_lib("riak_kv/include/riak_kv_vnode.hrl").
 
 %% API
 -export([start_link/0,
@@ -66,10 +67,12 @@ handle_call({set_data, Objects, Partvals}, _From, State) ->
     {reply, ok, set_data(Objects, Partvals, State)};
 handle_call(get_history, _From, State) ->
     {reply, lists:reverse(State#state.history), State};
-handle_call(get_repair_history, _From, State) ->
+handle_call(get_repair_history, _From, State) -> %
     {reply, lists:reverse(State#state.repair_history), State};
-handle_call(Msg={vnode_del, _, _}, _From, State) ->
-    {reply, ok, State#state{repair_history=[Msg|State#state.repair_history]}};
+
+handle_call(?VNODE_REQ{index=Idx, request=?KV_DELETE_REQ{}=Msg},
+            _From, State) ->
+    {reply, ok, State#state{repair_history=[{Idx,Msg}|State#state.repair_history]}};
 handle_call(_Request, _From, State) ->
     Reply = ok,
     {reply, Reply, State}.
@@ -80,19 +83,20 @@ handle_call(_Request, _From, State) ->
 %%                                      {stop, Reason, State}
 %% Description: Handling cast messages
 %%--------------------------------------------------------------------
-handle_cast({vnode_get, {Partition,Node},
-             {FSM_pid,_BKey,ReqID}}, State) ->
-    {Value, State1} = get_data(Partition, Node, State),
+handle_cast(?VNODE_REQ{index=Idx,
+                       sender=Sender,
+                       request=?KV_GET_REQ{req_id=ReqId}}, State) ->
+    {Value, State1} = get_data(Idx,State),
     case Value of
         {error, timeout} ->
             ok;
         _ ->
-            gen_fsm:send_event(FSM_pid, 
-                {r, Value, Partition, ReqID})
+            riak_core_vnode:reply(Sender, {r, Value, Idx, ReqId})
     end,
     {noreply, State1};
-handle_cast(Msg={vnode_put, _, _}, State) ->
-    {noreply, State#state{repair_history=[Msg|State#state.repair_history]}};    
+handle_cast(?VNODE_REQ{index=Idx,
+                       request=?KV_PUT_REQ{}=Msg}, State) ->
+    {noreply, State#state{repair_history=[{Idx,Msg}|State#state.repair_history]}};    
 handle_cast(_Msg, State) ->
     {noreply, State}.
 
@@ -130,9 +134,9 @@ set_data(Objects, Partvals, State) ->
     State#state{objects=Objects, partvals=Partvals,
                 history=[], repair_history=[]}.
 
-get_data(Partition, Node, #state{objects=Objects, partvals=[Res|Rest]} = State) ->
+get_data(Partition, #state{objects=Objects, partvals=[Res|Rest]} = State) ->
     State1 = State#state{partvals = Rest,
-                         history=[{{Partition,Node},Res}|State#state.history]},
+                         history=[{Partition,Res}|State#state.history]},
     case Res of
         {ok, Lineage} ->
             {{ok, proplists:get_value(Lineage, Objects)}, State1};

@@ -53,9 +53,7 @@ wait(done, StateData=#state{pending=Pending}) ->
 wait({input,Inputs0}, StateData=#state{qterm=QTerm,vnode=VN,pending=Pending,
                                        partition=Partition}) ->
     Inputs = [convert_input(I) || I <- Inputs0],
-    [gen_server:cast({riak_kv_vnode_master, VN},
-                     {vnode_map, {Partition,node()},
-                      {self(),QTerm,BKey,KeyData}}) ||
+    [riak_kv_vnode:map({Partition,VN},self(),QTerm,BKey,KeyData) ||
         {BKey,KeyData} <- Inputs],
     {next_state, wait, StateData#state{pending=Inputs++Pending}};
 wait({mapexec_error, {BKey,KeyData}, _VN, _ErrMsg},

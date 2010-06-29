@@ -53,7 +53,10 @@ init([]) ->
         andalso (app_helper:get_env(riak_core, web_port) /= undefined),
 
     Children = lists:flatten(
-                 [?CHILD(riak_core_ring_events, worker),
+                 [?CHILD(riak_core_vnode_sup, supervisor),
+                  ?CHILD(riak_core_handoff_manager, worker),
+                  ?CHILD(riak_core_handoff_listener, worker),
+                  ?CHILD(riak_core_ring_events, worker),
                   ?CHILD(riak_core_ring_manager, worker),
                   ?CHILD(riak_core_node_watcher_events, worker),
                   ?CHILD(riak_core_node_watcher, worker),
