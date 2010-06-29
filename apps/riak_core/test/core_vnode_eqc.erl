@@ -35,7 +35,8 @@
 -compile([export_all]).
 
 -record(qcst, {started,
-               counters}).% Dict of counters for each index
+               counters, % Dict of counters for each index
+               indices}).
                
 simple_test() ->
     simple_test(100).
@@ -73,20 +74,16 @@ active_preflist(S) ->
 initial_state() ->
     stopped.
 
-index() ->
-    oneof([0,
-           182687704666362864775460604089535377456991567872,
-           365375409332725729550921208179070754913983135744,
-           548063113999088594326381812268606132370974703616,
-           730750818665451459101842416358141509827966271488,
-           913438523331814323877303020447676887284957839360,
-           1096126227998177188652763624537212264741949407232,
-           1278813932664540053428224228626747642198940975104]).
-    
+index(S) ->
+    oneof(S#qcst.indices).
 
 initial_state_data() ->
+    Ring = riak_core_ring:fresh(8, node()),
+    riak_core_ring_manager:set_ring_global(Ring),
     #qcst{started=[],
-          counters=orddict:new()}.
+          counters=orddict:new(),
+          indices=[I || {I,_N} <- riak_core_ring:all_owners(Ring)]
+         }.
 
 %% Mark the vnode as started
 next_state_data(_From,_To,S=#qcst{started=Started,
@@ -110,19 +107,12 @@ next_state_data(_From,_To,S,_R,_C) ->
     S.
 % 
 
-stopped(_S) ->
-    [{running, {call,?MODULE,start_vnode,[index()]}}].
+stopped(S) ->
+    [{running, {call,?MODULE,start_vnode,[index(S)]}}].
 
 running(S) ->
-    %% StartVnode = case ordsets:is_empty(S#state.stopped) of
-    %%                  true ->
-    %%                      [];
-    %%                  false ->
-    %%                      [{running, {call,mock_vnode,start_vnode,[stopped_index(S)]}}]
-    %%              end,
-    %% StartVnode ++ 
     [
-     {history, {call,?MODULE,start_vnode,[index()]}},
+     {history, {call,?MODULE,start_vnode,[index(S)]}},
      {history, {call,mock_vnode,get_index,[active_preflist1(S)]}},
      {history, {call,mock_vnode,get_counter,[active_preflist1(S)]}},
      {history, {call,mock_vnode,neverreply,[active_preflist(S)]}},
