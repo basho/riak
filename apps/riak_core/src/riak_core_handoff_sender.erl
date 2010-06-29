@@ -25,6 +25,7 @@
 -module(riak_core_handoff_sender).
 -export([start_link/4]).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
+-include_lib("riak_core/include/riak_core_handoff.hrl").
 -include("riakserver_pb.hrl").
 -define(ACK_COUNT, 1000).
 
@@ -45,7 +46,12 @@ start_fold(TargetNode, Module, Partition, BKeyList, ParentPid) ->
                                     {active, once}], 15000),
     VMaster = list_to_atom(atom_to_list(Module) ++ "_master"),
     ModBin = atom_to_binary(Module, utf8),
-    M = <<0:8,Partition:160/integer,ModBin/binary>>,
+    Msg = <<?PT_MSG_OLDSYNC:8,ModBin/binary>>,
+    inet:setopts(Socket, [{active, false}]),
+    gen_tcp:send(Socket, Msg),
+    {ok,[?PT_MSG_OLDSYNC|<<"sync">>]} = gen_tcp:recv(Socket, 0),
+    inet:setopts(Socket, [{active, once}]),
+    M = <<?PT_MSG_INIT:8,Partition:160/integer>>,
     ok = gen_tcp:send(Socket, M),
     case BKeyList of
         all ->
@@ -78,16 +84,16 @@ folder({B,K}, V, AccIn) ->
     visit_item({B,K}, V, AccIn).
 
 visit_item({B,K}, V, {Socket, ParentPid, ?ACK_COUNT}) ->
-    M = <<2:8,"sync">>,
+    M = <<?PT_MSG_OLDSYNC:8,"sync">>,
     ok = gen_tcp:send(Socket, M),
     inet:setopts(Socket, [{active, false}]),
-    {ok,[2|<<"sync">>]} = gen_tcp:recv(Socket, 0),
+    {ok,[?PT_MSG_OLDSYNC|<<"sync">>]} = gen_tcp:recv(Socket, 0),
     inet:setopts(Socket, [{active, once}]),
     visit_item({B,K}, V, {Socket, ParentPid, 0});
 visit_item({B,K}, V, {Socket, ParentPid, Acc}) ->
     D = zlib:zip(riakserver_pb:encode_riakobject_pb(
                    #riakobject_pb{bucket=B, key=K, val=V})),
-    M = <<1:8,D/binary>>,
+    M = <<?PT_MSG_OBJ:8,D/binary>>,
     ok = gen_tcp:send(Socket, M),
     {Socket, ParentPid, Acc+1}.
     

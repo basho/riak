@@ -23,14 +23,19 @@
 %% @doc incoming data handler for TCP-based handoff
 
 -module(riak_core_handoff_receiver).
+-include_lib("riak_core/include/riak_core_handoff.hrl").
 -include("riakserver_pb.hrl").
 -behaviour(gen_server2).
-
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 
--record(state, {sock, partition, vnode, count}).
+-record(state, {sock :: port(), 
+                partition :: non_neg_integer(), 
+                vnode_mod = riak_kv_vnode:: module(),
+                vnode :: pid(), 
+                count = 0 :: non_neg_integer()}).
+
 
 start_link(Socket) ->
     gen_server2:start_link(?MODULE, [Socket], []).
@@ -49,21 +54,29 @@ handle_info({tcp, _Sock, Data}, State=#state{sock=Socket}) ->
     inet:setopts(Socket, [{active, once}]),
     {noreply, NewState}.
 
-process_message(0, MsgData, State) ->
-    <<Partition:160/integer,VNodeModBin/binary>> = MsgData,
-    VNodeMod = binary_to_atom(VNodeModBin, utf8),
-    error_logger:info_msg("Receiving handoff data for partition ~p~n", [Partition]),
+process_message(?PT_MSG_INIT, MsgData, State=#state{vnode_mod=VNodeMod}) ->
+    <<Partition:160/integer>> = MsgData,
+    error_logger:info_msg("Receiving handoff data for partition ~p:~p~n", [VNodeMod, Partition]),
     {ok, VNode} = riak_core_vnode_master:get_vnode_pid(Partition, VNodeMod),
     State#state{partition=Partition, vnode=VNode};
-process_message(1, MsgData, State=#state{vnode=VNode, count=Count}) ->
+process_message(?PT_MSG_OBJ, MsgData, State=#state{vnode=VNode, count=Count}) ->
     % header of 1 is a riakobject_pb
     RO_PB = riakserver_pb:decode_riakobject_pb(zlib:unzip(MsgData)),
     BKey = {RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key},
     Msg = {diffobj, {BKey, RO_PB#riakobject_pb.val}},
     ok = gen_fsm:sync_send_all_state_event(VNode, Msg, 60000),
     State#state{count=Count+1};
-process_message(2, _MsgData, State=#state{sock=Socket}) ->
-    ok = gen_tcp:send(Socket, <<2:8,"sync">>),
+process_message(?PT_MSG_OLDSYNC, MsgData, State=#state{sock=Socket}) ->
+    ok = gen_tcp:send(Socket, <<?PT_MSG_OLDSYNC:8,"sync">>),
+    <<VNodeModBin/binary>> = MsgData,
+    VNodeMod = binary_to_atom(VNodeModBin, utf8),
+    State#state{vnode_mod=VNodeMod};
+process_message(?PT_MSG_SYNC, _MsgData, State=#state{sock=_Socket}) ->
+    State;
+process_message(?PT_MSG_CONFIGURE, _MsgData, State=#state{sock=_Socket}) ->
+    State;
+process_message(_, _MsgData, State=#state{sock=Socket}) ->
+    ok = gen_tcp:send(Socket, <<255:8,"unknown_msg">>),
     State.
 
 handle_call(_Request, _From, State) -> {reply, ok, State}.
