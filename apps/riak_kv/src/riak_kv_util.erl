@@ -28,7 +28,7 @@
 -export([is_x_deleted/1,
          obj_not_deleted/1,
          try_cast/4,
-         fallback/4,
+         fallback/5,
          expand_rw_value/4,
          normalize_rw_value/2]).
 
@@ -73,7 +73,7 @@ try_cast(Cmd, Msg, UpNodes, Targets) ->
     try_cast(Cmd, Msg, UpNodes, Targets, [], []).
 try_cast(_Cmd, _Msg, _UpNodes, [], Sent, Pangs) -> {Sent, Pangs};
 try_cast(Cmd, Msg, UpNodes, [{Index,Node}|Targets], Sent, Pangs) ->
-    case lists:member(Node, [node()|UpNodes]) of
+    case lists:member(Node, UpNodes) of
         false ->
             try_cast(Cmd, Msg, UpNodes, Targets, Sent, [{Index,Node}|Pangs]);
         true ->
@@ -90,17 +90,17 @@ try_cast(Cmd, Msg, UpNodes, [{Index,Node}|Targets], Sent, Pangs) ->
 %%      from the second element of the response tuple of a call to
 %%      try_cast/3.
 %%      Used in riak_kv_put_fsm and riak_kv_get_fsm
-fallback(Cmd, Msg, Pangs, Fallbacks) ->
-    fallback(Cmd, Msg, Pangs, Fallbacks, []).
-fallback(_Cmd, _Msg, [], _Fallbacks, Sent) -> Sent;
-fallback(_Cmd, _Msg, _Pangs, [], Sent) -> Sent;
-fallback(Cmd, Msg, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
-    case lists:member(FN, [node()|nodes()]) of
-        false -> fallback(Cmd, Msg, [{Index,Node}|Pangs], Fallbacks, Sent);
+fallback(Cmd, Msg, UpNodes, Pangs, Fallbacks) ->
+    fallback(Cmd, Msg, UpNodes, Pangs, Fallbacks, []).
+fallback(_Cmd, _Msg, _UpNodes, [], _Fallbacks, Sent) -> Sent;
+fallback(_Cmd, _Msg, _UpNodes, _Pangs, [], Sent) -> Sent;
+fallback(Cmd, Msg, UpNodes, [{Index,Node}|Pangs], [{_,FN}|Fallbacks], Sent) ->
+    case lists:member(FN, UpNodes) of
+        false -> fallback(Cmd, Msg, UpNodes, [{Index,Node}|Pangs], Fallbacks, Sent);
         true ->
             gen_server:cast({riak_kv_vnode_master, FN},
                             {Cmd, {Index,Node}, Msg}),
-            fallback(Cmd, Msg, Pangs, Fallbacks, [{Index,Node,FN}|Sent])
+            fallback(Cmd, Msg, UpNodes, Pangs, Fallbacks, [{Index,Node,FN}|Sent])
     end.
 
 get_default_rw_val(Type, BucketProps) ->

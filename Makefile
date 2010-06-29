@@ -18,15 +18,14 @@ clean:
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
-test: 
-	./rebar eunit
+test:
+	./rebar skip_deps=true eunit
 
 ##
 ## Release targets
 ##
 rel: deps
-	make -C apps/riak_jmx/java_src
-	./rebar compile generate 
+	./rebar compile generate
 
 relclean:
 	rm -rf rel/riak
@@ -35,29 +34,11 @@ relclean:
 ## Developer targets
 ##
 
-devrel: dev1 dev2 dev3 dev4 dev5 dev6
+devrel: dev1 dev2 dev3 
 
-dev: 
-	mkdir dev
-	cp -R rel/overlay rel/reltool.config dev
-	make -C apps/riak_jmx/java_src
-	./rebar compile && cd dev && ../rebar generate
-
-dev1 dev2 dev3 dev4 dev5 dev6: dev
-	yes n | cp -Ri dev/riak dev/$@
-	mkdir -p dev/$@/data/ring
-	mkdir -p dev/$@/data/snmp/agent/db
-	$(foreach app,$(wildcard apps/*), rm -rf dev/$@/lib/$(shell basename $(app))* && ln -sf $(abspath $(app)) dev/$@/lib;)
-	$(foreach dep,$(wildcard deps/*), rm -rf dev/$@/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$@/lib;)
-	perl -pi -e 's/name riak/name $@/g' dev/$@/etc/vm.args
-	perl -pi -e 's/web_port, \d+/web_port, 809$(subst dev,,$@)/g' \
-                    dev/$@/etc/app.config
-	perl -pi -e 's/pb_port, \d+/pb_port, 808$(subst dev,,$@)/g' \
-                    dev/$@/etc/app.config
-	perl -pi -e 's/handoff_port, \d+/handoff_port, 810$(subst dev,,$@)/g' \
-                    dev/$@/etc/app.config
-	perl -pi -e 's/intAgentUDPPort, \d+/intAgentUDPPort, 400$(subst dev,,$@)/g' \
-			    dev/$@/etc/snmp/agent/conf/agent.conf
+dev1 dev2 dev3:
+	mkdir -p dev
+	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
 
 
 devclean: clean
@@ -73,11 +54,9 @@ stage : rel
 ## Doc targets
 ##
 docs:
-	@erl -noshell -run edoc_run application luke '"apps/luke"' '[]' 
+	./rebar skip_deps=true doc
 	@cp -R apps/luke/doc doc/luke
-	@erl -noshell -run edoc_run application riak_core '"apps/riak_core"' '[]' 
 	@cp -R apps/riak_core/doc doc/riak_core
-	@erl -noshell -run edoc_run application riak_kv '"apps/riak_kv"' '[]' 
 	@cp -R apps/riak_kv/doc doc/riak_kv
 
 orgs: orgs-doc orgs-README
@@ -99,6 +78,8 @@ distdir:
 	$(if $(findstring tip,$(RIAK_TAG)),$(error "You can't generate a release tarball from tip"))
 	mkdir distdir
 	hg clone -u $(RIAK_TAG) . distdir/riak-clone
+	cd distdir/riak-clone; \
+	hg update -r $(RIAK_TAG)
 	cd distdir/riak-clone; \
 	hg archive ../$(RIAK_TAG); \
 	mkdir ../$(RIAK_TAG)/deps; \

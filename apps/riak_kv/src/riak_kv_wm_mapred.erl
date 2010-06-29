@@ -130,15 +130,15 @@ format_error(_Error) ->
 stream_mapred_results(RD, ReqId, #state{timeout=Timeout}=State) ->
     FinalTimeout = erlang:trunc(Timeout * 1.02),
     receive
-        {flow_results, ReqId, done} -> {iolist_to_binary(["\n--", State#state.boundary, "--\n"]), done};
+        {flow_results, ReqId, done} -> {iolist_to_binary(["\r\n--", State#state.boundary, "--\r\n"]), done};
         {flow_results, ReqId, {error, Error}} ->
             {format_error(Error), done};
         {flow_error, ReqId, Error} ->
             {format_error({error, Error}), done};
         {flow_results, PhaseId, ReqId, Res} ->
             Data = mochijson2:encode({struct, [{phase, PhaseId}, {data, Res}]}),
-            Body = ["\n--", State#state.boundary, "\n",
-                    "Content-Type: application/json\n\n",
+            Body = ["\r\n--", State#state.boundary, "\r\n",
+                    "Content-Type: application/json\r\n\r\n",
                     Data],
             {iolist_to_binary(Body), fun() -> stream_mapred_results(RD, ReqId, State) end}
     after FinalTimeout ->

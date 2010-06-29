@@ -1,6 +1,6 @@
 
 ## Name of the riak node
--name riak@127.0.0.1
+-name {{node}}
 
 ## Cookie for distributed erlang
 -setcookie riak
@@ -11,10 +11,7 @@
 
 ## Enable kernel poll and a few async threads
 +K true
-+A 30
-
-## Raise process limit
-+P 1048576
++A 5
 
 ## Increase number of concurrent ports/sockets
 -env ERL_MAX_PORTS 4096

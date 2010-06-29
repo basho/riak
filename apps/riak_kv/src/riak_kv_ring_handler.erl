@@ -90,6 +90,8 @@ ensure_vnodes_started(Ring) ->
             riak:stop("node removal completed, exiting.");
         _ ->
             [begin
-                 gen_server:cast({riak_kv_vnode_master, node()}, {start_vnode, I}) 
+                 %% Sync startup the vnodes; not ideal, but necessary to ensure
+                 %% we don't report system as up before it actually is
+                 gen_server:call(riak_kv_vnode_master, {start_vnode, I}, infinity)
              end|| I <- VNodes2Start]
     end.

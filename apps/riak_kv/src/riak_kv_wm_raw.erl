@@ -314,10 +314,48 @@ malformed_request(RD, Ctx) when Ctx#ctx.method =:= 'POST'
             end
     end;
 malformed_request(RD, Ctx) ->
-    case malformed_rw_params(RD, Ctx) of
+    {ResBool, ResRD, ResCtx} = case malformed_rw_params(RD, Ctx) of
         Result={true, _, _} -> Result;
         {false, RWRD, RWCtx} ->
             malformed_link_headers(RWRD, RWCtx)
+    end,
+    case ((ResBool == true) orelse (ResCtx#ctx.key == undefined)) of
+        true ->
+            {ResBool, ResRD, ResCtx};
+        false ->
+            DocCtx = ensure_doc(ResCtx),
+            case DocCtx#ctx.doc of
+                {error, notfound} ->
+                    {{halt, 404},
+                     wrq:set_resp_header("Content-Type", "text/plain",
+                                         wrq:append_to_response_body(
+                                           io_lib:format("not found~n",[]),
+                                           ResRD)),
+                     DocCtx};
+                {error, timeout} ->
+                    {{halt, 500},
+                     wrq:set_resp_header("Content-Type", "text/plain",
+                                      wrq:append_to_response_body(
+                                        io_lib:format("request timed out~n",[]),
+                                        ResRD)),
+                     DocCtx};
+                {error, {n_val_violation, _}} ->
+                    {{halt, 400},
+                     wrq:set_resp_header("Content-Type", "text/plain",
+                                  wrq:append_to_response_body(
+                                    io_lib:format("R-value unsatisfiable~n",[]),
+                                    ResRD)),
+                     DocCtx};
+                {error, Err} ->
+                    {{halt, 500},
+                     wrq:set_resp_header("Content-Type", "text/plain",
+                                  wrq:append_to_response_body(
+                                    io_lib:format("Error:~n~p~n",[Err]),
+                                    ResRD)),
+                     DocCtx};
+                _ ->
+                    {false, ResRD, DocCtx}
+            end
     end.
 
 %% @spec malformed_bucket_put(reqdata(), context()) ->
@@ -420,21 +458,13 @@ content_types_provided(RD, Ctx=#ctx{method=Method}=Ctx) when Method =:= 'PUT';
     {[{ContentType, produce_doc_body}], RD, Ctx};
 content_types_provided(RD, Ctx0) ->
     DocCtx = ensure_doc(Ctx0),
-    case DocCtx#ctx.doc of
-        {ok, _} ->
-            case select_doc(DocCtx) of
-                {MD, V} ->
-                    {[{get_ctype(MD,V), produce_doc_body}], RD, DocCtx};
-                multiple_choices ->
-                    {[{"text/plain", produce_sibling_message_body},
-                      {"multipart/mixed", produce_multipart_body}], RD, DocCtx}
-            end;
-        {error, notfound} ->
-            {[{"text/plain", produce_error_message}], RD, DocCtx};
-        {error, timeout} ->
-            {[{"text/plain", produce_error_body}], RD, DocCtx};
-        {error, {n_val_violation, _}} ->
-            {[{"text/plain", produce_error_body}], RD, DocCtx}               
+    %% we can assume DocCtx#ctx.doc is {ok,Doc} because of malformed_request
+    case select_doc(DocCtx) of
+        {MD, V} ->
+            {[{get_ctype(MD,V), produce_doc_body}], RD, DocCtx};
+        multiple_choices ->
+            {[{"text/plain", produce_sibling_message_body},
+              {"multipart/mixed", produce_multipart_body}], RD, DocCtx}
     end.
 
 %% @spec charsets_provided(reqdata(), context()) ->
