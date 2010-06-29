@@ -99,7 +99,12 @@ visit_item({B,K}, V, {Socket, ParentPid, Acc}) ->
     
 
 get_handoff_port(Node) when is_atom(Node) ->
-    gen_server2:call({riak_core_handoff_listener, Node}, handoff_port).
+    case catch(gen_server2:call({riak_core_handoff_listener, Node}, handoff_port)) of
+        {'EXIT', _}  ->
+            gen_server2:call({riak_kv_handoff_listener, Node}, handoff_port);
+        Other -> Other
+    end.
+
 
 
 
