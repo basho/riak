@@ -76,7 +76,7 @@ try_cast(Msg, UpNodes, Targets) ->
     try_cast(Msg, UpNodes, Targets, [], []).
 try_cast(_Msg, _UpNodes, [], Sent, Pangs) -> {Sent, Pangs};
 try_cast(Msg, UpNodes, [{Index,Node}|Targets], Sent, Pangs) ->
-    case lists:member(Node, [Node|UpNodes]) of
+    case lists:member(Node, UpNodes) of
         false ->
             try_cast(Msg, UpNodes, Targets, Sent, [{Index,Node}|Pangs]);
         true ->
