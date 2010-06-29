@@ -232,7 +232,7 @@ reply({server, Ref, From}, Reply) ->
     gen_server:reply(From, {Ref, Reply});
 reply({raw, Ref, From}, Reply) ->
     From ! {Ref, Reply};
-reply(ignore, Reply) ->
+reply(ignore, _Reply) ->
     ok.
                    
 
