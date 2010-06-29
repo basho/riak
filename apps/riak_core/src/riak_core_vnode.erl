@@ -231,7 +231,8 @@ reply({server, undefined, From}, Reply) ->
 reply({server, Ref, From}, Reply) ->
     gen_server:reply(From, {Ref, Reply});
 reply({raw, Ref, From}, Reply) ->
-    From ! {Ref, Reply}.
+    From ! {Ref, Reply};
+reply(noreply, _Reply) -> true.
                    
 
 test(K, V) ->
