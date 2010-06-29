@@ -37,6 +37,7 @@ start_link() ->
 
 init([PortNum]) -> 
     register(?MODULE, self()),
+    process_proxy:start_link(riak_kv_handoff_listener, ?MODULE),
     {ok, #state{portnum=PortNum}}.
 
 sock_opts() -> [binary, {packet, 4}, {reuseaddr, true}, {backlog, 64}].
