@@ -1,5 +1,5 @@
 -type sender_type() :: fsm | server | raw.
--type sender() :: {sender_type(), reference(), pid()} | noreply.
+-type sender() :: {sender_type(), reference(), pid()} | ignore | noreply.
 -type partition() :: non_neg_integer().
 -type vnode_req() :: term().
 
