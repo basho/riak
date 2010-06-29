@@ -15,7 +15,7 @@
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 
 -module(riak_kv_vnode).
--export([start_vnode/1, del/3, put/6, list_keys/3,map/5, fold/3]).
+-export([start_vnode/1, del/3, put/6, readrepair/6, list_keys/3,map/5, fold/3]).
 -export([purge_mapcaches/0,mapcache/4]).
 -export([is_empty/1, delete_and_exit/1]).
 -export([handoff_starting/2, handoff_cancelled/1, handoff_finished/2, handle_handoff_data/3]).
@@ -50,7 +50,12 @@ del(Preflist, BKey, ReqId) ->
                                                        req_id=ReqId},
                                         riak_kv_vnode_master).
 
-put(Preflist, BKey, Obj, ReqId, StartTime, Options) ->   
+%% Issue a put for the object to the preflist, expecting a reply
+%% to an FSM.
+put(Preflist, BKey, Obj, ReqId, StartTime, Options) ->
+    put(Preflist, BKey, Obj, ReqId, StartTime, Options, {fsm, undefined, self()}).
+
+put(Preflist, BKey, Obj, ReqId, StartTime, Options, Sender) ->   
     riak_core_vnode_master:command(Preflist,
                                    ?KV_PUT_REQ{
                                       bkey = BKey,
@@ -58,7 +63,12 @@ put(Preflist, BKey, Obj, ReqId, StartTime, Options) ->
                                       req_id = ReqId,
                                       start_time = StartTime,
                                       options = Options},
+                                   Sender,
                                    riak_kv_vnode_master).
+
+%% Do a put without sending any replies
+readrepair(Preflist, BKey, Obj, ReqId, StartTime, Options) ->   
+    put(Preflist, BKey, Obj, ReqId, StartTime, Options, ignore).
 
 list_keys(Preflist, Bucket, ReqId) ->
     riak_core_vnode_master:command(Preflist,

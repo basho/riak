@@ -88,7 +88,7 @@ initialize(timeout, StateData0=#state{timeout=Timeout, r=R0, req_id=ReqId,
                 % Sent is [{Index,TargetNode,SentNode}]
                 case length(Sent1) =:= N of   
                     true -> Sent1;
-                    false -> Sent1 ++ riak_kv_util:fallback(Req, Pangs1,
+                    false -> Sent1 ++ riak_kv_util:fallback(Req, UpNodes, Pangs1,
                                                             Fallbacks)
                 end,
             StateData = StateData0#state{n=N,r=R,
@@ -243,8 +243,8 @@ maybe_do_read_repair(Sent,Final,RepliedR,NotFound,BKey,ReqId,StartTime) ->
         _ ->
             [begin 
                  {Idx,_Node,Fallback} = lists:keyfind(Target, 1, Sent),
-                 riak_kv_vnode:put({Idx, Fallback}, BKey, FinalRObj, ReqId, 
-                                   StartTime, [{returnbody, false}])
+                 riak_kv_vnode:readrepair({Idx, Fallback}, BKey, FinalRObj, ReqId, 
+                                          StartTime, [{returnbody, false}])
              end || Target <- Targets],
             riak_kv_stat:update(read_repairs)
     end.

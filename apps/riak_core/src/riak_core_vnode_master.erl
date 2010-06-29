@@ -115,7 +115,7 @@ init([VNodeMod, LegacyMod, RegName]) ->
                 [try 
                      [{Pid, riak_core_vnode:get_mod_index(Pid)}] 
                  catch
-                     _:Err ->
+                     _:_Err ->
                          []
                  end || Pid <- VnodePids]),
 
