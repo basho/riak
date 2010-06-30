@@ -16,8 +16,8 @@
 
 -module(riak_kv_vnode).
 -export([start_vnode/1, del/3, put/6, readrepair/6, list_keys/3,map/5, fold/3]).
--export([purge_mapcaches/0,mapcache/4]).
--export([is_empty/1, delete_and_exit/1]).
+-export([purge_mapcaches/0,mapcache/4,terminate/2]).
+-export([is_empty/1, delete/1]).
 -export([handoff_starting/2, handoff_cancelled/1, handoff_finished/2, handle_handoff_data/3]).
 -export([init/1, handle_command/3, handle_handoff_command/3]).
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").
@@ -194,9 +194,13 @@ handle_handoff_data(BKey, Obj, State) ->
 is_empty(State=#state{mod=Mod, modstate=ModState}) ->
     {Mod:is_empty(ModState), State}.
 
-delete_and_exit(State=#state{mod=Mod, modstate=ModState}) ->
+delete(State=#state{mod=Mod, modstate=ModState}) ->
     ok = Mod:drop(ModState),
-    {stop, normal, State}.
+    {ok, State}.
+
+terminate(_Reason, #state{mod=Mod, modstate=ModState}) ->
+    Mod:stop(ModState),
+    ok.
 
 %% old vnode helper functions
 

@@ -44,7 +44,8 @@ behaviour_info(callbacks) ->
      {handle_handoff_command,3},
      {handle_handoff_data,3},
      {is_empty,1},
-     {delete_and_exit,1}];
+     {terminate,1},
+     {delete,1}];
 behaviour_info(_Other) ->
     undefined.
 
@@ -75,6 +76,7 @@ send_command_after(Time, Request) ->
 
 init([Mod, Index]) ->
     %%TODO: Should init args really be an array if it just gets Init?
+    process_flag(trap_exit, true),
     {ok, ModState} = Mod:init([Index]),
     riak_core_handoff_manager:remove_exclusion(Mod, Index),
     {ok, active, #state{index=Index, mod=Mod, modstate=ModState}, 0}.
@@ -144,9 +146,9 @@ active(handoff_complete, State=#state{mod=Mod,
                                       handoff_token=HT}) ->
     riak_core_handoff_manager:release_handoff_lock({Mod, Idx}, HT),
     Mod:handoff_finished(HN, ModState),
-    Mod:delete_and_exit(ModState),
+    {ok, NewModState} = Mod:delete(ModState),
     riak_core_handoff_manager:add_exclusion(Mod, Idx),
-    {stop, normal, State}.
+    {stop, normal, State#state{modstate=NewModState}}.
 
 active(_Event, _From, State) ->
     Reply = ok,
@@ -171,7 +173,8 @@ handle_sync_event({diffobj,{BKey,BinObj}}, _From, StateName,
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State, ?TIMEOUT}.
 
-terminate(_Reason, _StateName, _State) ->
+terminate(Reason, _StateName, #state{mod=Mod, modstate=ModState}) ->
+    Mod:terminate(Reason, ModState),
     ok.
 
 code_change(_OldVsn, StateName, State, _Extra) ->
@@ -195,9 +198,9 @@ should_handoff(#state{index=Idx, mod=Mod}) ->
 start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) ->
     case Mod:is_empty(ModState) of
         {true, NewModState} ->
-            {stop, Reason, NewModState1} = Mod:delete_and_exit(NewModState),
+            {ok, NewModState1} = Mod:delete(NewModState),
             riak_core_handoff_manager:add_exclusion(Mod, Idx),
-            {stop, Reason, State#state{modstate=NewModState1}};
+            {stop, normal, State#state{modstate=NewModState1}};
         {false, NewModState} ->  
             case riak_core_handoff_manager:get_handoff_lock({Mod, Idx}) of
                 {error, max_concurrency} ->
