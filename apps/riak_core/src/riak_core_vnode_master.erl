@@ -82,7 +82,8 @@ sync_command({Index,Node}, Msg, VMaster) ->
 %% continue to handle requests.
 sync_spawn_command({Index,Node}, Msg, VMaster) ->
     gen_server:call({VMaster, Node}, 
-                    {spawn, make_request(Msg, {server, undefined, undefined}, Index)}).
+                    {spawn, make_request(Msg, {server, undefined, undefined}, Index)},
+                    infinity).
 
     
 %% Make a request record - exported for use by legacy modules

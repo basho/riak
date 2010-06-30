@@ -154,8 +154,8 @@ active(_Event, _From, State) ->
     Reply = ok,
     {reply, Reply, active, State, ?TIMEOUT}.
 
-handle_event(_Event, StateName, State) ->
-    {next_state, StateName, State, ?TIMEOUT}.
+handle_event(R=?VNODE_REQ{}, _StateName, State) ->
+    active(R, State).
 
 handle_sync_event(get_mod_index, _From, StateName,
                   State=#state{index=Idx,mod=Mod}) ->
