@@ -105,17 +105,6 @@ result_collector(PPid) ->
             disk_log:log(?TABLE, M),
             result_collector(PPid)
     end.
-                    
-
-    
-%old_backup_vnode(VNode = {_Index, VNodePid}) ->
-%    {ok, List} = gen_fsm:sync_send_event(VNodePid, list, infinity),
-%    [backup_key(VNodePid, Bucket, Key) || {Bucket, Key} <- List].
-
-%backup_key(VNodePid, Bucket, Key) ->
-%    {ok, B} = gen_fsm:sync_send_event(VNodePid, {get_binary, {Bucket, Key}}, infinity),
-%    ok = disk_log:log(?TABLE, B).
-
 
 %%% RESTORE %%%
 
