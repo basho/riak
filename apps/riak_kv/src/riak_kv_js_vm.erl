@@ -56,7 +56,7 @@ init([Manager]) ->
     StackSize = read_config(js_thread_stack, 8),
     case new_context(StackSize, HeapSize) of
         {ok, Ctx} ->
-            error_logger:info_msg("Spidermonkey VM (thread stack: ~pKB, max heap: ~pMB) host starting (~p)~n",
+            error_logger:info_msg("Spidermonkey VM (thread stack: ~pMB, max heap: ~pMB) host starting (~p)~n",
                                   [StackSize, HeapSize, self()]),
             riak_kv_js_manager:add_to_manager(),
             erlang:monitor(process, Manager),
