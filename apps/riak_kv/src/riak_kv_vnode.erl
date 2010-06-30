@@ -68,7 +68,7 @@ put(Preflist, BKey, Obj, ReqId, StartTime, Options, Sender) ->
 
 %% Do a put without sending any replies
 readrepair(Preflist, BKey, Obj, ReqId, StartTime, Options) ->   
-    put(Preflist, BKey, Obj, ReqId, StartTime, Options, noreply).
+    put(Preflist, BKey, Obj, ReqId, StartTime, Options, ignore).
 
 list_keys(Preflist, Bucket, ReqId) ->
     riak_core_vnode_master:command(Preflist,
