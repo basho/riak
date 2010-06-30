@@ -33,7 +33,8 @@
          latereply/1,
          stop/1]).
 -export([init/1,
-         handle_command/3]).
+         handle_command/3,
+         terminate/2]).
 
 -record(state, {index, counter}).
 
@@ -93,3 +94,6 @@ handle_command(latereply, Sender, State = #state{counter=Counter}) ->
                   riak_core_vnode:reply(Sender, latereply)
           end),
     {noreply, State#state{counter = Counter + 1}}.
+
+terminate(_Reason, _State) ->
+    ok.

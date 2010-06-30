@@ -209,7 +209,7 @@ stop_pid(undefined) ->
     ok;
 stop_pid(Pid) ->
     unlink(Pid),
-    exit(Pid, kill),
+    exit(Pid, shutdown),
     ok = wait_for_pid(Pid).
 
 wait_for_pid(Pid) ->

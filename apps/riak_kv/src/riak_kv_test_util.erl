@@ -80,7 +80,7 @@ stop_process(RegName) when is_atom(RegName) ->
     stop_process(whereis(RegName));
 stop_process(Pid) when is_pid(Pid) ->
     unlink(Pid),
-    exit(Pid, kill),
+    exit(Pid, shutdown),
     ok = wait_for_pid(Pid).
 
 %% Wait for a pid to exit

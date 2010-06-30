@@ -190,7 +190,7 @@ start_mock_servers() ->
         undefined -> ok;
         Pid       ->
             unlink(Pid),
-            exit(Pid, kill),
+            exit(Pid, shutdown),
             wait_for_pid(Pid)
     end,
     get_fsm_qc_vnode_master:start_link(),
