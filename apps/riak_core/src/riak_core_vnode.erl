@@ -31,7 +31,7 @@
          handle_info/3, 
          terminate/3, 
          code_change/4]).
--export([reply/2, test/2]).
+-export([reply/2]).
 -export([get_mod_index/1]).
 
 -spec behaviour_info(atom()) -> 'undefined' | [{atom(), arity()}].
@@ -237,13 +237,3 @@ reply({raw, Ref, From}, Reply) ->
 reply(ignore, _Reply) ->
     ok.
                    
-
-test(K, V) ->
-    {ok, C} = riak:local_client(),
-    O = riak_object:new(<<"corevnodetest">>, K, V),
-    C:put(O, 2, 2),
-    {ok, O1} = C:get(<<"corevnodetest">>, K, 1),
-    <<"corevnodetest">> = riak_object:bucket(O1),
-    K = riak_object:key(O1),
-    V = riak_object:get_value(O1),
-    O1.
