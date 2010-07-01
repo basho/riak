@@ -5,6 +5,7 @@
 -behavior(gen_nb_server).
 -include("riak_repl.hrl").
 -export([start_link/2]).
+-export([close_all_connections/0]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
          terminate/2, code_change/3]).
 -export([sock_opts/0, new_connection/2, stop/1]).
@@ -42,6 +43,9 @@ new_connection(Socket, State) ->
 
 stop(Pid) when is_pid(Pid)  ->
     gen_server:cast(Pid, stop).
+
+close_all_connections() ->
+    [exit(P, kill) || {_, P, _, _} <- supervisor:which_children(riak_repl_server_sup)].
 
 %% no-ops
 handle_call(_Req, _From, State) -> {reply, ok, State}.

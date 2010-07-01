@@ -86,7 +86,8 @@ handle_became_leader(State=#state{repl_config=RC}) ->
 
 handle_lost_leader(State=#state{monitors=T}) ->
     Sites = [I || {repl_monitor, {repl_site, _}, I, _, _} <- ets:tab2list(T)],
-    stop_sites(Sites, State).
+    stop_sites(Sites, State),
+    riak_repl_listener:close_all_connections().
 
 
 handle_down(_MonRef, _Pid, _State) -> ok.

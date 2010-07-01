@@ -28,6 +28,7 @@ start_link(Candidates, Workers, InstallHook) ->
     gen_leader:start_link(?MODULE,Candidates,LOpts,?MODULE, [InstallHook], []).
 
 init([InstallHook]) ->
+    riak_repl_listener:close_all_connections(),
     case InstallHook of
         true ->
             riak_repl:install_hook();
