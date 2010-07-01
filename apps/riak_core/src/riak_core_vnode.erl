@@ -31,7 +31,7 @@
          handle_info/3, 
          terminate/3, 
          code_change/4]).
--export([reply/2, test/2]).
+-export([reply/2]).
 -export([get_mod_index/1]).
 
 -spec behaviour_info(atom()) -> 'undefined' | [{atom(), arity()}].
@@ -44,7 +44,8 @@ behaviour_info(callbacks) ->
      {handle_handoff_command,3},
      {handle_handoff_data,3},
      {is_empty,1},
-     {delete_and_exit,1}];
+     {terminate,1},
+     {delete,1}];
 behaviour_info(_Other) ->
     undefined.
 
@@ -55,9 +56,8 @@ behaviour_info(_Other) ->
           index :: partition(),
           mod :: module(),
           modstate :: term(),
-          handoff_q = not_in_handoff :: not_in_handoff | list(),
           handoff_token :: non_neg_integer(),
-          handoff_node :: node()}).
+          handoff_node=none :: none | node()}).
 
 start_link(Mod, Index) ->
     gen_fsm:start_link(?MODULE, [Mod, Index], []).
@@ -75,6 +75,7 @@ send_command_after(Time, Request) ->
 
 init([Mod, Index]) ->
     %%TODO: Should init args really be an array if it just gets Init?
+    process_flag(trap_exit, true),
     {ok, ModState} = Mod:init([Index]),
     riak_core_handoff_manager:remove_exclusion(Mod, Index),
     {ok, active, #state{index=Index, mod=Mod, modstate=ModState}, 0}.
@@ -133,10 +134,11 @@ active(timeout, State=#state{mod=Mod, modstate=ModState}) ->
         false ->
             continue(State)
     end;
-active(VR=?VNODE_REQ{sender=Sender, request=Request},State=#state{handoff_q=[]}) ->
-    vnode_handoff_command(Sender, Request, VR, State);
-active(?VNODE_REQ{sender=Sender, request=Request},State) ->
+active(?VNODE_REQ{sender=Sender, request=Request},
+       State=#state{handoff_node=HN}) when HN =:= none ->
     vnode_command(Sender, Request, State);
+active(VR=?VNODE_REQ{sender=Sender, request=Request},State) ->
+    vnode_handoff_command(Sender, Request, VR, State);
 active(handoff_complete, State=#state{mod=Mod, 
                                       modstate=ModState,
                                       index=Idx, 
@@ -144,16 +146,16 @@ active(handoff_complete, State=#state{mod=Mod,
                                       handoff_token=HT}) ->
     riak_core_handoff_manager:release_handoff_lock({Mod, Idx}, HT),
     Mod:handoff_finished(HN, ModState),
-    Mod:delete_and_exit(ModState),
+    {ok, NewModState} = Mod:delete(ModState),
     riak_core_handoff_manager:add_exclusion(Mod, Idx),
-    {stop, normal, State}.
+    {stop, normal, State#state{modstate=NewModState, handoff_node=none}}.
 
 active(_Event, _From, State) ->
     Reply = ok,
     {reply, Reply, active, State, ?TIMEOUT}.
 
-handle_event(_Event, StateName, State) ->
-    {next_state, StateName, State, ?TIMEOUT}.
+handle_event(R=?VNODE_REQ{}, _StateName, State) ->
+    active(R, State).
 
 handle_sync_event(get_mod_index, _From, StateName,
                   State=#state{index=Idx,mod=Mod}) ->
@@ -171,7 +173,8 @@ handle_sync_event({diffobj,{BKey,BinObj}}, _From, StateName,
 handle_info(_Info, StateName, State) ->
     {next_state, StateName, State, ?TIMEOUT}.
 
-terminate(_Reason, _StateName, _State) ->
+terminate(Reason, _StateName, #state{mod=Mod, modstate=ModState}) ->
+    Mod:terminate(Reason, ModState),
     ok.
 
 code_change(_OldVsn, StateName, State, _Extra) ->
@@ -195,9 +198,9 @@ should_handoff(#state{index=Idx, mod=Mod}) ->
 start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) ->
     case Mod:is_empty(ModState) of
         {true, NewModState} ->
-            {stop, Reason, NewModState1} = Mod:delete_and_exit(NewModState),
+            {ok, NewModState1} = Mod:delete(NewModState),
             riak_core_handoff_manager:add_exclusion(Mod, Idx),
-            {stop, Reason, State#state{modstate=NewModState1}};
+            {stop, normal, State#state{modstate=NewModState1}};
         {false, NewModState} ->  
             case riak_core_handoff_manager:get_handoff_lock({Mod, Idx}) of
                 {error, max_concurrency} ->
@@ -207,8 +210,7 @@ start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) -
                 {ok, HandoffToken} ->
                     NewState = State#state{modstate=NewModState, 
                                            handoff_token=HandoffToken,
-                                           handoff_node=TargetNode,
-                                           handoff_q=[]},
+                                           handoff_node=TargetNode},
                     riak_core_handoff_sender:start_link(TargetNode, Mod, Idx, all),
                     continue(NewState)
             end
@@ -235,13 +237,3 @@ reply({raw, Ref, From}, Reply) ->
 reply(ignore, _Reply) ->
     ok.
                    
-
-test(K, V) ->
-    {ok, C} = riak:local_client(),
-    O = riak_object:new(<<"corevnodetest">>, K, V),
-    C:put(O, 2, 2),
-    {ok, O1} = C:get(<<"corevnodetest">>, K, 1),
-    <<"corevnodetest">> = riak_object:bucket(O1),
-    K = riak_object:key(O1),
-    V = riak_object:get_value(O1),
-    O1.

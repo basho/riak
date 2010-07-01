@@ -67,10 +67,11 @@ backup(EntryNode, BaseFilename, Mode) ->
 
     case Mode of
         "all" ->
-            [backup_node(Node) || Node <- Members];
+            [backup_node(Node, Ring) || Node <- Members];
         "node" ->
-            backup_node(EntryNode)
+            backup_node(EntryNode, Ring)
     end,
+    io:format("syncing and closing log~n"),
     ok = disk_log:sync(?TABLE),
     ok = disk_log:close(?TABLE),
     
@@ -78,18 +79,32 @@ backup(EntryNode, BaseFilename, Mode) ->
     ensure_synchronized(Ring, Members),
     ok.
     
-backup_node(Node) ->
-    VNodes = gen_server:call({riak_kv_vnode_master, Node}, all_possible_vnodes),
-    [backup_vnode(VNode) ||  VNode <- VNodes].
-    
-backup_vnode(_VNode = {_Index, VNodePid}) ->
-    {ok, List} = gen_fsm:sync_send_event(VNodePid, list, infinity),
-    [backup_key(VNodePid, Bucket, Key) || {Bucket, Key} <- List].
+backup_node(Node, Ring) ->
+    Partitions = [I || {I,N} <- riak_core_ring:all_owners(Ring), N =:= Node],
+    backup_vnodes(Partitions, Node).
 
-backup_key(VNodePid, Bucket, Key) ->
-    {ok, B} = gen_fsm:sync_send_event(VNodePid, {get_binary, {Bucket, Key}}, infinity),
-    ok = disk_log:log(?TABLE, B).
+backup_vnodes([], Node) ->
+    io:format("Backup of ~p complete~n", [Node]);
+backup_vnodes([Partition|T], Node) ->
+    Self = self(),
+    Pid = spawn_link(fun() -> result_collector(Self) end),
+    riak_kv_vnode:fold({Partition, Node}, fun backup_folder/3, Pid),
+    Pid ! stop,
+    receive stop -> stop end,
+    backup_vnodes(T, Node).
 
+backup_folder(_, V, Pid) ->
+    Pid ! {backup, V},
+    Pid.
+
+result_collector(PPid) ->
+    receive
+        stop -> 
+            PPid ! stop;
+        {backup, M} when is_binary(M) ->
+            disk_log:log(?TABLE, M),
+            result_collector(PPid)
+    end.
 
 %%% RESTORE %%%
 
