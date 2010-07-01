@@ -56,9 +56,8 @@ behaviour_info(_Other) ->
           index :: partition(),
           mod :: module(),
           modstate :: term(),
-          handoff_q = not_in_handoff :: not_in_handoff | list(),
           handoff_token :: non_neg_integer(),
-          handoff_node :: node()}).
+          handoff_node=none :: none | node()}).
 
 start_link(Mod, Index) ->
     gen_fsm:start_link(?MODULE, [Mod, Index], []).
@@ -135,10 +134,11 @@ active(timeout, State=#state{mod=Mod, modstate=ModState}) ->
         false ->
             continue(State)
     end;
-active(VR=?VNODE_REQ{sender=Sender, request=Request},State=#state{handoff_q=[]}) ->
-    vnode_handoff_command(Sender, Request, VR, State);
-active(?VNODE_REQ{sender=Sender, request=Request},State) ->
+active(?VNODE_REQ{sender=Sender, request=Request},
+       State=#state{handoff_node=HN}) when HN =:= none ->
     vnode_command(Sender, Request, State);
+active(VR=?VNODE_REQ{sender=Sender, request=Request},State) ->
+    vnode_handoff_command(Sender, Request, VR, State);
 active(handoff_complete, State=#state{mod=Mod, 
                                       modstate=ModState,
                                       index=Idx, 
@@ -148,7 +148,7 @@ active(handoff_complete, State=#state{mod=Mod,
     Mod:handoff_finished(HN, ModState),
     {ok, NewModState} = Mod:delete(ModState),
     riak_core_handoff_manager:add_exclusion(Mod, Idx),
-    {stop, normal, State#state{modstate=NewModState}}.
+    {stop, normal, State#state{modstate=NewModState, handoff_node=none}}.
 
 active(_Event, _From, State) ->
     Reply = ok,
@@ -210,8 +210,7 @@ start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) -
                 {ok, HandoffToken} ->
                     NewState = State#state{modstate=NewModState, 
                                            handoff_token=HandoffToken,
-                                           handoff_node=TargetNode,
-                                           handoff_q=[]},
+                                           handoff_node=TargetNode},
                     riak_core_handoff_sender:start_link(TargetNode, Mod, Idx, all),
                     continue(NewState)
             end
