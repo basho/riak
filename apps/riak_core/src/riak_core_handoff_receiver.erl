@@ -24,7 +24,6 @@
 
 -module(riak_core_handoff_receiver).
 -include_lib("riak_core/include/riak_core_handoff.hrl").
--include("riakserver_pb.hrl").
 -behaviour(gen_server2).
 -export([start_link/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
@@ -60,10 +59,7 @@ process_message(?PT_MSG_INIT, MsgData, State=#state{vnode_mod=VNodeMod}) ->
     {ok, VNode} = riak_core_vnode_master:get_vnode_pid(Partition, VNodeMod),
     State#state{partition=Partition, vnode=VNode};
 process_message(?PT_MSG_OBJ, MsgData, State=#state{vnode=VNode, count=Count}) ->
-    % header of 1 is a riakobject_pb
-    RO_PB = riakserver_pb:decode_riakobject_pb(zlib:unzip(MsgData)),
-    BKey = {RO_PB#riakobject_pb.bucket,RO_PB#riakobject_pb.key},
-    Msg = {diffobj, {BKey, RO_PB#riakobject_pb.val}},
+    Msg = {diffobj, MsgData},
     ok = gen_fsm:sync_send_all_state_event(VNode, Msg, 60000),
     State#state{count=Count+1};
 process_message(?PT_MSG_OLDSYNC, MsgData, State=#state{sock=Socket}) ->

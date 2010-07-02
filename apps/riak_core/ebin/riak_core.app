@@ -26,6 +26,7 @@
              riak_core_handoff_sender,
              riak_core_node_watcher,
              riak_core_node_watcher_events,
+             riak_core_pb,
              riak_core_ring,
              riak_core_ring_events,
              riak_core_ring_handler,
@@ -37,7 +38,6 @@
              riak_core_vnode_master,
              riak_core_vnode_sup,
              riak_core_web,
-             riakserver_pb,
              slide,
              spiraltime,
              vclock

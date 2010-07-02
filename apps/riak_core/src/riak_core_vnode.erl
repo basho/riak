@@ -42,7 +42,8 @@ behaviour_info(callbacks) ->
      {handoff_cancelled,1},
      {handoff_finished,2},
      {handle_handoff_command,3},
-     {handle_handoff_data,3},
+     {handle_handoff_data,2},
+     {encode_handoff_item,2},
      {is_empty,1},
      {terminate,1},
      {delete,1}];
@@ -160,9 +161,9 @@ handle_event(R=?VNODE_REQ{}, _StateName, State) ->
 handle_sync_event(get_mod_index, _From, StateName,
                   State=#state{index=Idx,mod=Mod}) ->
     {reply, {Mod, Idx}, StateName, State, ?TIMEOUT};
-handle_sync_event({diffobj,{BKey,BinObj}}, _From, StateName, 
+handle_sync_event({diffobj,BinObj}, _From, StateName, 
                   State=#state{mod=Mod, modstate=ModState}) ->
-    case Mod:handle_handoff_data(BKey, binary_to_term(BinObj), ModState) of
+    case Mod:handle_handoff_data(BinObj, ModState) of
         {reply, ok, NewModState} ->
             {reply, ok, StateName, State#state{modstate=NewModState}, ?TIMEOUT};
         {reply, {error, Err}, NewModState} ->
@@ -211,7 +212,7 @@ start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) -
                     NewState = State#state{modstate=NewModState, 
                                            handoff_token=HandoffToken,
                                            handoff_node=TargetNode},
-                    riak_core_handoff_sender:start_link(TargetNode, Mod, Idx, all),
+                    riak_core_handoff_sender:start_link(TargetNode, Mod, Idx),
                     continue(NewState)
             end
     end.

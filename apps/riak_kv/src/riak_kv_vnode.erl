@@ -18,9 +18,11 @@
 -export([start_vnode/1, del/3, put/6, readrepair/6, list_keys/3,map/5, fold/3]).
 -export([purge_mapcaches/0,mapcache/4,terminate/2]).
 -export([is_empty/1, delete/1]).
--export([handoff_starting/2, handoff_cancelled/1, handoff_finished/2, handle_handoff_data/3]).
+-export([handoff_starting/2, handoff_cancelled/1, handoff_finished/2, handle_handoff_data/2]).
+-export([encode_handoff_item/2]).
 -export([init/1, handle_command/3, handle_handoff_command/3]).
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").
+-include_lib("riak_core/include/riak_core_pb.hrl").
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -export([map_test/3]).
@@ -183,13 +185,19 @@ handoff_cancelled(State) ->
 handoff_finished(_TargetNode, State) ->
     {ok, State}.
 
-handle_handoff_data(BKey, Obj, State) ->
-    case do_diffobj_put(BKey, Obj, State) of
+handle_handoff_data(BinObj, State) ->
+    PBObj = riak_core_pb:decode_riakobject_pb(zlib:unzip(BinObj)),
+    BKey = {PBObj#riakobject_pb.bucket,PBObj#riakobject_pb.key},
+    case do_diffobj_put(BKey, binary_to_term(PBObj#riakobject_pb.val), State) of
         ok ->
             {reply, ok, State};
         Err ->
             {reply, {error, Err}, State}
     end.
+
+encode_handoff_item({B,K}, V) ->
+    zlib:zip(riak_core_pb:encode_riakobject_pb(
+               #riakobject_pb{bucket=B, key=K, val=V})).
 
 is_empty(State=#state{mod=Mod, modstate=ModState}) ->
     {Mod:is_empty(ModState), State}.

@@ -23,18 +23,17 @@
 %% @doc send a partition's data via TCP-based handoff
 
 -module(riak_core_handoff_sender).
--export([start_link/4]).
+-export([start_link/3]).
 -include_lib("riak_core/include/riak_core_vnode.hrl").
 -include_lib("riak_core/include/riak_core_handoff.hrl").
--include("riakserver_pb.hrl").
 -define(ACK_COUNT, 1000).
 
-start_link(TargetNode, Module, Partition, BKeyList) ->
+start_link(TargetNode, Module, Partition) ->
     Self = self(),
-    Pid = spawn_link(fun()->start_fold(TargetNode, Module,Partition, BKeyList, Self) end),
+    Pid = spawn_link(fun()->start_fold(TargetNode, Module,Partition, Self) end),
     {ok, Pid}.
 
-start_fold(TargetNode, Module, Partition, BKeyList, ParentPid) ->
+start_fold(TargetNode, Module, Partition, ParentPid) ->
     error_logger:info_msg("Starting handoff of partition ~p to ~p~n", 
                           [Partition, TargetNode]),
     [_Name,Host] = string:tokens(atom_to_list(TargetNode), "@"),
@@ -53,49 +52,33 @@ start_fold(TargetNode, Module, Partition, BKeyList, ParentPid) ->
     inet:setopts(Socket, [{active, once}]),
     M = <<?PT_MSG_INIT:8,Partition:160/integer>>,
     ok = gen_tcp:send(Socket, M),
-    case BKeyList of
-        all ->
-            riak_core_vnode_master:sync_command({Partition, node()},
-                                                ?FOLD_REQ{
-                                                   foldfun=fun folder/3,
-                                                   acc0={Socket,ParentPid,[]}},
-                                                VMaster);
-        _ ->
-            inner_fold({Socket,ParentPid,[]},BKeyList)
-    end,
+    riak_core_vnode_master:sync_command({Partition, node()},
+                                        ?FOLD_REQ{
+                                           foldfun=fun folder/3,
+                                           acc0={Socket,ParentPid,Module,[]}},
+                                        VMaster),
     error_logger:info_msg("Handoff of partition ~p to ~p completed~n", 
                           [Partition, TargetNode]),
     gen_fsm:send_event(ParentPid, handoff_complete).
 
-inner_fold(_FoldArg,[]) -> ok;
-inner_fold(FoldArg,[{B,K}|Tail]) ->
-    {_Socket,ParentPid,_Count} = FoldArg,
-    case gen_fsm:sync_send_event(ParentPid, {get_binary, {B,K}}, infinity) of
-        {ok, V} ->
-            inner_fold(folder({B,K},V,FoldArg),Tail);
-        _ ->
-            inner_fold(FoldArg,Tail)
-    end.
-            
-folder({B,K}, V, {Socket, ParentPid, []}) ->
+folder(K, V, {Socket, ParentPid, Module, []}) ->
     gen_tcp:controlling_process(Socket, self()),
-    visit_item({B,K}, V, {Socket, ParentPid, 0});
-folder({B,K}, V, AccIn) ->
-    visit_item({B,K}, V, AccIn).
+    visit_item(K, V, {Socket, ParentPid, Module, 0});
+folder(K, V, AccIn) ->
+    visit_item(K, V, AccIn).
 
-visit_item({B,K}, V, {Socket, ParentPid, ?ACK_COUNT}) ->
+visit_item(K, V, {Socket, ParentPid, Module, ?ACK_COUNT}) ->
     M = <<?PT_MSG_OLDSYNC:8,"sync">>,
     ok = gen_tcp:send(Socket, M),
     inet:setopts(Socket, [{active, false}]),
     {ok,[?PT_MSG_OLDSYNC|<<"sync">>]} = gen_tcp:recv(Socket, 0),
     inet:setopts(Socket, [{active, once}]),
-    visit_item({B,K}, V, {Socket, ParentPid, 0});
-visit_item({B,K}, V, {Socket, ParentPid, Acc}) ->
-    D = zlib:zip(riakserver_pb:encode_riakobject_pb(
-                   #riakobject_pb{bucket=B, key=K, val=V})),
-    M = <<?PT_MSG_OBJ:8,D/binary>>,
+    visit_item(K, V, {Socket, ParentPid, Module, 0});
+visit_item(K, V, {Socket, ParentPid, Module, Acc}) ->
+    BinObj = Module:encode_handoff_item(K, V),
+    M = <<?PT_MSG_OBJ:8,BinObj/binary>>,
     ok = gen_tcp:send(Socket, M),
-    {Socket, ParentPid, Acc+1}.
+    {Socket, ParentPid, Module, Acc+1}.
     
 
 get_handoff_port(Node) when is_atom(Node) ->
