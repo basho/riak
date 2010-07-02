@@ -3,7 +3,7 @@
  riak_repl,
  [{description,  "riak_repl"},
   {id,           "riak_repl"},
-  {vsn,          "0.2"},
+  {vsn,          "0.3"},
   {modules,      ['couch_btree',
                   'couch_file',
                   'couch_merkle',
