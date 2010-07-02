@@ -109,7 +109,7 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, merkle_sz=SZ,
                         DiffKeys0 ->  
                             DiffKeys = [riak_repl_util:binunpack_bkey(K) || 
                                            {K,_} <- DiffKeys0],
-                            case riak_repl_fsm:get_vclocks(PT, DiffKeys) of
+                            case riak_kv_vnode:get_vclocks(PT, DiffKeys) of
                                 {error, node_not_available} ->
                                     ok = send(Socket, {ack, PT, []});
                                 {error, Reason} ->

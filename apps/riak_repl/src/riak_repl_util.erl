@@ -3,6 +3,7 @@
 -module(riak_repl_util).
 -author('Andy Gross <andy@basho.com>').
 -include("riak_repl.hrl").
+-include_lin("riak_core/include/riak_core_vnode.hrl").
 -export([make_peer_info/0,
          vnode_master_call/2,
          validate_peer_info/2,
@@ -79,7 +80,7 @@ make_merkle(Partition, Dir) ->
             {ok, DMerkle} = couch_merkle:open(FileName),
             MakerPid = spawn(fun() -> merkle_maker(DMerkle, [], 0) end),
             F = fun(K, V, MPid) -> MPid ! {K, erlang:phash2(V)}, MPid end,
-            riak_repl_util:vnode_master_call(OwnerNode, {fold,{Partition,F,MakerPid}}),
+            riak_kv_vnode:fold({Partition,OwnerNode}, F, MakerPid),
             MakerPid ! {finish, self()},
             receive 
                 {ok, RestKeys} -> couch_merkle:update_many(DMerkle, RestKeys)
