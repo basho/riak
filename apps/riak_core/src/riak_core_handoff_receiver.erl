@@ -59,7 +59,7 @@ process_message(?PT_MSG_INIT, MsgData, State=#state{vnode_mod=VNodeMod}) ->
     {ok, VNode} = riak_core_vnode_master:get_vnode_pid(Partition, VNodeMod),
     State#state{partition=Partition, vnode=VNode};
 process_message(?PT_MSG_OBJ, MsgData, State=#state{vnode=VNode, count=Count}) ->
-    Msg = {diffobj, MsgData},
+    Msg = {handoff_data, MsgData},
     ok = gen_fsm:sync_send_all_state_event(VNode, Msg, 60000),
     State#state{count=Count+1};
 process_message(?PT_MSG_OLDSYNC, MsgData, State=#state{sock=Socket}) ->
