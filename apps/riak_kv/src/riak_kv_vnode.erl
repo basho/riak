@@ -16,6 +16,7 @@
 
 -module(riak_kv_vnode).
 -export([start_vnode/1, del/3, put/6, readrepair/6, list_keys/3,map/5, fold/3]).
+-export([get_vclocks/2]).
 -export([purge_mapcaches/0,mapcache/4,terminate/2]).
 -export([is_empty/1, delete/1]).
 -export([handoff_starting/2, handoff_cancelled/1, handoff_finished/2, handle_handoff_data/2]).
@@ -102,7 +103,11 @@ purge_mapcaches() ->
     
 mapcache(Pid, BKey, What, R) ->
     riak_core_vnode:send_command(Pid, {mapcache, BKey, What, R}).
-    
+   
+get_vclocks(Preflist, BKeyList) -> 
+    riak_core_vnode_master:sync_spawn_command(Preflist,
+                                              ?KV_VCLOCK_REQ{bkeys=BKeyList},
+                                              riak_kv_vnode_master).    
 
 %% VNode callbacks
 
@@ -141,6 +146,8 @@ handle_command(?KV_DELETE_REQ{bkey=BKey, req_id=ReqId}, _Sender,
 handle_command(?KV_MAP_REQ{bkey=BKey,qterm=QTerm,keydata=KeyData},
                Sender, State) ->
     do_map(Sender,QTerm,BKey,KeyData,State,self());
+handle_command(?KV_VCLOCK_REQ{bkeys=BKeys}, _Sender, State) ->
+    {reply, do_get_vclocks(BKeys, State), State};
 handle_command(?FOLD_REQ{foldfun=Fun, acc0=Acc},_Sender,State) ->
     Reply = do_fold(Fun, Acc, State),
     {reply, Reply, State};
@@ -332,6 +339,16 @@ do_list_bucket(ReqID,Bucket,Mod,ModState,Idx,State) ->
 %% @private
 do_fold(Fun, Acc0, _State=#state{mod=Mod, modstate=ModState}) ->
     Mod:fold(ModState, Fun, Acc0).
+
+%% @private
+do_get_vclocks(KeyList,_State=#state{mod=Mod,modstate=ModState}) ->
+    [{BKey, do_get_vclock(BKey,Mod,ModState)} || BKey <- KeyList].
+%% @private
+do_get_vclock(BKey,Mod,ModState) ->
+    case Mod:get(ModState, BKey) of
+        {error, notfound} -> vclock:fresh();
+        {ok, Val} -> riak_object:vclock(binary_to_term(Val))
+    end.
 
 %% @private
 % upon receipt of a handoff datum, there is no client FSM
