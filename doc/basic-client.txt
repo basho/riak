@@ -201,9 +201,9 @@ put.  Riak is able to provide high availability, in part, due to its
 ability to accept put requests, even when it can't tell if that put
 would overwrite data.  It does this by retaining conflicting data, and
 providing it to the client the next time a get is attempted.  To see
-both sets of conflicting data, use riak_object:values/1:
+both sets of conflicting data, use riak_object:get_values/1:
 
-5> riak_object:values(O).
+5> riak_object:get_values(O).
 [["bread","cheese"],["eggs","bacon"]]
 
 You can then "merge" the siblings in whatever way suits your
