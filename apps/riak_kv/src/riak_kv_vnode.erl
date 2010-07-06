@@ -15,19 +15,39 @@
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 
 -module(riak_kv_vnode).
--export([start_vnode/1, del/3, put/6, readrepair/6, list_keys/3,map/5, fold/3]).
--export([get_vclocks/2]).
--export([purge_mapcaches/0,mapcache/4,terminate/2]).
--export([is_empty/1, delete/1]).
--export([handoff_starting/2, handoff_cancelled/1, handoff_finished/2, handle_handoff_data/2]).
--export([encode_handoff_item/2]).
--export([init/1, handle_command/3, handle_handoff_command/3]).
+%% API
+-export([start_vnode/1, 
+         del/3, 
+         put/6, 
+         readrepair/6, 
+         list_keys/3,
+         map/5, 
+         fold/3, 
+         get_vclocks/2,
+         mapcache/4,
+         purge_mapcaches/0]).
+
+%% riak_core_vnode API
+-export([init/1,
+         terminate/2,
+         handle_command/3,
+         is_empty/1,
+         delete/1,
+         handle_handoff_command/3,
+         handoff_starting/2,
+         handoff_cancelled/1,
+         handoff_finished/2,
+         handle_handoff_data/2,
+         encode_handoff_item/2]).
+
 -include_lib("riak_kv/include/riak_kv_vnode.hrl").
 -include_lib("riak_core/include/riak_core_pb.hrl").
+
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
 -export([map_test/3]).
 -endif.
+
 -record(state, {idx :: partition(), 
                 mod :: module(),
                 modstate :: term(),

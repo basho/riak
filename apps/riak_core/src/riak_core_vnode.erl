@@ -161,7 +161,7 @@ handle_event(R=?VNODE_REQ{}, _StateName, State) ->
 handle_sync_event(get_mod_index, _From, StateName,
                   State=#state{index=Idx,mod=Mod}) ->
     {reply, {Mod, Idx}, StateName, State, ?TIMEOUT};
-handle_sync_event({diffobj,BinObj}, _From, StateName, 
+handle_sync_event({handoff_data,BinObj}, _From, StateName, 
                   State=#state{mod=Mod, modstate=ModState}) ->
     case Mod:handle_handoff_data(BinObj, ModState) of
         {reply, ok, NewModState} ->

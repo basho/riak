@@ -69,6 +69,12 @@ case "$1" in
         ;;
 
     stop)
+        case `uname` in
+            Darwin)
+                # Make sure we explicitly set this because iTerm.app doesn't for
+                # some reason.
+                COMMAND_MODE=unix2003
+        esac
         # Wait for the node to completely stop...
         PID=`ps -ef|grep "$RUNNER_BASE_DIR/.*/[b]eam.smp|awk '{print $2}'"`
         $NODETOOL stop
