@@ -33,7 +33,8 @@
          chash_key/1,
          chash_std_keyfun/1,
          chash_bucketonly_keyfun/1,
-         mkclientid/1]).
+         mkclientid/1,
+         start_app_deps/1]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -200,6 +201,25 @@ node_hostname() ->
         _ ->
             []
     end.
+
+%% @spec start_app_deps(App :: atom()) -> ok
+%% @doc Start depedent applications of App.
+start_app_deps(App) ->
+    {ok, DepApps} = application:get_key(App, applications),
+    [ensure_started(A) || A <- DepApps],
+    ok.
+    
+
+%% @spec ensure_started(Application :: atom()) -> ok
+%% @doc Start the named application if not already started.
+ensure_started(App) ->
+    case application:start(App) of
+	ok ->
+	    ok;
+	{error, {already_started, App}} ->
+	    ok
+    end.
+
 
 %% ===================================================================
 %% EUnit tests

@@ -30,6 +30,8 @@
 %% @doc The application:start callback for riak.
 %%      Arguments are ignored as all configuration is done via the erlenv file.
 start(_Type, _StartArgs) ->
+    riak_core_util:start_app_deps(riak_kv),
+
     %% Look at the epoch and generating an error message if it doesn't match up
     %% to our expectations
     check_epoch(),

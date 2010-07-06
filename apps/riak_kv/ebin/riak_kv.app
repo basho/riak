@@ -57,7 +57,12 @@
                   sasl,
                   crypto,
                   riak_core,
-                  erlang_js
+                  luke,
+                  erlang_js,
+                  bitcask,
+                  mochiweb,
+                  webmachine,
+                  os_mon
                  ]},
   {registered, []},
   {mod, {riak_kv_app, []}},
