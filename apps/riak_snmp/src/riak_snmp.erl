@@ -7,13 +7,11 @@
 
 start() ->
     erlang:system_flag(fullsweep_after, 20),
-    ensure_started(sasl),
-    ensure_started(crypto),
+    riak_core_util:start_app_deps(riak_snmp),
     application:start(riak_snmp, permanent).
 
 start_snmp() ->
-    ensure_started(mnesia), % needed for otp_mib
-    ensure_started(snmp),
+    riak_core_util:start_app_deps(riak_snmp),
     otp_mib:load(snmp_master_agent).
 
 %% @spec stop() -> ok
@@ -39,12 +37,3 @@ get_app_env(Opt, Default) ->
         end
     end.
 
-%% @spec ensure_started(Application :: atom()) -> ok
-%% @doc Start the named application if not already started.
-ensure_started(App) ->
-    case application:start(App) of
-	ok ->
-	    ok;
-	{error, {already_started, App}} ->
-	    ok
-    end.

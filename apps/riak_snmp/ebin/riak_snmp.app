@@ -7,4 +7,11 @@
   {registered,   []},
   {mod,          {riak_snmp_app, []}},
   {env,          []},
-  {applications, [kernel, stdlib, sasl, crypto]}]}.
+  {applications, [kernel, 
+                  stdlib, 
+                  sasl, 
+                  crypto, 
+                  riak_core,
+                  riak_kv,
+                  mnesia, 
+                  snmp]}]}.

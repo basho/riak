@@ -10,6 +10,7 @@
 %% @doc The application:start callback for riak_repl.
 %%      Arguments are ignored as all configuration is done via the erlenv file.
 start(_Type, _StartArgs) ->
+    riak_core_util:start_app_deps(riak_repl),
     IncarnationId = erlang:phash2({make_ref(), now()}),
     application:set_env(riak_repl, incarnation, IncarnationId),
     ok = ensure_dirs(),

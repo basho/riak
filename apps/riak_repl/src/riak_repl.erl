@@ -7,25 +7,12 @@
 -export([install_hook/0]).
 
 start() ->
-    ensure_started(sasl),
-    ensure_started(crypto),
-    ensure_started(riak_core),
-    ensure_started(riak_kv),
+    riak_core_util:start_app_deps(riak_repl),
     application:start(riak_repl).
 
 %% @spec stop() -> ok
 stop() -> 
     application:stop(riak_repl).
-
-%% @spec ensure_started(Application :: atom()) -> ok
-%% @doc Start the named application if not already started.
-ensure_started(App) ->
-    case application:start(App) of
-	ok ->
-	    ok;
-	{error, {already_started, App}} ->
-	    ok
-    end.
 
 install_hook() ->
     {ok, DefaultBucketProps} = application:get_env(riak_core, 
