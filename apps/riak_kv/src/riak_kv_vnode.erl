@@ -15,6 +15,7 @@
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 
 -module(riak_kv_vnode).
+-behaviour(riak_core_vnode).
 %% API
 -export([start_vnode/1, 
          del/3, 
