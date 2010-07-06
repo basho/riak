@@ -109,8 +109,13 @@ priv_dir() ->
     end.
 
 start_sh(Cmd, Dir) ->
+    Env = case application:get_env(riak_jmx, java_home) of
+              undefined -> [];
+              {ok, JH} -> [{"JAVA_HOME", JH}]
+          end,
     Port = open_port({spawn, ?FMT("/bin/sh -c \"echo $$; exec ~s\"", [Cmd])},
                      [{cd, Dir},
+                      {env, Env},
                       exit_status, {line, 16384},
                       use_stdio, stderr_to_stdout]),
     link(Port),

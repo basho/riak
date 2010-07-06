@@ -9,6 +9,7 @@
 %% @doc The application:start callback for riak_jmx.
 %%      Arguments are ignored as all configuration is done via the erlenv file.
 start(_Type, _StartArgs) ->
+    riak_core_util:start_app_deps(riak_jmx),
     riak_jmx_sup:start_link().
 
 %% @spec stop(State :: term()) -> ok

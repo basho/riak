@@ -4,8 +4,7 @@
 -export([start/0, stop/0, stop/1]).
 
 start() ->
-    ensure_started(sasl),
-    ensure_started(crypto),
+    riak_core_util:start_app_deps(riak_jmx),
     application:start(riak_jmx, permanent).
 
 %% @spec stop() -> ok
@@ -18,12 +17,3 @@ stop(Reason) ->
     error_logger:info_msg(io_lib:format("~p~n",[Reason])),
     init:stop().    
 
-%% @spec ensure_started(Application :: atom()) -> ok
-%% @doc Start the named application if not already started.
-ensure_started(App) ->
-    case application:start(App) of
-	ok ->
-	    ok;
-	{error, {already_started, App}} ->
-	    ok
-    end.
