@@ -2,6 +2,7 @@
 %% Copyright (c) 2007-2010 Basho Technologies, Inc.  All Rights Reserved.
 -module(riak_repl_put_fsm).
 -include_lib("eunit/include/eunit.hrl").
+-include_lib("riak_kv/include/riak_kv_vnode.hrl").
 -behaviour(gen_fsm).
 -define(DEFAULT_OPTS, [{returnbody, false}]).
 -export([start/6,start/7]).
@@ -53,21 +54,27 @@ init([ReqId,RObj0,W,DW,Timeout,Client,Options0]) ->
 %% @private
 initialize(timeout, StateData0=#state{robj=RObj0, req_id=ReqId,
                                       timeout=Timeout, ring=Ring, 
-                                      bkey={Bucket,Key},
+                                      bkey={Bucket,Key}=BKey,
                                       options=Options}) ->
     StartNow = now(),
     TRef = erlang:send_after(Timeout, self(), timeout),
     RealStartTime = riak_core_util:moment(),
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     DocIdx = riak_core_util:chash_key({Bucket, Key}),
-    Msg = {self(), {Bucket,Key}, RObj0, ReqId, RealStartTime, Options},
+    Req = ?KV_PUT_REQ{
+             bkey = BKey,
+             object = RObj0,
+             req_id = ReqId,
+             start_time = RealStartTime,
+             options = Options},
     N = proplists:get_value(n_val,BucketProps),
     Preflist = riak_core_ring:preflist(DocIdx, Ring),
     {Targets, Fallbacks} = lists:split(N, Preflist),
-    {Sent1, Pangs1} = riak_kv_util:try_cast(vnode_put, Msg, nodes(), Targets),
+    UpNodes = riak_core_node_watcher:nodes(riak_kv),
+    {Sent1, Pangs1} = riak_kv_util:try_cast(Req,UpNodes,Targets),
     Sent = case length(Sent1) =:= N of   % Sent is [{Index,TargetNode,SentNode}]
                true -> Sent1;
-               false -> Sent1 ++ riak_kv_util:fallback(vnode_put,Msg,Pangs1,Fallbacks)
+               false -> Sent1 ++ riak_kv_util:fallback(Req,UpNodes,Pangs1,Fallbacks)
            end,
     StateData = StateData0#state{
                   robj=RObj0, n=N, preflist=Preflist,

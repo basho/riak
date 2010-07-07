@@ -5,10 +5,8 @@
 -include("riak_repl.hrl").
 -include_lin("riak_core/include/riak_core_vnode.hrl").
 -export([make_peer_info/0,
-         vnode_master_call/2,
          validate_peer_info/2,
          get_partitions/1,
-         wait_for_riak/1,
          do_repl_put/1,
          site_root_dir/1,
          ensure_site_dir/1,
@@ -30,22 +28,6 @@ validate_peer_info(T=#peer_info{}, M=#peer_info{}) ->
 get_partitions(_Ring) ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     lists:sort([P || {P, _} <- riak_core_ring:all_owners(Ring)]).
-
-vnode_master_call(Node, Message) ->
-    case lists:member(Node, [node()|nodes()]) of
-        true ->
-            gen_server:call({riak_kv_vnode_master, Node}, Message, ?REPL_MERK_TIMEOUT);
-        false ->
-            {error, node_not_available}
-    end.
-
-wait_for_riak(PPid) ->
-    case [A || {A,_,_} <- application:which_applications(), A =:= riak_kv] of
-        [] -> 
-            timer:sleep(1000),
-            wait_for_riak(PPid);
-        _ -> PPid ! riak_up
-    end.
 
 do_repl_put(Object) ->
     ReqId = erlang:phash2(erlang:now()),
@@ -74,7 +56,7 @@ binunpack_bkey(<<SB:32/integer,B:SB/binary,SK:32/integer,K:SK/binary>>) ->
 make_merkle(Partition, Dir) ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     OwnerNode = riak_core_ring:index_owner(Ring, Partition),
-    case lists:member(OwnerNode, [node()|nodes()]) of
+    case lists:member(OwnerNode, riak_core_node_watcher:nodes(riak_kv)) of
         true ->
             FileName = filename:join(Dir,integer_to_list(Partition)++".merkle"),
             {ok, DMerkle} = couch_merkle:open(FileName),
@@ -82,9 +64,7 @@ make_merkle(Partition, Dir) ->
             F = fun(K, V, MPid) -> MPid ! {K, erlang:phash2(V)}, MPid end,
             riak_kv_vnode:fold({Partition,OwnerNode}, F, MakerPid),
             MakerPid ! {finish, self()},
-            receive 
-                {ok, RestKeys} -> couch_merkle:update_many(DMerkle, RestKeys)
-            end,
+            receive ok -> ok end,
             {ok, FileName, DMerkle, couch_merkle:root(DMerkle)};
         false ->
             {error, node_not_available}
@@ -92,17 +72,19 @@ make_merkle(Partition, Dir) ->
 
 merkle_maker(DMerklePid, Buffer, Size) ->
     receive 
-        {finish, Pid} ->
-            Pid ! {ok, Buffer};
+        {finish, Pid}  ->
+            couch_merkle:update_many(DMerklePid, Buffer),
+            Pid ! ok;
         {K, H} ->
             PackedKey = binpack_bkey(K),
             NewSize = Size+size(PackedKey)+4,
+            NewBuf = [{PackedKey, H}|Buffer],
             case NewSize >= ?MERKLE_BUFSZ of 
                 true ->
-                    couch_merkle:update_many(DMerklePid, Buffer),
+                    couch_merkle:update_many(DMerklePid, NewBuf),
                     merkle_maker(DMerklePid, [], 0);
                 false ->
-                    merkle_maker(DMerklePid, [{PackedKey, H}|Buffer], NewSize)
+                    merkle_maker(DMerklePid, NewBuf, NewSize)
             end
     end.
             

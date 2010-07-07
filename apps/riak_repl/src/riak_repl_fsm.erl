@@ -24,8 +24,10 @@ get_vclocks(Partition, KeyList)
   when is_integer(Partition) andalso is_list(KeyList) ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
     OwnerNode = riak_core_ring:index_owner(Ring, Partition),
-    riak_repl_util:vnode_master_call(
-      OwnerNode, 
-      {get_vclocks, Partition, KeyList}).
-            
+    case lists:member(OwnerNode, riak_core_node_watcher:nodes(riak_kv)) of
+        true ->
+            riak_kv_vnode:get_vclocks({Partition, OwnerNode}, KeyList);
+        false ->
+            {error, node_not_available}
+    end.
     
