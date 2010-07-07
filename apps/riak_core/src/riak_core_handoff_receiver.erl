@@ -67,10 +67,13 @@ process_message(?PT_MSG_OLDSYNC, MsgData, State=#state{sock=Socket}) ->
     <<VNodeModBin/binary>> = MsgData,
     VNodeMod = binary_to_atom(VNodeModBin, utf8),
     State#state{vnode_mod=VNodeMod};
-process_message(?PT_MSG_SYNC, _MsgData, State=#state{sock=_Socket}) ->
+process_message(?PT_MSG_SYNC, _MsgData, State=#state{sock=Socket}) ->
+    ok = gen_tcp:send(Socket, <<?PT_MSG_SYNC:8, "sync">>),
     State;
-process_message(?PT_MSG_CONFIGURE, _MsgData, State=#state{sock=_Socket}) ->
-    State;
+process_message(?PT_MSG_CONFIGURE, MsgData, State) ->
+    ConfProps = binary_to_term(MsgData),
+    State#state{vnode_mod=proplists:get_value(vnode_mod, ConfProps),
+                partition=proplists:get_value(partition, ConfProps)};
 process_message(_, _MsgData, State=#state{sock=Socket}) ->
     ok = gen_tcp:send(Socket, <<255:8,"unknown_msg">>),
     State.
