@@ -45,7 +45,7 @@ behaviour_info(callbacks) ->
      {handle_handoff_data,2},
      {encode_handoff_item,2},
      {is_empty,1},
-     {terminate,1},
+     {terminate,2},
      {delete,1}];
 behaviour_info(_Other) ->
     undefined.
