@@ -11,7 +11,6 @@
                   'riak_repl', 
                   'riak_repl_app', 
                   'riak_repl_client_sup',
-                  'riak_repl_config_manager',
                   'riak_repl_connector',
                   'riak_repl_connector_sup',
                   'riak_repl_console',
