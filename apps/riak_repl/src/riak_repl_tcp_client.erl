@@ -97,7 +97,6 @@ merkle_recv({merk_chunk, Data}, State=#state{merkle_fp=FP, merkle_sz=SZ,
                     ok = send(Socket, {ack, PT, []}),
                     {next_state, merkle_exchange, State};                    
                 {ok, MerkleFN, OurMerkle, _OurRoot} ->
-                    riak_repl_util:make_merkle(PT, WorkDir),
                     {ok, TheirMerkle} = couch_merkle:open(FN),
                     MerkleDiff = couch_merkle:diff(TheirMerkle, OurMerkle),
                     [couch_merkle:close(M) || M <- [OurMerkle, TheirMerkle]],
