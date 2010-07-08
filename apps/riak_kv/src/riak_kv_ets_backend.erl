@@ -23,11 +23,13 @@
 % @doc riak_kv_ets_backend is a Riak storage backend using ets.
 
 -module(riak_kv_ets_backend).
--behaviour(gen_server).
-
+-behavior(riak_kv_backend).
+-behavior(gen_server).
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 -export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,
-         is_empty/1, drop/1, fold/3]).
+         is_empty/1, drop/1, fold/3, callback/3]).
 
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
@@ -128,6 +130,10 @@ drop(SrvRef) -> gen_server:call(SrvRef, drop).
     
 fold(SrvRef, Fun, Acc0) -> gen_server:call(SrvRef, {fold, Fun, Acc0}, infinity).
 
+%% Ignore callbacks for other backends so multi backend works
+callback(_State, _Ref, _Msg) ->
+    ok.
+
 %% @private
 handle_info(_Msg, State) -> {noreply, State}.
 
@@ -144,7 +150,7 @@ code_change(_OldVsn, State, _Extra) -> {ok, State}.
 
 % @private
 simple_test() ->
-    riak_kv_test_util:standard_backend_test(riak_kv_ets_backend, []).
+    riak_kv_backend:standard_test(?MODULE, []).
 
 -ifdef(EQC).
 %% @private

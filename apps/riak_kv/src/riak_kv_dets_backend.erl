@@ -23,9 +23,12 @@
 %% @doc riak_kv_dets_backend is a Riak storage backend using dets.
 
 -module(riak_kv_dets_backend).
-
+-behavior(riak_kv_backend).
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
--export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,fold/3, is_empty/1, drop/1]).
+-endif.
+-export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,
+         delete/2,fold/3, is_empty/1, drop/1, callback/3]).
 
 % @type state() = term().
 -record(state, {table, path}).
@@ -112,6 +115,10 @@ drop(#state{table=T, path=P}) ->
     ok = dets:close(T),
     ok = file:delete(P).
 
+%% Ignore callbacks for other backends so multi backend works
+callback(_State, _Ref, _Msg) ->
+    ok.
+
 %%
 %% Test
 %%
@@ -121,7 +128,7 @@ drop(#state{table=T, path=P}) ->
 simple_test() ->
     ?assertCmd("rm -rf test/dets-backend"),
     Config = [{riak_kv_dets_backend_root, "test/dets-backend"}],
-    riak_kv_test_util:standard_backend_test(riak_kv_dets_backend, Config).
+    riak_kv_backend:standard_test(?MODULE, Config).
 
 -ifdef(EQC).
 

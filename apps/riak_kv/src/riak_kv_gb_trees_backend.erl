@@ -23,9 +23,12 @@
 %% @doc riak_kv_gb_trees_backend is a Riak storage backend using Erlang gb_trees.
 
 -module(riak_kv_gb_trees_backend).
-
+-behavior(riak_kv_backend).
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
--export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,is_empty/1,fold/3,drop/1]).
+-endif.
+-export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,
+         delete/2,is_empty/1,fold/3,drop/1,callback/3]).
 
 % @type state() = term().
 -record(state, {pid}).
@@ -94,6 +97,10 @@ drop(#state{ pid=Pid }) ->
     Pid ! {drop, self(), Ref},
     receive {drop_response, Result, Ref} -> Result end.
     
+%% Ignore callbacks for other backends so multi backend works
+callback(_State, _Ref, _Msg) ->
+    ok.
+
 tree_loop(Tree) ->
     receive
         {get, BKey, Pid, Ref} ->
@@ -175,7 +182,7 @@ srv_fold1({K,V,Iter}, Fun0, Acc) ->
 
 % @private
 simple_test() ->
-    riak_kv_test_util:standard_backend_test(riak_kv_gb_trees_backend, []).
+    riak_kv_backend:standard_test(?MODULE, []).
 
 -ifdef(EQC).
 %% @private

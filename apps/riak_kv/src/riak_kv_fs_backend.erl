@@ -23,10 +23,13 @@
 % @doc riak_kv_fs_backend is a simple filesystem storage system.
 
 -module(riak_kv_fs_backend).
+-behavior(riak_kv_backend).
 -export([start/2,stop/1,get/2,put/3,list/1,list_bucket/2,delete/2]).
--export([fold/3, drop/1, is_empty/1]).
+-export([fold/3, drop/1, is_empty/1, callback/3]).
 
+-ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
+-endif.
 % @type state() = term().
 -record(state, {dir}).
 
@@ -148,6 +151,10 @@ drop(State) ->
     os:cmd(Cmd),
     ok.
 
+%% Ignore callbacks for other backends so multi backend works
+callback(_State, _Ref, _Msg) ->
+    ok.
+
 %% @spec location(state(), {riak_object:bucket(), riak_object:key()})
 %%          -> string()
 %% @doc produce the file-path at which the object for the given Bucket
@@ -225,11 +232,11 @@ nest([],N,Acc) ->
 %%
 %% Test
 %%
-
+-ifdef(TEST).
 simple_test() ->
    ?assertCmd("rm -rf test/fs-backend"),
    Config = [{riak_kv_fs_backend_root, "test/fs-backend"}],
-   riak_kv_test_util:standard_backend_test(riak_kv_fs_backend, Config).
+   riak_kv_backend:standard_test(?MODULE, Config).
 
 dirty_clean_test() ->
     Dirty = "abc=+/def",
@@ -253,4 +260,5 @@ eqc_test() ->
     Config = [{riak_kv_fs_backend_root, "test/fs-backend"}],
     ?assertCmd("rm -rf test/fs-backend"),
     ?assertEqual(true, backend_eqc:test(?MODULE, false, Config, Cleanup)).
--endif.
+-endif. % EQC
+-endif. % TEST
