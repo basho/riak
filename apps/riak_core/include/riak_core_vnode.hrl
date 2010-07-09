@@ -1,5 +1,8 @@
 -type sender_type() :: fsm | server | raw.
--type sender() :: {sender_type(), reference(), pid()} | ignore | noreply.
+-type sender() :: {sender_type(), reference(), pid()} |
+                  {server, undefined, undefined} | % special case in
+                                                   % riak_core_vnode_master.erl
+                  ignore | noreply.
 -type partition() :: non_neg_integer().
 -type vnode_req() :: term().
 
