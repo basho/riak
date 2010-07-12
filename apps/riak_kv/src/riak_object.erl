@@ -26,27 +26,28 @@
 -include_lib("eunit/include/eunit.hrl").
 -include("riak_kv_wm_raw.hrl").
 
+-type key() :: binary().
+-type bucket() :: binary().
+%% -type bkey() :: {bucket(), key()}.
+-type value() :: term().
+
 -record(r_content, {
           metadata :: dict(),
           value :: term()
          }).
 
-%% @type riak_object().  Opaque container for Riak objects.
+%% Opaque container for Riak objects, a.k.a. riak_object()
 -record(r_object, {
-          bucket :: binary(),
-          key :: binary(),
+          bucket :: bucket(),
+          key :: key(),
           contents :: [#r_content{}],
-          vclock :: [vclock:vclock()],
+          vclock :: vclock:vclock(),
           updatemetadata=dict:store(clean, true, dict:new()) :: dict(),
           updatevalue :: term()
          }).
+-type riak_object() :: #r_object{}.
 
 -define(MAX_KEY_SIZE, 65536).
-
-%% @type key()=binary().
-%% @type bucket()=binary().
-%% @type bkey()={bucket(),key()}
-%% @type value()=term().
 
 -export([new/3, new/4, ancestors/1, reconcile/2, increment_vclock/2, equal/2]).
 -export([key/1, get_metadata/1, get_metadatas/1, get_values/1, get_value/1]).
@@ -56,19 +57,21 @@
 -export([to_json/1, from_json/1]).
 -export([set_contents/2, set_vclock/2]). %% INTERNAL, only for riak_*
 
-%% @spec new(Bucket::bucket(), Key::key(), Value::value()) -> riak_object()
 %% @doc Constructor for new riak objects.
+-spec new(Bucket::bucket(), Key::key(), Value::value()) -> riak_object().
 new(B, K, V) when is_binary(B), is_binary(K) ->
     new(B, K, V, dict:new()).
 
-%% @spec new(Bucket::bucket(), Key::key(), Value::value(), ContentType::string()) -> riak_object()
 %% @doc Constructor for new riak objects with an initial content-type.
+-spec new(Bucket::bucket(), Key::key(), Value::value(), string() | dict()) -> riak_object().
 new(B, K, V, C) when is_binary(B), is_binary(K), is_list(C) ->
     new(B, K, V, dict:from_list([{?MD_CTYPE, C}]));
 
-%% @spec new(Bucket::bucket(), Key::key(), Value::value(), Metadata::dict()) -> riak_object()
 %% @doc Constructor for new riak objects with an initial metadata dict.
-new(B, K, V, MD) when is_binary(B), is_binary(K), is_tuple(MD) ->
+%%
+%% NOTE: Removed "is_tuple(MD)" guard to make Dialyzer happy.  The previous clause
+%%       has a guard for string(), so this clause is OK without the guard.
+new(B, K, V, MD) when is_binary(B), is_binary(K) ->
     case size(K) > ?MAX_KEY_SIZE of
         true ->
             throw({error,key_too_large});
@@ -77,7 +80,7 @@ new(B, K, V, MD) when is_binary(B), is_binary(K), is_tuple(MD) ->
             #r_object{bucket=B,key=K,contents=Contents,vclock=vclock:fresh()}
     end.
 
-%% @spec equal(riak_object(), riak_object()) -> true | false
+-spec equal(riak_object(), riak_object()) -> true | false.
 %% @doc Deep (expensive) comparison of Riak objects.
 equal(Obj1,Obj2) ->
     case Obj1#r_object.bucket =:= Obj2#r_object.bucket of
@@ -286,8 +289,8 @@ get_update_value(#r_object{updatevalue=UV}) -> UV.
 %% @doc  INTERNAL USE ONLY.  Set the vclock of riak_object O to V.
 set_vclock(Object=#r_object{}, VClock) -> Object#r_object{vclock=VClock}.
 
-%% @spec increment_vclock(riak_object(), term()) -> riak_object()
 %% @doc  Increment the entry for ClientId in O's vclock.
+-spec increment_vclock(riak_object(), vclock:vclock_node()) -> riak_object().
 increment_vclock(Object=#r_object{}, ClientId) ->
     Object#r_object{vclock=vclock:increment(ClientId, Object#r_object.vclock)}.
 

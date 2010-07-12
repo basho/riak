@@ -70,6 +70,7 @@ send_command(Pid, Request) ->
 
 %% Sends a command to the FSM that called it after Time 
 %% has passed.
+-spec send_command_after(integer(), term()) -> reference().
 send_command_after(Time, Request) ->
     gen_fsm:send_event_after(Time, ?VNODE_REQ{request=Request}).
     
@@ -208,7 +209,7 @@ start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) -
                     {ok, NewModState1} = Mod:handoff_cancelled(NewModState),
                     NewState = State#state{modstate=NewModState1},
                     {next_state, active, NewState, ?LOCK_RETRY_TIMEOUT};
-                {ok, HandoffToken} ->
+                {ok, {handoff_token, HandoffToken}} ->
                     NewState = State#state{modstate=NewModState, 
                                            handoff_token=HandoffToken,
                                            handoff_node=TargetNode},

@@ -64,6 +64,8 @@
                   prunetime :: non_neg_integer()}).
 -define(CLEAR_MAPCACHE_INTERVAL, 60000).
 
+%% TODO: add -specs to all public API funcs, this module seems fragile?
+
 %% API
 start_vnode(I) ->
     riak_core_vnode_master:get_vnode_pid(I, riak_kv_vnode).
@@ -76,10 +78,11 @@ del(Preflist, BKey, ReqId) ->
 
 %% Issue a put for the object to the preflist, expecting a reply
 %% to an FSM.
-put(Preflist, BKey, Obj, ReqId, StartTime, Options) ->
+put(Preflist, BKey, Obj, ReqId, StartTime, Options) when is_integer(StartTime) ->
     put(Preflist, BKey, Obj, ReqId, StartTime, Options, {fsm, undefined, self()}).
 
-put(Preflist, BKey, Obj, ReqId, StartTime, Options, Sender) ->   
+put(Preflist, BKey, Obj, ReqId, StartTime, Options, Sender) 
+  when is_integer(StartTime) ->
     riak_core_vnode_master:command(Preflist,
                                    ?KV_PUT_REQ{
                                       bkey = BKey,
@@ -173,6 +176,10 @@ handle_command(?FOLD_REQ{foldfun=Fun, acc0=Acc},_Sender,State) ->
     Reply = do_fold(Fun, Acc, State),
     {reply, Reply, State};
 %% Commands originating from inside this vnode
+handle_command({backend_callback, Ref, Msg}, _Sender, 
+               State=#state{mod=Mod, modstate=ModState}) ->
+    Mod:callback(ModState, Ref, Msg),
+    {noreply, State};
 handle_command({mapcache, BKey,{FunName,Arg,KeyData}, MF_Res}, _Sender,
                State=#state{mapcache=Cache}) ->
     KeyCache0 = case orddict:find(BKey, Cache) of
@@ -196,6 +203,8 @@ handle_command(clear_mapcache, _Sender, State) ->
     {noreply, State#state{mapcache=orddict:new()}}.
 
 handle_handoff_command(Req=?FOLD_REQ{}, Sender, State) -> 
+    handle_command(Req, Sender, State);
+handle_handoff_command(Req={backend_callback, _Ref, _Msg}, Sender, State) ->
     handle_command(Req, Sender, State);
 handle_handoff_command(purge_mapcache, Sender, State) ->
     handle_command(purge_mapcache, Sender, State);
@@ -499,7 +508,7 @@ mapcache_put_test() ->
     {noreply, S3} = handle_command(?KV_PUT_REQ{bkey=BKey,
                                                object=O,
                                                req_id=123,
-                                               start_time=now(),
+                                               start_time=riak_core_util:moment(),
                                                options=[]},
                                    {raw, 456, self()}, S2),
     ?assertEqual(not_cached, cache_fetch(BKey, CacheKey, S3#state.mapcache)),

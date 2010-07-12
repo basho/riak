@@ -40,7 +40,8 @@
                 replied_notfound :: list(),
                 replied_fail :: list(),
                 repair_sent :: list(), 
-                final_obj :: undefined|riak_object:riak_object(),
+                final_obj :: undefined | {ok, riak_object:riak_object()} |
+                             tombstone | {error, notfound},
                 timeout :: pos_integer(),
                 tref    :: reference(),
                 bkey :: {riak_object:bucket(), riak_object:key()},

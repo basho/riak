@@ -73,7 +73,7 @@ get_bucket(Name) ->
 
 
 %% @spec get_bucket(Name, Ring::riak_core_ring:riak_core_ring()) ->
-%%          {ok, BucketProps :: riak_core_bucketprops()}
+%%          BucketProps :: riak_core_bucketprops()
 %% @private
 get_bucket(Name, Ring) ->
     case riak_core_ring:get_meta({bucket, Name}, Ring) of

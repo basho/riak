@@ -36,8 +36,9 @@
 %%   be renewed after this many seconds.
 
 -module (riak_kv_cache_backend).
+-behavior(riak_kv_backend).
 -export([start/2, stop/1, get/2, put/3, list/1, list_bucket/2, delete/2]).
--export([drop/1, is_empty/1, fold/3]).
+-export([drop/1, is_empty/1, fold/3, callback/3]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2, terminate/2, code_change/3]).
 
 -define(PRINT(Var), error_logger:info_msg("DEBUG: ~p:~p - ~p: ~p~n", [?MODULE, ?LINE, ??Var, Var])).
@@ -85,6 +86,10 @@ is_empty(State) ->
 
 fold(State, Fun0, Acc) ->
     gen_server:call(State, {fold, Fun0, Acc}).
+
+%% Ignore callbacks for other backends so multi backend works
+callback(_State, _Ref, _Msg) ->
+    ok.
 
 stop(State) -> 
     gen_server:call(State, stop).
@@ -385,14 +390,14 @@ gb_trees_fold_inner(Fun, Acc, {Key, Val, Iterator}) ->
     NewAcc = Fun(Key, Val, Acc),
     gb_trees_fold_inner(Fun, NewAcc, gb_trees:next(Iterator)).
 
-
+-ifdef(TEST).
 %%
 %% Test
 %%
 
 % @private
 simple_test() ->
-    riak_kv_test_util:standard_backend_test(riak_kv_cache_backend, []).
+    riak_kv_backend:standard_test(?MODULE, []).
     
 -ifdef(EQC).
 %% @private
@@ -421,7 +426,7 @@ ttl_test() ->
     {ok, Value} = get(State, {Bucket, Key}),
     
     % Wait 0.05 seconds, object should be cleared from cache...
-    timer:sleep(trunc(timer:seconds(0.05))),
+    timer:sleep(50),
     
     % Get the object again, it should be missing...
     {error, notfound} = get(State, {Bucket, Key}),
@@ -442,15 +447,15 @@ max_ttl_test() ->
     put(State, {Bucket, Key}, Value),
 
     % Wait 0.03 seconds, access it...
-    timer:sleep(trunc(timer:seconds(0.03))),
+    timer:sleep(30),
     {ok, Value} = get(State, {Bucket, Key}),
     
     % Wait 0.03 seconds, access it...
-    timer:sleep(trunc(timer:seconds(0.03))),
+    timer:sleep(30),
     {ok, Value} = get(State, {Bucket, Key}),
     
     % Wait 0.05 seconds, it should expire...
-    timer:sleep(trunc(timer:seconds(0.05))),
+    timer:sleep(50),
     
     % This time it should be gone...
     {error, notfound} = get(State, {Bucket, Key}),
@@ -488,3 +493,4 @@ max_memory_test() ->
     {ok, Value2} = get(State, {Bucket, Key2}),
     
     ok.
+-endif. % TEST
