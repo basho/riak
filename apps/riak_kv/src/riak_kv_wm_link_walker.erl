@@ -415,10 +415,11 @@ multipart_encode_body(RiakObject, #ctx{prefix=Prefix}) ->
      "\r\n",
 
      if Rest /= [] ->
+             [{HRest_MD, _}|TRest] = Rest,
              ["X-Riak-Sibling-VTags: ",
-              dict:fetch(?MD_VTAG, element(1, hd(Rest))),
+              dict:fetch(?MD_VTAG, HRest_MD),
               [[",", dict:fetch(?MD_VTAG, SMD)]
-               || {SMD,_} <- tl(Rest)],
+               || {SMD,_} <- TRest],
               "\r\n"];
         true ->
              []
