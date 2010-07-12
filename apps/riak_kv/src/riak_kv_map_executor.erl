@@ -81,7 +81,7 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
 
 try_vnode(#state{vnodes=[], keydata=KD, bkey=BKey, phase_pid=PhasePid}) ->
     riak_kv_phase_proto:mapexec_result(PhasePid, [{not_found, BKey, KD}]),
-    {error, {no_vnodes, BKey}};
+    {error, no_vnodes};
 try_vnode(#state{qterm=QTerm, bkey=BKey, keydata=KeyData, vnodes=[{P, VN}|VNs],
                  vnode_timeout=VNodeTimeout}=StateData) ->
     UpNodes = riak_core_node_watcher:nodes(riak_kv),
