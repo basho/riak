@@ -210,15 +210,14 @@
     running a firewall on any of the machines in the cluster:
 
     + 4369: Erlang Port Mapper Daemon's (EPMD) port, for connecting
-      Riak nodes.  Which network interface on which this port is
-      exposed can be configured by specifying a value for
-      =inet_dist_user_interface= in the =kernel= section of Riak's
-      =app.config= (see example below).
+      Riak nodes. 
 
-    + 5001-6024: Dynamically allocated ports by EPMD.  This range can
-      be modified by specifying values for =inet_dist_listen_min= and
-      =inet_dist_listen_max= in Riak's =app.config= (see example
-      below).
+    + 5001-6024: Port range for the listener socket of a distributed 
+      Erlang node. This range can be modified by specifying values for 
+      =inet_dist_listen_min= and =inet_dist_listen_max= in the =kernel= 
+      section of Riak's =app.config=. The network interface on which 
+      these ports are exposed can be configured by specifying a value 
+      for =inet_dist_use_interface= (see example below).
 
     + 8098: Default HTTP interface port.  This port can be modified by
       specifying a value for =riak_web_port= in the =riak= section of
