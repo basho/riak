@@ -53,22 +53,11 @@
 
 #+BEGIN_SRC erlang
    {riak_repl, [
-                  {repl_ip, "0.0.0.0"},
-                  {repl_port, 9010},
                   {fullsync_on_connect, true},
                   {fullsync_interval, 360},
                   {data_root, "data/riak_repl"}
                  ]},
 #+END_SRC
-
-*** =repl_ip= (string)
-
-    The IP address to bind the listener to. ="0.0.0.0"= (all interfaces)
-    is the default.
-
-*** =repl_port= (integer)
-    
-    The IP port to bind the listener to. =9010= is the default.
 
 *** =fullsync_on_connect= (true/false)
 

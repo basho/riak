@@ -43,8 +43,6 @@
                   riak_rep_sup]},
   {mod,          {riak_repl_app, []}},
   {env,          [
-                  {repl_ip, "0.0.0.0"},
-                  {repl_port, 9010},
                   {fullsync_on_connect, true},
                   % minutes
                   {fullsync_interval, 360},
