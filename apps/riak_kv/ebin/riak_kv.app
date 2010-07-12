@@ -10,6 +10,7 @@
              riak_client,
              riak_kv_app,
              riak_kv_backup,
+             riak_kv_backend,
              riak_kv_bitcask_backend,
              riak_kv_cache_backend,
              riak_kv_console,

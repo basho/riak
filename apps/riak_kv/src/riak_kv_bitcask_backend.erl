@@ -21,6 +21,7 @@
 %% -------------------------------------------------------------------
 
 -module(riak_kv_bitcask_backend).
+-behavior(riak_kv_backend).
 -author('Andy Gross <andy@basho.com>').
 -author('Dave Smith <dizzyd@basho.com>').
 
@@ -34,7 +35,7 @@
          fold/3,
          drop/1,
          is_empty/1,
-         handle_info/2]).
+         callback/3]).
 
 
 -ifdef(TEST).
@@ -44,18 +45,6 @@
 -define(MERGE_CHECK_INTERVAL, timer:minutes(3)).
 
 start(Partition, _Config) ->
-    %% Schedule sync (if necessary)
-    case application:get_env(bitcask, sync_strategy) of
-        {ok, {seconds, Seconds}} ->
-            SyncIntervalMs = timer:seconds(Seconds),
-            erlang:send_after(SyncIntervalMs, self(),
-                              {?MODULE, {sync, SyncIntervalMs}});
-        _ ->
-            ok
-    end,
-
-    %% Schedule merge checks
-    erlang:send_after(?MERGE_CHECK_INTERVAL, self(), {?MODULE, merge_check}),
 
     %% Get the data root directory
     DataDir =
@@ -80,6 +69,8 @@ start(Partition, _Config) ->
 
     case bitcask:open(BitcaskRoot, [{read_write, true}]) of
         Ref when is_reference(Ref) ->
+            schedule_merge(Ref),
+            maybe_schedule_sync(Ref),
             {ok, {Ref, BitcaskRoot}};
         {error, Reason2} ->
             {error, Reason2}
@@ -167,19 +158,47 @@ is_empty({Ref, _}) ->
             true
     end.
 
-handle_info({Ref, _}, {sync, SyncInterval}) ->
+callback({Ref, _}, Ref, {sync, SyncInterval}) when is_reference(Ref) ->
     bitcask:sync(Ref),
-    erlang:send_after(SyncInterval, self(),
-                      {?MODULE, {sync, SyncInterval}});
-
-handle_info({Ref, BitcaskRoot}, merge_check) ->
+    schedule_sync(Ref, SyncInterval);
+callback({Ref, BitcaskRoot}, Ref, merge_check) when is_reference(Ref) ->
     case bitcask:needs_merge(Ref) of
         {true, Files} ->
             bitcask_merge_worker:merge(BitcaskRoot, [], Files);
         false ->
             ok
     end,
-    erlang:send_after(?MERGE_CHECK_INTERVAL, self(), {?MODULE, merge_check}).
+    schedule_merge(Ref);
+%% Ignore callbacks for other backends so multi backend works
+callback(_State, _Ref, _Msg) ->
+    ok.
+
+%% ===================================================================
+%% Internal functions
+%% ===================================================================
+
+%% @private
+%% Schedule sync (if necessary)
+maybe_schedule_sync(Ref) when is_reference(Ref) ->
+    case application:get_env(bitcask, sync_strategy) of
+        {ok, {seconds, Seconds}} ->
+            SyncIntervalMs = timer:seconds(Seconds),
+            schedule_sync(Ref, SyncIntervalMs);
+            %% erlang:send_after(SyncIntervalMs, self(),
+            %%                   {?MODULE, {sync, SyncIntervalMs}});
+        {ok, none} ->
+            ok;
+        BadStrategy ->
+            error_logger:info_msg("Ignoring invalid bitcask sync strategy: ~p\n",
+                                  [BadStrategy]),
+            ok
+    end.
+
+schedule_sync(Ref, SyncIntervalMs) when is_reference(Ref) ->
+    riak_kv_backend:callback_after(SyncIntervalMs, Ref, {sync, SyncIntervalMs}).
+
+schedule_merge(Ref) when is_reference(Ref) ->
+    riak_kv_backend:callback_after(?MERGE_CHECK_INTERVAL, Ref, merge_check).
 
 
 %% ===================================================================
@@ -190,6 +209,6 @@ handle_info({Ref, BitcaskRoot}, merge_check) ->
 simple_test() ->
     ?assertCmd("rm -rf test/bitcask-backend"),
     application:set_env(bitcask, data_root, "test/bitcask-backend"),
-    riak_kv_test_util:standard_backend_test(?MODULE, []).
+    riak_kv_backend:standard_test(?MODULE, []).
 
 -endif.

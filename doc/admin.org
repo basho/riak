@@ -507,6 +507,8 @@
               Running =start= will print an warning if the Riak node
               is already running.
 
+   + restart :: restart the Riak node
+
    + attach :: attach a console to a daemonized Riak node
 
    + ping :: check whether or not the Riak node is alive

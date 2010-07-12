@@ -21,8 +21,9 @@
 %% -------------------------------------------------------------------
 
 -module (riak_kv_multi_backend).
+-behavior(riak_kv_backend).
 -export([start/2, stop/1,get/2,put/3,list/1,list_bucket/2,delete/2,is_empty/1,drop/1,fold/3]).
--export([handle_info/2]).
+-export([callback/3]).
 -include_lib("eunit/include/eunit.hrl").
 
 -record (state, {backends, default_backend}).
@@ -149,11 +150,10 @@ fold(State, Fun, Extra) ->
                         Module:fold(SubState, Fun, Acc)
                 end, Extra, State#state.backends).
 
-handle_info(State, Msg) ->
-    F = fun(_Name, Module, SubState) ->
-                Module:handle_info(SubState, Msg)
-        end,
-    [F(X) || X <- State#state.backends],
+callback(State, Ref, Msg) ->
+    %% Pass the callback on to all submodules - their responsbility to
+    %% filter out if they neede it.
+    [Mod:callback(SS, Ref, Msg) || {_N, Mod, SS} <- State#state.backends],
     ok.
 
 % Given a Bucket name and the State, return the
@@ -174,6 +174,8 @@ get_backend(Bucket, State) ->
 assert(true, _) -> ok;
 assert(false, Error) -> throw({?MODULE, Error}).    
     
+-ifdef(TEST).
+
 % @private
 simple_test() ->    
     % Start the ring manager...
@@ -188,7 +190,7 @@ simple_test() ->
 
     % Run the standard backend test...
     Config = sample_config(),
-    riak_kv_test_util:standard_backend_test(riak_kv_multi_backend, Config).
+    riak_kv_backend:standard_test(?MODULE, Config).
 
 -ifdef(EQC).
 %% @private
@@ -197,7 +199,7 @@ eqc_test() ->
     crypto:start(),
     riak_core_ring_events:start_link(),
     riak_core_ring_manager:start_link(test),
-    
+
     % Set some buckets...
     application:load(riak_core), % make sure default_bucket_props is set
     riak_core_bucket:set_bucket(<<"b1">>, [{backend, first_backend}]),
@@ -234,6 +236,43 @@ get_backend_test() ->
     
     ok.
 
+%% Check extra callback messages are ignored by backends
+extra_callback_test() ->
+    %% Have to do some prep for bitcask
+    application:load(bitcask),
+    ?assertCmd("rm -rf test/bitcask-backend"),
+    application:set_env(bitcask, data_root, "test/bitcask-backend"),
+
+    %% And for dets
+    application:stop(dets),
+    ?assertCmd("rm -rf test/dets-backend"),
+    DetsConfig = [{riak_kv_dets_backend_root, "test/dets-backend"}],
+
+    %% and for fs
+   ?assertCmd("rm -rf test/fs-backend"),
+   FsConfig = [{riak_kv_fs_backend_root, "test/fs-backend"}],
+
+
+    %% Start up multi backend
+    Config = [{storage_backend, riak_kv_multi_backend},
+              {multi_backend_default, ets},
+              {multi_backend, 
+               [{bitcask, riak_kv_bitcask_backend, []},
+                {cache, riak_kv_cache_backend, []},
+                {dets, riak_kv_dets_backend, DetsConfig},
+                {ets, riak_kv_ets_backend, []},
+                {fs, riak_kv_fs_backend, FsConfig},
+                {gb_trees, riak_kv_gb_trees_backend, []}]}],
+    {ok, State} = start(0, Config),
+    callback(State, make_ref(), ignore_me).
+    
+           
+bad_config_test() ->     
+    % {invalid_config_setting, multi_backend_default, backend_not_found}
+    ?assertThrow({riak_kv_multi_backend,
+                  {invalid_config_setting,multi_backend,list_expected}},
+                 start(0, [])).
+
 
 sample_config() ->
     [
@@ -244,3 +283,4 @@ sample_config() ->
             {second_backend, riak_kv_ets_backend, []}
         ]}
     ].
+-endif.

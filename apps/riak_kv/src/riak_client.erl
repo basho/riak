@@ -22,8 +22,6 @@
 
 %% @doc object used for access into the riak system
 
-%% @type riak_client() = term()
-
 -module(riak_client, [Node,ClientId]).
 -author('Justin Sheehy <justin@basho.com>').
 
@@ -44,9 +42,12 @@
 -export([remove_from_cluster/1]).
 -export([get_stats/1]).
 -export([get_client_id/0]).
+-export([for_dialyzer_only_ignore/2]).
 %% @type default_timeout() = 60000
 -define(DEFAULT_TIMEOUT, 60000).
 -define(DEFAULT_ERRTOL, 0.00003).
+
+-type riak_client() :: term().
 
 %% @spec mapred(Inputs :: list(),
 %%              Query :: [riak_kv_mapred_query:mapred_queryterm()]) ->
@@ -449,6 +450,14 @@ get_stats(global) ->
 %% @doc Return the client id beign used for this client
 get_client_id() ->
     ClientId.
+
+%% @private
+%% This function exists only to avoid compiler errors (unused type).
+%% Unfortunately, I can't figure out how to suppress the bogus "Contract for
+%% function that does not exist" warning from Dialyzer, so ignore that one.
+-spec for_dialyzer_only_ignore(term(), term()) -> riak_client().
+for_dialyzer_only_ignore(X, Y) ->
+    ?MODULE:new(X, Y).
 
 %% @private
 mk_reqid() -> erlang:phash2(erlang:now()). % only has to be unique per-pid

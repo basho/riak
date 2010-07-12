@@ -155,17 +155,7 @@ mkclientid(RemoteNode) ->
 %% @doc Create a binary used for determining replica placement.
 chash_key({Bucket,Key}) ->
     BucketProps = riak_core_bucket:get_bucket(Bucket),
-    {M, F} = case proplists:lookup(chash_keyfun, BucketProps) of
-                 {chash_keyfun, MF} -> MF;
-                 none ->
-                     %% 0.5 didn't have chash_keyfun - upgrade
-                     {chash_keyfun, Default} =
-                         proplists:lookup(
-                           chash_keyfun, riak_core_bucket:defaults()),
-                     riak_core_bucket:set_bucket(
-                       Bucket, [{chash_keyfun,Default}]),
-                     Default
-             end,
+    {chash_keyfun, {M, F}} = proplists:lookup(chash_keyfun, BucketProps),
     M:F({Bucket,Key}).
 
 %% @spec chash_std_keyfun(BKey :: riak_object:bkey()) -> chash:index()
