@@ -163,10 +163,10 @@ collect_output(FlowId, Timeout, Accum) ->
         {flow_error, FlowId, Error} ->
             Error
     after Timeout ->
-            if
-                length(Accum) == 0 ->
+            case dict:size(Accum) of
+                0 ->
                     {error, timeout};
-                true ->
+                _ ->
                     {ok, finalize_results(Accum)}
             end
     end.
