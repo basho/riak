@@ -1,0 +1,70 @@
+#+SETUPFILE: "basho-doc-style.iorg"
+#+TITLE: Riak JMX Monitoring
+
+* Overview
+
+  Riak exposes monitoring data via JMX.  To enable JMX monitoring, edit the
+  =app.config= file and set the =enabled= property of the =riak_jmx=
+  section to =true=, as follows.  The TCP port the JMX provider listens on
+  is also configurable in this section (the default JMX port is =41110=).
+
+#+BEGIN_SRC erlang
+    {riak_jmx, [
+        {enabled, true},
+        {port, 41110}
+      ]}
+#+END_SRC
+
+   To view JMX data if you have the Sun JDK installed, launch JConsole
+   as follows:
+
+#+BEGIN_SRC shell
+   % jconsole <hostname_to_monitor>:<jmx_port> 
+#+END_SRC
+
+   Once connected, click on the 'MBeans' tab, expand the 'com.basho.riak' 
+   tree view, and select 'Attributes'.  The attributes listed below will
+   be displayed.
+
+   Riak JMX has been tested with the Sun JRE 1.6.0_12 and 1.6.0_20.  Some
+   older/non-Sun JREs do not work (e.g. the default java-gcj JRE installed
+   on debian lenny).  If you have problems with JMX or see the
+   message below, please try upgrading to the Sun JRE:
+
+#+BEGIN_SRC
+   =INFO REPORT==== 9-Jun-2010::08:14:57 ===
+   JMX server monitor <pid> exited with code <non-zero>.
+#+END_SRC
+
+
+* Exported JMX attributes 
+
+| Attribute            | Type   | Description                                             |
+|----------------------+--------+---------------------------------------------------------|
+| CPUNProcs            | int    | Number of running processes                             |
+| CpuAvg1              | int    | 1 minute load average                                   |
+| CpuAvg5              | int    | 5 minute load average                                   |
+| CpuAvg15             | int    | 15 minute load average                                  |
+| NodeGetFsmTime95     | float  | 95th percentile GET time (microseconds)                 |
+| NodeGetFsmTime99     | float  | 99th percentile GET time (microseconds)                 |
+| NodeGetFsmTimeMax    | float  | Maximum GET time (microseconds)                         |
+| NodeGetFsmTimeMean   | float  | Mean GET time (microseconds)                            |
+| NodeGetFsmTimeMedian | float  | Median GET time (microseconds)                          |
+| NodeGets             | int    | Number of GETs in past minute                           |
+| NodeGetsTotal        | int    | Number of GETs since node start                         |
+| NodeName             | string | Node name                                               |
+| NodePutFsmTime95     | float  | 95th percentile PUT time (microseconds)                 |
+| NodePutFsmTime99 )   | float  | 99th percentile PUT time (microseconds)                 |
+| NodePutFsmTimeMax    | float  | Maximum PUT time (microseconds)                         |
+| NodePutFsmTimeMean   | float  | Mean PUT time (microseconds)                            |
+| NodePutFsmTimeMedian | float  | Median PUT time (microseconds)                          |
+| NodePuts             | int    | Number of PUTs in past minute                           |
+| NodePutsTotal        | int    | Number of PUTs since node start                         |
+| PBCActive            | int    | Number of active Protocol Buffers connections           |
+| PBCConnects          | int    | Number of Protocol Buffers connections in past minute   |
+| PBCConnectsTotal     | int    | Number of Protocol Buffers connections since node start |
+| RingCreationSize     | int    | Number of partitions in Riak ring                       |
+| VnodeGets            | int    | Number of vnode-level GETs in past minute               |
+| VnodeGetsTotal       | int    | Number of vnode-level GETs since node start             |
+| VnodePuts            | int    | Number of vnode-level PUTs in past minute               |
+| VnodePutsTotal       | int    | Number of vnode-level PUTs since node start             |
