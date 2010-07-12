@@ -29,11 +29,9 @@
 -export([init/1, handle_event/3, handle_sync_event/4,
          handle_info/3, terminate/3, code_change/4]).
 
--define(VNODE_TIMEOUT, 1000).
-
 -export([wait/2]).
 
--record(state, {bkey,qterm,phase_pid,vnodes,keydata,ring,timeout,vnode_timer}).
+-record(state, {bkey,qterm,phase_pid,vnodes,keydata,ring,timeout,vnode_timer,vnode_timeout}).
 
 % {link, Bucket, Tag, Acc}
 % {map, FunTerm, Arg, Acc}
@@ -71,7 +69,8 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
             Preflist = riak_core_ring:preflist(DocIdx, Ring),
             {Targets, _} = lists:split(N, Preflist),
             State = #state{bkey={Bucket,Key},qterm=QTerm,phase_pid=PhasePid,
-                           vnodes=Targets,keydata=KeyData,ring=Ring,timeout=Timeout},
+                           vnodes=Targets,keydata=KeyData,ring=Ring,timeout=Timeout,
+                           vnode_timeout=erlang:round(Timeout / N)},
             case try_vnode(State) of
                 {error, no_vnodes} ->
                     {stop, no_vnodes};
@@ -83,14 +82,15 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
 try_vnode(#state{vnodes=[], keydata=KD, bkey=BKey, phase_pid=PhasePid}) ->
     riak_kv_phase_proto:mapexec_result(PhasePid, [{not_found, BKey, KD}]),
     {error, {no_vnodes, BKey}};
-try_vnode(#state{qterm=QTerm, bkey=BKey, keydata=KeyData, vnodes=[{P, VN}|VNs]}=StateData) ->
+try_vnode(#state{qterm=QTerm, bkey=BKey, keydata=KeyData, vnodes=[{P, VN}|VNs],
+                 vnode_timeout=VNodeTimeout}=StateData) ->
     UpNodes = riak_core_node_watcher:nodes(riak_kv),
     case lists:member(VN, UpNodes) of
         false ->
             try_vnode(StateData#state{vnodes=VNs});
         true ->
             riak_kv_vnode:map({P,VN},self(),QTerm,BKey,KeyData),
-            {ok, TRef} = timer:send_after(?VNODE_TIMEOUT, self(), timeout),
+            {ok, TRef} = timer:send_after(VNodeTimeout, self(), timeout),
             StateData#state{vnodes=VNs, vnode_timer=TRef}
     end.
 
