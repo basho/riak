@@ -158,10 +158,10 @@ is_empty({Ref, _}) ->
             true
     end.
 
-callback({Ref, _}, Ref, {sync, SyncInterval}) ->
+callback({Ref, _}, Ref, {sync, SyncInterval}) when is_reference(Ref) ->
     bitcask:sync(Ref),
     schedule_sync(Ref, SyncInterval);
-callback({Ref, BitcaskRoot}, Ref, merge_check) ->
+callback({Ref, BitcaskRoot}, Ref, merge_check) when is_reference(Ref) ->
     case bitcask:needs_merge(Ref) of
         {true, Files} ->
             bitcask_merge_worker:merge(BitcaskRoot, [], Files);
@@ -179,7 +179,7 @@ callback(_State, _Ref, _Msg) ->
 
 %% @private
 %% Schedule sync (if necessary)
-maybe_schedule_sync(Ref) ->
+maybe_schedule_sync(Ref) when is_reference(Ref) ->
     case application:get_env(bitcask, sync_strategy) of
         {ok, {seconds, Seconds}} ->
             SyncIntervalMs = timer:seconds(Seconds),
@@ -194,10 +194,10 @@ maybe_schedule_sync(Ref) ->
             ok
     end.
 
-schedule_sync(Ref, SyncIntervalMs) ->
+schedule_sync(Ref, SyncIntervalMs) when is_reference(Ref) ->
     riak_kv_backend:callback_after(SyncIntervalMs, Ref, {sync, SyncIntervalMs}).
 
-schedule_merge(Ref) ->
+schedule_merge(Ref) when is_reference(Ref) ->
     riak_kv_backend:callback_after(?MERGE_CHECK_INTERVAL, Ref, merge_check).
 
 

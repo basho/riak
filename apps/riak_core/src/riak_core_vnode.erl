@@ -70,6 +70,7 @@ send_command(Pid, Request) ->
 
 %% Sends a command to the FSM that called it after Time 
 %% has passed.
+-spec send_command_after(integer(), term()) -> reference().
 send_command_after(Time, Request) ->
     gen_fsm:send_event_after(Time, ?VNODE_REQ{request=Request}).
     

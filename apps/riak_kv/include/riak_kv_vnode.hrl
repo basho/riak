@@ -4,7 +4,7 @@
           bkey :: {binary(),binary()},
           object :: term(),
           req_id :: non_neg_integer(),
-          start_time :: tuple(),
+          start_time :: non_neg_integer(),
           options :: list()}).
 
 -record(riak_kv_get_req_v1, {

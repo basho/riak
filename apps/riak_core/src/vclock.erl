@@ -39,16 +39,17 @@
 
 -include_lib("eunit/include/eunit.hrl").
 
-% @type vclock() = [vc_entry].
-% @type   vc_entry() = {node(), {counter(), timestamp()}}.
+-type vclock() :: [vc_entry()].
 % The timestamp is present but not used, in case a client wishes to inspect it.
-% @type   node() = term().
+-type vc_entry() :: {vclock_node(), {counter(), timestamp()}}.
+
 % Nodes can have any term() as a name, but they must differ from each other.
-% @type   counter() = integer().
-% @type   timestamp() = integer().
+-type   vclock_node() :: term().
+-type   counter() :: integer().
+-type   timestamp() :: integer().
 
 % @doc Create a brand new vclock.
-% @spec fresh() -> vclock()
+-spec fresh() -> vclock().
 fresh() ->
     [].
 
@@ -73,7 +74,7 @@ example_test() ->
     ok.
 
 % @doc Return true if Va is a direct descendant of Vb, else false -- remember, a vclock is its own descendant!
-% @spec descends(Va :: vclock(), Vb :: vclock()) -> bool()
+-spec descends(Va :: vclock(), Vb :: vclock()) -> boolean().
 descends(_, []) ->
     % all vclocks descend from the empty vclock
     true;
@@ -98,7 +99,7 @@ descends(Va, Vb) ->
 
 % @doc Combine all VClocks in the input list into their least possible
 %      common descendant.
-% @spec merge(VClocks :: [vclock()]) -> vclock()
+-spec merge(VClocks :: [vclock()]) -> vclock().
 merge([])             -> [];
 merge([SingleVclock]) -> SingleVclock;
 merge([First|Rest])   -> merge(Rest, lists:keysort(1, First)).
@@ -124,7 +125,7 @@ merge(V=[{Node1,{Ctr1,TS1}}|VClock],
     end.
 
 % @doc Get the counter value in VClock set from Node.
-% @spec get_counter(Node :: node(), VClock :: vclock()) -> counter()
+-spec get_counter(Node :: vclock_node(), VClock :: vclock()) -> counter() | undefined.
 get_counter(Node, VClock) ->
     case proplists:get_value(Node, VClock) of
 	{Ctr, _TS} -> Ctr;
@@ -132,7 +133,7 @@ get_counter(Node, VClock) ->
     end.
 
 % @doc Get the timestamp value in a VClock set from Node.
-% @spec get_timestamp(Node :: node(), VClock :: vclock()) -> timestamp()
+-spec get_timestamp(Node :: vclock_node(), VClock :: vclock()) -> timestamp() | undefined.
 get_timestamp(Node, VClock) ->
     case proplists:get_value(Node, VClock) of
 	{_Ctr, TS} -> TS;
@@ -140,7 +141,7 @@ get_timestamp(Node, VClock) ->
     end.
 
 % @doc Increment VClock at Node.
-% @spec increment(Node :: node(), VClock :: vclock()) -> vclock()
+-spec increment(Node :: vclock_node(), VClock :: vclock()) -> vclock().
 increment(Node, VClock) ->
     {{_Ctr, _TS}=C1,NewV} = case lists:keytake(Node, 1, VClock) of
                                 false ->
@@ -151,7 +152,7 @@ increment(Node, VClock) ->
     [{Node,C1}|NewV].
 
 % @doc Return the list of all nodes that have ever incremented VClock.
-% @spec all_nodes(VClock :: vclock()) -> [node()]
+-spec all_nodes(VClock :: vclock()) -> [vclock_node()].
 all_nodes(VClock) ->
     [X || {X,{_,_}} <- VClock].
 
@@ -161,7 +162,7 @@ timestamp() ->
 
 % @doc Compares two VClocks for equality.
 %      Not very fast.
-% @spec equal(VClockA :: vclock(), VClockB :: vclock()) -> true | false
+-spec equal(VClockA :: vclock(), VClockB :: vclock()) -> boolean().
 equal(VA,VB) ->
     VSet1 = sets:from_list(VA),
     VSet2 = sets:from_list(VB),
@@ -175,7 +176,7 @@ equal(VA,VB) ->
     end.
 
 % @doc Possibly shrink the size of a vclock, depending on current age and size.
-% @spec prune(V::vclock(), Now::integer(), BucketProps::term()) -> vclock()
+-spec prune(V::vclock(), Now::integer(), BucketProps::term()) -> vclock().
 prune(V,Now,BucketProps) ->
     SortV = lists:sort(fun({_,{_,A}},{_,{_,B}}) -> A < B end, V),
     prune_vclock1(SortV,Now,BucketProps).

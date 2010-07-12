@@ -44,6 +44,8 @@
     chring,   % chash ring of {IndexAsInt, Node} mappings
     meta      % dict of cluster-wide other data (primarily bucket N-value, etc)
 }). 
+-type riak_core_ring() :: #chstate{}.
+-type chstate() :: riak_core_ring().
 
 % @type meta_entry(). Record for each entry in #chstate.meta
 -record(meta_entry, {
@@ -54,20 +56,20 @@
 }).
 
 % @doc This is used only when this node is creating a brand new cluster.
-% @spec fresh() -> chstate()
+-spec fresh() -> chstate().
 fresh() ->
     % use this when starting a new cluster via this node
     fresh(node()).
 
 % @doc Equivalent to fresh/0 but allows specification of the local node name.
 %      Called by fresh/0, and otherwise only intended for testing purposes.
-% @spec fresh(NodeName :: term()) -> chstate()
+-spec fresh(NodeName :: term()) -> chstate().
 fresh(NodeName) ->
     fresh(app_helper:get_env(riak_core, ring_creation_size), NodeName).
 
 % @doc Equivalent to fresh/1 but allows specification of the ring size.
 %      Called by fresh/1, and otherwise only intended for testing purposes.
-% @spec fresh(RingSize :: integer(), NodeName :: term()) -> chstate()
+-spec fresh(RingSize :: integer(), NodeName :: term()) -> chstate().
 fresh(RingSize, NodeName) ->
     #chstate{nodename=NodeName,
 	    vclock=vclock:fresh(),
@@ -75,13 +77,13 @@ fresh(RingSize, NodeName) ->
             meta=dict:new()}.
 
 % @doc Return all partition indices owned by the node executing this function.
-% @spec my_indices(State :: chstate()) -> [integer()]
+-spec my_indices(State :: chstate()) -> [integer()].
 my_indices(State) ->
     [I || {I,Owner} <- ?MODULE:all_owners(State), Owner =:= node()].
 
 % @doc Return a partition index not owned by the node executing this function.
 %      If this node owns all partitions, return any index.
-% @spec random_other_index(State :: chstate()) -> integer()
+-spec random_other_index(State :: chstate()) -> integer().
 random_other_index(State) ->
     L = [I || {I,Owner} <- ?MODULE:all_owners(State), Owner =/= node()],
     case L of
@@ -89,6 +91,7 @@ random_other_index(State) ->
         _ -> lists:nth(crypto:rand_uniform(1, length(L)+1), L)
     end.
 
+-spec random_other_index(State :: chstate(), Exclude :: [term()]) -> integer() | no_indices.
 random_other_index(State, Exclude) when is_list(Exclude) ->
     L = [I || {I, Owner} <- ?MODULE:all_owners(State),
               Owner =/= node(),
@@ -99,28 +102,28 @@ random_other_index(State, Exclude) when is_list(Exclude) ->
     end.
 
 % @doc Return the node that owns the given index.
-% @spec index_owner(State :: chstate(), Idx :: integer()) -> Node :: term()
+-spec index_owner(State :: chstate(), Idx :: integer()) -> Node :: term().
 index_owner(State, Idx) ->
     hd([Owner || {I, Owner} <- ?MODULE:all_owners(State), I =:= Idx]).
 
 % @doc Return the node that is responsible for a given chstate.
-% owner_node(State :: chstate()) -> Node :: term()
+-spec owner_node(State :: chstate()) -> Node :: term().
 owner_node(State) ->
     State#chstate.nodename.
 
 % @doc Produce a list of all nodes that own any partitions.
-% @spec all_members(State :: chstate()) -> [Node :: term()]
+-spec all_members(State :: chstate()) -> [Node :: term()].
 all_members(State) ->
     chash:members(State#chstate.chring).
 
 % @doc Return a randomly-chosen node from amongst the owners.
-% @spec random_node(State :: chstate()) -> Node :: term()
+-spec random_node(State :: chstate()) -> Node :: term().
 random_node(State) ->
     L = all_members(State),
     lists:nth(crypto:rand_uniform(1, length(L)+1), L).
 
 % @doc Return a randomly-chosen node from amongst the owners other than this one.
-% @spec random_other_node(State :: chstate()) -> Node :: term() | no_node
+-spec random_other_node(State :: chstate()) -> Node :: term() | no_node.
 random_other_node(State) ->
     case lists:delete(node(), all_members(State)) of
         [] ->
@@ -130,39 +133,39 @@ random_other_node(State) ->
     end.
 
 % @doc Provide all ownership information in the form of {Index,Node} pairs.
-% @spec all_owners(State :: chstate()) -> [{Index :: integer(), Node :: term()}]
+-spec all_owners(State :: chstate()) -> [{Index :: integer(), Node :: term()}].
 all_owners(State) ->
     chash:nodes(State#chstate.chring).
 
 % @doc For two rings, return the list of owners that have differing ownership.
-% @spec diff_nodes(State1,State2) -> [node()]
+-spec diff_nodes(chstate(), chstate()) -> [node()].
 diff_nodes(State1,State2) ->
     AO = lists:zip(all_owners(State1),all_owners(State2)),
     AllDiff = [[N1,N2] || {{I,N1},{I,N2}} <- AO, N1 =/= N2],
     lists:usort(lists:flatten(AllDiff)).
 
 % @doc Return the number of partitions in this Riak ring.
-% @spec num_partitions(State :: chstate()) -> integer()
+-spec num_partitions(State :: chstate()) -> integer().
 num_partitions(State) ->
     chash:size(State#chstate.chring).
 
 % @doc For a given object key, produce the ordered list of
 %      {partition,node} pairs that could be responsible for that object.
-% @spec preflist(Key :: binary(), State :: chstate()) ->
-%                                 [{Index :: integer(), Node :: term()}]
+-spec preflist(Key :: binary(), State :: chstate()) ->
+                               [{Index :: integer(), Node :: term()}].
 preflist(Key, State) -> chash:successors(Key, State#chstate.chring).
 
 % @doc Provide every preflist in the ring, truncated at N.
-% @spec all_preflists(State :: chstate(), N :: integer()) ->
-%                                 [[{Index :: integer(), Node :: term()}]]
+-spec all_preflists(State :: chstate(), N :: integer()) ->
+                               [[{Index :: integer(), Node :: term()}]].
 all_preflists(State, N) ->
     [lists:sublist(preflist(Key, State),N) ||
         Key <- [<<(I+1):160/integer>> ||
                    {I,_Owner} <- ?MODULE:all_owners(State)]].
 
 
-% @spec transfer_node(Idx :: integer(), Node :: term(), MyState :: chstate()) ->
-%           chstate()
+-spec transfer_node(Idx :: integer(), Node :: term(), MyState :: chstate()) ->
+           chstate().
 transfer_node(Idx, Node, MyState) ->
     case chash:lookup(Idx, MyState#chstate.chring) of
 	Node ->
@@ -176,8 +179,8 @@ transfer_node(Idx, Node, MyState) ->
     end.
 
 % @doc  Rename OldNode to NewNode in a Riak ring.
-% @spec rename_node(State :: chstate(), OldNode :: atom(), NewNode :: atom()) ->
-%           chstate()
+-spec rename_node(State :: chstate(), OldNode :: atom(), NewNode :: atom()) ->
+            chstate().
 rename_node(State=#chstate{chring=Ring, nodename=ThisNode}, OldNode, NewNode) 
   when is_atom(OldNode), is_atom(NewNode)  ->
     State#chstate{
@@ -199,8 +202,8 @@ ancestors(RingStates) ->
     lists:flatten(Ancest).
 
 % @doc Incorporate another node's state into our view of the Riak world.
-% @spec reconcile(ExternState :: chstate(), MyState :: chstate()) ->
-%       {no_change, chstate()} | {new_ring, chstate()}
+-spec reconcile(ExternState :: chstate(), MyState :: chstate()) ->
+        {no_change, chstate()} | {new_ring, chstate()}.
 reconcile(ExternState, MyState) ->
     case vclock:equal(MyState#chstate.vclock, vclock:fresh()) of
         true -> 
@@ -230,7 +233,7 @@ reconcile(ExternState, MyState) ->
             end
     end.
 
-% @private
+-spec equal_rings(chstate(), chstate()) -> boolean().
 equal_rings(_A=#chstate{chring=RA,meta=MA},_B=#chstate{chring=RB,meta=MB}) ->
     MDA = lists:sort(dict:to_list(MA)),
     MDB = lists:sort(dict:to_list(MB)),
@@ -268,8 +271,8 @@ pick_val(M1,M2) ->
     
 
 % @doc Return a value from the cluster metadata dict
-% @spec get_meta(Key :: term(), State :: chstate()) -> 
-%    {ok, term()} | error | undefined
+-spec get_meta(Key :: term(), State :: chstate()) -> 
+    {ok, term()} | undefined.
 get_meta(Key, State) -> 
     case dict:find(Key, State#chstate.meta) of
         error -> undefined;
@@ -278,8 +281,7 @@ get_meta(Key, State) ->
 
                 
 % @doc Set a key in the cluster metadata dict
-% @spec update_meta(Key :: term(), Val :: term(), State :: chstate()) ->
-%     State :: chstate() | error
+-spec update_meta(Key :: term(), Val :: term(), State :: chstate()) -> chstate().
 update_meta(Key, Val, State) ->
     Change = case dict:find(Key, State#chstate.meta) of
                  {ok, OldM} ->

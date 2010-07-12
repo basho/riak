@@ -426,7 +426,7 @@ ttl_test() ->
     {ok, Value} = get(State, {Bucket, Key}),
     
     % Wait 0.05 seconds, object should be cleared from cache...
-    timer:sleep(trunc(timer:seconds(0.05))),
+    timer:sleep(50),
     
     % Get the object again, it should be missing...
     {error, notfound} = get(State, {Bucket, Key}),
@@ -447,15 +447,15 @@ max_ttl_test() ->
     put(State, {Bucket, Key}, Value),
 
     % Wait 0.03 seconds, access it...
-    timer:sleep(trunc(timer:seconds(0.03))),
+    timer:sleep(30),
     {ok, Value} = get(State, {Bucket, Key}),
     
     % Wait 0.03 seconds, access it...
-    timer:sleep(trunc(timer:seconds(0.03))),
+    timer:sleep(30),
     {ok, Value} = get(State, {Bucket, Key}),
     
     % Wait 0.05 seconds, it should expire...
-    timer:sleep(trunc(timer:seconds(0.05))),
+    timer:sleep(50),
     
     % This time it should be gone...
     {error, notfound} = get(State, {Bucket, Key}),
