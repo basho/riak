@@ -208,7 +208,7 @@ start_handoff(State=#state{index=Idx, mod=Mod, modstate=ModState}, TargetNode) -
                     {ok, NewModState1} = Mod:handoff_cancelled(NewModState),
                     NewState = State#state{modstate=NewModState1},
                     {next_state, active, NewState, ?LOCK_RETRY_TIMEOUT};
-                {ok, HandoffToken} ->
+                {ok, {handoff_token, HandoffToken}} ->
                     NewState = State#state{modstate=NewModState, 
                                            handoff_token=HandoffToken,
                                            handoff_node=TargetNode},
