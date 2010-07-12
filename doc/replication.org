@@ -8,29 +8,154 @@
 
 * How Replication Works
 
-  Lorem ipsum blah blah blah.
+  Riak replication copies all data from a primary cluster to a
+  secondary. Currently it is unidirectional, although you can
+  configure a pair of connections to sync bidirectionally between two
+  clusters. All data is synchronized on initial connection, followed
+  by streamed updates to the secondary cluster and periodic full syncs.
 
 * Concepts
-
 ** Listeners
    
    Replication 'listener' nodes are Riak cluster nodes that will listen on an 
    external IP address and port for the purposes of handling Replication 
    requests.  Any node in a Riak cluster can participate as a listener - adding
    more nodes will increase the fault-tolerance of the replication process in 
-   the presence of individual node failures.  
-
-   XXX
+   the presence of individual node failures. Listeners are started on
+   the primary cluster.
 
 ** Sites
-   
-   Lorem ipsum blah blah blah
+
+   Replication 'site' nodes are Riak cluster nodes that connect to
+   listeners and initiate Replication requests. Site nodes must be
+   given a listener node to connect to when started. Sites are started
+   on the secondary cluster.
+
+** Full-sync
+
+   On initial connect, the secondary cluster (site) will initiate a
+   full-sync with the primary cluster (listener), which sends a
+   compressed view (merkle tree) of the key-space so the secondary
+   cluster can compare it with its own key-space and then request
+   updates for keys it lacks.  Meanwhile, any new writes on the
+   primary cluster will also be streamed to the secondary cluster.
+
+   Full-syncs are also performed on a periodic basis, configurable in
+   the =riak_repl= section of =app.config=, under the
+   =fullsync_interval= parameter. See the "Configuration" section
+   below for more details.
 
 * Configuration
+** =app.config= Settings
+
+   The configuration for replication is kept in the =riak_repl=
+   section of =etc/app.config=.
+
+#+BEGIN_SRC erlang
+   {riak_repl, [
+                  {repl_ip, "0.0.0.0"},
+                  {repl_port, 9010},
+                  {fullsync_on_connect, true},
+                  {fullsync_interval, 360},
+                  {data_root, "data/riak_repl"}
+                 ]},
+#+END_SRC
+
+*** =repl_ip= (string)
+
+    The IP address to bind the listener to. ="0.0.0.0"= (all interfaces)
+    is the default.
+
+*** =repl_port= (integer)
+    
+    The IP port to bind the listener to. =9010= is the default.
+
+*** =fullsync_on_connect= (true/false)
+
+    Whether to initiate a fullsync on initial connection from the
+    secondary cluster. =true= is the default.
+
+*** =fullsync_interval= (integer, in minutes)
+
+    How often to initiate a full synchronization of data, in
+    minutes. This is measured from the completion of one full-sync
+    operation to the initiation of the next. This setting only applies
+    to the primary cluster (listener). =360= is the default (6
+    hours).
+
+*** =data_root= (string)
+
+    Path (relative or absolute) to the working directory for the
+    replication process. ="data/riak_repl"= is the default.
+
+*** =repl_log_dir= (string)
+
+    Where to store log files of the replication
+    process. ="%{data_root}/logs"= is the default (substitute
+    =data_root= from the other setting)..
 
 ** The riak-repl Command
 
-   
-   
+   Replication is controlled by the =riak-repl= command. Usage:
 
+#+BEGIN_SRC shell
+  riak-repl add-listener <nodename> <listen_ip> <port>
+  riak-repl del-listener <nodename> <listen_ip> <port>
+  riak-repl add-site <ipaddr> <portnum> <sitename>
+  riak-repl del-site <sitename>
+  riak-repl status
+#+END_SRC
+
+*** add-listener
+
+    Adds a listener (primary) to the given node, IP address and port.
+
+    Example:
+
+#+BEGIN_SRC shell
+    riak-repl add-listener riak@10.0.1.156 10.0.1.156 9010
+#+END_SRC
+
+*** del-listener
+
+    Removes and shuts down a listener (primary) on the given node, IP
+    address and port.
+
+    Example:
+
+#+BEGIN_SRC shell
+    riak-repl del-listener riak@10.0.1.156 10.0.1.156 9010
+#+END_SRC
+
+*** add-site
+
+    Adds a site (secondary) to the local node, connecting to the
+    specified listener.
+
+    Example:
+
+#+BEGIN_SRC shell
+    riak-repl add-site 10.0.1.156 9010 newyork
+#+END_SRC
+
+*** del-site
+
+    Removes a site (secondary) from the local node by name.
+
+    Example:
+
+#+BEGIN_SRC shell
+    riak-repl del-site newyork
+#+END_SRC
+
+*** status
+
+    Gets status information about replication. Currently reports
+    counts on how much data has been transmitted.
+
+    Example:
+
+#+BEGIN_SRC shell
+    riak-repl status
+#+END_SRC
 
