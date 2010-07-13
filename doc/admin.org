@@ -210,34 +210,45 @@
     running a firewall on any of the machines in the cluster:
 
     + 4369: Erlang Port Mapper Daemon's (EPMD) port, for connecting
-      Riak nodes.  Which network interface on which this port is
-      exposed can be configured by specifying a value for
-      =inet_dist_user_interface= in the =kernel= section of Riak's
-      =app.config= (see example below).
+      Riak nodes. 
 
-    + 5001-6024: Dynamically allocated ports by EPMD.  This range can
-      be modified by specifying values for =inet_dist_listen_min= and
-      =inet_dist_listen_max= in Riak's =app.config= (see example
-      below).
+    + 5001-6024: Port range for the listener socket of a distributed 
+      Erlang node. This range can be modified by specifying values for 
+      =inet_dist_listen_min= and =inet_dist_listen_max= in the =kernel= 
+      section of Riak's =app.config=. The network interface on which 
+      these ports are exposed can be configured by specifying a value 
+      for =inet_dist_use_interface= (see example below).
 
     + 8098: Default HTTP interface port.  This port can be modified by
-      specifying a value for =riak_web_port= in the =riak= section of
+      specifying a value for =web_port= in the =riak_core= section of
       Riak's =app.config= (see example below).  The network interface
       on which this port is exposed can be configured by specifying a
-      value for =riak_web_ip= in the =riak= section of Riak's
+      value for =web_ip= in the =riak_core= section of Riak's
       =app.config=.
+
+    + 8097: Default Protocol Buffers interface port. This port can be
+      modified by specifying a value for =pb_port= in the =riak_kv=
+      section of Riak's =app.config=. The network interface on which
+      this port is exposed can be configured by specifying a value for
+      =pb_ip= in the same section (see example below).
 
     As noted, several of these ports are configurable.  The default
     configuration in =app.config= would look something like this:
 
 #+BEGIN_SRC erlang
    [
-    {riak, [
-            {riak_web_ip, "127.0.0.1"},
-            {riak_web_port, 8098},
+    {riak_core, [
+            {web_ip, "127.0.0.1"},
+            {web_port, 8098},
 
-            %% More Riak settings...
+            %% More Riak Core settings...
            ]},
+    {riak_kv, [
+            {pb_ip, "127.0.0.1"},
+            {pb_port, 8087},
+
+            %% More Riak KV settings...
+            ]},
     {kernel, [
               {inet_dist_use_interface, {0, 0, 0, 0}},
               {inet_dist_listen_min, 5001},
@@ -247,8 +258,8 @@
    ].
 #+END_SRC
 
-   The value of =riak_web_ip= is a string representation of an IP
-   address.  To specify that Webmachine should listen on all
+   The parameters =web_ip= and =pb_ip= accept a string representation 
+   of an IP address.  To specify that Riak should listen on all 
    interfaces, use =0.0.0.0=.
 
    The value of the =inet_dist_use_interface= is a tuple of four
@@ -321,11 +332,11 @@
 
 #+BEGIN_SRC erlang
    [
-    {riak, [
+    {riak_kv, [
             {storage_backend, riak_kv_dets_backend},
             {riak_kv_dets_backend_root, "data/dets"}
 
-            %% More Riak settings...
+            %% More Riak KV settings...
            ]}
     %% Other application configurations...
    ].
@@ -336,7 +347,7 @@
    form ={ApplictionName, [Setting1, Setting2, ...]}=.  Each setting
    is a 2-tuple of the form ={SettingName, SettingValue}=.
 
-*** List of Riak Configuration Variables
+*** List of Riak Core Configuration Variables
 
 #+COMMENT TODO figure out verbatim escaping: ="blah"=
 
@@ -373,6 +384,25 @@
          Riak's HTTP interface will not be started if
          this setting is not defined.
 
+    + =default_bucket_props= :: properties to give each bucket, by
+         default
+
+         Properties in this list will override the hardcoded defaults
+         in riak_core_bucket:defaults/0.  This setting is the best way to
+         set things like:
+
+         - the default N-value for Riak objects (=n_val=)
+         - whether or not siblings are allowed (=allow_mult=)
+         - the function for extracting links from objects (=linkfun=)
+
+    + =handoff_port= :: 
+         TCP port number for the handoff listener (default: 8099)
+                     
+    + =handoff_concurrency= :: 
+         Number of vnode, per physical node, allowed to perform handoff at once.
+
+*** List of Riak KV Configuration Variables
+
     + =raw_name= :: the base of the path in the URL exposing Riak's
                     HTTP interface (default: ="riak"=)
 
@@ -380,6 +410,15 @@
                     =/riak/Bucket/Key=.  For example, changing this
                     setting to ="bar"= would expose the interface at
                     =/bar/Bucket/Key=.
+
+    + =pb_ip= :: the IP address that the Riak Protocol Buffers interface
+                 will bind to (default: =127.0.0.1=)
+
+                 If this is undefined, the interface will
+                 not run.
+
+    + =pb_port= :: the TCP port that the Riak Protocol Buffers interface
+                   will bind to (default: =8087=)
 
     + =storage_backend= :: module name of the storage backend that
          Riak should use (default: =riak_kv_bitcask_backend=)
@@ -398,7 +437,7 @@
          - =riak_kv_ets_backend= :: data is stored in ETS tables
               (in-memory)
 
-         - =riak_kv_gb_trees_backend= :: data is stored in ETS tables
+         - =riak_kv_gb_trees_backend= :: data is stored in Erlang gb_trees
               (in-memory)
 
          - =riak_kv_fs_backend= :: data is stored in binary files on the
@@ -448,40 +487,29 @@
                      Riak to use external modules during map/reduce
                      queries.
 
-    + =default_bucket_props= :: properties to give each bucket, by
-         default
+    + =riak_kv_stat= :: enable the statistics-aggregator (default: true)
 
-         Properties in this list will override the hardcoded defaults
-         in riak_core_bucket:defaults/0.  This setting is the best way to
-         set things like:
+    + =mapred_name= :: the URL to submit map/reduce requests to 
+                       (default: =mapred=)
 
-         - the default N-value for Riak objects (=n_val=)
-         - whether or not siblings are allowed (=allow_mult=)
-         - the function for extracting links from objects (=linkfun=)
+    + =js_vm_count= :: the number of Javascript virtual machines to start 
+                       (default: 8)
 
-    + =riak_stat= ::
-      enable the statistics-aggregator (default: false)
+    + =js_max_vm_mem= :: the maximum amount of memory, in megabytes, 
+         allocated to the Javascript VMs (default: 8)
 
-    + =handoff_port= :: 
-         TCP port number for the handoff listener (default: 8099)
-                     
-    + =handoff_concurrency= :: 
-         Number of vnode, per physical node, allowed to perform handoff at once.
+    + =js_thread_stack= ::  the maximum amount of thread stack, in megabyes,
+         allocated to the Javascript VMs (default: 16) 
 
-
-
-
-
-    + =js_vm_count= :: how many Javascript virtual machines to start (default: 8)
-
-    + =js_source_dir= :: where to load user-defined built in Javascript functions (default: unset)
+    + =js_source_dir= :: location from which Riak will load user defined 
+         JavaScript source files (default: unset)
 
 ** Rebar Overlays
 
    If you are going to be rebuilding Riak often, you will want to edit
-   the =vm.args= and =app.config= files in the =rel/overlays/etc=
+   the =vm.args= and =app.config= files in the =rel/files=
    directory.  The copies of those files in the release (embedded
-   node) directory will be overwritten by the files in the =overlays=
+   node) directory will be overwritten by the files in the =files=
    directory when a =make rel= or =rebar generate= command is issued.
 
 
@@ -636,7 +664,7 @@
    Stopping a Riak node can be done at any time, simply by running
    =bin/riak stop=:
 
-: $ dev/dev3/bin/riak stop
+: $ bin/riak stop
 : ok
 
    This halts the Riak node, but it does not change any claims on the
@@ -645,21 +673,19 @@
    slice of the cluster's data.
 
    To change ring ownership, such that a node is no longer responsible
-   for storing any data, first get a riak client, then use:
+   for storing any data, run the following on the node you want to remove:
 
 : $ bin/riak leave
 
-   If the node that is leaving is alive and connected to the cluster,
-   it will start transferring data to the nodes that have claimed the
-   partitions it just owned.  If the node is down, no data transfer
-   happens.
+   The node that is leaving will start transferring data to the nodes
+   in the cluster that have claimed the partitions it previously owned.
 
    Read and write requests immediately start hitting the nodes that
    have claimed the partitions that the exiting node just gave up.
    This means that some reads where R=N will fail for a time, until
-   data exists everywhere.  Data will exist everywhere it is supposed
-   to after handoff finishes, after a successful read repair, or after
-   a write to all partitions responsible for a value.
+   data exists everywhere.  Data will exist everywhere after handoff 
+   finishes, after a successful read repair, or after a write to all 
+   partitions responsible for a value.
 
 * Client Interaction
 ** TODO Client Libraries
