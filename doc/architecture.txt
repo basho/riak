@@ -132,13 +132,17 @@ receive a key and value which are both Erlang binaries.  The backend
 can consider these binaries completely opaque data, or examine them to
 make decisions about how best to store them.
 
-Four backends are packaged with Riak:
+Several backends are packaged with Riak:
 
- 1. riak_kv_fs_backend, which stores data directly to files in a nested
-    directory structure on disk
- 2. riak_kv_ets_backend, which stores data in ETS tables (which makes it
-    volatile storage, but great for debugging)
+ 1. riak_kv_bitcask_backend, which stores data in the Bitcask key/value
+    store.
+ 2. riak_kv_cache_backend, which behaves as an LRU-with-timed-expiry cache
  3. riak_kv_dets_backend, which stores data on-disk in DETS tables
+ 4. riak_kv_ets_backend, which stores data in ETS tables (which makes it
+    volatile storage, but great for debugging)
+ 5. riak_kv_fs_backend, which stores data directly to files in a nested
+    directory structure on disk
+ 6. riak_kv_gb_trees_backend, which stores data in Erlang gb_trees.
 
 [1] http://s3.amazonaws.com/AllThingsDistributed/sosp/amazon-dynamo-sosp2007.pdf
 [2] http://portal.acm.org/citation.cfm?doid=564585.564601
