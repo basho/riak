@@ -80,8 +80,8 @@ to why the store failed, but check the Troubleshooting section below if
 not.
 
 The object is now stored in Riak, but you may be wondering about the
-additional parameter to Client:put.  There are three different 'put'
-functions: put/2, put/3, and put/4.  The lower-arity functions pass
+additional parameter to Client:put.  There are five different 'put'
+functions: put/1, put/2, put/3, put/4 and put/5.  The lower-arity functions pass
 defaults for the parameters they leave out of the higher-arity
 functions.  The available parameters, in order are:
 
@@ -93,11 +93,15 @@ functions.  The available parameters, in order are:
           write to be considered successful
  Timeout: the number of milliseconds to wait for W and DW responses
           before exiting with a timeout
+ Options: List of options that control certain behavior. 
+          
+          returnbody: Return the stored object. 
 
-The default timeout is currently 15 seconds, and put/2 passes its W
+
+The default timeout is currently 60 seconds, and put/2 passes its W
 value as the DW value.  So, the example above asks the client to store
 Object, waiting for 1 successful durable write response, waiting a
-maximum of 15 seconds for success.
+maximum of 60 seconds for success.
 
 See riak/doc/architecture.txt for more information about W and DW
 values.
@@ -126,7 +130,7 @@ key you used before:
 7> riak_object:get_value(O).
 ["eggs","bacon"]
 
-Like 'put', there are two 'get' functions: get/3, and get/4.  Their
+Like 'put', there are multiple 'get' functions: get/2, get/3, and get/4. Their
 parameters are:
 
   Bucket: the bucket in which the object is stored
@@ -137,7 +141,7 @@ parameters are:
           before exiting with a timeout
 
 So, the example 'get' above requested the "mine" object in the
-'groceries' bucket, demanding at least one successful response in 15
+"groceries" bucket, demanding at least one successful response in 60
 seconds.
 
 
@@ -165,78 +169,85 @@ list is updated:
 12> riak_object:get_value(Oc).
 ["milk","eggs","bacon"].
 
-Suppose you didn't want to add "milk" to the list.  Instead, you
-wanted to overwrite the list with ["bread","cheese"].  What would
-happen if you just fired up a new client, and overwrote the existing
-list with a new one?
 
-1> {ok, C} = riak:client_connect('riak@127.0.0.1').
-...
-2> ok = C:put(riak_object:new(<<"groceries">>, <<"mine">>, ["bread","cheese"]), 1).
-...
-3> {ok, O} = C:get(<<"groceries">>, <<"mine">>, 1).
-...
-4> riak_object:get_value(O).
-** exception error: no match of right hand side value 
-                    [{{dict,2,16,16,8,80,48,
-                            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
-                            {{[],[],[],[],[],[],
-                              [["X-Riak-Last-Modified",87,101,100,44,32,50,50,32|...]],
-                              [],[],[],[],[],[],[],
-                              [[[...]|...]],
-                              []}}},
-                      ["bread","cheese"]},
-                     {{dict,2,16,16,8,80,48,
-                            {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
-                            {{[],[],[],[],[],[],
-                              [["X-Riak-Last-Modified",87,101,100,44,32,50,50|...]],
-                              [],[],[],[],[],[],[],
-                              [[...]],
-                              []}}},
-                      ["eggs","bacon"]}]
-     in function  riak_object:get_value/1
+Siblings
+---
 
-What happened?  In short, you created a "sibling" with your second
-put.  Riak is able to provide high availability, in part, due to its
-ability to accept put requests, even when it can't tell if that put
-would overwrite data.  It does this by retaining conflicting data, and
-providing it to the client the next time a get is attempted.  To see
-both sets of conflicting data, use riak_object:get_values/1:
+By default, Riak does not expose siblings to clients. It is, however, 
+important to be aware of their presence.
 
-5> riak_object:get_values(O).
-[["bread","cheese"],["eggs","bacon"]]
+Riak is able to provide high availability, in part, due to its ability 
+to accept put requests, even when it can't tell if that put would 
+overwrite data. Through the use of vector clocks Riak is able to track 
+and resolve conflicting versions of an object. For more information 
+about how Riak uses vclocks, see riak/doc/architecture.txt.
 
-You can then "merge" the siblings in whatever way suits your
-application.  In this case, we really did just want bread and cheese
-in the list, so:
+Siblings occur when Riak accepts conflicting values for an object that
+cannot be resolved with vector clocks.
 
-6> O2 = riak_object:update_value(O, ["bread","cheese"]).
-...
-7> C:put(O2, 1).
+Let's continue the example from above but this time we will tell Riak to
+return siblings to the client. Siblings can be allowed per bucket by 
+setting 'allow_mult' to 'true':
+
+13> Client:set_bucket(<<"groceries">>, [{allow_mult, true}]).
 ok
 
-Note that you will not see the sibling behavior described above if you
-used the old Riak Client created in the previous example, instead of
-creating a fresh client like this example does.  This has to do with
-the vclocks that Riak uses to track object changes: the same vclock
-would be used for the modification, thereby overwriting the original
-data.  For more information about how Riak uses vclocks, see
-riak/doc/architecture.txt.
+To create a sibling, we'll fire up a new client and define our grocery
+list with different items:
 
-There are two ways to avoid making siblings like the above.  One is to
-tell Riak to enforce a "last write wins" strategy for your data.  This
-is a per-bucket option, which is set with the set_bucket function in
-the riak_client module.  To enforce last-write-wins, set allow_mult to
-false:
+14> {ok, Client2} = riak:client_connect('riak@127.0.0.1').   
+...
+15> Client2:put(riak_object:new(<<"groceries">>, <<"mine">>, ["bread","cheese"]), 1).
+...
+16> {ok, O2} = Client2:get(<<"groceries">>, <<"mine">>, 1).
+...
+17> riak_object:get_value(O2).
+** exception error: no match of right hand side value
+	 [{{dict,2,16,16,8,80,48,
+		  {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+		  {{[],[],[],[],[],[],[],[],[],[],
+			[[<<"X-Riak-VTag">>,49,54,106,80|...]],
+			[],[],
+			[[<<"X-Ri"...>>|{...}]],
+			[],[]}}},
+		["bread","cheese"]},
+	   {{dict,2,16,16,8,80,48,
+		  {[],[],[],[],[],[],[],[],[],[],[],[],[],[],[],[]},
+		  {{[],[],[],[],[],[],[],[],[],[],
+			[[<<"X-Riak-VTag">>,50,97,53|...]],
+			[],[],
+			[[<<...>>|...]],
+			[],[]}}},
+		["milk","eggs","bacon"]}]
+ in function  riak_object:get_value/1
 
-8> C:set_bucket(groceries, [{allow_mult, false}]).
+Now that Riak is returning siblings it seems our get_value/1 function
+is broken. So, what happened? The function get_value/1 does not know 
+how to handle siblings; to see both sets of conflicting data, use 
+riak_object:get_values/1:
+
+18> riak_object:get_values(O2).
+[["bread","cheese"],["milk","eggs","bacon"]]
+
+It is up to the client to "merge" the siblings in whatever way suits 
+your application.  In this case, we really did just want bread and 
+cheese in the list, so:
+
+19> O3 = riak_object:update_value(O2, ["bread","cheese"]).
+...
+20> Client2:put(O3, 1).
 ok
 
-The other way to avoid simple siblings is to always fetch the object,
-modifiy it, then store it back.  This will still create siblings if
-you have clients interleaving their gets and puts, but if you're
-dealing with only one client, preceding every put with a fresh get
-will prevent siblings.
+Now, we can fetch the grocery list and check its value:
+
+21> {ok, O4} = Client2:get(<<"groceries">>, <<"mine">>, 1).
+...
+22> riak_object:get_value(O4).
+["bread","cheese"]
+ 
+To return to the default behavior we can set 'allow_mult' back to false:
+
+23> Client2:set_bucket(<<"groceries">>, [{allow_mult, false}]).
 
 
 Listing Keys
@@ -263,8 +274,8 @@ in the riak_client module:
 1> Client:delete(<<"groceries">>, <<"mine">>, 1).
 ok
 
-As with get and put, delete has an arity-3 function and an arity-4
-function, with parameters:
+As with get, delete has arity-2, arity-3 and arity-4 functions, with 
+parameters:
 
   Bucket: the bucket the object is in
      Key: the key to delete
@@ -272,7 +283,7 @@ function, with parameters:
  Timeout: the number of milliseconds to wait for responses
 
 So, the command demonstrated above tries to delete the object with the
-key "mine" in the bucket groceries, waiting up to 15 seconds for at
+key "mine" in the bucket "groceries", waiting up to 60 seconds for at
 least one node to respond.
 
 Issuing a delete for an object that does not exist returns an error
@@ -293,42 +304,38 @@ riak_client module:
 1> Client:get_bucket(<<"groceries">>).
 [{name,<<"groceries">>},
  {n_val,3},
- {allow_mult,true},
- {linkfun,{no_mod,no_fun}},
+ {allow_mult,false},
+ {last_write_wins,false},
+ {precommit,[]},
+ {postcommit,[]},
+ {chash_keyfun,{riak_core_util,chash_std_keyfun}},
+ {linkfun,{modfun,riak_kv_wm_link_walker,mapreduce_linkfun}},
  {old_vclock,86400},
  {young_vclock,20},
  {big_vclock,50},
- {small_vclock,10}]
+ {small_vclock,10},
+ {r,quorum},
+ {w,quorum},
+ {dw,quorum},
+ {rw,quorum}]
 
 If the default parameters do not suit your application, you can alter
 them on a per-bucket basis with set_bucket.  You should do this before
 storing any data in the bucket, but many of the settings will "just
 work" if they are modified after the bucket contains data.
 
-One example of set_bucket was discussed in the Storing Data section of
-this document.  There, we altered the allow_mult setting for the
-groceries bucket:
-
-8> C:set_bucket(<<"groceries">>, [{allow_mult, false}]).
-ok
-
-The allow_mult setting is one that will "just work", in that if any
-objects in that bucket had siblings, fetching them will automatically
-choose one of the siblings, and return a riak_object with just one
-value.
-
-Another interesting bucket setting is 'n_val'.  n_val tells Riak how
-many copies of an object to make.  More properly, for a bucket with an
-n_val of N, Riak will store each object in the bucket in N different
-vnodes (see riak/doc/architecture.txt for a description of the term
-"vnode").
+An interesting bucket setting to take note of is 'n_val'.  n_val tells 
+Riak how many copies of an object to make.  More properly, for a bucket 
+with an n_val of N, Riak will store each object in the bucket in N 
+different vnodes (see riak/doc/architecture.txt for a description of 
+the term "vnode").
 
 Most of the time, the default n_val of 3 works perfectly.  Three
 provides some durability and availability over 1 or 2.
 
 If you are attempting to enhance either durability or speed, however,
 increasing n_val may make sense *if you also modify the R, W, and DW*
-values in your get an put calls.  Changing n_val on its own will have
+values in your get and put calls.  Changing n_val on its own will have
 little effect without also modifying the put- and get-time parameters.
 
 
