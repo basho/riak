@@ -333,7 +333,7 @@ malformed_request(RD, Ctx) ->
                                            ResRD)),
                      DocCtx};
                 {error, timeout} ->
-                    {{halt, 500},
+                    {{halt, 503},
                      wrq:set_resp_header("Content-Type", "text/plain",
                                       wrq:append_to_response_body(
                                         io_lib:format("request timed out~n",[]),
