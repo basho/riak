@@ -12,24 +12,18 @@ prefix other than "riak", add another line to your config:
 
    {raw_name, "myprefix"}.
 
-If you plan on only or mostly using the HTTP interface, you'll also 
-find it convenient to set the default linkfun for your buckets.
-One more line for your config file:
-
-   {default_bucket_props, [{linkfun, {modfun, raw_link_walker_resource, mapreduce_linkfun}}]}.
-
 You'll find that all buckets exist, and are ready to give you details
 about themselves at /riak/BucketName:
 
    $ curl -i http://127.0.0.1:8098/riak/example
    HTTP/1.1 200 OK
    Vary: Accept-Encoding
-   Server: MochiWeb/1.1 WebMachine/1.4 (our dis is finally out)
-   Date: Fri, 30 Oct 2009 02:36:46 GMT
+   Server: MochiWeb/1.1 WebMachine/1.7 (participate in the frantic)
+   Date: Wed, 14 Jul 2010 03:28:46 GMT
    Content-Type: application/json
-   Content-Length: 272
+   Content-Length: 370
 
-   {"props":{"name":"example","allow_mult":false,"big_vclock":50,"chash_keyfun":{"mod":"riak_util","fun":"chash_std_keyfun"},"linkfun":{"mod":"raw_link_walker_resource","fun":"mapreduce_linkfun"},"n_val":3,"old_vclock":86400,"small_vclock":10,"young_vclock":21600},"keys":[]}
+   {"props":{"name":"bucket","n_val":3,"allow_mult":false,"last_write_wins":false,"precommit":[],"postcommit":[],"chash_keyfun":{"mod":"riak_core_util","fun":"chash_std_keyfun"},"linkfun":{"mod":"riak_kv_wm_link_walker","fun":"mapreduce_linkfun"},"old_vclock":86400,"young_vclock":20,"big_vclock":50,"small_vclock":10,"r":"quorum","w":"quorum","dw":"quorum","rw":"quorum"}}
 
 It is not necessary to "create" or otherwise "touch" a bucket before storing documents into it, but if you want to change a property at runtime, it's as simple as PUTing to the bucket:
 
@@ -54,13 +48,13 @@ To get the document back, just GET the bucket and key:
 
    $ curl -i http://127.0.0.1:8098/riak/example/foo
    HTTP/1.1 200 OK
-   X-Riak-Vclock: a85hYGBgzGDKBVIsbIt4J2UwJTLmsTIEn4s7wpcFAA==
+   X-Riak-Vclock: a85hYGBgzGDKBVIsLGtY2zOYEhnzWBkE12w8ypcFAA==
    Vary: Accept-Encoding
-   Server: MochiWeb/1.1 WebMachine/1.4 (our dis is finally out)
+   Server: MochiWeb/1.1 WebMachine/1.7 (participate in the frantic)
    Link: </riak/example>; rel="up"
-   Last-Modified: Fri, 30 Oct 2009 02:41:23 GMT
-   ETag: 3ntEVjk1ubJ8fVWZRsuuij
-   Date: Fri, 30 Oct 2009 02:43:44 GMT
+   Last-Modified: Wed, 14 Jul 2010 03:33:37 GMT
+   Etag: 1wSftQ956ViTpGGs8dKQ68
+   Date: Wed, 14 Jul 2010 03:33:45 GMT
    Content-Type: text/plain
    Content-Length: 18
 
@@ -72,7 +66,7 @@ object, in order to indicate the causality of your modification.  For
 example:
 
    $ curl -X PUT -H "content-type: text/plain" \
-     -H "X-Riak-Vclock: a85hYGBgzGDKBVIsbIt4J2UwJTLmsTIEn4s7wpcFAA==" \
+     -H "X-Riak-Vclock: a85hYGBgzGDKBVIsLGtY2zOYEhnzWBkE12w8ypcFAA==" \
      http://127.0.0.1:8098/riak/example/foo \
      --data "I have a modified document."
 
@@ -81,31 +75,23 @@ second GET:
 
    $ curl -i http://127.0.0.1:8098/riak/example/foo
    HTTP/1.1 200 OK
-   X-Riak-Vclock: a85hYGBgymDKBVIsbJZ3MjOYEhnzWBl8zscd4YMJL+KdBBUOPgcUzgIA
+   X-Riak-Vclock: a85hYGBgymDKBVIsLGtY2zOYEhnzWBkE12w8ygcVZm8+GwwVPggSzgIA
    Vary: Accept-Encoding
-   Server: MochiWeb/1.1 WebMachine/1.4 (our dis is finally out)
+   Server: MochiWeb/1.1 WebMachine/1.7 (participate in the frantic)
    Link: </riak/example>; rel="up"
-   Last-Modified: Fri, 30 Oct 2009 02:45:32 GMT
-   ETag: ZzCoM94wkIPIs9j1ygTu
-   Date: Fri, 30 Oct 2009 02:45:38 GMT
+   Last-Modified: Wed, 14 Jul 2010 03:36:33 GMT
+   Etag: 59nvzTQTQ6ixb9jxASLDKS
+   Date: Wed, 14 Jul 2010 03:36:36 GMT
    Content-Type: text/plain
    Content-Length: 27
 
    I have a modified document.
 
-At this point, with your document in Riak, if you were to issue that
-bucket-GET again, you'd find that the "keys" field now includes the
-"foo" key under which your document is stored:
-
-   $ curl http://127.0.0.1:8098/riak/example
-   {"props":{"n_val":4,"name":"example","allow_mult":false,"big_vclock":50,"chash_keyfun":{"mod":"riak_util","fun":"chash_std_keyfun"},"linkfun":{"mod":"raw_link_walker_resource","fun":"mapreduce_linkfun"},"old_vclock":86400,"small_vclock":10,"young_vclock":21600},"keys":["foo"]}
-
 To delete a document, simply issue a DELETE request:
 
    $ curl -X DELETE http://127.0.0.1:8098/riak/example/foo
 
-You'll find that further GETs of that URL return status code 404, and
-a bucket-GET will no longer list the "foo" key.
+You'll find that further GETs of that URL return status code 404.
 
 For each of the key-level, document requests, you may also specify the
 query parameters 'r', 'w', 'dw', and 'rw', to tune the R (read), W
@@ -138,24 +124,24 @@ they're both there:
 
    $ curl -i http://127.0.0.1:8098/riak/example/sib
    HTTP/1.1 300 Multiple Choices
-   X-Riak-Vclock: a85hYGBgzmDKBVJszUnMSekGGUyJjHmsDE6X4o7wQSRYWLQeTYYK2yAJszX7RCCrzgIA
-   Vary: Accept-Encoding
-   Server: MochiWeb/1.1 WebMachine/1.4 (our dis is finally out)
-   Date: Fri, 30 Oct 2009 03:03:47 GMT
+   X-Riak-Vclock: a85hYGBgzmDKBVIszBJiPRlMiYx5rAyzNmw8ygcVZoyuU4YKz0cIszUnMZ0/pIAskQUA
+   Vary: Accept, Accept-Encoding
+   Server: MochiWeb/1.1 WebMachine/1.7 (participate in the frantic)
+   Date: Wed, 14 Jul 2010 03:53:08 GMT
    Content-Type: text/plain
-   Content-Length: 56
-   
-   Siblings:
-   5y8TG9rlUoQwT3WZQan7KI
-   5huW49JytEFZIJG9ryTU8U
+   Content-Length: 55
 
+   Siblings:
+   xKntdvwv9b1sIj1LArbox
+   3QApcpvLPS1FyKu8IrN1sV
+   
 The strings listed in the body are the vtags of each sibling.  To
 examine each sibling, perform the same GET, but add a "vtag" query
 parameter to the URL:
 
-   $ curl http://127.0.0.1:8098/riak/example/sib?vtag=5huW49JytEFZIJG9ryTU8U
+   $ curl http://127.0.0.1:8098/riak/example/sib?vtag=xKntdvwv9b1sIj1LArbox
    one thing
-   $ curl http://127.0.0.1:8098/riak/example/sib?vtag=5y8TG9rlUoQwT3WZQan7KI
+   $ curl http://127.0.0.1:8098/riak/example/sib?vtag=3QApcpvLPS1FyKu8IrN1sV
    another
 
 If you'd rather see all of the siblings at once, set your Accept
@@ -164,34 +150,35 @@ as a separate part of a multipart/mixed document:
 
    $ curl -i -H "accept: multipart/mixed" http://127.0.0.1:8098/riak/example/sib
    HTTP/1.1 300 Multiple Choices
-   X-Riak-Vclock: a85hYGBgz2DKBVJszUlMCj+kMpgSGfNYGVy/xR/hg0iwMPg9FYMK2yELvzwvhEU1yyfGjVDh4hUIYXbJhmaocB5CGGgps/qNZEz1QAm2fc6lyNZmAQA=
+   X-Riak-Vclock: a85hYGBgzmDKBVIszBJiPRlMiYx5rAyzNmw8ygcVZoyuU4YKz0cIszUnMZ0/pIAskQUA
    Vary: Accept, Accept-Encoding
-   Server: MochiWeb/1.1 WebMachine/1.4 (our dis is finally out)
-   Date: Fri, 30 Oct 2009 23:44:52 GMT
-   Content-Type: multipart/mixed; boundary=IASZJsIrb8ykNEc1fuue9LitToc
-   Content-Length: 361
-   
-   --IASZJsIrb8ykNEc1fuue9LitToc
+   Server: MochiWeb/1.1 WebMachine/1.7 (participate in the frantic)
+   Date: Wed, 14 Jul 2010 03:55:24 GMT
+   Content-Type: multipart/mixed; boundary=FOs2aRNqxNs5pyKd7eHBia2Pg7x
+   Content-Length: 390
+
+
+   --FOs2aRNqxNs5pyKd7eHBia2Pg7x
    Content-Type: text/plain
    Link: </riak/example>; rel="up"
-   Etag: 6YUKo8vXvtBAXD0Hjy8crv
-   Last-Modified: Fri, 30 Oct 2009 18:12:03 GMT
-   
-   one thing
-   --IASZJsIrb8ykNEc1fuue9LitToc
-   Content-Type: text/plain
-   Link: </riak/example>; rel="up"
-   Etag: 4XcBgFOm0Ab517wWjNXeWc
-   Last-Modified: Fri, 30 Oct 2009 18:11:58 GMT
-   
+   Etag: xKntdvwv9b1sIj1LArbox
+   Last-Modified: Wed, 14 Jul 2010 03:53:03 GMT
+
    another
-   --IASZJsIrb8ykNEc1fuue9LitToc--
+   --FOs2aRNqxNs5pyKd7eHBia2Pg7x
+   Content-Type: text/plain
+   Link: </riak/example>; rel="up"
+   Etag: 3QApcpvLPS1FyKu8IrN1sV
+   Last-Modified: Wed, 14 Jul 2010 03:52:58 GMT
+
+   one thing
+   --FOs2aRNqxNs5pyKd7eHBia2Pg7x--
 
 To resolve the conflict, just issue another PUT, with the body you
 want, and the vclock from this version:
 
    $ curl -X PUT -H "content-type: text/plain" \
-     -H "X-Riak-Vclock: a85hYGBgzmDKBVJszUnMSekGGUyJjHmsDE6X4o7wQSRYWLQeTYYK2yAJszX7RCCrzgIA" \
+     -H "X-Riak-Vclock: a85hYGBgzmDKBVIszBJiPRlMiYx5rAyzNmw8ygcVZoyuU4YKz0cIszUnMZ0/pIAskQUA" \
      http://127.0.0.1:8098/riak/example/sib --data "resolved"
 
 And you'll see that things are back to normal:
@@ -225,7 +212,7 @@ Multiple links should be separated by commas:
 
    Link: </riak/memo/xyz>; riaktag="author", </riak/memo/abc>; riaktag="reader"
 
-Performening a GET on a resource with links will return a Link header
+Performing a GET on a resource with links will return a Link header
 of the same format.
 
 To walk these links, use the URL-walking syntax:
@@ -243,7 +230,7 @@ Each part of the multipart response body is a representation of the
 result of the corresponding link step.  That representation is also a
 multipart/mixed document.  Each part of this inner multipart document
 is a representation of the Riak object that was walked to at that
-step.  For documents with siblings, one of the siblings is chosen
+step. For documents with siblings, one of the siblings is chosen
 arbitrarily, and an X-Riak-Sibling-VTags header is added to its
 representation to alert the user that this is the case.
 
@@ -261,34 +248,35 @@ A few examples are approriate:
 
    $ curl -i http://127.0.0.1:8098/riak/person/jane/memo,_,_
    HTTP/1.1 200 OK
-   Server: MochiWeb/1.1 WebMachine/1.4 (our dis is finally out)
-   Expires: Fri, 30 Oct 2009 16:55:30 GMT
-   Date: Fri, 30 Oct 2009 16:45:30 GMT
-   Content-Type: multipart/mixed; boundary=DVmSIvK8K2UFitAvniDJt35ZLeX
-   Content-Length: 725
-   
-   
-   --DVmSIvK8K2UFitAvniDJt35ZLeX
-   Content-Type: multipart/mixed; boundary=V6AxdhwiGzh4MLwdiee2cBWtGug
-   
-   --V6AxdhwiGzh4MLwdiee2cBWtGug
-   Location: /riak/memo/abc
-   Content-Type: text/plain
-   X-Riak-Vclock: a85hYGBgzGDKBVIsDOf5gjOYEhnzWBlmTow/wpcFAA==
-   Link: </riak/memo>; rel="up"
-   Etag: 7j63akQj4WqR28GoYjW4hm
-   Last-Modified: Fri, 30 Oct 2009 16:34:33 GMT
-   
-   todos: have meeting, make phone call
-   --V6AxdhwiGzh4MLwdiee2cBWtGug
+   Server: MochiWeb/1.1 WebMachine/1.7 (participate in the frantic)
+   Expires: Wed, 14 Jul 2010 04:48:32 GMT
+   Date: Wed, 14 Jul 2010 04:38:32 GMT
+   Content-Type: multipart/mixed; boundary=W6v94jEJ22hI5cfwbqinnGBmwpV
+   Content-Length: 753
+
+
+   --W6v94jEJ22hI5cfwbqinnGBmwpV
+   Content-Type: multipart/mixed; boundary=SRzlI2jh68aWdVONf9n1yfDBEVx
+
+   --SRzlI2jh68aWdVONf9n1yfDBEVx
+   X-Riak-Vclock: a85hYGBgzGDKBVIsbLfe7clgSmTMY2Uw3r3xKF8WAA==
    Location: /riak/memo/xyz
    Content-Type: text/plain
-   X-Riak-Vclock: a85hYGBgzGDKBVIsLJWfpTKYEhnzWBlKJ8Yf4csCAA==
    Link: </riak/memo>; rel="up"
-   Etag: 5kW1gxTizjTALthrHPjQJ3
-   Last-Modified: Fri, 30 Oct 2009 16:33:57 GMT
-   
+   Etag: MY6SrlVU7iWVVCndk47NB
+   Last-Modified: Wed, 14 Jul 2010 04:38:11 GMT
+
    my reading list: New York Times, Wired
-   --V6AxdhwiGzh4MLwdiee2cBWtGug--
-   
-   --DVmSIvK8K2UFitAvniDJt35ZLeX--
+   --SRzlI2jh68aWdVONf9n1yfDBEVx
+   X-Riak-Vclock: a85hYGBgzGDKBVIsDByHMjOYEhnzWBksd288ypcFAA==
+   Location: /riak/memo/abc
+   Content-Type: text/plain
+   Link: </riak/memo>; rel="up"
+   Etag: 5sTdNwHNK2rykq4kqRSMtW
+   Last-Modified: Wed, 14 Jul 2010 04:38:17 GMT
+
+   todos: have meeting, make phone call
+   --SRzlI2jh68aWdVONf9n1yfDBEVx--
+
+   --W6v94jEJ22hI5cfwbqinnGBmwpV--
+

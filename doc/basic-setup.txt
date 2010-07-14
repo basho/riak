@@ -2,7 +2,7 @@ Riak Setup Instructions
 ------
 
 This document explains how to set up a Riak cluster.  It assumes that
-you have already downloaded an successfully built Riak.  For help with
+you have already downloaded and successfully built Riak.  For help with
 those steps, please refer to riak/README.
 
 
@@ -20,8 +20,8 @@ Configuration
 
 Configurations are stored in the simple text files vm.args and
 app.config.  Initial versions of these files are stored in the
-rel/overlay/etc/ subdirectory of the riak source tree.  When a release
-is generated, these "overlays" are copied to rel/riak/etc/.
+rel/files/ subdirectory of the riak source tree.  When a release
+is generated, these files are copied to rel/riak/etc/.
 
 vm.args
 ---
@@ -94,10 +94,26 @@ ring_state_dir: string
 storage_backend: atom
 
   Name of the module that implements the storage for a vnode.  The
-  four backends that ship with Riak are riak_fs_backend,
-  riak_ets_backend, and riak_dets_backend. Some
-  backends have their own set of configuration parameters.
+  backends that ship with Riak are riak_kv_bitcask_backend, 
+  riak_kv_cache_backend, riak_dets_backend, riak_ets_backend, 
+  riak_fs_backend, and riak_kv_gb_trees_backend. Some backends have 
+  their own set of configuration parameters.
 
+  riak_kv_bitcask_backend:
+    Stores data in the Bitcask key/value store.
+
+  riak_kv_cache_backend:
+    Behaves as an LRU-with-timed-expiry cache.
+  
+  riak_kv_dets_backend:
+    A backend that uses DETS to store its data.
+
+    riak_kv_dets_backend_root: string
+      The directory under which this backend will store its files.
+  
+  riak_kv_ets_backend:
+    A backend that uses ETS to store its data.
+  
   riak_kv_fs_backend:
     A backend that uses the filesystem directly to store data.  Data
     are stored in Erlang binary format in files in a directory
@@ -106,14 +122,8 @@ storage_backend: atom
     riak_fs_backend_root: string
       The directory under which this backend will store its files.
 
-  riak_kv_ets_backend:
-    A backend that uses ETS to store its data.
-
-  riak_kv_dets_backend:
-    A backend that uses DETS to store its data.
-
-    riak_kv_dets_backend_root: string
-      The directory under which this backend will store its files.
+  riak_kv_gb_trees_backend:
+     A backend that uses Erlang gb_trees to store data.
 
 
 Single-node Configuration
@@ -139,7 +149,7 @@ bit.  Some recommended changes:
   utility to monitor the Riak node, and restart it if it stops.
 
 * Change the name of the Riak node in vm.args from riak@127.0.0.1 to
-  riak@VISIBLE.HOSTNAME.  This will allow Riak nodes separate machines
+  riak@VISIBLE.HOSTNAME.  This will allow Riak nodes on separate machines
   to communicate.
 
 * Change 'web_ip' in the 'riak_core' section of app.config if you'll be 
@@ -149,10 +159,6 @@ bit.  Some recommended changes:
   setting it to a number higher than the default of 64.  More
   partitions will allow you to add more Riak nodes later, if you need
   to.
-
-* Consider changing the 'storage_backend' entry in app.config.
-  Depending on your use case, riak_kv_dets_backend may not be your best
-  choice.
 
 To get the cluster, up and running, first start Riak on each node with
 the usual "riak start" command.  Next, tell each node to join the
@@ -175,9 +181,8 @@ Attaching to /tmp/erlang.pipe.1 (^D to exit)
 
 
 Your cluster should now be ready to accept requests.  See
-riak/doc/basic-client.txt for simple instructions on connecting and
-storing and fetching data, though you'll need to use an Erlang node
-name for your client that isn't hosted on "127.0.0.1".
+riak/doc/basic-client.txt for simple instructions on connecting,
+storing and fetching data.
 
 Starting more nodes in production is just as easy:
 
@@ -195,25 +200,19 @@ If you're hacking on Riak, and you need to run multiple nodes on a
 single physical machine, use the "devrel" make command:
 
 $ make devrel
-mkdir dev
-cp -R rel/overlay rel/reltool.config dev
-./rebar compile && cd dev && ../rebar generate
-==> mochiweb (compile)
-==> webmachine (compile)
-==> riak (compile)
-==> dev (generate)
-Generating target specification...
-Constructing release...
-cp -Rn dev/riak dev/dev1
-...snip...
-cp -Rn dev/riak dev/dev2
-...snip...
-cp -Rn dev/riak dev/dev3
-...snip...
+mkdir -p dev
+(cd rel && ../rebar generate target_dir=../dev/dev1 overlay_vars=vars/dev1_vars.config)
+==> rel (generate)
+mkdir -p dev
+(cd rel && ../rebar generate target_dir=../dev/dev2 overlay_vars=vars/dev2_vars.config)
+==> rel (generate)
+mkdir -p dev
+(cd rel && ../rebar generate target_dir=../dev/dev3 overlay_vars=vars/dev3_vars.config)
+==> rel (generate)
 
 This make target creates a release, and then modifies configuration
 files such that each Riak node uses a different Erlang node name
-(riak1-3), web port (8091-3), data directory (dev/dev1-3/data/), etc.
+(dev1-3), web port (8091-3), data directory (dev/dev1-3/data/), etc.
 
 Start each developer node just as you would a regular node, but use
 the 'riak' script in dev/devN/bin/.

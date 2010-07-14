@@ -110,7 +110,7 @@ function(v) {
       each key in each object, and produces a new object. That new
       object has a key for each key in every other object, the value
       of that key being the sum of the values of that key in the other
-      objects.  It returns this new object in a list, because is may
+      objects.  It returns this new object in a list, because it may
       be run a second time on a list including that object and more
       inputs from the map phase.
 
@@ -386,7 +386,7 @@ function(v) {
     request to evaluate the map function to the partition that is
     responsible for storing the data for that bucket-key.  The vnode
     hosting that partition will lookup the object stored under that
-    bucket-key, and evaluation the map function with the object as an
+    bucket-key, and evaluate the map function with the object as an
     argument.  The other arguments to the function will be the
     annotation, if any is included, with the bucket-key, and the
     static data for the phase, as specified in the query.
@@ -476,8 +476,8 @@ function(v) {
      using tools such as Chef or Puppet. This can be a significant
      advantage when administrating large Riak clusters.
 
-     More important, though, is the fact named functions execute much
-     faster than the equivalent anonymous functions. Invoking
+     More important, though, is the fact that named functions execute 
+     much faster than the equivalent anonymous functions. Invoking
      anonymous functions requires Riak to ensure the anonymous
      function is defined before invoking it. Named functions allow
      Riak to skip the definition check and execute the function call
