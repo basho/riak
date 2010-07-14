@@ -34,56 +34,61 @@ start_link(TargetNode, Module, Partition) ->
     {ok, Pid}.
 
 start_fold(TargetNode, Module, Partition, ParentPid) ->
-    error_logger:info_msg("Starting handoff of partition ~p to ~p~n", 
-                          [Partition, TargetNode]),
-    [_Name,Host] = string:tokens(atom_to_list(TargetNode), "@"),
-    {ok, Port} = get_handoff_port(TargetNode),
-    {ok, Socket} = gen_tcp:connect(Host, Port, 
-                                   [binary, 
-                                    {packet, 4}, 
-                                    {header,1}, 
-                                    {active, once}], 15000),
-    VMaster = list_to_atom(atom_to_list(Module) ++ "_master"),
-    ModBin = atom_to_binary(Module, utf8),
-    Msg = <<?PT_MSG_OLDSYNC:8,ModBin/binary>>,
-    inet:setopts(Socket, [{active, false}]),
-    gen_tcp:send(Socket, Msg),
-    {ok,[?PT_MSG_OLDSYNC|<<"sync">>]} = gen_tcp:recv(Socket, 0),
-    inet:setopts(Socket, [{active, once}]),
-    M = <<?PT_MSG_INIT:8,Partition:160/integer>>,
-    ok = gen_tcp:send(Socket, M),
-    riak_core_vnode_master:sync_command({Partition, node()},
-                                        ?FOLD_REQ{
-                                           foldfun=fun folder/3,
-                                           acc0={Socket,ParentPid,Module,[]}},
-                                        VMaster),
-    error_logger:info_msg("Handoff of partition ~p to ~p completed~n", 
-                          [Partition, TargetNode]),
-    gen_fsm:send_event(ParentPid, handoff_complete).
+     try
+         error_logger:info_msg("Starting handoff of partition ~p ~p to ~p~n", 
+                               [Module, Partition, TargetNode]),
+         [_Name,Host] = string:tokens(atom_to_list(TargetNode), "@"),
+         {ok, Port} = get_handoff_port(TargetNode),
+         {ok, Socket} = gen_tcp:connect(Host, Port, 
+                                        [binary, 
+                                         {packet, 4}, 
+                                         {header,1}, 
+                                         {active, false}], 15000),
 
-folder(K, V, {Socket, ParentPid, Module, []}) ->
-    gen_tcp:controlling_process(Socket, self()),
-    visit_item(K, V, {Socket, ParentPid, Module, 0});
-folder(K, V, AccIn) ->
-    visit_item(K, V, AccIn).
+         %% Piggyback the sync command from previous releases to send
+         %% the vnode type across.  If talking to older nodes they'll
+         %% just do a sync, newer nodes will decode the module name.
+         %% After 0.12.0 the calls can be switched to use PT_MSG_SYNC
+         %% and PT_MSG_CONFIGURE
+         VMaster = list_to_atom(atom_to_list(Module) ++ "_master"),
+         ModBin = atom_to_binary(Module, utf8),
+         Msg = <<?PT_MSG_OLDSYNC:8,ModBin/binary>>,
+         ok = gen_tcp:send(Socket, Msg),
+         {ok,[?PT_MSG_OLDSYNC|<<"sync">>]} = gen_tcp:recv(Socket, 0),
+         M = <<?PT_MSG_INIT:8,Partition:160/integer>>,
+         ok = gen_tcp:send(Socket, M),
+         {Socket,ParentPid,Module,_Ack,SentCount} = 
+             riak_core_vnode_master:sync_command({Partition, node()},
+                                                 ?FOLD_REQ{
+                                                    foldfun=fun visit_item/3,
+                                                    acc0={Socket,ParentPid,Module,0,0}},
+                                                 VMaster, infinity),
+         error_logger:info_msg("Handoff of partition ~p ~p to ~p completed: sent ~p objects~n", 
+                               [Module, Partition, TargetNode, SentCount]),
+         gen_fsm:send_event(ParentPid, handoff_complete)
+         %% Socket will be closed when this process exits
+     catch
+         Err:Reason ->
+             error_logger:error_msg("Handoff sender ~p ~p failed ~p:~p\n", 
+                                    [Module, Partition, Err,Reason])
+     end.
 
-visit_item(K, V, {Socket, ParentPid, Module, ?ACK_COUNT}) ->
+visit_item(K, V, {Socket, ParentPid, Module, ?ACK_COUNT, Total}) ->
     M = <<?PT_MSG_OLDSYNC:8,"sync">>,
     ok = gen_tcp:send(Socket, M),
-    inet:setopts(Socket, [{active, false}]),
     {ok,[?PT_MSG_OLDSYNC|<<"sync">>]} = gen_tcp:recv(Socket, 0),
-    inet:setopts(Socket, [{active, once}]),
-    visit_item(K, V, {Socket, ParentPid, Module, 0});
-visit_item(K, V, {Socket, ParentPid, Module, Acc}) ->
+    visit_item(K, V, {Socket, ParentPid, Module, 0, Total});
+visit_item(K, V, {Socket, ParentPid, Module, Ack, Total}) ->
     BinObj = Module:encode_handoff_item(K, V),
     M = <<?PT_MSG_OBJ:8,BinObj/binary>>,
     ok = gen_tcp:send(Socket, M),
-    {Socket, ParentPid, Module, Acc+1}.
+    {Socket, ParentPid, Module, Ack+1, Total+1}.
     
 
 get_handoff_port(Node) when is_atom(Node) ->
     case catch(gen_server2:call({riak_core_handoff_listener, Node}, handoff_port)) of
         {'EXIT', _}  ->
+            %% Check old location from previous release
             gen_server2:call({riak_kv_handoff_listener, Node}, handoff_port);
         Other -> Other
     end.

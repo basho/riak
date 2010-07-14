@@ -27,12 +27,15 @@
 -behaviour(gen_server).
 -export([start_link/1, start_link/2, get_vnode_pid/2,
          start_vnode/2, command/3, command/4, sync_command/3,
+         sync_command/4,
          sync_spawn_command/3, make_request/3,
          all_nodes/1, reg_name/1]).
 -export([init/1, handle_call/3, handle_cast/2, handle_info/2,
 	 terminate/2, code_change/3]).
 -record(idxrec, {idx, pid, monref}).
 -record(state, {idxtab, excl=ordsets:new(), sup_name, vnode_mod, legacy}).
+
+-define(DEFAULT_TIMEOUT, 5000).
 
 make_name(VNodeMod,Suffix) -> list_to_atom(atom_to_list(VNodeMod)++Suffix).
 reg_name(VNodeMod) ->  make_name(VNodeMod, "_master").
@@ -69,12 +72,15 @@ command({Index,Node}, Msg, Sender, VMaster) ->
 
 %% Send a synchronous command to an individual Index/Node combination.
 %% Will not return until the vnode has returned
-sync_command({Index,Node}, Msg, VMaster) ->
+sync_command(IndexNode, Msg, VMaster) ->
+    sync_command(IndexNode, Msg, VMaster, ?DEFAULT_TIMEOUT).
+
+sync_command({Index,Node}, Msg, VMaster, Timeout) ->
     %% Issue the call to the master, it will update the Sender with
     %% the From for handle_call so that the {reply} return gets 
     %% sent here.
     gen_server:call({VMaster, Node}, 
-                    make_request(Msg, {server, undefined, undefined}, Index)).
+                    make_request(Msg, {server, undefined, undefined}, Index), Timeout).
 
 
 %% Send a synchronous spawned command to an individual Index/Node combination.
