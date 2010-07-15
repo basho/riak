@@ -49,6 +49,7 @@ start_link(_Ring, _BadInput, _QTerm, _Timeout, _PhasePid) ->
     {error, bad_input}.
 %% @private
 init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
+    VNodeTimeout = app_helper:get_env(riak_kv, vnode_mr_timeout, 1000),
     DocIdx = riak_core_util:chash_key({Bucket,Key}),
     BucketProps = riak_core_bucket:get_bucket(Bucket, Ring),
     LinkFun = case QTerm0 of
@@ -69,8 +70,8 @@ init([Ring,{{Bucket,Key},KeyData},QTerm0,Timeout,PhasePid]) ->
             Preflist = riak_core_ring:preflist(DocIdx, Ring),
             {Targets, _} = lists:split(N, Preflist),
             State = #state{bkey={Bucket,Key},qterm=QTerm,phase_pid=PhasePid,
-                           vnodes=Targets,keydata=KeyData,ring=Ring,timeout=Timeout,
-                           vnode_timeout=erlang:round(Timeout / N)},
+                           vnodes=Targets,keydata=KeyData,ring=Ring,timeout=VNodeTimeout,
+                           vnode_timeout=VNodeTimeout},
             case try_vnode(State) of
                 {error, no_vnodes} ->
                     {stop, no_vnodes};
