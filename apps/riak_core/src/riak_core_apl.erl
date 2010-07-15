@@ -23,8 +23,8 @@
 %% substituted.
 %% -------------------------------------------------------------------
 -module(riak_core_apl).
--export([active_owners/0, active_owners/2,
-         get_apl/2, get_apl/4]).
+-export([active_owners/1, active_owners/2,
+         get_apl/3, get_apl/4]).
 
 -ifdef(TEST).
 -include_lib("eunit/include/eunit.hrl").
@@ -38,10 +38,10 @@
 %% Return preflist of all active primary nodes (with no
 %% substituion of fallbacks).  Used to simulate a
 %% preflist with N=ring_size
--spec active_owners() -> preflist().
-active_owners() ->
+-spec active_owners(atom()) -> preflist().
+active_owners(Service) ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-    active_owners(Ring, [node()|nodes()]).
+    active_owners(Ring, riak_core_node_watcher:nodes(Service)).
 
 -spec active_owners(ring(), [node()]) -> preflist().
 active_owners(Ring, UpNodes) ->
@@ -51,10 +51,10 @@ active_owners(Ring, UpNodes) ->
     lists:reverse(Up).
 
 %% Get the active preflist taking account of which nodes are up
--spec get_apl(binary(), n_val()) -> preflist().
-get_apl(DocIdx, N) ->
+-spec get_apl(binary(), n_val(), atom()) -> preflist().
+get_apl(DocIdx, N, Service) ->
     {ok, Ring} = riak_core_ring_manager:get_my_ring(),
-    get_apl(DocIdx, N, Ring, [node()|nodes()]).
+    get_apl(DocIdx, N, Ring, riak_core_node_watcher:nodes(Service)).
 
 %% Get the active preflist taking account of which nodes are up
 %% for a given ring/upnodes list
