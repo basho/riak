@@ -1,6 +1,6 @@
 RIAK_TAG		= $(shell hg identify -t)
 
-.PHONY: rel stagedevrel deps mibs
+.PHONY: rel stagedevrel deps
 
 all: deps compile
 
@@ -20,14 +20,6 @@ distclean: clean devclean relclean ballclean
 
 test:
 	./rebar skip_deps=true eunit
-
-mibs: 
-	$(foreach mib,$(wildcard apps/riak_snmp/mibs/*.mib), \
-	@erl -noshell -noinput -eval \
-		'case snmpc:compile("$(mib)", \
-			[{outdir, "$(shell dirname $(mib))"}]) of \
-			{ok, _} -> halt(0); {error, _} -> halt(1) end.' \
-	)
 
 ##
 ## Release targets
