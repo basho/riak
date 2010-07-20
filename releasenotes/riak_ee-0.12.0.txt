@@ -1,0 +1,19 @@
+----------------------------------------------
+Riak 0.12.0 Release Notes (Enterprise Edition)
+----------------------------------------------
+
+Enhancements (Enterprise Edition)
+---------------------------------
+297 - Add riak_jmx option for setting JAVA_HOME.
+350 - Update replication docs.
+356 - Updated replication to get node list from Riak ring.
+
+Bugs Fixed (Enterprise Edition)
+-------------------------------
+226 - Deletes are now handled correctly across replicated clusters.
+338 - Fixed riak_snmp startup error.
+354 - Fixed merkle tree construction bugs. (357)
+
+
+All bug and issue numbers reference https://issues.basho.com.
+
