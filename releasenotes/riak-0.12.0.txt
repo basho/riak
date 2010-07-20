@@ -1,0 +1,64 @@
+-------------------------
+Riak 0.12.0 Release Notes
+-------------------------
+
+Riak now uses a new and improved mechanism for determining whether a
+node is fully online and ready to participate in Riak operations. This
+is especially important in failure recovery situations, as it allows
+the storage backend to complete a full integrity check and repair
+process. (134)
+
+Applications can now use the keywords "one", "quorum" (or "default"), 
+and "all" in place of number values to set R, W, and DW quorum settings. 
+This allows developers to specify intended consistency levels more 
+clearly. (211, 276, 277, 322)
+
+The multi backend has been fixed so bitcask can be used with the
+other backends (274). If innostore is installed it must be upgraded to 1.0.1
+if it will be used with the multi backend.
+
+Enhancements
+------------
+82  - HTTP API now returns 400 when quorum parameters exceed N-val.
+83  - Default quorum parameters are now configurable in HTTP and Protobuf APIs.
+97  - Riak now calls a BackendModule:stop/1 function, allowing cleanup during shutdown.
+190 - HTTP API now returns 503 when Riak operation times out.
+192 - HTTP API no longer list keys on a bucket by default.
+283 - HTTP API now returns 404 when an object is missing, regardless of accept header. (202)
+216 - The "/stats" page now includes read-repair stats.
+219 - A node now verifies that the ring_creation_size matches before joining a cluster.
+230 - Upgrade to latest version of Mochiweb.
+237 - Added a 'mapByFields' built-in Map/Reduce function.
+246 - Improved error reporting in post-commit hooks.
+251 - More descriptive error message on malformed link walking operations.
+256 - The /stats endpoint now shows Riak version number.
+259 - Improve python client packaging. Publish on PyPI.
+267 - Updated bucket defaults to improve replica distribution across physical nodes.
+274 - Improvements to storage backend interface layer.
+365 - Use updated "rebar eunit" task for running tests.
+
+Bugs Fixed
+----------
+26  - The 'devrel' target now builds on CentOS.
+27  - Fixed 'riak-admin' problem on some architectures, including Solaris.
+138 - Fixed platform specific problems in Riak 'init.d' script.
+205 - Fixed Bitcask errors on 32-bit Erlang. (331, 344)
+229 - Fixed 'riak stop' error on Mac OSX Snow Leopard 10.6.3.
+240 - Python client now properly escapes "/" in Buckets and Keys.
+253 - Correctly pass missing object (not_found) results between Map/Reduce phases.
+274 - Correctly forward 'info' messages from multi_backend to child backends.
+278 - Make Riak backup work correctly in all cases when objects are deleted while backup is in progress.
+280 - Fixed corner cases causing timestamp collision in Bitcask.
+281 - Fixed premature tombstone collection in Bitcask.
+301 - Fixed chunked mapreduce results to use correct line breaks (\r\n).
+305 - Fixed possible race condition between get and Bitcask merge.
+382 - Update Map/Reduce to honor timeout setting.
+361 - Cleaned up Dialyzer warnings. (373, 374, 376, 381, 389)
+382 - Update Map/Reduce to honor timeout setting.
+402 - Make Bitcask data and hint files more resistant to corruption.
+
+Riak has been updated with the necessary changes to compile 
+on Erlang R14A, but has not been thoroughly tested on R14A. 
+Please continue to run Riak on R13B04 in production. (263, 264, 269)
+
+All bug and issue numbers reference https://issues.basho.com.
