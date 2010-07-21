@@ -191,7 +191,7 @@ process_message(#rpbputreq{bucket=B, key=K, vclock=PbVC, content=RpbContent,
             send_msg(#rpbputresp{}, State);
         {ok, Obj} ->
             PbContents = riakc_pb:pbify_rpbcontents(riak_object:get_contents(Obj), []),
-            PutResp = #rpbputresp{contents = PbContents,
+            PutResp = #rpbputresp{content = PbContents,
                                   vclock = pbify_rpbvc(riak_object:vclock(Obj))},
             send_msg(PutResp, State);
         {error, notfound} ->
