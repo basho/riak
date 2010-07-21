@@ -1,6 +1,0 @@
-message RiakObject_PB {
-        required bytes bucket = 1;
-        required bytes key = 2;
-        required bytes val = 3;
-}
-
