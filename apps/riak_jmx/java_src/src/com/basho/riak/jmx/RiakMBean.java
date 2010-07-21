@@ -89,5 +89,11 @@ public interface RiakMBean {
 	public float getNodePutFsmTime99();
 	public void setNodePutFsmTime99(float nodePutFsmTime99);
 
+        public int getReadRepairs();
+        public void setReadRepairs(int readRepairs);
+
+        public int getReadRepairsTotal();
+        public void setReadRepairsTotal(int readRepairsTotal);
+
 
 }

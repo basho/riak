@@ -53,7 +53,9 @@ public class Riak implements RiakMBean {
 			Riak.this.setNodePutFsmTime99(getStat(stats, "node_put_fsm_time_99"));
 			Riak.this.setNodePutFsmTimeMax(getStat(stats, "node_put_fsm_time_100"));			
 			Riak.this.setNodePutFsmTimeMean(getStat(stats, "node_put_fsm_time_mean"));						
-			Riak.this.setNodePutFsmTimeMedian(getStat(stats, "node_put_fsm_time_median"));						
+			Riak.this.setReadRepairs(stats.getInt("read_repairs"));			
+			Riak.this.setReadRepairsTotal(stats.getInt("read_repairs_total"));						
+
 		}
 		
 		private float getStat(JSONObject obj, String key) throws Exception {
@@ -111,8 +113,8 @@ public class Riak implements RiakMBean {
 	float nodePutFsmTimeMedian;
 	float nodePutFsmTime95;
 	float nodePutFsmTime99;	
-	
-	
+        int   readRepairs;
+        int   readRepairsTotal;	
 
 	public Riak(String host, int port) throws Exception {
 		super();
@@ -416,5 +418,23 @@ public class Riak implements RiakMBean {
 	
 	synchronized public void setNodePutFsmTime99(float nodePutFsmTime99) {
 		this.nodePutFsmTime99 = nodePutFsmTime99;
+	}
+
+	public int getReadRepairs() {
+                return readRepairs;
+	}
+	
+	
+        synchronized public void setReadRepairs(int readRepairs) {
+                this.readRepairs = readRepairs;
+	}
+
+	public int getReadRepairsTotal() {
+                return readRepairsTotal;
+	}
+	
+	
+        synchronized public void setReadRepairsTotal(int readRepairsTotal) {
+                this.readRepairsTotal = readRepairsTotal;
 	}
 }
