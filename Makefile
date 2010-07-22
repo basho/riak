@@ -6,14 +6,14 @@ all: deps compile
 
 compile:
 	./rebar compile
-	make -C apps/riak_jmx/java_src
+	make -C deps/riak_jmx/java_src
 
 deps:
 	./rebar get-deps
 
 clean:
 	./rebar clean
-	make -C apps/riak_jmx/java_src clean
+	make -C deps/riak_jmx/java_src clean
 
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
@@ -35,7 +35,6 @@ relclean:
 ##
 stagedevrel: dev1 dev2 dev3
 	$(foreach dev,$^,\
-	  $(foreach app,$(wildcard apps/*), rm -rf dev/$(dev)/lib/$(shell basename $(app))-* && ln -sf $(abspath $(app)) dev/$(dev)/lib;)\
 	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$(dev)/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) dev/$(dev)/lib;))
 
 devrel: dev1 dev2 dev3 
