@@ -105,15 +105,15 @@ case "$1" in
         ;;
 
     js_reload)
-	# Reload all Javascript VMs
-	RES=`$NODETOOL ping`
-	if [ "$RES" != "pong" ]; then
-	    echo "Node is not running!"
-	    exit 1
-	fi
+        # Reload all Javascript VMs
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
 
-	$NODETOOL rpc riak_kv_js_manager reload
-	;;
+        $NODETOOL rpc riak_kv_js_manager reload
+        ;;
 
     reip)
         ACTION=$1
