@@ -86,11 +86,11 @@ case "$1" in
             echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port>"
             exit 1
         fi
-	RES=`$NODETOOL ping`
-	if [ "$RES" != "pong" ]; then
-	    echo "Node is not running!"
-	    exit 1
-	fi
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
         $NODETOOL rpc riak_repl_console add_listener $1 $2 $3
         ;;
 
