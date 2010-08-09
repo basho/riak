@@ -99,10 +99,10 @@ process_post(RD, #state{inputs=Inputs, mrquery=Query, timeout=Timeout}=State) ->
             Results = if is_list(Inputs) ->
                               Client:mapred(Inputs, Query,
                                             fun riak_kv_mapred_json:jsonify_not_found/1,
-                                            ?DEFAULT_TIMEOUT);
+                                            Timeout);
                          is_binary(Inputs) ->
                               Client:mapred_bucket(Inputs, Query, fun riak_kv_mapred_json:jsonify_not_found/1,
-                                                   ?DEFAULT_TIMEOUT)
+                                                   Timeout)
                       end,
             RD1 = wrq:set_resp_header("Content-Type", "application/json", RD),
             case Results of
