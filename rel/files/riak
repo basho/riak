@@ -77,7 +77,7 @@ case "$1" in
                 COMMAND_MODE=unix2003
         esac
         # Wait for the node to completely stop...
-        PID=`ps -ef|grep "$RUNNER_BASE_DIR/.*/[b]eam.smp|awk '{print $2}'"`
+        PID=`ps -ef|grep "$RUNNER_BASE_DIR/.*/[b]eam.smp"|awk '{print $2}'`
         $NODETOOL stop
         while `kill -0 $PID 2>/dev/null`;
         do
