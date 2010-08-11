@@ -1,0 +1,20 @@
+###
+### This is not a comment, just a pattern that is
+### very unlikely to match anything that we care about.
+### Don't put blank lines in this file.
+###
+### Items that can be ignored because of EUnit macros doing odd
+### things or Dialyzer not finding erlang:load_nif/2 (which definitely exists).
+###
+Call to missing or unexported function erlang:load_nif/2
+The variable _ can never match since previous clauses completely covered the type 'false'
+Contract for function that does not exist: riak_client:for_dialyzer_only_ignore/2
+###
+### Items in third-party code that are harmless enough
+###
+js_mochijson2.erl:530: The variable __V can never match since previous clauses completely covered the type 'true'
+mochijson2.erl:530: The variable __V can never match since previous clauses completely covered the type 'true'
+mochiweb_request.erl:246: The variable Length can never match since previous clauses completely covered the type 'chunked' | 'undefined' | integer() | {'unknown_transfer_encoding',_}
+mochiweb_request.erl:271: The call mochiweb:new_response({{_,port() | {'ssl',{'sslsocket',_,_}},_,_,_,_},binary() | maybe_improper_list() | integer(),gb_tree()}) contains an opaque term as 1st argument argument when a structured term of type {_,_,[any()] | tuple()} is expected
+mochiweb_socket_server.erl:128: The call erlang:integer_to_list(S::maybe_improper_list()) will never return since it differs in the 1st argument from the success typing arguments: (integer())
+mochiweb_sup.erl:26: The pattern [Spec | _] can never match the type []
