@@ -10,7 +10,6 @@ main(Args) ->
     {RestArgs, TargetNode} = process_args(Args, [], undefined),
 
     %% See if the node is currently running  -- if it's not, we'll bail
-    net_kernel:hidden_connect_node(TargetNode),
     case {net_kernel:hidden_connect_node(TargetNode), net_adm:ping(TargetNode)} of
         {true, pong} -> 
             ok;
