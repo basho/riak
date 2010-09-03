@@ -33,7 +33,9 @@
 %%</dd></dl>
 -module(riak_core_web).
 
--export([config/0]).
+-export([config/0, is_web_configured/0]).
+
+-define (IF (Bool, A, B), if Bool -> A; true -> B end).
 
 %% @spec config() -> [{Key :: atom(), Value :: term()}]
 %% @doc Returns the standard Webmachine configuration.
@@ -42,8 +44,45 @@
 %%      resource serving out of
 %%      http://{web_ip}:{web_port}/raw/
 config() ->
-    [{ip, app_helper:get_env(riak_core, web_ip)},
-     {port, app_helper:get_env(riak_core, web_port)},
-     {log_dir, app_helper:get_env(riak_core, web_logdir, "log")},
-     {backlog, 128},
-     {dispatch, []}].
+	IsHttpConfigured = is_http_configured(),
+	IsHttpsConfigured = is_https_configured(),
+	IsCommonConfigured = is_web_configured(),
+	
+	HttpConfig = http_config(),
+	HttpsConfig = https_config(),
+	CommonConfig = common_config(),
+	
+	lists:flatten([
+		?IF(IsHttpConfigured, [HttpConfig], []),
+		?IF(IsHttpsConfigured, [HttpsConfig], []),
+		?IF(IsCommonConfigured, [CommonConfig], [])]).
+
+is_web_configured() -> is_http_configured() or is_https_configured().
+
+is_http_configured() ->
+	(app_helper:get_env(riak_core, web_ip) /= undefined)
+        andalso (app_helper:get_env(riak_core, web_port) /= undefined).
+
+is_https_configured() ->
+	(app_helper:get_env(riak_core, web_ssl_ip) /= undefined)
+	    andalso (app_helper:get_env(riak_core, web_ssl_port) /= undefined)
+	    andalso (app_helper:get_env(riak_core, enable_https, false) /= false).
+
+http_config() ->
+	{http, [{ip, app_helper:get_env(riak_core, web_ip)},
+            {port, app_helper:get_env(riak_core, web_port)}]}.
+    
+https_config() ->
+	SslOpts = app_helper:get_env(riak_core, ssl,
+	                  [{certfile, "etc/cert.pem"}, {keyfile, "etc/key.pem"}]),
+	{https, [{ip, app_helper:get_env(riak_core, web_ssl_ip)},
+     		 {port, app_helper:get_env(riak_core, web_ssl_port)},
+		     {ssl, true},
+		     {ssl_opts, SslOpts}]}.
+
+common_config() ->
+	{common, [{log_dir, app_helper:get_env(riak_core, web_logdir, "log")},
+              {backlog, 128},
+              {dispatch, []}]}.
+
+		

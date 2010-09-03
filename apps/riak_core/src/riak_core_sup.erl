@@ -45,13 +45,12 @@ start_link() ->
 %% Supervisor callbacks
 %% ===================================================================
 
-init([]) ->
+init([]) ->    
     RiakWeb = {webmachine_mochiweb,
                  {webmachine_mochiweb, start, [riak_core_web:config()]},
                   permanent, 5000, worker, dynamic},
-    IsWebConfigured = (app_helper:get_env(riak_core, web_ip) /= undefined)
-        andalso (app_helper:get_env(riak_core, web_port) /= undefined),
-
+    IsWebConfigured = riak_core_web:is_web_configured(),
+	
     Children = lists:flatten(
                  [?CHILD(riak_core_vnode_sup, supervisor),
                   ?CHILD(riak_core_handoff_manager, worker),
