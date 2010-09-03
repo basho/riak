@@ -1,0 +1,12 @@
+----------------------------------------------
+Riak 0.12.1 Release Notes 
+----------------------------------------------
+
+Bugs Fixed
+-------------------------------
+507 - Bitcask leaks file-handles when reading lock data for merge
+523 - M/R job timeout not propagating in all cases
+
+
+All bug and issue numbers reference https://issues.basho.com.
+

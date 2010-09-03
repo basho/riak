@@ -48,10 +48,7 @@ devclean: clean
 	rm -rf dev
 
 stage : rel
-	cd rel/riak/lib && \
-	rm -rf riak_core-* riak_kv-* && \
-	ln -s ../../../apps/riak_core && \
-	ln -s ../../../apps/riak_kv
+	$(foreach dep,$(wildcard deps/*), rm -rf rel/riak/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) rel/riak/lib;)
 
 ##
 ## Doc targets
@@ -74,6 +71,7 @@ orgs-README:
 APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
 	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
 COMBO_PLT = $(HOME)/.riak_ee_combo_dialyzer_plt
+
 
 check_plt: compile
 	dialyzer --check_plt --plt $(COMBO_PLT) --apps $(APPS) \
