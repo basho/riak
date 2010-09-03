@@ -33,7 +33,8 @@
 %%</dd></dl>
 -module(riak_core_web).
 
--export([config/0, is_web_configured/0]).
+-export([config/0, http_config/0, https_config/0]).
+-export([is_web_configured/0, is_http_configured/0, is_https_configured/0]).
 
 -define (IF (Bool, A, B), if Bool -> A; true -> B end).
 
@@ -69,16 +70,28 @@ is_https_configured() ->
         andalso (app_helper:get_env(riak_core, enable_https, false) /= false).
 
 http_config() ->
-    {http, [{ip, app_helper:get_env(riak_core, web_ip)},
-            {port, app_helper:get_env(riak_core, web_port)}]}.
+	IsHttpConfigured = is_http_configured(),
+
+	HttpConfig =
+	[{http, [{ip, app_helper:get_env(riak_core, web_ip)},
+             {port, app_helper:get_env(riak_core, web_port)}]},
+     common_config()],
+
+	?IF(IsHttpConfigured, HttpConfig, []).
 
 https_config() ->
+	IsHttpsConfigured = is_https_configured(),
+
     SslOpts = app_helper:get_env(riak_core, ssl,
                       [{certfile, "etc/cert.pem"}, {keyfile, "etc/key.pem"}]),
-    {https, [{ip, app_helper:get_env(riak_core, web_ssl_ip)},
-             {port, app_helper:get_env(riak_core, web_ssl_port)},
-             {ssl, true},
-             {ssl_opts, SslOpts}]}.
+    HttpsConfig =
+    [{https, [{ip, app_helper:get_env(riak_core, web_ssl_ip)},
+              {port, app_helper:get_env(riak_core, web_ssl_port)},
+              {ssl, true},
+              {ssl_opts, SslOpts}]},
+     common_config()],
+
+	?IF(IsHttpsConfigured, HttpsConfig, []).
 
 common_config() ->
     {common, [{log_dir, app_helper:get_env(riak_core, web_logdir, "log")},

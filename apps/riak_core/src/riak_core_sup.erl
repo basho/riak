@@ -47,9 +47,13 @@ start_link() ->
 
 init([]) ->    
     RiakWeb = {webmachine_mochiweb,
-                 {webmachine_mochiweb, start, [riak_core_web:config()]},
+                 {webmachine_mochiweb, start, [riak_core_web:http_config()]},
                   permanent, 5000, worker, dynamic},
-    IsWebConfigured = riak_core_web:is_web_configured(),
+    IsWebConfigured = riak_core_web:is_http_configured(),
+    RiakSslWeb = {webmachine_mochiweb_https,
+                    {webmachine_mochiweb, start, [riak_core_web:https_config()]},
+                     permanent, 5000, worker, dynamic},
+    IsSslWebConfigured = riak_core_web:is_https_configured(),
 
     Children = lists:flatten(
                  [?CHILD(riak_core_vnode_sup, supervisor),
@@ -60,7 +64,8 @@ init([]) ->
                   ?CHILD(riak_core_node_watcher_events, worker),
                   ?CHILD(riak_core_node_watcher, worker),
                   ?CHILD(riak_core_gossip, worker),
-                  ?IF(IsWebConfigured, RiakWeb, [])
+                  ?IF(IsWebConfigured, RiakWeb, []),
+                  ?IF(IsSslWebConfigured, RiakSslWeb, [])
                  ]),
 
     {ok, {{one_for_one, 10, 10}, Children}}.
