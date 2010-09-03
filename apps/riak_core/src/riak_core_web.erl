@@ -44,45 +44,43 @@
 %%      resource serving out of
 %%      http://{web_ip}:{web_port}/raw/
 config() ->
-	IsHttpConfigured = is_http_configured(),
-	IsHttpsConfigured = is_https_configured(),
-	IsCommonConfigured = is_web_configured(),
-	
-	HttpConfig = http_config(),
-	HttpsConfig = https_config(),
-	CommonConfig = common_config(),
-	
-	lists:flatten([
-		?IF(IsHttpConfigured, [HttpConfig], []),
-		?IF(IsHttpsConfigured, [HttpsConfig], []),
-		?IF(IsCommonConfigured, [CommonConfig], [])]).
+    IsHttpConfigured = is_http_configured(),
+    IsHttpsConfigured = is_https_configured(),
+    IsCommonConfigured = is_web_configured(),
+
+    HttpConfig = http_config(),
+    HttpsConfig = https_config(),
+    CommonConfig = common_config(),
+
+    lists:flatten([
+        ?IF(IsHttpConfigured, [HttpConfig], []),
+        ?IF(IsHttpsConfigured, [HttpsConfig], []),
+        ?IF(IsCommonConfigured, [CommonConfig], [])]).
 
 is_web_configured() -> is_http_configured() or is_https_configured().
 
 is_http_configured() ->
-	(app_helper:get_env(riak_core, web_ip) /= undefined)
+    (app_helper:get_env(riak_core, web_ip) /= undefined)
         andalso (app_helper:get_env(riak_core, web_port) /= undefined).
 
 is_https_configured() ->
-	(app_helper:get_env(riak_core, web_ssl_ip) /= undefined)
-	    andalso (app_helper:get_env(riak_core, web_ssl_port) /= undefined)
-	    andalso (app_helper:get_env(riak_core, enable_https, false) /= false).
+    (app_helper:get_env(riak_core, web_ssl_ip) /= undefined)
+        andalso (app_helper:get_env(riak_core, web_ssl_port) /= undefined)
+        andalso (app_helper:get_env(riak_core, enable_https, false) /= false).
 
 http_config() ->
-	{http, [{ip, app_helper:get_env(riak_core, web_ip)},
+    {http, [{ip, app_helper:get_env(riak_core, web_ip)},
             {port, app_helper:get_env(riak_core, web_port)}]}.
-    
+
 https_config() ->
-	SslOpts = app_helper:get_env(riak_core, ssl,
-	                  [{certfile, "etc/cert.pem"}, {keyfile, "etc/key.pem"}]),
-	{https, [{ip, app_helper:get_env(riak_core, web_ssl_ip)},
-     		 {port, app_helper:get_env(riak_core, web_ssl_port)},
-		     {ssl, true},
-		     {ssl_opts, SslOpts}]}.
+    SslOpts = app_helper:get_env(riak_core, ssl,
+                      [{certfile, "etc/cert.pem"}, {keyfile, "etc/key.pem"}]),
+    {https, [{ip, app_helper:get_env(riak_core, web_ssl_ip)},
+             {port, app_helper:get_env(riak_core, web_ssl_port)},
+             {ssl, true},
+             {ssl_opts, SslOpts}]}.
 
 common_config() ->
-	{common, [{log_dir, app_helper:get_env(riak_core, web_logdir, "log")},
+    {common, [{log_dir, app_helper:get_env(riak_core, web_logdir, "log")},
               {backlog, 128},
               {dispatch, []}]}.
-
-		

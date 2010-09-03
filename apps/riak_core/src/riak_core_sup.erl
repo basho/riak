@@ -50,7 +50,7 @@ init([]) ->
                  {webmachine_mochiweb, start, [riak_core_web:config()]},
                   permanent, 5000, worker, dynamic},
     IsWebConfigured = riak_core_web:is_web_configured(),
-	
+
     Children = lists:flatten(
                  [?CHILD(riak_core_vnode_sup, supervisor),
                   ?CHILD(riak_core_handoff_manager, worker),
@@ -64,5 +64,3 @@ init([]) ->
                  ]),
 
     {ok, {{one_for_one, 10, 10}, Children}}.
-
-
