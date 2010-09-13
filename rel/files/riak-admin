@@ -104,6 +104,30 @@ case "$1" in
         $NODETOOL rpc riak_kv_console status $@
         ;;
 
+    ringready)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+
+        $NODETOOL rpc riak_kv_console ringready $@
+        ;;
+
+    transfers)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+
+        $NODETOOL rpc riak_kv_console transfers $@
+        ;;
+
     js_reload)
         # Reload all Javascript VMs
         RES=`$NODETOOL ping`
@@ -189,7 +213,8 @@ case "$1" in
 
         ;;
     *)
-        echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | reip | js_reload  }"
+        echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
+        echo "                    reip | js_reload | ringready | transfers }"
         exit 1
         ;;
 esac
