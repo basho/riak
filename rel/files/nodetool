@@ -30,7 +30,8 @@ main(Args) ->
         ["reboot"] ->
             io:format("~p\n", [rpc:call(TargetNode, init, reboot, [], 60000)]);
         ["rpc", Module, Function | RpcArgs] ->
-            case rpc:call(TargetNode, list_to_atom(Module), list_to_atom(Function), [RpcArgs], 60000) of
+            case rpc:call(TargetNode, list_to_atom(Module), list_to_atom(Function),
+                          [RpcArgs], 60000) of
                 ok ->
                     ok;
                 {badrpc, Reason} ->
@@ -38,6 +39,15 @@ main(Args) ->
                     halt(1);
                 _ ->
                     halt(1)
+            end;
+        ["rpcterms", Module, Function, ArgsAsString] ->
+            case rpc:call(TargetNode, list_to_atom(Module), list_to_atom(Function),
+                          consult(ArgsAsString), 60000) of
+                {badrpc, Reason} ->
+                    io:format("RPC to ~p failed: ~p\n", [TargetNode, Reason]),
+                    halt(1);
+                Other ->
+                    io:format("~p\n", [Other])
             end;
         Other ->
             io:format("Other: ~p\n", [Other]),
@@ -77,4 +87,29 @@ append_node_suffix(Name, Suffix) ->
             list_to_atom(lists:concat([Node, Suffix, os:getpid(), "@", Host]));
         [Node] ->
             list_to_atom(lists:concat([Node, Suffix, os:getpid()]))
+    end.
+
+
+%%
+%% Given a string or binary, parse it into a list of terms, ala file:consult/0
+%%
+consult(Str) when is_list(Str) ->
+    consult([], Str, []);
+consult(Bin) when is_binary(Bin)->
+    consult([], binary_to_list(Bin), []).
+
+consult(Cont, Str, Acc) ->
+    case erl_scan:tokens(Cont, Str, 0) of
+        {done, Result, Remaining} ->
+            case Result of
+                {ok, Tokens, _} ->
+                    {ok, Term} = erl_parse:parse_term(Tokens),
+                    consult([], Remaining, [Term | Acc]);
+                {eof, _Other} ->
+                    lists:reverse(Acc);
+                {error, Info, _} ->
+                    {error, Info}
+            end;
+        {more, Cont1} ->
+            consult(Cont1, eof, Acc)
     end.
