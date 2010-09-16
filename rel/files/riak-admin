@@ -128,6 +128,29 @@ case "$1" in
         $NODETOOL rpc riak_kv_console transfers $@
         ;;
 
+    services)
+        $NODETOOL rpcterms riak_core_node_watcher services ''
+        ;;
+
+    wait-for-service)
+        SVC=$2
+        if [ $# -lt 2 ]; then
+            echo "Usage: $SCRIPT wait-for-service <service_name>"
+            exit 1
+        fi
+
+        while (true); do
+            RES=`$NODETOOL rpcterms riak_core_node_watcher services ''| grep $SVC`
+            if [ ! -z "$RES" ]; then
+                echo "$SVC is up"
+                exit 0
+            else
+                echo "$SVC is not up"
+            fi
+            sleep 3
+        done
+        ;;
+
     js_reload)
         # Reload all Javascript VMs
         RES=`$NODETOOL ping`
@@ -214,7 +237,8 @@ case "$1" in
         ;;
     *)
         echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
-        echo "                    reip | js_reload | ringready | transfers }"
+        echo "                    reip | js_reload | wait-for-service | ringready | "
+        echo "                    transfers }"
         exit 1
         ;;
 esac
