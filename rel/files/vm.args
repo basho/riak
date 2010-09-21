@@ -17,5 +17,5 @@
 -env ERL_MAX_PORTS 4096
 
 ## Tweak GC to run more often 
--env ERL_FULLSWEEP_AFTER 10
+-env ERL_FULLSWEEP_AFTER 0
 
