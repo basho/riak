@@ -20,6 +20,14 @@ if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
     exec sudo -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 fi
 
+# Warn the user if ulimit -n is less than 1024
+ULIMIT_F=`ulimit -n`
+if [ "$ULIMIT_F" -lt 1024 ]; then
+    echo "!!!!"
+    echo "!!!! WARNING: ulimit -n is ${ULIMIT_F}; 1024 is the recommended minimum."
+    echo "!!!!"
+fi
+
 # Make sure CWD is set to runner base dir
 cd $RUNNER_BASE_DIR
 
