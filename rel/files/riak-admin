@@ -104,6 +104,64 @@ case "$1" in
         $NODETOOL rpc riak_kv_console status $@
         ;;
 
+    ringready)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+
+        $NODETOOL rpc riak_kv_console ringready $@
+        ;;
+
+    transfers)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+
+        $NODETOOL rpc riak_kv_console transfers $@
+        ;;
+
+    services)
+        $NODETOOL rpcterms riak_core_node_watcher services ''
+        ;;
+
+    wait-for-service)
+        SVC=$2
+        TARGETNODE=$3
+        if [ $# -lt 3 ]; then
+            echo "Usage: $SCRIPT wait-for-service <service_name> <target_node>"
+            exit 1
+        fi
+
+        while (true); do
+            # Make sure riak_core_node_watcher is up and running locally before trying to query it
+            # to avoid ugly (but harmless) error messages
+            NODEWATCHER=`$NODETOOL rpcterms erlang whereis "'riak_core_node_watcher'."`
+            if [ "$NODEWATCHER" == "undefined" ]; then
+                echo "$SVC is not up: node watcher is not running"
+                continue
+            fi
+
+            # Get the list of services that are available on the requested noe
+            SERVICES=`$NODETOOL rpcterms riak_core_node_watcher services "'${TARGETNODE}'."`
+            echo "$SERVICES" | grep "$SVC" > /dev/null 2>&1
+            if [ "X$?" = "X0" ]; then
+                echo "$SVC is up"
+                exit 0
+            else
+                echo "$SVC is not up: $SERVICES"
+            fi
+            sleep 3
+        done
+        ;;
+
     js_reload)
         # Reload all Javascript VMs
         RES=`$NODETOOL ping`
@@ -185,11 +243,16 @@ case "$1" in
         NODE_NAME=${NAME_ARG#* }
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_test$NAME_HOST $COOKIE_ARG \
-                       -eval "riak:client_test(\"$NODE_NAME\")" -s init stop
+                       -eval "case catch(riak:client_test(\"$NODE_NAME\")) of \
+                               ok -> init:stop();                             \
+                               _  -> init:stop(1)                             \
+                              end."
 
         ;;
     *)
-        echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | reip | js_reload  }"
+        echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
+        echo "                    reip | js_reload | wait-for-service | ringready | "
+        echo "                    transfers }"
         exit 1
         ;;
 esac
