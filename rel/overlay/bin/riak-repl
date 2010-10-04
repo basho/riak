@@ -162,7 +162,7 @@ case "$1" in
         fi
         $NODETOOL rpc riak_repl_console start_fullsync
         ;;
-    stop-fullsync)
+    cancel-fullsync)
         ACTION=$1
         shift
         # Make sure the local node IS not running
@@ -171,11 +171,11 @@ case "$1" in
             echo "Node is not running!"
             exit 1
         fi
-        $NODETOOL rpc riak_repl_console stop_fullsync
+        $NODETOOL rpc riak_repl_console cancel_fullsync
         ;;
     *)
-        echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | status |
-                               start-fullsync | stop-fullsync }"
+        echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | status |" \
+             "                   start-fullsync | cancel-fullsync }"
         exit 1
         ;;
 esac
