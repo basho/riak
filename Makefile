@@ -33,13 +33,13 @@ relclean:
 ##
 ## Developer targets
 ##
-stagedevrel: dev1 dev2 dev3
+stagedevrel: dev1 dev2 dev3 dev4 dev5 dev6
 	$(foreach dev,$^,\
 	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$(dev)/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) dev/$(dev)/lib;))
 
-devrel: dev1 dev2 dev3 
+devrel: dev1 dev2 dev3 dev4 dev5 dev6
 
-dev1 dev2 dev3:
+dev1 dev2 dev3 dev4 dev5 dev6:
 	mkdir -p dev
 	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
 
