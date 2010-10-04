@@ -604,6 +604,29 @@
                where the command is executed.
 
                : $ bin/riak-admin js_reload
+   
+   + wait-for-service :: check a Riak service for its current state
+
+               This command will check that a given Riak service is running
+               and prepared to receive queries.
+
+               : $ bin/riak-admin wait-for-service riak_kv riak@127.0.0.1
+   
+   + ringready :: check that all Riak nodes agree on partition assignments
+
+               This command will check that all nodes in a cluster agree on the 
+               assignment of paritions.  This command is useful when operating larger 
+               clusters where it may take several seconds to gossip when adding
+               or removing nodes.
+ 
+               : $ bin/riak-admin ringready
+   
+   + transfers :: list any pending partition transfers
+
+               Provides a list of nodes with pending partition transfers (i.e. any secondary vnodes)
+               and lists any owned vnodes that are *not* running.
+ 
+               : $ bin/riak-admin transfers               
 
 ** Simple startup
 
