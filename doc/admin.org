@@ -622,9 +622,10 @@
                : $ bin/riak-admin ringready
    
    + transfers :: list any pending transfers of partitions from one node to another
-
+   
                Provides a list of nodes with pending partition transfers (i.e. any secondary vnodes)
-               and lists any owned vnodes that are *not* running.
+               and lists any owned vnodes that are *not* running. This restarts the handoff timers
+               and should be used infrequently.
  
                : $ bin/riak-admin transfers
 
