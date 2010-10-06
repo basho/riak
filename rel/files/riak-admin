@@ -151,7 +151,7 @@ case "$1" in
 
             # Get the list of services that are available on the requested noe
             SERVICES=`$NODETOOL rpcterms riak_core_node_watcher services "'${TARGETNODE}'."`
-            echo "$SERVICES" | grep "$SVC" > /dev/null 2>&1
+            echo "$SERVICES" | grep "\[$SVC\]" > /dev/null 2>&1
             if [ "X$?" = "X0" ]; then
                 echo "$SVC is up"
                 exit 0
