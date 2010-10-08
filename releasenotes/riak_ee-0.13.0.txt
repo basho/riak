@@ -1,0 +1,24 @@
+----------------------------------------------
+Riak 0.13.0 Release Notes (Enterprise Edition)
+----------------------------------------------
+
+Site replication has recieved a significant amount of testing with corresponding
+bug fixes. Commands have been added to the riak-repl script to start and stop
+full-syncs.
+
+Enhancements Fixed (Enterprise Edition)
+-------------------------------
+431 - expose read repair stats in JMX
+
+Bugs Fixed (Enterprise Edition)
+-------------------------------
+171 - repl stats error on shutdown
+602 - riak_repl_client_sup and riak_repl_server_sup do not link child processes
+610 - riak_repl updates ring infinitely
+752 - Calls to gen_leader timeout after losing the leader node
+754 - Connections to non-leader repls break riak-repl status and leak a descriptor
+761 - function not exported: {riak_repl_ring,init_repl_config,[]}
+779 - riak-repl script broken in packages
+
+
+All bug and issue numbers reference https://issues.basho.com.
