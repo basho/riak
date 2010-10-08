@@ -1,0 +1,100 @@
+-------------------------
+Riak 0.13.0 Release Notes
+-------------------------
+
+Map/Reduce performance has been substantially improved:
+
+* Improved Javascript call scheduling
+  Previous versions of Riak MapReduce didn't handle over load situations well
+  especially when the number of available Javascript VMs was low. Riak does a
+  better job of tracking which Javascript VMs are busy and attempts to spread the
+  load more evenly over all VMs.
+
+* Improved Javascript call caching
+  The caching layer for Javascript MapReduce calls has been completely
+  re-implemented. This should result in better performance when MapReduce jobs
+  are run repeatedly. This work includes a new in-memory vnode LRU cache just for
+  map operations. The size of the cache, as in the number of entries, can be
+  controlled via the 'vnode_cache_entries' entry in the riak_kv section of
+  app.config. The cache size defaults to 100.  Setting the entry to 0 will
+  disable the cache entirely.
+
+* Fixed MapReduce job input handling
+  This operation was non-blocking in prior versions of Riak. The lack of
+  backpressure caused excessive memory bloat and poor performance when the input
+  producer overran the cluster's ability to process new MapReduce inputs. This
+  has been fixed in the current release and should result in lower resource
+  consumption and more stable run times.
+
+The riak-admin script now has two new commands, "ringready" and
+"wait-for-service". These enable the administrator to script detection of
+cluster convergence on a given ring and wait for KV to come up,
+respectively.
+
+Bitcask now uses 40% less memory per key entry and starts up significantly
+faster when the dataset is large. It also reclaims memory of expired key
+entries. Key listing when using Bitcask as a backend is substantially faster.
+
+The structure of the Riak source repos has been changed to have a single Erlang
+app per repo. This permits 3rd parties to use riak_core (the abstracted Dynamo
+logic) in other applications.
+
+The consistent hash ring balancing logic has been improved to enable large
+clusters (>32 nodes) to converge quickly on a common ring.
+
+Further work has been done to improve Riak's performance and robustness when
+dealing with large datasets and failure scenarios.
+
+Enhancements
+------------
+140 - bin/riak now warns if ulimit -n is < 1024
+168 - Performance of list_keys and mapred_bucket has been improved
+213 - Default number of async threads has been increased to 64
+446 - Each Erlang app has a dedicated repo
+514 - dialyzer make target
+578 - Re-examine garbage collection management of vnodes
+651 - Merge should exit cleanly instead of with throw if files do not exist
+696 - Garbage collection in Erlang J/S occurs more frequently
+748 - Hint file reading is now buffered
+081 - Support large uploads (chunk or stream automagically)
+
+Bugs Fixed
+----------
+26  - The 'devrel' target now builds on CentOS.
+201 - RpbPutResp has a typo: "contents" instead of "content"
+217 - bin/riak stop doesn't seem to be working on Solaris
+270 - Content-type set using riak_object:new/4 doesn't saved in db.
+507 - Bitcask leaks file-handles when reading lock data for merge
+510 - Riak 0.12 cannot be started after restarting the server
+512 - Riak EE RPM removes bitcask directory when uninstalled
+523 - M/R job timeout not propagating in all cases
+544 - PBC interface starts listening before socket supervisor is started
+552 - Bitcask expiry does not reclaim keydir memory usage at merge
+559 - riak_object:new auto-update only when initial metadata
+570 - Errors in console for javascript client tests, post-M/R speedup
+589 - Typo in bin/riak stop
+619 - Listing keys triggers enormous memory consumption
+621 - Starting Riak with largish dataset causes riak_core_ring_handler to crash
+656 - Protobuffs erlang client returns "function_clause" error when listing buckets
+658 - riak_client:list_buckets returns no results
+706 - erlang_js segfaults under load with large JSON objects
+708 - Running multiple MapReduce jobs causes errors
+719 - Vnode exits during/after? handoff
+723 - ets backend throws exception in stop/1
+728 - "riak-admin test" exits with status 0 on timeout
+731 - ebloom:clear() fails on Solaris platforms
+735 - riak_kv_bitcask_backend:is_empty can leak file descriptors
+737 - Debian init script reload doesn't work
+742 - Packaging Changes for 0.13.0rc2
+746 - riak build fails on R14
+757 - Bitcask should properly count dead bytes when writing in same file
+773 - "Not Found" tokens not correctly handled in streaming M/R results
+774 - riak-admin wait-for-service riak responds "riak is up"
+776 - Update admin.org and riak*-admin man files to include new commands
+784 - Solaris packages shouldn't delete modified config files on removal
+
+Riak has been updated with the necessary changes to compile
+on Erlang R14, but has not been thoroughly tested on R14.
+Please continue to run Riak on R13B04 in production.
+
+All bug and issue numbers reference https://issues.basho.com.
