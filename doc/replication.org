@@ -1,9 +1,9 @@
 #+SETUPFILE: "basho-doc-style.iorg"
 #+TITLE: Riak Multi-Datacenter Replication Guide
-
+#+OPTIONS: ^:{}
 * Overview
-  
-  This document is a guide to configuring and managing replication between 
+
+  This document is a guide to configuring and managing replication between
   Riak clusters.
 
 * How Replication Works
@@ -11,34 +11,49 @@
   Riak replication copies all data from a primary cluster to a
   secondary. Currently it is unidirectional, although you can
   configure a pair of connections to sync bidirectionally between two
-  clusters. All data is synchronized on initial connection, followed
-  by streamed updates to the secondary cluster and periodic full syncs.
+  clusters. All data is synchronized on initial connection
+  (configurable), followed by streamed updates to the secondary
+  cluster and periodic full syncs.
 
 * Concepts
 ** Listeners
-   
-   Replication 'listener' nodes are Riak cluster nodes that will listen on an 
-   external IP address and port for the purposes of handling Replication 
+
+   Replication 'listener' nodes are Riak cluster nodes that will listen on an
+   external IP address and port for the purposes of handling Replication
    requests.  Any node in a Riak cluster can participate as a listener - adding
-   more nodes will increase the fault-tolerance of the replication process in 
+   more nodes will increase the fault-tolerance of the replication process in
    the presence of individual node failures. Listeners are started on
-   the primary cluster.
+   the primary cluster. These are also called 'servers'.
 
 ** Sites
 
    Replication 'site' nodes are Riak cluster nodes that connect to
    listeners and initiate Replication requests. Site nodes must be
    given a listener node to connect to when started. Sites are started
-   on the secondary cluster.
+   on the secondary cluster. These are also called 'clients'.
+
+** Leadership
+
+   Riak replication uses a leadership-election protocol to determine
+   which node in the cluster will participate in replication. Only
+   one node in each cluster will be responsible for serving as the
+   client or server to any other clusters.
+
+   If a client/site connects to a listener that is not the leader, it
+   will be redirected to the listener node that is currently the
+   leader.
 
 ** Full-sync
 
-   On initial connect, the secondary cluster (site) will initiate a
-   full-sync with the primary cluster (listener), which sends a
-   compressed view (merkle tree) of the key-space so the secondary
-   cluster can compare it with its own key-space and then request
-   updates for keys it lacks.  Meanwhile, any new writes on the
-   primary cluster will also be streamed to the secondary cluster.
+   On initial connection, the primary cluster (listener/server) will
+   initiate a full synchronization with the secondary cluster
+   (site/client), which computes hashes of all keys stored in each
+   partition of the primary cluster and sends them to the secondary
+   cluster. The secondary cluster then calculates its own hashes and
+   requests updates for keys that are missing or stale.
+
+   New writes on the primary cluster will be streamed to the secondary
+   cluster between synchronization of individual partitions.
 
    Full-syncs are also performed on a periodic basis, configurable in
    the =riak_repl= section of =app.config=, under the
@@ -53,10 +68,10 @@
 
 #+BEGIN_SRC erlang
    {riak_repl, [
-                  {fullsync_on_connect, true},
-                  {fullsync_interval, 360},
-                  {data_root, "data/riak_repl"}
-                 ]},
+                {fullsync_on_connect, true},
+                {fullsync_interval, 360},
+                {data_root, "data/riak_repl"}
+               ]}
 #+END_SRC
 
 *** =fullsync_on_connect= (true/false)
@@ -70,38 +85,32 @@
     minutes. This is measured from the completion of one full-sync
     operation to the initiation of the next. This setting only applies
     to the primary cluster (listener). =360= is the default (6
-    hours).
+    hours). To disable full synchronization, use =disabled=.
 
 *** =data_root= (string)
 
     Path (relative or absolute) to the working directory for the
-    replication process. ="data/riak_repl"= is the default.
-
-*** =repl_log_dir= (string)
-
-    Where to store log files of the replication
-    process. ="%{data_root}/logs"= is the default (substitute
-    =data_root= from the other setting)..
+    replication process. =data/riak_repl= is the default.
 
 ** The riak-repl Command
 
    Replication is controlled by the =riak-repl= command. Usage:
 
-#+BEGIN_SRC shell
-  riak-repl add-listener <nodename> <listen_ip> <port>
-  riak-repl del-listener <nodename> <listen_ip> <port>
-  riak-repl add-site <ipaddr> <portnum> <sitename>
-  riak-repl del-site <sitename>
-  riak-repl status
+#+BEGIN_SRC text
+   riak-repl add-listener <nodename> <listen_ip> <port>
+   riak-repl del-listener <nodename> <listen_ip> <port>
+   riak-repl add-site <ipaddr> <portnum> <sitename>
+   riak-repl del-site <sitename>
+   riak-repl status
+   riak-repl start-fullsync
+   riak-repl cancel-fullsync
 #+END_SRC
 
 *** add-listener
 
     Adds a listener (primary) to the given node, IP address and port.
 
-    Example:
-
-#+BEGIN_SRC shell
+#+BEGIN_SRC text
     riak-repl add-listener riak@10.0.1.156 10.0.1.156 9010
 #+END_SRC
 
@@ -110,9 +119,7 @@
     Removes and shuts down a listener (primary) on the given node, IP
     address and port.
 
-    Example:
-
-#+BEGIN_SRC shell
+#+BEGIN_SRC text
     riak-repl del-listener riak@10.0.1.156 10.0.1.156 9010
 #+END_SRC
 
@@ -121,9 +128,7 @@
     Adds a site (secondary) to the local node, connecting to the
     specified listener.
 
-    Example:
-
-#+BEGIN_SRC shell
+#+BEGIN_SRC text
     riak-repl add-site 10.0.1.156 9010 newyork
 #+END_SRC
 
@@ -131,20 +136,36 @@
 
     Removes a site (secondary) from the local node by name.
 
-    Example:
-
-#+BEGIN_SRC shell
+#+BEGIN_SRC text
     riak-repl del-site newyork
 #+END_SRC
 
 *** status
 
-    Gets status information about replication. Currently reports
-    counts on how much data has been transmitted.
+    Gets status information about replication. Reports counts on how
+    much data has been transmitted, transfer rates, message queue
+    lengths of clients and servers, number of fullsyncs, and
+    connection status. This command only displays useful information
+    on the leader node.
 
-    Example:
-
-#+BEGIN_SRC shell
+#+BEGIN_SRC text
     riak-repl status
 #+END_SRC
 
+*** start-fullsync
+
+    Manually initiates full synchronization with connected sites.
+
+#+BEGIN_SRC text
+    riak-repl start-fullsync
+#+END_SRC
+
+*** cancel-fullsync
+
+    Cancels any full synchronizations in progress. If a partition is
+    in progress, synchronization will stop after that partition
+    completes.
+
+#+BEGIN_SRC text
+    riak-repl cancel-fullsync
+#+END_SRC
