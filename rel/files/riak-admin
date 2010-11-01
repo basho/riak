@@ -93,6 +93,11 @@ case "$1" in
         ;;
 
     remove)
+        if [ $# -ne 2 ]; then
+            echo "Usage: $SCRIPT remove <node>"
+            exit 1
+        fi
+
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
             echo "Node is not running!"
@@ -263,7 +268,7 @@ case "$1" in
     *)
         echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
         echo "                    reip | js_reload | wait-for-service | ringready | "
-        echo "                    transfers }"
+        echo "                    transfers | remove }"
         exit 1
         ;;
 esac
