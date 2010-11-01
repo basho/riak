@@ -92,6 +92,17 @@ case "$1" in
         $NODETOOL rpc riak_kv_console leave $@
         ;;
 
+    remove)
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+
+        shift
+        $NODETOOL rpc riak_kv_console remove $@
+        ;;
+
     status)
         # Make sure the local node IS running
         RES=`$NODETOOL ping`
