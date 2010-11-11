@@ -171,23 +171,22 @@ Welcome to Riak.
    client language libraries include:
 
    + Javascript
-     http://bitbucket.org/basho/riak-javascript-client
+     https://github.com/basho/riak-javascript-client
 
    + Python
-     http://bitbucket.org/basho/riak-python-client
+	 https://github.com/basho/riak-python-client
 
    + Ruby
-     http://bitbucket.org/basho/riak-ruby-client
      http://github.com/seancribbs/ripple/
 
    + Java
-     http://bitbucket.org/basho/riak-java-client
+	 https://github.com/basho/riak-java-client
 
    + PHP
-     http://bitbucket.org/basho/riak-php-client
+     https://github.com/basho/riak-php-client
 
    + Erlang
-     http://bitbucket.org/basho/riak-erlang-client
+     https://github.com/basho/riak-erlang-client
      (using protocol buffers instead of distributed Erlang)
 
 * Server Management
