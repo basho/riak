@@ -122,3 +122,12 @@ dist $(RIAK_TAG).tar.gz: distdir
 
 ballclean:
 	rm -rf $(RIAK_TAG).tar.gz distdir
+
+package:
+	$(MAKE) -C package package
+
+pkgclean:
+	$(MAKE) -C package pkgclean
+
+.PHONY: package
+export RIAK_TAG

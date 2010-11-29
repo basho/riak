@@ -1,0 +1,5 @@
+# Same dependencies as Erlang
+P SUNWlibmsr    Math & Microtasking Libraries (Root)
+P SUNWlibms     Math & Microtasking Libraries (Usr)
+P SUNWopensslr  OpenSSL (Root)
+P SUNWopenssl-libraries OpenSSL Libraries (Usr)
