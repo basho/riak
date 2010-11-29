@@ -1,4 +1,4 @@
-RIAK_TAG   = $(shell git describe --tags --exact-match 2>&1| grep -v '^fatal:')
+RIAK_TAG   = $(shell git describe --tags)
 
 .PHONY: rel stagedevrel deps
 

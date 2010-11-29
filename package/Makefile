@@ -21,7 +21,7 @@ APP		 = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
 # Assumes CURDIR is .../$(APP)/package/$(APP)/
 RIAK_PATH	?= ../..
 
-RIAK_TAG        ?= $(shell git describe --tags --exact-match 2>&1| grep -v '^fatal:')
+RIAK_TAG        ?= $(shell git describe --tags)
 REVISION	?= $(shell echo $(RIAK_TAG) | sed -e 's/^$(REPO)-//' | tr -d -)
 RELEASE		?= 
 
