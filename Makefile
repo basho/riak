@@ -123,7 +123,7 @@ dist $(RIAK_TAG).tar.gz: distdir
 ballclean:
 	rm -rf $(RIAK_TAG).tar.gz distdir
 
-package:
+package: dist
 	$(MAKE) -C package package
 
 pkgclean:
