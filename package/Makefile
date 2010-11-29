@@ -22,7 +22,7 @@ APP		 = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
 RIAK_PATH	?= ../..
 
 RIAK_TAG        ?= $(shell git describe --tags)
-REVISION	?= $(shell echo $(RIAK_TAG) | sed -e 's/^$(REPO)-//' | tr -d -)
+REVISION	?= $(shell echo $(RIAK_TAG) | sed -e 's/^$(REPO)-//' | tr - .)
 RELEASE		?= 
 
 $(APP)-$(REVISION).tar.gz: ../$(RIAK_TAG).tar.gz
