@@ -18,7 +18,7 @@ endif
 
 APP		 = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
 # Assumes CURDIR is .../$(APP)/package/$(APP)/
-RIAK_PATH	?= ../..
+RIAK_PATH	?= ..
 RELEASE		?= 
 
 $(APP)-$(REVISION).tar.gz: ../$(RIAK_TAG).tar.gz
