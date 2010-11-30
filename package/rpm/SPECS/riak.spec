@@ -1,13 +1,15 @@
-# _revision and _release should be defined on the rpmbuild command line like so:
+# _revision, _release, and _version should be defined on the rpmbuild command
+# line like so:
 #
-# --define "_revision 0.9.1" --define "_release 7"
+# --define "_version 0.9.1" --define "_release 7" \
+# --define "_revision 0.9.1-19-abcdef"
 
 Name: riak
-Version: %{_revision}
+Version: %{_version}
 Release: %{_release}%{?dist}
 License: Apache License
 Group: Development/Libraries
-Source: http://bitbucket.org/basho/riak/get/%{name}-%{version}.tar.gz
+Source: http://bitbucket.org/basho/riak/get/%{name}-%{_revision}.tar.gz
 Source1: riak_init
 URL: http://basho.com
 Vendor: Basho Technologies
@@ -24,7 +26,7 @@ Riak is a distrubuted data store.
 %define __prelink_undo_cmd /bin/cat prelink library
 
 %prep
-%setup -q -n %{name}-%{version}
+%setup -q -n %{name}-%{_revision}
 cat > rel/vars.config <<EOF
 % app.config
 {ring_state_dir, "%{_localstatedir}/lib/%{name}/ring"}.
@@ -63,24 +65,24 @@ mkdir -p %{buildroot}%{_localstatedir}/log/%{name}/sasl
 mkdir -p %{buildroot}%{_localstatedir}/run/%{name}
 
 #Copy all necessary lib files etc.
-cp -r $RPM_BUILD_DIR/%{name}-%{version}/rel/%{name}/lib %{buildroot}%{riak_lib}
-cp -r $RPM_BUILD_DIR/%{name}-%{version}/rel/%{name}/erts-* \
+cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/lib %{buildroot}%{riak_lib}
+cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/erts-* \
 		%{buildroot}%{riak_lib}
-cp -r $RPM_BUILD_DIR/%{name}-%{version}/rel/%{name}/releases \
+cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/releases \
 		%{buildroot}%{riak_lib}
-cp -r $RPM_BUILD_DIR/%{name}-%{version}/doc/man/man1/*.gz \
+cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/doc/man/man1/*.gz \
 		%{buildroot}%{_mandir}/man1
 install -p -D -m 0644 \
-	$RPM_BUILD_DIR/%{name}-%{version}/rel/%{name}/etc/app.config \
+	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/etc/app.config \
 	%{buildroot}%{_sysconfdir}/%{name}/
 install -p -D -m 0644 \
-	$RPM_BUILD_DIR/%{name}-%{version}/rel/%{name}/etc/vm.args \
+	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/etc/vm.args \
 	%{buildroot}%{_sysconfdir}/%{name}/
 install -p -D -m 0755 \
-	$RPM_BUILD_DIR/%{name}-%{version}/rel/%{name}/bin/%{name} \
+	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name} \
 	%{buildroot}/%{_sbindir}/%{name}
 install -p -D -m 0755 \
-	$RPM_BUILD_DIR/%{name}-%{version}/rel/%{name}/bin/%{name}-admin \
+	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name}-admin \
 	%{buildroot}/%{_sbindir}/%{name}-admin
 install -p -D -m 0755 %{SOURCE1} %{buildroot}/%{init_script}
 

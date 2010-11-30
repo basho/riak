@@ -16,13 +16,9 @@ PKGERDIR	= solaris
 DISTRO		= $(shell awk '{ if (NR==1) print $$1; };' /etc/release)
 endif
 
-REPO		?= riak
 APP		 = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
 # Assumes CURDIR is .../$(APP)/package/$(APP)/
 RIAK_PATH	?= ../..
-
-RIAK_TAG        ?= $(shell git describe --tags)
-REVISION	?= $(shell echo $(RIAK_TAG) | sed -e 's/^$(REPO)-//' | tr - .)
 RELEASE		?= 
 
 $(APP)-$(REVISION).tar.gz: ../$(RIAK_TAG).tar.gz

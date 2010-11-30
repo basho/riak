@@ -1,4 +1,7 @@
-RIAK_TAG   = $(shell git describe --tags)
+REPO		?= riak
+RIAK_TAG	 = $(shell git describe --tags)
+REVISION	?= $(shell echo $(RIAK_TAG) | sed -e 's/^$(REPO)-//')
+PKG_VERSION	?= $(shell echo $(REVISION) | tr - .)
 
 .PHONY: rel stagedevrel deps
 
@@ -107,7 +110,7 @@ archive = if [ -d ".git" ]; then \
 buildtar = mkdir distdir && \
 		 git clone . distdir/riak-clone && \
 		 cd distdir/riak-clone && \
-		 git checkout $(TAG_REV) && \
+		 git checkout $(RIAK_TAG) && \
 		 $(call archive,$(RIAK_TAG),..) && \
 		 mkdir ../$(RIAK_TAG)/deps && \
 		 make deps; \
@@ -130,4 +133,4 @@ pkgclean:
 	$(MAKE) -C package pkgclean
 
 .PHONY: package
-export RIAK_TAG
+export PKG_VERSION REPO REVISION RIAK_TAG
