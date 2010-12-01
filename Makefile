@@ -1,6 +1,9 @@
-RIAK_TAG		= $(shell hg identify -t)
+REPO		?= riak_ee
+RIAK_TAG	 = $(shell git describe --tags)
+REVISION	?= $(shell echo $(RIAK_TAG) | sed -e 's/^$(REPO)-//')
+PKG_VERSION	?= $(shell echo $(REVISION) | tr - .)
 
-.PHONY: rel stagedevrel deps
+.PHONY: rel stagedevrel deps package pkgclean
 
 all: deps compile
 
@@ -99,18 +102,25 @@ cleanplt:
 
 # Release tarball creation
 # Generates a tarball that includes all the deps sources so no checkouts are necessary
+archivegit = git archive --format=tar --prefix=$(1)/ HEAD | (cd $(2) && tar xf -)
+archivehg = hg archive $(2)/$(1)
+archive = if [ -d ".git" ]; then \
+		$(call archivegit,$(1),$(2)); \
+	    else \
+		$(call archivehg,$(1),$(2)); \
+	    fi
 
+buildtar = mkdir distdir && \
+		 git clone . distdir/$(REPO)-clone && \
+		 cd distdir/$(REPO)-clone && \
+		 git checkout $(RIAK_TAG) && \
+		 $(call archive,$(RIAK_TAG),..) && \
+		 mkdir ../$(RIAK_TAG)/deps && \
+		 make deps; \
+		 for dep in deps/*; do cd $${dep} && $(call archive,$${dep},../../../$(RIAK_TAG)); cd ../..; done
+					 
 distdir:
-	$(if $(findstring tip,$(RIAK_TAG)),$(error "You can't generate a release tarball from tip"))
-	mkdir distdir
-	hg clone -u $(RIAK_TAG) . distdir/riak-clone
-	cd distdir/riak-clone; \
-	hg update -r $(RIAK_TAG)
-	cd distdir/riak-clone; \
-	hg archive ../$(RIAK_TAG); \
-	mkdir ../$(RIAK_TAG)/deps; \
-	make deps; \
-	for dep in deps/*; do cd $${dep} && hg archive ../../../$(RIAK_TAG)/$${dep}; cd ../..; done
+	$(if $(RIAK_TAG), $(call buildtar), $(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
 
 dist $(RIAK_TAG).tar.gz: distdir
 	cd distdir; \
@@ -119,3 +129,10 @@ dist $(RIAK_TAG).tar.gz: distdir
 ballclean:
 	rm -rf $(RIAK_TAG).tar.gz distdir
 
+package: dist
+	$(MAKE) -C package package
+
+pkgclean:
+	$(MAKE) -C package pkgclean
+
+export PKG_VERSION REPO REVISION RIAK_TAG
