@@ -174,9 +174,32 @@ case "$1" in
         fi
         $NODETOOL rpc riak_repl_console cancel_fullsync
         ;;
+    pause-fullsync)
+        ACTION=$1
+        shift
+        # Make sure the local node IS not running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        $NODETOOL rpc riak_repl_console pause_fullsync
+        ;;
+    resume-fullsync)
+        ACTION=$1
+        shift
+        # Make sure the local node IS not running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        $NODETOOL rpc riak_repl_console resume_fullsync
+        ;;
     *)
-        echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | status |" \
-             "                   start-fullsync | cancel-fullsync }"
+        echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | status |"
+        echo "                   start-fullsync | cancel-fullsync |"
+        echo "                   pause-fullsync | resume-fullsync }"
         exit 1
         ;;
 esac
