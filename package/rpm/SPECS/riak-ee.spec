@@ -17,7 +17,7 @@ Source1: riak_init
 URL: http://basho.com
 Vendor: Basho Technologies
 Packager: Basho Technologies <riak-user@lists.basho.com>
-BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
+BuildRoot: %{_tmppath}/%{name}-%{_revision}-%{release}-root
 Summary: Riak Distributed Data Store
 Obsoletes: riak
 
