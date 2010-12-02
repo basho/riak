@@ -30,7 +30,7 @@ Riak is a distrubuted data store.
 %define __prelink_undo_cmd /bin/cat prelink library
 
 %prep
-%setup -q -n %{name}-%{_revision}
+%setup -q -n %{_repo}-%{_revision}
 cat > rel/vars.config <<EOF
 % app.config
 {ring_state_dir,    "%{_localstatedir}/lib/%{appname}/ring"}.

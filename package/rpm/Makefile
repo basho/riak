@@ -9,6 +9,7 @@ build: $(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz rpmbuild
 		 --define '_rpmdir $(CURDIR)/packages' \
 		 --define '_srcrpmdir $(CURDIR)/packages' \
 		 --define "_revision $(REVISION)" \
+		 --define "_repo $(REPO)" \
 		 --define "_version $(PKG_VERSION)" \
 		 --define "_release $(RELEASE)" \
 		 -ba $(PKGERDIR)/SPECS/$(APP).spec
