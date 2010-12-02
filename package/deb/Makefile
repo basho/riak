@@ -1,4 +1,4 @@
-BUILDPATH	= debuild/$(APP)-$(REVISION)
+BUILDPATH	= debuild/$(REPO)-$(REVISION)
 
 build:  $(BUILDPATH)/debian \
 	debuild/$(APP)_$(REVISION).orig.tar.gz

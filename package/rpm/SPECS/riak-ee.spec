@@ -93,7 +93,7 @@ mkdir -p %{buildroot}%{_localstatedir}/run/%{appname}
 cp -r %{releasepath}/lib %{buildroot}%{riak_lib}
 cp -r %{releasepath}/erts-* %{buildroot}%{riak_lib}
 cp -r %{releasepath}/releases %{buildroot}%{riak_lib}
-cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/doc/man/man1/*.gz \
+cp -r $RPM_BUILD_DIR/%{_repo}-%{_revision}/doc/man/man1/*.gz \
 		%{buildroot}%{_mandir}/man1
 # snmp data
 cp -r %{releasepath}/etc/snmp %{buildroot}/%{_sysconfdir}/%{appname}/

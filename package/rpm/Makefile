@@ -13,7 +13,7 @@ build: $(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz rpmbuild
 		 --define "_version $(PKG_VERSION)" \
 		 --define "_release $(RELEASE)" \
 		 -ba $(PKGERDIR)/SPECS/$(APP).spec
-	mv packages/*/$(APP)-$(PKG_VERSION))-$(RELEASE)*.rpm packages
+	mv packages/*/$(APP)-$(PKG_VERSION)-$(RELEASE)*.rpm packages
 	rm -rf packages/i?86 packages/x86_64
 
 rpmbuild:
