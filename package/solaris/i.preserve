@@ -1,0 +1,19 @@
+#!/bin/sh
+#
+# Copyright (C) 2010 by Basho Technologies, Inc.
+#
+
+#
+# If files are marked as "preserve" we want to simple install the new files
+# along side the original with a unique-ish name
+#
+
+while read src dest; do
+    if [ ! -f $dest ] ; then
+        cp $src $dest
+    else
+        format=`date '+%Y-%m-%d-%H:%M'`
+        cp $src $dest.$format
+        echo "$dest exists, not replacing.  Saving as $dest.$format instead."
+    fi
+done
