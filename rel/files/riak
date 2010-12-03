@@ -67,7 +67,7 @@ case "$1" in
     start)
         # Make sure there is not already a node running
         RES=`$NODETOOL ping`
-        if [ "$RES" == "pong" ]; then
+        if [ "$RES" = "pong" ]; then
             echo "Node is already running!"
             exit 1
         fi
@@ -122,7 +122,7 @@ case "$1" in
 
     console)
         RES=`$NODETOOL ping`
-        if [ "$RES" == "pong" ]; then
+        if [ "$RES" = "pong" ]; then
             echo "Node is already running - use '$SCRIPT attach' instead"
             exit 1
         fi

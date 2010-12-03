@@ -29,7 +29,7 @@ DAEMON=/usr/sbin/$NAME
 start() {
         #Check if Riak is running
         RETVAL=`$DAEMON ping`
-        [ "$RETVAL" == "pong" ] && echo "Riak is already running" && return 1
+        [ "$RETVAL" = "pong" ] && echo "Riak is already running" && return 1
 
 	# Start daemons.
 	echo -n $"Starting Riak: "
@@ -44,13 +44,13 @@ stop() {
         # Stop daemon.
 	echo -n $"Stopping Riak: "
   	RETVAL=`su - riak -c "$DAEMON ping"`
-  	[ "$RETVAL" == "pong" ] && su - riak -c "$DAEMON stop 2>/dev/null 1>&2" 
+  	[ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON stop 2>/dev/null 1>&2" 
         sleep 2
         RETVAL=`pidof beam.smp`
-        [ "$RETVAL" == "" ] && success && echo && return 0 || failure $"$NAME stop"
+        [ "$RETVAL" = "" ] && success && echo && return 0 || failure $"$NAME stop"
         sleep 10
         RETVAL=`pidof beam.smp`
-        [ "$RETVAL" == "" ] && success && echo && return 0 || failure $"$NAME failed to stop"
+        [ "$RETVAL" = "" ] && success && echo && return 0 || failure $"$NAME failed to stop"
         echo
         return 1
 
@@ -60,7 +60,7 @@ reload() {
         # Restart the VM without exiting the process
 	echo -n $"Reloading Riak: "
   	RETVAL=`su - riak -c "$DAEMON ping"`
-  	[ "$RETVAL" == "pong" ] && su - riak -c "$DAEMON restart 2>/dev/null 1>&2" \
+  	[ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON restart 2>/dev/null 1>&2" \
         && success && echo && return 0 || failure $"$NAME restart" 
         echo
 	return $RETVAL
