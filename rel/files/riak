@@ -1,4 +1,6 @@
 #!/bin/bash
+# -*- tab-width:4;indent-tabs-mode:nil -*-
+# ex: ts=4 sw=4 et
 
 RUNNER_SCRIPT_DIR={{runner_script_dir}}
 RUNNER_SCRIPT=${0##*/}
@@ -89,7 +91,7 @@ case "$1" in
         $NODETOOL stop
         while `kill -0 $PID 2>/dev/null`;
         do
-             sleep 1
+            sleep 1
         done
         ;;
 
