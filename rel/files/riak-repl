@@ -69,7 +69,7 @@ NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
 # Check the first argument for instructions
 case "$1" in
     status)
-        # Make sure the local node IS running
+        # Make sure the local node is running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
             echo "Node is not running!"
@@ -102,7 +102,7 @@ case "$1" in
             echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port>"
             exit 1
         fi
-        # Make sure the local node IS not running
+        # Make sure the local node is running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
             echo "Node is not running!"
@@ -114,7 +114,7 @@ case "$1" in
     add-site)
         ACTION=$1
         shift
-        # Make sure the local node IS not running
+        # Make sure the local node is running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
             echo "Node is not running!"
@@ -129,7 +129,7 @@ case "$1" in
    del-site)
         ACTION=$1
         shift
-        # Make sure the local node IS not running
+        # Make sure the local node is running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
             echo "Node is not running!"
@@ -144,7 +144,7 @@ case "$1" in
     status)
         ACTION=$1
         shift
-        # Make sure the local node IS not running
+        # Make sure the local node is running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
             echo "Node is not running!"
@@ -155,7 +155,7 @@ case "$1" in
     start-fullsync)
         ACTION=$1
         shift
-        # Make sure the local node IS not running
+        # Make sure the local node is running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
             echo "Node is not running!"
@@ -166,7 +166,7 @@ case "$1" in
     cancel-fullsync)
         ACTION=$1
         shift
-        # Make sure the local node IS not running
+        # Make sure the local node is running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
             echo "Node is not running!"
@@ -174,9 +174,32 @@ case "$1" in
         fi
         $NODETOOL rpc riak_repl_console cancel_fullsync
         ;;
+    pause-fullsync)
+        ACTION=$1
+        shift
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        $NODETOOL rpc riak_repl_console pause_fullsync
+        ;;
+    resume-fullsync)
+        ACTION=$1
+        shift
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        $NODETOOL rpc riak_repl_console resume_fullsync
+        ;;
     *)
-        echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | status |" \
-             "                   start-fullsync | cancel-fullsync }"
+        echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | status |"
+        echo "                   start-fullsync | cancel-fullsync |"
+        echo "                   pause-fullsync | resume-fullsync }"
         exit 1
         ;;
 esac
