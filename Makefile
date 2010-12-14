@@ -114,8 +114,12 @@ buildtar = mkdir distdir && \
 		 $(call archive,$(RIAK_TAG),..) && \
 		 mkdir ../$(RIAK_TAG)/deps && \
 		 make deps; \
-		 for dep in deps/*; do cd $${dep} && $(call archive,$${dep},../../../$(RIAK_TAG)); cd ../..; done
-					 
+		 for dep in deps/*; do \
+                     cd $${dep} && \
+                     $(call archive,$${dep},../../../$(RIAK_TAG)) && \
+                     git rev-list --max-count=1 HEAD > ../../../$(RIAK_TAG)/$${dep}/.gitvsn && \
+                     cd ../..; done
+
 distdir:
 	$(if $(RIAK_TAG), $(call buildtar), $(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
 
