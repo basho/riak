@@ -144,6 +144,18 @@ case "$1" in
         $NODETOOL rpc riak_kv_console transfers $@
         ;;
 
+    cluster_info)
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+
+        $NODETOOL rpc riak_kv_console cluster_info $@
+        ;;
+
     services)
         $NODETOOL rpcterms riak_core_node_watcher services ''
         ;;
@@ -268,7 +280,7 @@ case "$1" in
     *)
         echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
         echo "                    reip | js_reload | wait-for-service | ringready | "
-        echo "                    transfers | remove }"
+        echo "                    transfers | remove | cluster_info }"
         exit 1
         ;;
 esac
