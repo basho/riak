@@ -1,0 +1,81 @@
+-------------------------
+Riak 0.14.0 Release Notes
+-------------------------
+
+Riak 0.14.0, aka "Dakota," is officially tagged and ready for downloading. We made a lot of strides in both feature robustness and overall stability. 
+
+Here are the highlights:
+
+1) Map/Reduce performance has been further improved in three areas. The first, Key Filters, will enable you to build metadata into your keys so that you can filter a set of inputs for a given criterion before being processed by the Map/Reduce job. This reduces the number of keys passed to the Map/Reduce job and improves performance for many queries. 
+
+The second major enhancement is a rework of the Map/Reduce Query Planner. The new planner takes a more sophisticated approach to analyzing and scheduling bucket/key pairs around the cluster. Using batches of 50 bucket/key pairs, the new code schedules bucket/key pairs onto common vnodes in a single message, thus reducing chattiness and improving overall throughput. 
+
+Finally, 0.14 supports three different JavaScript VM pools to reduce overall contention. Users can tailor the size of each pool to their particular needs via configuration values that regulate the VMs allocated to map functions, reduce functions, and pre-commit hooks (the three major points of JavaScript invocation). 
+
+2) Cluster and node debugging facilities have been added in the form of cluster_info and riak_err. The former gathers environment, configuration, and runtime statistics and writes them to a single file for admin or developer review. The latter, riak_err, limits the amount of RAM that is used while processing event log messages. There is some new documentation on the wiki that further describes how to use the cluster_info feature. See the bottom of http://wiki.basho.com/Command-Line-Tools.html
+
+3) Windowed Merges in Bitcask - Bitcask performs periodic merges over all non-active files to compact the space being occupied by old versions of stored data. In certain situations this can cause some memory and CPU spikes on the Riak node where the merge is taking place. To that end, we've added the ability to specify when Bitcask will perform merges. This can be set here: https://github.com/basho/bitcask/blob/master/ebin/bitcask.app#L38
+
+4) Other noteworthy enhancements include:
+* Support for HTTPS and multiple HTTP IPs (thanks Benjamin Black)
+* Packaging scripts for building debs, rpms and Solaris packages
+* The ability to list buckets through the REST API.
+
+
+Here's the full list of enhancements and bug fixes:
+
+Enhancements
+------------
+047 - Riak should provide a configuration URL
+078 - List buckets from REST API
+571 - Provide "riak-admin remove node@host" command to remove nodes from a cluster
+743 - Allow multiple mochiweb processes
+744 - Allow binding multiple HTTP/HTTPS IPs and ports
+745 - Allow binding multiple HTTP/HTTPS IPs and ports
+765 - riak-erlang-client unit test fails due to updated error message
+777 - Bundle redbug into all release packages
+781 - OTP default error_logger handler isn't super-awesome
+785 - bitcask_merge_worker leaks ports if the merge crashes
+856 - Calls to unexported ets:next/1 in riak_kv_js_manager.erl
+857 - Call to unexported riak_kv_keylister_master:start_keylist/6 in lk.erl
+871 - Link walking busted in refactored MapReduce branch
+873 - riak_err UTC time formatting is broken
+881 - Add riak_err app to all Riak* product packaging
+882 - Add cluster_info app to all Riak* packaging
+884 - If-Match and If-None-Match should support a list of ETag values
+893 - riak_err mis-handles error_report with badmatch in riak_err_handler:format_event/2
+902 - Bitcask should only perform merges during acceptable timeframes
+916 - Dialyzer errors for pre-Dakota release (cluster_info)
+932 - Fix "riak-admin transfers" regression: "No transfers active\n" message missing
+950 - riak_err sends progress reports to console
+
+
+Bugs Fixed
+----------
+107 - ensure correct ETag format
+210 - Cannot setup multiple backends using riak_kv_bitcask_backend
+508 - Updating riak_object values can lose metadata
+537 - riakc_pb_socket function calls are all subject to the default 5 second
+      gen_server timeout
+787 - fail gracefully in bitcask:fold if last entry is truncated
+804 - Riak KV handoff sender badmatch when using Innostore backend
+813 - riak-admin js_reload results in error
+827 - Webmachine only reads the first chunk of an incoming chunked request
+835 - Bitcask worker_ready state not updated correctly on merge
+852 - Peer address should be pulled from X-Forwarded-For for all RFC1918 space
+862 - riak-admin js_reload exits with {badrecord,vm_state}
+877 - List keys causes erl_drv_rwlock_runlock() error on Solaris when using
+      the Bitcask backend
+879 - Etag If-Match bug in H7
+888 - Bitcask errors if the writer process is restarted
+891 - Using persistent HTTP connections seems to increase the latency per request
+892 - Summary plots fail to generate if ""0"" duration results are present
+901 - riak-erlang-client server_closes_socket_test unit tests fails
+905 - New HTTP/HTTPS binding config is not backwards compatible
+913 - Reference to non-existent gmt_config_svr
+933 - Map phases break for non-existent keys
+937 - riak_client:filter_keys exits with bad_match
+938 - riak_kv_js_manager times out reserving JS VM
+
+All bug and issue numbers reference https://issues.basho.com.
+
