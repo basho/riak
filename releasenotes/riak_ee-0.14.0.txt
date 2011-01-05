@@ -1,0 +1,59 @@
+----------------------------------------------
+Riak 0.14.0 Release Notes (Enterprise Edition)
+----------------------------------------------
+
+Multi-site replication was the main focus for the 0.14.0 Riak EE Release.  It has received a significant amount of testing with corresponding
+bug fixes. The result is much more robust and resilient replication. (The instructions for rolling upgrades are at the bottom of these notes.)
+
+The enhancements and bug fixes for 0.14.0 are as follows:
+
+Enhancements (Enterprise Edition)
+-------------------------------
+758 - Add full-sync info to riak-repl status
+768 - Log when full-sync begins
+789 - replication changes to the ring are not written to a ringfile on disk
+798 - Log ""updated"" of ""processed"" per partition during fullsync
+943 - Don't fail JMX HTTP config if JMX is disabled
+
+Bugs Fixed (Enterprise Edition)
+-------------------------------
+427 - Bad IP address for add-listener crashes server
+550 - Riak replication TCP server does not catch {error,enoent} or {error,closed}
+      when sending merkle trees
+593 - couch_merkle:diff() broken
+595 - riak_repl may lose individual updates if socket closes abruptly
+597 - riak_repl doesn't delete the btree file on error
+598 - Multiple riak_repl connections from same site will corrupt btree file
+601 - riak_repl_tcp_server does not close connection on remote error
+738 - Replication is overrun under heavy write loads
+759 - riak-repl add-listener on remote node doesn't listen
+907 - Replication leaks file handles when converting from merkle trees to sorted keylists
+927 - Add cluster_info dump commands to riak-admin"""
+
+All bug and issue numbers reference https://issues.basho.com.
+
+
+Rolling Upgrades
+----------------
+
+Rolling upgrades have been tested using mixed clusters of 0.12.13 and 0.13.0 nodes.  
+To safely perform a rolling upgrade of a cluster fullsyncs should not run while the
+cluster is being upgraded.   Some functions have been moved between modules which
+causes errors on fullsync.
+
+Upgrade as follows:
+
+1) Disable fullsync on connect
+    - add {fullsync_on_connect, false} to the riak_repl section the app.config file, this is
+      safe to do while the node is running.
+    - disable on the console for all running nodes
+      application:set_env(riak_repl, fullsync_on_connect, false).
+
+2) When all fullsyncs have completed, perform a rolling upgrade on all the nodes in the cluster.
+   Check fullsync is not running using riak-repl status and look at the server status lines.
+
+3) The fullsync on connect change can be reverted once *all* nodes in the cluster are
+   upgraded to 0.14.0
+
+The additions to replication are forward compatible so it is safe to run sites with
+different versions.
