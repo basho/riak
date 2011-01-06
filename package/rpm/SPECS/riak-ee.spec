@@ -45,6 +45,10 @@ cat > rel/vars.config <<EOF
 {repl_data_root,    "%{_localstatedir}/lib/%{appname}/riak_repl"}.
 {snmp_agent_conf,   "/etc/riak/snmp/agent/conf"}.
 {snmp_db_dir,       "%{_localstatedir}/lib/%{appname}/snmp/agent/db"}.
+{mapred_queue_dir,  "%{_localstatedir}/lib/%{appname}/mr_queue"}.
+{map_js_vms,   8}.
+{reduce_js_vms, 6}.
+{hook_js_vms, 2}.
 % vm.args
 {node,              "riak@127.0.0.1"}.
 % bin/riak*
@@ -87,6 +91,7 @@ mkdir -p %{buildroot}%{_localstatedir}/lib/%{appname}/riak_repl
 mkdir -p %{buildroot}%{_localstatedir}/lib/%{appname}/snmp/agent/db
 mkdir -p %{buildroot}%{_localstatedir}/log/%{appname}/sasl
 mkdir -p %{buildroot}%{_localstatedir}/log/%{appname}/riak_repl
+mkdir -p %{buildroot}%{_localstatedir}/lib/%{appname}/mr_queue
 mkdir -p %{buildroot}%{_localstatedir}/run/%{appname}
 
 #Copy all necessary lib files etc.
