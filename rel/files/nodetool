@@ -8,6 +8,7 @@
 %% -------------------------------------------------------------------
 
 main(Args) ->
+    ok = start_epmd(),
     %% Extract the args
     {RestArgs, TargetNode} = process_args(Args, [], undefined),
 
@@ -104,6 +105,27 @@ process_args(["-sname", TargetName | Rest], Acc, _) ->
     process_args(Rest, Acc, nodename(TargetName));
 process_args([Arg | Rest], Acc, Opts) ->
     process_args(Rest, [Arg | Acc], Opts).
+
+
+start_epmd() ->
+    [] = os:cmd(epmd_path() ++ " -daemon"),
+    ok.
+
+epmd_path() ->
+    ErtsBinDir = filename:dirname(escript:script_name()),
+    Name = "epmd",
+    case os:find_executable(Name, ErtsBinDir) of
+        false ->
+            case os:find_executable(Name) of
+                false ->
+                    io:format("Could not find epmd.~n"),
+                    halt(1);
+                GlobalEpmd ->
+                    GlobalEpmd
+            end;
+        Epmd ->
+            Epmd
+    end.
 
 
 nodename(Name) ->
