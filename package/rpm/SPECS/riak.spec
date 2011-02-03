@@ -44,7 +44,7 @@ cat > rel/vars.config <<EOF
 {hook_js_vms, 2}.
 % vm.args
 {node,         "riak@127.0.0.1"}.
-{crash_dump,   "/var/log/riak/erl_crash.dump"}.
+{crash_dump,   "%{_localstatedir}/log/%{name}/erl_crash.dump"}.
 % bin/riak*
 {runner_script_dir,  "/usr/sbin"}.
 {runner_base_dir,    "%{riak_lib}"}.
