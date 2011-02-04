@@ -145,6 +145,11 @@ case "$1" in
         ;;
 
     cluster_info)
+        if [ $# -lt 2 ]; then
+            echo "Usage: $SCRIPT cluster_info <output_file> ['local' | <node> ['local' | <node>] [...]]"
+            exit 1
+        fi
+
         # Make sure the local node IS running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
