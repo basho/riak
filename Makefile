@@ -125,8 +125,8 @@ distdir:
 	$(if $(RIAK_TAG), $(call buildtar), $(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
 
 dist $(RIAK_TAG).tar.gz: distdir
-	cd distdir; \
-	tar czf ../$(RIAK_TAG).tar.gz $(RIAK_TAG)
+	mkdir -p package/packages
+	tar -czf package/packages/$(RIAK_TAG).tar.gz -C distdir $(RIAK_TAG)
 
 ballclean:
 	rm -rf $(RIAK_TAG).tar.gz distdir
