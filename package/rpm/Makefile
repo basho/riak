@@ -1,9 +1,14 @@
 
+DISTRO = $(shell head -1 /etc/redhat-release| awk \
+           '{if ($$0 ~ /CentOS/) { print ".el5."} else { print "." }} ')
+
 build: $(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz rpmbuild
+	@echo "DISTRO = $(DISTRO)"
 	@echo "RIAK_TAG = $(RIAK_TAG)"
 	@echo "REVISION = $(REVISION)"
 	@echo "RELEASE  = $(RELEASE)"
-	rpmbuild --define '_topdir $(CURDIR)/rpmbuild' \
+	rpmbuild --define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}$(DISTRO)%%{ARCH}.rpm" \
+		 --define '_topdir $(CURDIR)/rpmbuild' \
 		 --define '_sourcedir $(CURDIR)/$(PKGERDIR)/SOURCES' \
 		 --define '_specdir $(CURDIR)/$(PKGERDIR)/SPECS' \
 		 --define '_rpmdir $(CURDIR)/packages' \
@@ -12,8 +17,6 @@ build: $(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz rpmbuild
 		 --define "_version $(PKG_VERSION)" \
 		 --define "_release $(RELEASE)" \
 		 -ba $(PKGERDIR)/SPECS/$(APP).spec
-	mv packages/*/$(APP)-$(PKG_VERSION)-$(RELEASE)*.rpm packages
-	rm -rf packages/i?86 packages/x86_64
 
 rpmbuild:
 	@mkdir -p rpmbuild/BUILD
