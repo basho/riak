@@ -14,7 +14,8 @@ endif
 ifeq ($(OS),SunOS)
 PKGER		= make
 PKGERDIR	= solaris
-DISTRO		= $(shell awk '{ if (NR==1) print $$1; };' /etc/release)
+DISTRO		= $(shell head -1 /etc/release|awk \
+                   '{if ($$1 == OpenSolaris) {print $$1} else {print "Solaris"}}')
 endif
 
 APP		 = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
