@@ -273,3 +273,72 @@ Welcome to Riak.
     
     
      
+* Contributing to Riak
+  Basho encourages contributions to Riak from the community. Here's
+  how to get started.
+
+  - Fork the appropriate sub-projects that are affected by your
+    change. Fork this repository if your changes are for release
+    generation or packaging.
+  - Make your changes and run the test suite. (see below)
+  - Commit your changes and push them to your fork.
+  - Open pull-requests for the appropriate projects.
+    - If a Bugzilla issue exists that is related to your change, modify
+      the issue, giving a link to the pull-request(s).  Be sure to mention
+      the Bugzilla issue number in your pull-requests.
+  - Basho engineers will review your pull-request, suggest changes,
+    and merge it when it's ready.
+
+** Testing
+  To make sure your patch works, be sure to run the test suite in each
+  modified sub-project, and dialyzer from the top-level project to
+  detect static code errors.
+
+  To run the QuickCheck properties included in Riak sub-projects,
+  download QuickCheck Mini: http://quviq.com/downloads.htm NOTE: Some
+  properties that require features in the Full version will fail.
+
+*** Running unit tests
+   The unit tests for each subproject can be run with =make= or
+   =rebar= like so:
+
+#+BEGIN_SRC shell
+make eunit
+#+END_SRC
+
+#+BEGIN_SRC shell
+./rebar skip_deps=true eunit
+#+END_SRC
+
+*** Running dialyzer
+    Dialyzer performs static analysis of the code to discover defects,
+    edge-cases and discrepancies between type specifications and the
+    actual implementation.
+
+    Dialyzer requires a pre-built code analysis table called a PLT.
+    Building a PLT is expensive and can take up to 30 minutes on some
+    machines.  Once built, you generally want to avoid clearing or
+    rebuilding the PLT unless you have had significant changes in your
+    build (a new version of Erlang, for example).
+
+**** Build the PLT
+     Run the command below to build the PLT.
+    
+#+BEGIN_SRC shell
+make build_plt
+#+END_SRC
+
+**** Check the PLT
+     If you have built the PLT before, check it before you run
+     Dialyzer again. This will take much less time than building the
+     PLT from scratch.
+
+#+BEGIN_SRC shell
+make check_plt
+#+END_SRC
+
+**** Run Dialyzer
+    
+#+BEGIN_SRC shell
+make dialyzer
+#+END_SRC
