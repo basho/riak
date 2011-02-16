@@ -1,5 +1,6 @@
 OS		= $(shell uname -s)
 KERNEL		= $(shell uname -r)
+ERLANG_BIN	= $(shell dirname $(shell which erl))
 ifeq ($(OS),Linux)
 PKGER		= $(shell cat /etc/redhat-release 2> /dev/null)
 ifeq ($(PKGER),)

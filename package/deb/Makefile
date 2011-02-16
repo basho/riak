@@ -7,6 +7,7 @@ build:  $(BUILDPATH)/debian \
 	dch  --noquery -c $(BUILDPATH)/debian/changelog \
 		-b -v "$(REVISION)-$(RELEASE)" "pants on head"
 	cd $(BUILDPATH) && debuild --no-lintian \
+		--prepend-path=$(ERLANG_BIN) \
 		-e REVISION=$(REVISION) \
 		-e RELEASE=$(RELEASE) \
 		-e CLASSPATH=$${CLASSPATH} \
