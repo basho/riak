@@ -4,7 +4,6 @@ PKG		 = BASHO$(APP)
 ARCH		 = $(shell uname -p)
 SOLARIS_VER	?= $(shell echo "$(KERNEL)" | sed -e 's/^5\.//')
 PKGFILE		 = $(PKG)-$(REVISION)-$(RELEASE)-$(DISTRO)$(SOLARIS_VER)-$(ARCH).pkg
-USER		= $(shell logname)
 
 build: buildrel depend pkginfo prototype
 	cp $(PKGERDIR)/copyright $(PKGERDIR)/preinstall $(PKGERDIR)/*.preserve .
@@ -54,7 +53,7 @@ prototype:
 	echo "i r.preserve" >> prototype
 	echo '' >> prototype
 	pkgproto $(RIAK_PATH)/rel/riak=riak >> prototype
-	sed -i -e "s/ $(USER) .*$$/ riak riak/" \
+	sed -i -e "s/ $(LOGNAME) .*$$/ riak riak/" \
 	       -e 's/f none riak\/etc/e preserve riak\/etc/' prototype
 
 $(PKGERDIR)/pkgclean:
