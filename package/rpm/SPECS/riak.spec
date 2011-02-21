@@ -108,6 +108,10 @@ if ! getent passwd riak >/dev/null 2>&1; then
         usermod -c "Riak Server" riak
 fi
 
+%post
+# Fixup perms for SELinux
+find %{riak_lib} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
+
 %files
 %defattr(-,riak,riak)
 %attr(-,root,root) %{_libdir}/*
