@@ -144,6 +144,11 @@ else
         usermod -c "Riak Server" %{appuser}
 fi
 
+%post
+# Fixup perms for SELinux
+find %{riak_lib} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
+
+
 %files
 %defattr(-,riak,riak)
 %{_libdir}/*
