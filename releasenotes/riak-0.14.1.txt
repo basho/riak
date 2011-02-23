@@ -1,0 +1,18 @@
+-------------------------
+Riak 0.14.1 Release Notes
+-------------------------
+
+Riak 0.14.1 is a patch-level release for the 0.14 series and as such restricted to bug fixes.
+
+Please see riak-0.14.0.txt in the releasenotes/ directory for an outline of new features introduced by the 0.14 series.
+
+Bugs Fixed
+----------
+0969 - Map/reduce cache fails to prune
+0971 - Latency of "/stats" request steadily increases over time
+0982 - riak-admin js_reload does not work
+0987 - cluster_info formatting needs truncation limits
+1000 - Ensure Riak and Riak EE use latest riak-erlang-client library
+
+All bug and issue numbers reference https://issues.basho.com.
+
