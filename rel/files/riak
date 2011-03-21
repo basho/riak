@@ -120,7 +120,13 @@ case "$1" in
 
     ping)
         ## See if the VM is alive
-        $NODETOOL ping
+        RES=`$NODETOOL ping`
+        echo $RES
+        if [ "$RES" != "pong" ]; then
+            exit 1
+        else
+            exit 0
+        fi
         ;;
 
     attach)
