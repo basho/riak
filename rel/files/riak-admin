@@ -68,6 +68,11 @@ NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
 # Check the first argument for instructions
 case "$1" in
     join)
+        if [ $# -ne 2 ]; then
+            echo "Usage: $SCRIPT join <node>"
+            exit 1
+        fi
+
         # Make sure the local node IS running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
@@ -81,6 +86,11 @@ case "$1" in
         ;;
 
     leave)
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT leave"
+            exit 1
+        fi
+
         # Make sure the local node is running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
@@ -109,6 +119,11 @@ case "$1" in
         ;;
 
     status)
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT status"
+            exit 1
+        fi
+
         # Make sure the local node IS running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
@@ -121,6 +136,11 @@ case "$1" in
         ;;
 
     ringready)
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT ringready"
+            exit 1
+        fi
+
         # Make sure the local node IS running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
@@ -133,6 +153,11 @@ case "$1" in
         ;;
 
     transfers)
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT transfers"
+            exit 1
+        fi
+
         # Make sure the local node IS running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
