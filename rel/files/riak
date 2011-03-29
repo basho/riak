@@ -102,6 +102,10 @@ case "$1" in
                 ;;
         esac
         $NODETOOL stop
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            exit $ES
+        fi
         while `kill -0 $PID 2>/dev/null`;
         do
             sleep 1
@@ -111,28 +115,41 @@ case "$1" in
     restart)
         ## Restart the VM without exiting the process
         $NODETOOL restart
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            exit $ES
+        fi
         ;;
 
     reboot)
         ## Restart the VM completely (uses heart to restart it)
         $NODETOOL reboot
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            exit $ES
+        fi
         ;;
 
     ping)
         ## See if the VM is alive
         $NODETOOL ping
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            exit $ES
+        fi
         ;;
 
     attach)
         # Make sure a node IS running
         RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
             echo "Node is not running!"
-            exit 1
+            exit $ES
         fi
 
         shift
-        $ERTS_PATH/to_erl $PIPE_DIR
+        exec $ERTS_PATH/to_erl $PIPE_DIR
         ;;
 
     console)
