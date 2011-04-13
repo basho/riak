@@ -16,7 +16,7 @@ deps:
 
 clean:
 	./rebar clean
-	make -C deps/riak_jmx/java_src clean
+	if [ -d deps/riak_jmx ]; then make -C deps/riak_jmx/java_src; fi
 
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
