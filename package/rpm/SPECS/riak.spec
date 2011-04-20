@@ -42,10 +42,16 @@ cat > rel/vars.config <<EOF
 {map_js_vms,   8}.
 {reduce_js_vms, 6}.
 {hook_js_vms, 2}.
+% Platform-specific installation paths
+{platform_bin_dir, "%{_sbindir}"}.
+{platform_data_dir, "%{_localstatedir}/lib/%{name}"}.
+{platform_etc_dir, "%{_sysconfdir}/%{name}"}.
+{platform_lib_dir, "%{riak_lib}"}.
+{platform_log_dir, "%{_localstatedir}/log/%{name}"}.
 % vm.args
 {node,         "riak@127.0.0.1"}.
 % bin/riak*
-{runner_script_dir,  "/usr/sbin"}.
+{runner_script_dir,  "%{_sbindir}"}.
 {runner_base_dir,    "%{riak_lib}"}.
 {runner_etc_dir,     "%{_sysconfdir}/%{name}"}.
 {runner_log_dir,     "%{_localstatedir}/log/%{name}"}.
