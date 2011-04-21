@@ -1,4 +1,3 @@
-
 ## Name of the riak node
 -name {{node}}
 
@@ -18,4 +17,16 @@
 
 ## Tweak GC to run more often 
 -env ERL_FULLSWEEP_AFTER 0
+
+## Begin SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
+
+## To enable SSL encryption of the Erlang intra-cluster communication,
+## un-comment the three lines below and make certain that the paths
+## point to correct PEM data files.  See docs TODO for details.
+
+## -proto_dist inet_ssl
+## -ssl_dist_opt client_certfile "{{platform_etc_dir}}/erlclient.pem"
+## -ssl_dist_opt server_certfile "{{platform_etc_dir}}/erlserver.pem"
+
+## End SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
 
