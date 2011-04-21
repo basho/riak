@@ -10,6 +10,7 @@ RUNNER_ETC_DIR={{runner_etc_dir}}
 RUNNER_LOG_DIR={{runner_log_dir}}
 PIPE_DIR={{pipe_dir}}
 RUNNER_USER={{runner_user}}
+SSL_DIST_CONFIG={{platform_data_dir}}/ssl_distribution.args_file
 
 # Make sure this script is running as the appropriate user
 if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
@@ -63,6 +64,11 @@ ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
 
 # Setup command to control the node
 NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
+
+# Scrape out SSL distribution config info from vm.args into $SSL_DIST_CONFIG
+rm -f $SSL_DIST_CONFIG
+sed -n '/Begin SSL distribution items/,/End SSL distribution items/p' \
+    $RUNNER_ETC_DIR/vm.args > $SSL_DIST_CONFIG
 
 # Check the first argument for instructions
 case "$1" in
