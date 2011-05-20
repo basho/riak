@@ -9,10 +9,14 @@ Bugs Fixed
 ----------
 0977 - riak_kv_vnode:syntactic_put_merge creates different merged timestamps if
        clock skewed
+1006 - Objects not found in map-reduce are no longer retried on other vnodes in preflist
 1009 - Empty js files in js_source_dir caused crash on start
 1015 - Queued javascript map phases are processed even after a map reduce job
        has failed (e.g. client receives timeout)
-
+1090 - bitcask_nifs_keydir_itr() has a race condition wrt. thread creation
+1094 - Read repair introduces 'undefined' timestamps
+1095 - result non-determinstic with allow_mult=false and siblings have same timestamp
+ 
 All bug and issue numbers reference https://issues.basho.com.
 
 -------------------------
