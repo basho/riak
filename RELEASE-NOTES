@@ -16,6 +16,7 @@ Bugs Fixed
 1090 - bitcask_nifs_keydir_itr() has a race condition wrt. thread creation
 1094 - Read repair introduces 'undefined' timestamps
 1095 - result non-determinstic with allow_mult=false and siblings have same timestamp
+1104 - MapReduce queries return results from other MapReduce queries
  
 All bug and issue numbers reference https://issues.basho.com.
 
