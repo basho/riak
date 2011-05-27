@@ -17,6 +17,12 @@ Bugs Fixed
 1094 - Read repair introduces 'undefined' timestamps
 1095 - result non-determinstic with allow_mult=false and siblings have same timestamp
 1104 - MapReduce queries return results from other MapReduce queries
+1112 - Map phase retries on not_found causes "500 Internal Server Error" response when 
+       input contains the same bucket/key pair multiple times
+1113 - Map phase retries on not_found causes "500 Internal Server Error" response when 
+       nodes are down
+1114 - Map phase retries on not_found causes "500 Internal Server Error" response 
+       (function_clause) when nodes are down
  
 All bug and issue numbers reference https://issues.basho.com.
 
