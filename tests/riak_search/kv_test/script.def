@@ -1,0 +1,63 @@
+[{schema, "./schema.def" },
+ 
+ {echo,   "Setting up k/v hooks..."}, 
+ {index_bucket, <<"test">>},
+ 
+ {echo, "Putting some data"},
+ {putobj, <<"test">>, <<"v1_l1">>, 
+  "text/plain", <<"Once upon a midnight dreary, while I pondered weak and weary">>},
+ {putobj, <<"test">>, <<"v1_l2">>, 
+  "text/plain", <<"Over many a quaint and curious volume of forgotten lore">>},
+ {putobj, <<"test">>, <<"v1_l3">>, 
+  "text/plain", <<"While I nodded, nearly napping, suddenly there came a tapping">>},
+ {putobj, <<"test">>, <<"v1_l4">>, 
+  "text/plain", <<"As of some one gently rapping, rapping at my chamber door">>},
+
+ {putobj, <<"test">>, <<"tt1_l1">>, 
+  "text/plain", <<"Peter Piper picked a peck of pickled peppers.">>},
+ {putobj, <<"test">>, <<"tt1_l2">>, 
+  "text/plain", <<"A peck of pickled peppers Peter Piper picked.">>},
+ {putobj, <<"test">>, <<"tt1_l3">>, 
+  "text/plain", <<"If Peter Piper picked a peck of pickled peppers,">>},
+ {putobj, <<"test">>, <<"tt1_l4">>, 
+  "text/plain", <<"Where's the peck of pickled peppers Peter Piper picked?">>},
+
+ {putobj, <<"test">>, <<"x1">>, 
+  "application/xml", <<"<?xml version=\"1.0\"?><doc><thing id=\"abcd\"/><item>ghij</item></doc>">>},
+
+ {putobj, <<"test">>, <<"j1">>, 
+  "application/json", <<"{\"outer\":{\"inner1\":\"snooty\",\"inner2\":\"fox\"}}">>},
+
+ {echo, "Checking data present..."},
+
+ {search, "value:quaint", [{length, 1}]},
+ {search, "value:Peter", [{length, 4}]},
+ {search, "doc_thing@id:abcd", [{length, 1}]},
+ {search, "doc_item:ghij", [{length, 1}]},
+ {search, "outer_inner1:snooty", [{length, 1}]},
+ {search, "outer_inner2:fox", [{length, 1}]},
+
+ %% Cleanup.
+ {echo, "De-indexing documents (by deleting k/v objects)..."},
+ {delobj, <<"test">>, <<"v1_l1">>}, 
+ {delobj, <<"test">>, <<"v1_l2">>}, 
+ {delobj, <<"test">>, <<"v1_l3">>}, 
+ {delobj, <<"test">>, <<"v1_l4">>}, 
+ {delobj, <<"test">>, <<"tt1_l1">>}, 
+ {delobj, <<"test">>, <<"tt1_l2">>}, 
+ {delobj, <<"test">>, <<"tt1_l3">>}, 
+ {delobj, <<"test">>, <<"tt1_l4">>}, 
+ {delobj, <<"test">>, <<"x1">>}, 
+ {delobj, <<"test">>, <<"j1">>}, 
+
+ {echo, "Checking data gone..."},
+
+ {search, "value:quaint", [{length, 0}]},
+ {search, "value:Peter", [{length, 0}]},
+ {search, "doc_thing@id:abcd", [{length, 0}]},
+ {search, "doc_item:ghij", [{length, 0}]},
+ {search, "outer_inner1:snooty", [{length, 0}]},
+ {search, "outer_inner2:fox", [{length, 0}]},
+
+ {echo, "Done"}
+].

@@ -1,0 +1,76 @@
+[
+    %% Set the schema...
+    {schema, "../_files/sort/schema.def"},
+
+    {echo,   "Indexing documents..."}, 
+    {solr_update, "../_files/sort/solr_add.xml"},
+
+    {echo, "Check ascending numeric sort"},
+    {solr_select, 
+        [{q, "testset:int"}, {wt, json}, {rows, 999}, {sort, "a_num asc"}], 
+        [{docids, [<<"p10_0_e">>,<<"10_1_f">>, <<"p1_2_d">>, <<"1_3_g">>,
+                   <<"zz_4_c">>, <<"z_5_h">>,  <<"m0_6_b">>, <<"m1_7_i">>,
+                   <<"m10_8_a">>]}]},
+
+    {echo, "Check descending numeric sort"},
+    {solr_select, 
+        [{q, "testset:int"}, {wt, json}, {rows, 999}, {sort, "a_num desc"}], 
+        [{docids, [<<"m10_8_a">>,<<"m1_7_i">>,<<"m0_6_b">>,<<"z_5_h">>,
+                   <<"zz_4_c">>,<<"1_3_g">>,<<"p1_2_d">>,<<"10_1_f">>,
+                   <<"p10_0_e">>]}]},
+
+    {echo, "Check compound numeric sort"},
+    {solr_select, 
+        [{q, "testset:int"}, {wt, json}, {rows, 999}, {sort, "refnum desc,a_num desc"}], 
+        [{docids, [<<"10_1_f">>,
+                   <<"p10_0_e">>,
+                   <<"1_3_g">>,
+                   <<"p1_2_d">>,
+                   <<"m0_6_b">>,
+                   <<"z_5_h">>,
+                   <<"zz_4_c">>,
+                   <<"m1_7_i">>,
+                   <<"m10_8_a">>]}]},
+
+    {solr_select, 
+        [{q, "testset:int"}, {wt, json}, {rows, 999}, {sort, "refnum desc,a_num asc"}], 
+        [{docids, [<<"p10_0_e">>,
+                   <<"10_1_f">>,
+                   <<"p1_2_d">>,
+                   <<"1_3_g">>,
+                   <<"zz_4_c">>,
+                   <<"z_5_h">>,
+                   <<"m0_6_b">>,
+                   <<"m1_7_i">>,
+                   <<"m10_8_a">>]}]},
+
+    {solr_select, 
+        [{q, "testset:int"}, {wt, json}, {rows, 999}, {sort, "refnum asc,a_num asc"}], 
+        [{docids, [<<"m10_8_a">>,
+                   <<"m1_7_i">>,
+                   <<"zz_4_c">>,
+                   <<"z_5_h">>,
+                   <<"m0_6_b">>,
+                   <<"p1_2_d">>,
+                   <<"1_3_g">>,
+                   <<"p10_0_e">>,
+                   <<"10_1_f">>]}]},
+
+    %% Mixed numeric/string sort
+    {solr_select, 
+        [{q, "testset:int"}, {wt, json}, {rows, 999}, {sort, "refnum asc,a_str asc"}], 
+        [{docids, [<<"m10_8_a">>,
+                   <<"m1_7_i">>,
+                   <<"m0_6_b">>,
+                   <<"zz_4_c">>,
+                   <<"z_5_h">>,
+                   <<"p1_2_d">>,
+                   <<"1_3_g">>,
+                   <<"p10_0_e">>,
+                   <<"10_1_f">>]}]},
+    
+    %% Cleanup.
+    {echo, "De-indexing documents..."},
+    {solr_update, "../_files/sort/solr_delete_all.xml"},
+    {echo, "Done"}
+].

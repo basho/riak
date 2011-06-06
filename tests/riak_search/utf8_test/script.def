@@ -1,0 +1,60 @@
+[
+    %% This test verifies that we can properly store and search on UTF8 content.
+
+    %% Set the schema...
+    {schema, "schema.def"},
+
+    {echo,   "Indexing documents via Solr..."}, 
+    {solr, "./solr_add.xml"},
+
+    {echo,   "Run some searches."},
+
+    {search, "quick", [{length, 1}]},       % English
+    {search, "ḟaitíos", [{length, 1}]},     % Irish
+    {search, "größeren", [{length, 1}]},    % German
+    {search, "Jagdſchloß", [{length, 1}]},  % German
+    {search, "bäckasiner", [{length, 1}]},  % Swedish
+    {search, "Sævör", [{length, 1}]},       % Icelandic
+    {search, "žluťoučký", [{length, 1}]},   % Polish
+    {search, "povädnuté", [{length, 1}]},   % Czech
+    {search, "ξεσκεπάζω", [{length, 1}]},  % Slovak
+    {search, "ψυχοφθόρα", [{length, 1}]},  % Greek
+    {search, "французских", [{length, 1}]}, % Russian
+    {search, "фальшивый", [{length, 1}]},   % Russian
+    {search, "щастлива,", [{length, 1}]},    % Bulgarian
+    {search, "geđggiid", [{length, 1}]},    % Sami
+    {search, "tükörfúrógép.", [{length, 1}]}, % Hungarian
+    {search, "pingüino", [{length, 1}]},     % Spanish
+    {search, "Atlântico,", [{length, 1}]},    % Portuguese
+    {search, "ægithales", [{length, 1}]},    % French
+    {search, "Eĥoŝanĝo", [{length, 1}]},     % Esperanto
+    {search, "לשמוע", [{length, 1}]},        % Hebrew
+    {search, "いろはにほへど*", [{length, 1}]},  % Japanese
+
+    {search, "value:quick", [{length, 1}]},       % English
+    {search, "value:ḟaitíos", [{length, 1}]},     % Irish
+    {search, "value:größeren", [{length, 1}]},    % German
+    {search, "value:Jagdſchloß", [{length, 1}]},  % German
+    {search, "value:bäckasiner", [{length, 1}]},  % Swedish
+    {search, "value:Sævör", [{length, 1}]},       % Icelandic
+    {search, "value:žluťoučký", [{length, 1}]},   % Polish
+    {search, "value:povädnuté", [{length, 1}]},   % Czech
+    {search, "value:ξεσκεπάζω", [{length, 1}]},  % Slovak
+    {search, "value:ψυχοφθόρα", [{length, 1}]},  % Greek
+    {search, "value:французских", [{length, 1}]}, % Russian
+    {search, "value:фальшивый", [{length, 1}]},   % Russian
+    {search, "value:щастлива,", [{length, 1}]},    % Bulgarian
+    {search, "value:geđggiid", [{length, 1}]},    % Sami
+    {search, "value:tükörfúrógép.", [{length, 1}]}, % Hungarian
+    {search, "value:pingüino", [{length, 1}]},     % Spanish
+    {search, "value:Atlântico,", [{length, 1}]},    % Portuguese
+    {search, "value:ægithales", [{length, 1}]},    % French
+    {search, "value:Eĥoŝanĝo", [{length, 1}]},     % Esperanto
+    {search, "value:לשמוע", [{length, 1}]},        % Hebrew
+    {search, "value:いろはにほへど*", [{length, 1}]},  % Japanese
+
+    %%  %% Cleanup.
+    {echo,   "De-indexing documents via Solr..."},
+    {solr, "./solr_delete.xml"},
+    {echo,   "Done."}
+].

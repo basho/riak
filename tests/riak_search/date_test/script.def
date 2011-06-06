@@ -1,0 +1,27 @@
+[
+    %% Set the schema...
+    {schema, "schema.def"},
+
+    %% Index the solr in "0"...
+    {echo,   "Indexing documents..."}, 
+    {solr,   "./solr_add.xml"},
+
+    {echo,   "Verify some date searches."},
+
+    {search, "'2008-01-01T12:11:00Z'", [{length, 1}]},
+    {search, "\"2008-01-01T12:11:00Z\"", [{length, 1}]},
+    {search, "2008\\-01\\-01T12\\:11\\:00Z", [{length, 1}]},
+
+    {search, "date:'2008-01-01T12:11:00Z'", [{length, 1}]},
+    {search, "date:\"2008-01-01T12:11:00Z\"", [{length, 1}]},
+    {search, "date:2008\\-01\\-01T12\\:11\\:00Z", [{length, 1}]},
+
+    {search, "date:['2007-03-01T05:38:00Z' TO '2010-07-31T10:10:00Z']", [{length, 4}]},
+    {search, "date:[\"2007-03-01T05:38:00Z\" TO \"2010-07-31T10:10:00Z\"]", [{length, 4}]},
+    {search, "date:[2007\\-03\\-01T05\\:38\\:00Z TO 2010\\-07\\-31T10\\:10\\:00Z]", [{length, 4}]},
+
+    %%  %% Cleanup.
+    {echo,   "De-indexing documents..."},
+    {solr,   "./solr_delete.xml"},
+    {echo,   "Done."}
+].

@@ -1,0 +1,108 @@
+[
+    %% Set the schema...
+    {schema, "./schema.def"},
+
+    {echo,   "Indexing documents..."},
+    {solr_update,   "../_files/sample100/solr_add.xml"},
+
+    {echo,   "Perform some simple queries."},
+    {search, "acc:ABC", [{length, 88}]},
+    {search, "acc:abc", [{length, 88}]},
+    {search, "color:red", [{length, 15}]},
+    {search, "parity:even", [{length, 50}]},
+    {search, "color:(red blue)", [{length, 29}]},
+
+    {echo,   "Test the 'AND' operator."},
+    {search, "acc:AFA AND color:red", [{length, 7}]},
+    {search, "acc:afa AND color:red", [{length, 7}]},
+    {search, "acc:AFA AND color:red AND parity:even", [{length, 3}]},
+
+    {echo,   "Test the 'OR' operator."},
+    {search, "color:(red OR blue)", [{length, 29}]},
+    {search, "color:red OR color:blue", [{length, 29}]},
+    {search, "color:red OR parity:odd", [{length, 57}]},
+    {search, "color:red OR parity:odd OR key:keyAAB", [{length, 58}]},
+
+    {echo,    "+/- Operators"},
+    {search,  "+acc:AAB AND -acc:AAC", [{length, 1}]},
+    {search,  "+acc:AAB AND -acc:AEB", [{length, 40}]},
+    {search,  "acc:(AAB AND -AAC)", [{length, 1}]},
+    {search,  "acc:(AAB AND -AEB)", [{length, 40}]},
+
+    {echo,    "Grouping"},
+    {search,  "(color:red OR color:blue) AND (acc:AJA)", [{length, 3}]},
+    {search,  "(color:red AND parity:even) OR (color:blue AND parity:odd)", [{length, 14}]},
+    {search,  "(color:red AND (parity:even OR key:keyABE)) OR ((color:blue OR key:keyABC) AND parity:odd)", [{length, 16}]},
+
+    {echo,    "Test complicated forms of different NOT queries"},
+    {search,  "acc:(AAB AND NOT AAC)", [{length, 1}]},
+    {search,  "acc:(AAB AND NOT ABA)", [{length, 9}]},
+    {search,  "acc:(AAB AND (NOT AAC))", [{length, 1}]}, % Solr returns 0, this seems wrong.
+    {search,  "acc:(AAB AND (NOT ABA))", [{length, 9}]}, % Solr returns 0, this seems wrong.
+    {search,  "acc:AEB NOT parity:even NOT color:red", [{length, 24}]},
+    {search,  "acc:AEB AND NOT parity:even AND NOT color:red", [{length, 24}]},
+    {search,  "acc:AEB AND (NOT parity:even) AND (NOT color:red)", [{length, 24}]}, %% Solr returns 0, this seems wrong.
+    {search,  "+acc:AEB -parity:even -color:red", [{length, 24}]},
+    {search,  "+acc:AEB AND -parity:even -color:red", [{length, 24}]},
+
+    {echo,    "Ranges"},
+    {search,  "key:[keyAAA TO keyAAJ]", [{length, 10}]},
+    {search,  "key:[keyaaa TO keyaaj]", [{length, 10}]},
+    {search,  "color:[aaa TO ccc]", [{length, 14}]},
+    {search,  "color:[blue TO yellow]", [{length, 100}]},
+    {search,  "key:{keyAAA TO keyAAJ}", [{length, 8}]},
+    {search,  "color:{aaa TO ccc}", [{length, 14}]},
+    {search,  "color:{blue TO yellow}", [{length, 72}]},
+    {search,  "key:[keyAAA TO keyAAJ}", [{length, 9}]},
+    {search,  "key:{keyAAA TO keyAAJ]", [{length, 9}]},
+
+    {echo,    "Prefixes and Wildcards"},
+    {search,  "key:keyAA*", [{length, 10}]},
+    {search,  "key:keyaa*", [{length, 10}]},
+    {search,  "key:keyAAA*", [{length, 1}]},
+    {search,  "key:keyAA?", [{length, 10}]},
+
+    {echo,    "Proximity Searches"},
+    {search,  "acc:\"ABA ABB ABC\"", [{length, 88}]},
+    {search,  "acc:\"aba abb abc\"", [{length, 88}]},
+    {search,  "acc:\"ABA ABC\"", [{length, 0}]},
+    {search,  "acc:\"aba abc\"", [{length, 0}]},
+    {search,  "acc:\"ABA ABC\"~3", [{length, 88}]},
+    {search,  "acc:\"aba abc\"~3", [{length, 88}]},
+    {search,  "acc:\"ABA ACA ADA\"~20", [{length, 0}]},
+    {search,  "acc:\"ABA ACA ADA\"~21", [{length, 70}]},
+    {search,  "acc:\"ADA ACA ABA\"~20", [{length, 0}]},
+    {search,  "acc:\"ADA ACA ABA\"~21", [{length, 70}]},
+    {search,  "acc:'ABA ABB ABC'", [{length, 88}]},
+    {search,  "acc:'ABA ABC'", [{length, 0}]},
+    {search,  "acc:'ABA ABC'~3", [{length, 88}]},
+    {search,  "acc:'ABA ACA ADA'~20", [{length, 0}]},
+    {search,  "acc:'ABA ACA ADA'~21", [{length, 70}]},
+    {search,  "acc:'ADA ACA ABA'~20", [{length, 0}]},
+    {search,  "acc:'ADA ACA ABA'~21", [{length, 70}]},
+
+    %% {echo,    "Fuzzy Matching - Not Yet Supported"},
+    %% {search,  "color:rad~", [{length, 15}]},
+    %% {search,  "color:blum~", [{length, 14}]},
+    %% {search,  "color:rad~0.5", [{length, 15}]},
+    %% {search,  "color:blum~0.5", [{length, 14}]},
+
+    %% {echo,    "Complex Queries - Not Fully Supported"},
+    %% {search,  "(color:re* OR color:blub~) AND (parity:{d TO f})", [{length, 14}]},
+    %% {search,  "(acc:AFA AND -acc:AGA) AND -color:oran*", [{length, 8}]},
+    %% {search,  "(acc:AFA AND (NOT acc:AGA)) AND (NOT color:oran*)", [{length, 0}]},
+    %% {search,  "acc:(AFA NOT AGA) AND -color:oran*", [{length, 8}]},
+    %% {search,  "acc:(AFA AND (NOT AGA)) AND (NOT color:oran*)", [{length, 0}]},
+
+    %% Cleanup.
+    {echo,   "De-indexing documents..."},
+    {solr_update,   "../_files/sample100/solr_delete_all.xml"},
+
+    %% Verify deletes occurred
+    {echo, "Verifying delete removed data"},
+    {search, "acc:ABC", [{length, 0}]},
+    {search, "color:red", [{length, 0}]},
+    {search, "parity:even", [{length, 0}]},
+    {search, "color:(red blue)", [{length, 0}]},
+    {echo, "Done"}
+].

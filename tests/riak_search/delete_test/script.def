@@ -1,0 +1,34 @@
+[
+ %% Set the schema...
+ {schema, "../_files/sample100/schema.def"},
+
+ {echo,   "Indexing documents..."}, 
+ {solr,   "../_files/sample100/solr_add.xml"},
+
+ {echo,   "Verify that the data was written."},
+ {search, "key:keyAAA", [{length, 1}]},
+ {search, "key:keyAJJ", [{length, 1}]},
+ {search, "acc:AAA", [{length, 100}]},
+
+ {echo ,  "Delete data by Id."},
+ {solr,   "../_files/sample100/solr_delete_by_id.xml"},
+ {search, "key:keyAAA", [{length, 0}]},
+ {search, "acc:AAA", [{length, 90}]},
+
+ {echo ,  "Delete by Index:Id."},
+ {solr,   "../_files/sample100/solr_delete_by_index_id.xml"},
+ {search, "key:keyABA", [{length, 0}]},
+ {search, "acc:AAA", [{length, 80}]},
+
+ {echo,   "Delete by Query."},
+ {search, "acc:AJA", [{length, 10}]},
+ {solr,   "../_files/sample100/solr_delete_by_query.xml"},
+ {search, "key:keyAJA", [{length, 0}]},
+ {search, "acc:AAA", [{length, 70}]},
+ {search, "acc:AJA", [{length, 0}]},
+
+ %% Cleanup.
+ {echo,   "De-indexing documents..."},
+ {solr,   "../_files/sample100/solr_delete_all.xml"},
+ {echo,   "Done."} 
+].
