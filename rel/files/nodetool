@@ -46,6 +46,16 @@ main(Args) ->
                 _ ->
                     halt(1)
             end;
+        ["rpc_infinity", Module, Function | RpcArgs] ->
+            case rpc:call(TargetNode, list_to_atom(Module), list_to_atom(Function), [RpcArgs], infinity) of
+                ok ->
+                    ok;
+                {badrpc, Reason} ->
+                    io:format("RPC to ~p failed: ~p\n", [TargetNode, Reason]),
+                    halt(1);
+                _ ->
+                    halt(1)
+            end;
         ["rpcterms", Module, Function, ArgsAsString] ->
             case rpc:call(TargetNode, list_to_atom(Module), list_to_atom(Function),
                           consult(ArgsAsString), 60000) of
