@@ -16,7 +16,7 @@
 
   Riak can be downloaded as a pre-built, binary release for many
   popular platforms, or as source code, ready to build on most
-  platforms supporting [[http://erlang.org/][Erlang]] releases R13B04 and later.
+  platforms supporting [[http://erlang.org/][Erlang]] releases R14B02 and later.
 
 ** Binary Releases
 *** Overview
@@ -25,53 +25,50 @@
     to install the latest Erlang and compile from source. The binary
     distribution of Riak doesn't include innostore. Innostore must
     be compiled and installed manually. You can find out more about
-    innostore at http://hg.basho.com/innostore/.
+    innostore at http://wiki.basho.com/Setting-Up-Innostore.html.
 
-    Currently Riak is offered in binary form for rpm and deb based
-    Linux systems and as a compiled tarball for OS X.
+    Currently Riak is offered in binary form for Solaris/OpenSolaris, Linux systems based on RPM
+    and Deb, and as a compiled tarball for OS X.
 
 *** RPM Based Linux Distributions
     
     Riak can be installed in binary form on many RPM based systems,
     the current target platforms are RHEL and CentOS. Riak can be
     download in both 64bit and 32bit binaries in rpm format here:
-    32bit: http://downloads.basho.com/riak/riak-0.11/riak-0.11.0-1.i386.rpm
-    64bit: http://downloads.basho.com/riak/riak-0.11/riak-0.11.0-1.x86_64.rpm
+    http://downloads.basho.com/riak/CURRENT/
     
     Note: On 32bit systems you may need to disable SE Linux if 
     it is enabled.
 
 *** Deb Based Linux Distributions
 
-   Riak can be installed in binary form on many systems that use the
-   Debian packaging system, the current target platforms are
-   Ubuntu and Debian.  Riak can be download in both 64bit and 32bit
-   binaries in deb format here:
-   32bit: http://downloads.basho.com/riak/riak-0.11/riak_0.11.0-1_i386.deb
-   64bit: http://downloads.basho.com/riak/riak-0.11/riak_0.11.0-1_amd64.deb
+    Riak can be installed in binary form on many systems that use the
+    Debian packaging system, the current target platforms are
+    Ubuntu and Debian.  Riak can be download in both 64bit and 32bit
+    binaries in deb format here:
+    http://downloads.basho.com/riak/CURRENT/
 
 *** Mac OS X
 
-  Riak can be downloaded and ran from a precompiled tarball for OS X.
-  You can download the 32bit and 64bit builds here:
-  32bit:  http://downloads.basho.com/riak/riak-0.11/riak-0.11.0.osx.i386.tar.gz
-  64bit:  http://downloads.basho.com/riak/riak-0.11/riak_0.11.0.osx.x86_64.tar.gz
+    Riak can be downloaded and compiled from a source tarball for OS X.
+    You can download the tarball here:
+    http://downloads.basho.com/riak/CURRENT/
 
 ** Source Releases
 *** Prerequisites
 
-    To build Riak from source, you will need Erlang/OTP version R13B04
+    To build Riak from source, you will need Erlang/OTP version R14B02
     or later installed.  Erlang is available at [[http://erlang.org/]].
 
 *** Obtaining Riak Source
 
     The source for tagged Riak releases is available as tarballs at
-    http://hg.basho.com/riak/get/riak-0.11.0.tar.gz.  Once downloaded, unpack the
+    https://github.com/basho/riak/tarball/riak-0.14.2.  Once downloaded, unpack the
     tarball in a convenient location.
 
-    If you prefer to follow the latest Riak development, use Mercurial
+    If you prefer to follow the latest Riak development, use git
     to clone the public repository:
-    : hg clone http://hg.basho.com/riak
+    : git clone https://github.com/basho/riak
 
 *** Building Riak from Source
 
@@ -723,7 +720,7 @@
 
 *** Rebar requires at least erts 5.7.5; ...
 
-    Riak supports only Erlang/OTP version R13B04 and later.  To check
+    Riak supports only Erlang/OTP version R14B02 and later.  To check
     your installed OTP version:
 
 #+BEGIN_EXAMPLE
@@ -732,10 +729,10 @@
 
     Eshell Vx.x.x (abort with ^G)
     1> erlang:system_info(otp_release).
-    "R13B04"
+    "R14B02"
 #+END_EXAMPLE
 
-    If the version printed is earlier than R13B04 (for example R13B03,
+    If the version printed is earlier than R14B02 (for example R13B04,
     or R12B), you will need to upgrade your Erlang installation before
     being able to build Riak from source.
 
