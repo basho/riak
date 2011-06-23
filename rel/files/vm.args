@@ -1,7 +1,8 @@
 ## Name of the riak node
 -name {{node}}
 
-## Cookie for distributed erlang
+## Cookie for distributed erlang.  All nodes in the same cluster
+## should use the same cookie or they will not be able to communicate.
 -setcookie riak
 
 ## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
