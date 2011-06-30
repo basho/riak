@@ -36,6 +36,7 @@ cat > rel/vars.config <<EOF
 {pb_ip,        "127.0.0.1"}.
 {pb_port,      8087}.
 {bitcask_data_root, "%{_localstatedir}/lib/%{name}/bitcask"}.
+{leveldb_data_root, "%{_localstatedir}/lib/%{name}/leveldb"}.
 {sasl_error_log, "%{_localstatedir}/log/%{name}/sasl-error.log"}.
 {sasl_log_dir, "%{_localstatedir}/log/%{name}/sasl"}.
 {mapred_queue_dir, "%{_localstatedir}/lib/%{name}/mr_queue"}.
@@ -69,6 +70,7 @@ mkdir -p %{buildroot}%{riak_lib}
 mkdir -p %{buildroot}%{_mandir}/man1
 mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}/dets
 mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}/bitcask
+mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}/leveldb
 mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}/ring
 mkdir -p %{buildroot}%{_localstatedir}/log/%{name}
 mkdir -p %{buildroot}%{_localstatedir}/log/%{name}/sasl
