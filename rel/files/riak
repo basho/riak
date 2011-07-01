@@ -79,6 +79,13 @@ case "$1" in
             echo "Node is already running!"
             exit 1
         fi
+        # Sanity check the app.config file
+        RES=`$NODETOOL chkconfig $RUNNER_ETC_DIR/app.config`
+        if [ "$RES" != "ok" ]; then
+            echo "Error reading $RUNNER_ETC_DIR/app.config"
+            echo $RES
+            exit 1
+        fi
         HEART_COMMAND="$RUNNER_SCRIPT_DIR/$SCRIPT start"
         export HEART_COMMAND
         mkdir -p $PIPE_DIR
@@ -186,6 +193,13 @@ case "$1" in
         RES=`$NODETOOL ping`
         if [ "$RES" = "pong" ]; then
             echo "Node is already running - use '$SCRIPT attach' instead"
+            exit 1
+        fi
+        # Sanity check the app.config file
+        RES=`$NODETOOL chkconfig $RUNNER_ETC_DIR/app.config`
+        if [ "$RES" != "ok" ]; then
+            echo "Error reading $RUNNER_ETC_DIR/app.config"
+            echo $RES
             exit 1
         fi
         # Setup beam-required vars
