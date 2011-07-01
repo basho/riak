@@ -84,6 +84,30 @@ case "$1" in
         mkdir -p $PIPE_DIR
         $ERTS_PATH/run_erl -daemon $PIPE_DIR/ $RUNNER_LOG_DIR \
             "exec $RUNNER_SCRIPT_DIR/$SCRIPT console" 2>&1
+
+        # Wait for the node to come up. We can't just ping it because
+        # distributed erlang comes up for a second before riak crashes
+        # (eg. in the case of an unwriteable disk). Once the node comes
+        # up we check for the node watcher process. If that's running
+        # then we assume things are good enough. This will at least let
+        # the user know when riak is crashing right after startup.
+        WAIT=${WAIT_FOR_ERLANG:-15}
+        while [ $WAIT -gt 0 ]; do
+            WAIT=$[$WAIT - 1]
+            sleep 1
+            RES=`$NODETOOL ping`
+            if [ "$?" -ne 0 ]; then
+                continue
+            fi
+            NODEWATCHER=`$NODETOOL rpcterms erlang whereis "'riak_core_node_watcher'."`
+            if [ "$NODEWATCHER" != "undefined" ]; then
+                exit 0
+            fi
+        done
+        echo "Riak failed to start within ${WAIT_FOR_ERLANG:-15} seconds."
+        echo "If you want to wait longer, set the environment variable"
+        echo "WAIT_FOR_ERLANG to the number of seconds to wait."
+        exit 1
         ;;
 
     stop)
@@ -108,6 +132,10 @@ case "$1" in
                 ;;
         esac
         $NODETOOL stop
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            exit $ES
+        fi
         while `kill -0 $PID 2>/dev/null`;
         do
             sleep 1
@@ -117,28 +145,41 @@ case "$1" in
     restart)
         ## Restart the VM without exiting the process
         $NODETOOL restart
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            exit $ES
+        fi
         ;;
 
     reboot)
         ## Restart the VM completely (uses heart to restart it)
         $NODETOOL reboot
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            exit $ES
+        fi
         ;;
 
     ping)
         ## See if the VM is alive
         $NODETOOL ping
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            exit $ES
+        fi
         ;;
 
     attach)
         # Make sure a node IS running
         RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
             echo "Node is not running!"
-            exit 1
+            exit $ES
         fi
 
         shift
-        $ERTS_PATH/to_erl $PIPE_DIR
+        exec $ERTS_PATH/to_erl $PIPE_DIR
         ;;
 
     console)
