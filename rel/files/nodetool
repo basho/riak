@@ -19,9 +19,24 @@ main(Args) ->
     case {net_kernel:hidden_connect_node(TargetNode), net_adm:ping(TargetNode)} of
         {true, pong} -> 
             ok;
-        {_, pang} -> 
-            io:format("Node ~p not responding to pings.\n", [TargetNode]),
-            halt(1)
+        {_, pang} ->
+            case RestArgs of
+                ["chkconfig", File] ->
+                    case file:consult(File) of
+                        {ok, _} ->
+                            io:format("ok\n");
+                        {error, {Line, Mod, Term}} ->
+                            io:format(["Error on line ", file:format_error({Line, Mod, Term}), "\n"]),
+                            halt(1);
+                        {error, R} ->
+                            io:format(["Error reading config file: ", file:format_error(R), "\n"]),
+                            halt(1)
+                    end;
+                _ ->
+                    io:format("Node ~p not responding to pings.\n", [TargetNode]),
+                    halt(1)
+            end,
+            halt(0)
     end,
 
     case RestArgs of
