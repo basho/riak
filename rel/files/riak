@@ -93,7 +93,7 @@ case "$1" in
         # the user know when riak is crashing right after startup.
         WAIT=${WAIT_FOR_ERLANG:-15}
         while [ $WAIT -gt 0 ]; do
-            WAIT=$[$WAIT - 1]
+            WAIT=`expr $WAIT - 1`
             sleep 1
             RES=`$NODETOOL ping`
             if [ "$?" -ne 0 ]; then
