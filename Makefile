@@ -8,25 +8,25 @@ PKG_VERSION	?= $(shell echo $(REVISION) | tr - .)
 all: deps compile
 
 compile:
-	./rebar compile
+	$(REBAR) compile
 
 deps:
-	./rebar get-deps
+	$(REBAR) get-deps
 
 clean:
-	./rebar clean
+	$(REBAR) clean
 
 distclean: clean devclean relclean ballclean
-	./rebar delete-deps
+	$(REBAR) delete-deps
 
 test:
-	./rebar skip_deps=true eunit
+	$(REBAR) skip_deps=true eunit
 
 ##
 ## Release targets
 ##
 rel: deps
-	./rebar compile generate
+	$(REBAR) compile generate
 
 relclean:
 	rm -rf rel/riak
@@ -42,7 +42,7 @@ devrel: dev1 dev2 dev3 dev4
 
 dev1 dev2 dev3 dev4:
 	mkdir -p dev
-	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
+	(cd rel && .$(REBAR) generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
 
 devclean: clean
 	rm -rf dev
@@ -54,7 +54,7 @@ stage : rel
 ## Doc targets
 ##
 docs:
-	./rebar skip_deps=true doc
+	$(REBAR) skip_deps=true doc
 	@cp -R apps/luke/doc doc/luke
 	@cp -R apps/riak_core/doc doc/riak_core
 	@cp -R apps/riak_kv/doc doc/riak_kv
@@ -139,3 +139,5 @@ pkgclean:
 
 .PHONY: package
 export PKG_VERSION REPO REVISION RIAK_TAG
+
+include rebar.mk
