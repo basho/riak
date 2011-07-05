@@ -97,6 +97,9 @@ install -p -D -m 0755 \
 install -p -D -m 0755 \
 	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name}-admin \
 	%{buildroot}/%{_sbindir}/%{name}-admin
+install -p -D -m 0755 \
+	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/search-cmd \
+	%{buildroot}/%{_sbindir}/search-cmd
 install -p -D -m 0755 %{SOURCE1} %{buildroot}/%{init_script}
 
 # Needed to work around check-rpaths which seems to be hardcoded into recent
@@ -128,6 +131,7 @@ find %{riak_lib} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 %attr(0755,root,root) %{init_script}
 %attr(0755,root,root) %{_sbindir}/%{name}
 %attr(0755,root,root) %{_sbindir}/%{name}-admin
+%attr(0755,root,root) %{_sbindir}/search-cmd
 %attr(0644,root,root) %{_mandir}/man1/*
 %{_localstatedir}/lib/%{name}
 %{_localstatedir}/log/%{name}
