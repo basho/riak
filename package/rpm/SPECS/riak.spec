@@ -24,6 +24,7 @@ Riak is a distrubuted data store.
 %define init_script %{_sysconfdir}/init.d/%{name}
 
 %define __prelink_undo_cmd /bin/cat prelink library
+%define debug_package %{nil}
 
 %prep
 %setup -q -n %{name}-%{_revision}
@@ -135,18 +136,3 @@ find %{riak_lib} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 
 %clean
 rm -rf %{buildroot}
-
-%changelog
-* Tue Sep 21 2010 Grant Schofield <grant@basho.com> 0.13-1
-- Added init.d script 
-
-* Wed May 12 2010 Ryan Tilder <rtilder@basho.com> 0.10.1-3
-- Tweak how bin/riak, bin/riak-admin, and bin/app.config are being modified
-  for packaging
-
-* Wed Mar 24 2010 Ryan Tilder <rtilder@basho.com> 0.9.1-2
-- Some simplification and tweaks
-
-* Wed Mar 10 2010 Grant Schofield <grant@basho.com> 0.9.0-1
-- First 0.9 build
-
