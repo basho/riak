@@ -24,6 +24,7 @@ Riak is a distrubuted data store.
 %define init_script %{_sysconfdir}/init.d/%{name}
 
 %define __prelink_undo_cmd /bin/cat prelink library
+%define debug_package %{nil}
 
 %prep
 %setup -q -n %{name}-%{_revision}
