@@ -34,6 +34,7 @@ install: build
 	cp -R rel/riak/lib debian/$(package)/usr/lib/riak
 	cp -R rel/riak/releases debian/$(package)/usr/lib/riak
 	cp -R rel/riak/erts* debian/$(package)/usr/lib/riak
+	chmod 0755 debian/$(package)/usr/lib/riak/erts*/bin/*
 	install -p -D -m 0644 doc/man/man1/riak.1.gz \
 		debian/$(package)/usr/share/man/man1/riak.1.gz
 	install -p -D -m 0644 doc/man/man1/riak-admin.1.gz \
