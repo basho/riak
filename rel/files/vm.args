@@ -13,6 +13,9 @@
 +K true
 +A 64
 
+## Treat error_logger warnings as warnings
++W w
+
 ## Increase number of concurrent ports/sockets
 -env ERL_MAX_PORTS 4096
 
