@@ -24,6 +24,7 @@ Riak is a distrubuted data store.
 %define init_script %{_sysconfdir}/init.d/%{name}
 
 %define __prelink_undo_cmd /bin/cat prelink library
+%define debug_package %{nil}
 
 %prep
 %setup -q -n %{name}-%{_revision}
@@ -37,6 +38,7 @@ cat > rel/vars.config <<EOF
 {pb_port,      8087}.
 {bitcask_data_root, "%{_localstatedir}/lib/%{name}/bitcask"}.
 {leveldb_data_root, "%{_localstatedir}/lib/%{name}/leveldb"}.
+{merge_index_data_root, "%{_localstatedir}/lib/%{name}/merge_index"}.
 {sasl_error_log, "%{_localstatedir}/log/%{name}/sasl-error.log"}.
 {sasl_log_dir, "%{_localstatedir}/log/%{name}/sasl"}.
 {mapred_queue_dir, "%{_localstatedir}/lib/%{name}/mr_queue"}.
@@ -72,6 +74,7 @@ mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}/dets
 mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}/bitcask
 mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}/leveldb
 mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}/ring
+mkdir -p %{buildroot}%{_localstatedir}/lib/%{name}/merge_index
 mkdir -p %{buildroot}%{_localstatedir}/log/%{name}
 mkdir -p %{buildroot}%{_localstatedir}/log/%{name}/sasl
 mkdir -p %{buildroot}%{_localstatedir}/run/%{name}
@@ -97,6 +100,9 @@ install -p -D -m 0755 \
 install -p -D -m 0755 \
 	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name}-admin \
 	%{buildroot}/%{_sbindir}/%{name}-admin
+install -p -D -m 0755 \
+	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/search-cmd \
+	%{buildroot}/%{_sbindir}/search-cmd
 install -p -D -m 0755 %{SOURCE1} %{buildroot}/%{init_script}
 
 # Needed to work around check-rpaths which seems to be hardcoded into recent
@@ -128,6 +134,7 @@ find %{riak_lib} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 %attr(0755,root,root) %{init_script}
 %attr(0755,root,root) %{_sbindir}/%{name}
 %attr(0755,root,root) %{_sbindir}/%{name}-admin
+%attr(0755,root,root) %{_sbindir}/search-cmd
 %attr(0644,root,root) %{_mandir}/man1/*
 %{_localstatedir}/lib/%{name}
 %{_localstatedir}/log/%{name}
@@ -135,18 +142,3 @@ find %{riak_lib} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 
 %clean
 rm -rf %{buildroot}
-
-%changelog
-* Tue Sep 21 2010 Grant Schofield <grant@basho.com> 0.13-1
-- Added init.d script 
-
-* Wed May 12 2010 Ryan Tilder <rtilder@basho.com> 0.10.1-3
-- Tweak how bin/riak, bin/riak-admin, and bin/app.config are being modified
-  for packaging
-
-* Wed Mar 24 2010 Ryan Tilder <rtilder@basho.com> 0.9.1-2
-- Some simplification and tweaks
-
-* Wed Mar 10 2010 Grant Schofield <grant@basho.com> 0.9.0-1
-- First 0.9 build
-
