@@ -24,8 +24,6 @@ buildrel:
 	echo "" >> $(RIAK_PATH)/rel/vars.config
 	echo '{runner_user, "riak"}.' >> $(RIAK_PATH)/rel/vars.config
 	@# Ye Olde Bourne Shell on Solaris means we have to do it old school
-	PATH=/opt/erlang/R14B02-$(DISTRO)$(SOLARIS_VER):$${PATH}; \
-	export PATH; \
 	echo "Using `which erl` to build"; \
 	$(MAKE) -C $(RIAK_PATH) deps rel
 	chmod 0755 $(RIAK_PATH)/rel/riak/bin/* \
