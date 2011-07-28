@@ -53,8 +53,8 @@ prototype:
 	echo "i r.preserve" >> prototype
 	echo '' >> prototype
 	pkgproto $(RIAK_PATH)/rel/riak=riak >> prototype
-	sed -i -e "s/ $(LOGNAME) .*$$/ riak riak/" \
-	       -e 's/f none riak\/etc/e preserve riak\/etc/' prototype
+	sed -e "s/ $(LOGNAME) .*$$/ riak riak/" \
+	    -e 's/f none riak\/etc/e preserve riak\/etc/' prototype > prototype.tmp && mv prototype.tmp prototype
 
 $(PKGERDIR)/pkgclean:
 	rm -rf copyright depend pkgbuild pkginfo prototype
