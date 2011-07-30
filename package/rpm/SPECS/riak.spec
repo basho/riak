@@ -26,15 +26,15 @@ Riak is a distrubuted data store.
 %define __prelink_undo_cmd /bin/cat prelink library
 %define debug_package %{nil}
 
+%define platform_bin_dir %{_sbindir}
+%define platform_data_dir %{_localstatedir}/lib/%{name}
+%define platform_etc_dir %{_sysconfdir}/%{name}
+%define platform_lib_dir %{riak_lib}
+%define platform_log_dir %{_localstatedir}/log/%{name}
+
 %prep
 %setup -q -n %{name}-%{_revision}
 cat > rel/vars.config <<EOF
-% Platform-specific installation paths
-{platform_bin_dir, "%{_sbindir}"}.
-{platform_data_dir, "%{_localstatedir}/lib/%{name}"}.
-{platform_etc_dir, "%{_sysconfdir}/%{name}"}.
-{platform_lib_dir, "%{riak_lib}"}.
-{platform_log_dir, "%{_localstatedir}/log/%{name}"}.
 % app.config
 {web_ip,       "127.0.0.1"}.
 {web_port,     8098}.
@@ -51,6 +51,12 @@ cat > rel/vars.config <<EOF
 {map_js_vms,   8}.
 {reduce_js_vms, 6}.
 {hook_js_vms, 2}.
+% Platform-specific installation paths
+{platform_bin_dir, "%{platform_bin_dir}"}.
+{platform_data_dir, "%{platform_data_dir}"}.
+{platform_etc_dir, "%{platform_etc_dir}"}.
+{platform_lib_dir, "%{platform_lib_dir}"}.
+{platform_log_dir, "%{platform_log_dir}"}.
 % vm.args
 {node,         "riak@127.0.0.1"}.
 % bin/riak*
