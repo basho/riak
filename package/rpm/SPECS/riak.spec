@@ -26,15 +26,15 @@ Riak is a distrubuted data store.
 %define __prelink_undo_cmd /bin/cat prelink library
 %define debug_package %{nil}
 
+%define platform_bin_dir %{_sbindir}
+%define platform_data_dir %{_localstatedir}/lib/%{name}
+%define platform_etc_dir %{_sysconfdir}/%{name}
+%define platform_lib_dir %{riak_lib}
+%define platform_log_dir %{_localstatedir}/log/%{name}
+
 %prep
 %setup -q -n %{name}-%{_revision}
 cat > rel/vars.config <<EOF
-% Platform-specific installation paths
-{platform_bin_dir, "%{_sbindir}"}.
-{platform_data_dir, "%{_localstatedir}/lib/%{name}"}.
-{platform_etc_dir, "%{_sysconfdir}/%{name}"}.
-{platform_lib_dir, "%{riak_lib}"}.
-{platform_log_dir, "%{_localstatedir}/log/%{name}"}.
 % app.config
 {web_ip,       "127.0.0.1"}.
 {web_port,     8098}.
@@ -51,10 +51,16 @@ cat > rel/vars.config <<EOF
 {map_js_vms,   8}.
 {reduce_js_vms, 6}.
 {hook_js_vms, 2}.
+% Platform-specific installation paths
+{platform_bin_dir, "%{platform_bin_dir}"}.
+{platform_data_dir, "%{platform_data_dir}"}.
+{platform_etc_dir, "%{platform_etc_dir}"}.
+{platform_lib_dir, "%{platform_lib_dir}"}.
+{platform_log_dir, "%{platform_log_dir}"}.
 % vm.args
 {node,         "riak@127.0.0.1"}.
 % bin/riak*
-{runner_script_dir,  "${platform_bin_dir}"}.
+{runner_script_dir,  "%{platform_bin_dir}"}.
 {runner_base_dir,    "%{platform_lib_dir}"}.
 {runner_etc_dir,     "%{platform_etc_dir}"}.
 {runner_log_dir,     "%{platform_log_dir}"}.
@@ -96,13 +102,13 @@ install -p -D -m 0644 \
 	%{buildroot}%{platform_etc_dir}/
 install -p -D -m 0755 \
 	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name} \
-	%{buildroot}/${platform_bin_dir}/%{name}
+	%{buildroot}/%{platform_bin_dir}/%{name}
 install -p -D -m 0755 \
 	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name}-admin \
-	%{buildroot}/${platform_bin_dir}/%{name}-admin
+	%{buildroot}/%{platform_bin_dir}/%{name}-admin
 install -p -D -m 0755 \
 	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/search-cmd \
-	%{buildroot}/${platform_bin_dir}/search-cmd
+	%{buildroot}/%{platform_bin_dir}/search-cmd
 install -p -D -m 0755 %{SOURCE1} %{buildroot}/%{init_script}
 
 # Needed to work around check-rpaths which seems to be hardcoded into recent
@@ -132,9 +138,9 @@ find %{platform_lib_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 %dir %{platform_etc_dir}
 %config(noreplace) %{platform_etc_dir}/*
 %attr(0755,root,root) %{init_script}
-%attr(0755,root,root) ${platform_bin_dir}/%{name}
-%attr(0755,root,root) ${platform_bin_dir}/%{name}-admin
-%attr(0755,root,root) ${platform_bin_dir}/search-cmd
+%attr(0755,root,root) %{platform_bin_dir}/%{name}
+%attr(0755,root,root) %{platform_bin_dir}/%{name}-admin
+%attr(0755,root,root) %{platform_bin_dir}/search-cmd
 %attr(0644,root,root) %{_mandir}/man1/*
 %{platform_data_dir}
 %{platform_log_dir}
