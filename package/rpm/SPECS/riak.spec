@@ -54,7 +54,7 @@ cat > rel/vars.config <<EOF
 % vm.args
 {node,         "riak@127.0.0.1"}.
 % bin/riak*
-{runner_script_dir,  "${platform_bin_dir}"}.
+{runner_script_dir,  "%{platform_bin_dir}"}.
 {runner_base_dir,    "%{platform_lib_dir}"}.
 {runner_etc_dir,     "%{platform_etc_dir}"}.
 {runner_log_dir,     "%{platform_log_dir}"}.
@@ -96,13 +96,13 @@ install -p -D -m 0644 \
 	%{buildroot}%{platform_etc_dir}/
 install -p -D -m 0755 \
 	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name} \
-	%{buildroot}/${platform_bin_dir}/%{name}
+	%{buildroot}/%{platform_bin_dir}/%{name}
 install -p -D -m 0755 \
 	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name}-admin \
-	%{buildroot}/${platform_bin_dir}/%{name}-admin
+	%{buildroot}/%{platform_bin_dir}/%{name}-admin
 install -p -D -m 0755 \
 	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/search-cmd \
-	%{buildroot}/${platform_bin_dir}/search-cmd
+	%{buildroot}/%{platform_bin_dir}/search-cmd
 install -p -D -m 0755 %{SOURCE1} %{buildroot}/%{init_script}
 
 # Needed to work around check-rpaths which seems to be hardcoded into recent
@@ -132,9 +132,9 @@ find %{platform_lib_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 %dir %{platform_etc_dir}
 %config(noreplace) %{platform_etc_dir}/*
 %attr(0755,root,root) %{init_script}
-%attr(0755,root,root) ${platform_bin_dir}/%{name}
-%attr(0755,root,root) ${platform_bin_dir}/%{name}-admin
-%attr(0755,root,root) ${platform_bin_dir}/search-cmd
+%attr(0755,root,root) %{platform_bin_dir}/%{name}
+%attr(0755,root,root) %{platform_bin_dir}/%{name}-admin
+%attr(0755,root,root) %{platform_bin_dir}/search-cmd
 %attr(0644,root,root) %{_mandir}/man1/*
 %{platform_data_dir}
 %{platform_log_dir}
