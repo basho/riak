@@ -44,7 +44,8 @@ cat > rel/vars.config <<EOF
 {ring_state_dir,        "%{platform_data_dir}/ring"}.
 {bitcask_data_root,     "%{platform_data_dir}/bitcask"}.
 {leveldb_data_root,     "%{platform_data_dir}/leveldb"}.
-{merge_index_data_root, "%{platform_data_dir}/merge_index"}.
+{merge_index_data_root,    "%{platform_data_dir}/merge_index"}.
+{merge_index_data_root_2i, "%{platform_data_dir}/merge_index_2i"}.
 {sasl_error_log,        "%{platform_log_dir}/sasl-error.log"}.
 {sasl_log_dir,          "%{platform_log_dir}/sasl"}.
 {mapred_queue_dir,      "%{platform_data_dir}/mr_queue"}.
