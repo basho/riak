@@ -1,4 +1,6 @@
+#!/usr/bin/env escript
 %% -*- erlang -*-
+%%! -args_file {{platform_data_dir}}/ssl_distribution.args_file
 %% -------------------------------------------------------------------
 %%
 %% nodetool: Helper Script for interacting with live nodes
@@ -8,6 +10,10 @@
 main(Args) ->
     %% Extract the args
     {RestArgs, TargetNode} = process_args(Args, [], undefined),
+
+    %% process_args() has side-effects (e.g. when processing "-name"),
+    %% so take care of app-starting business first.
+    [application:start(App) || App <- [crypto, public_key, ssl]],
 
     %% See if the node is currently running  -- if it's not, we'll bail
     case {net_kernel:hidden_connect_node(TargetNode), net_adm:ping(TargetNode)} of
