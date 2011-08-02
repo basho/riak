@@ -39,6 +39,12 @@ case "$1" in
         if [ -e /usr/sbin/riak-admin ]; then
                 rm /usr/sbin/riak-admin
         fi
+        if [ -e /usr/sbin/riak-repl ]; then
+                rm /usr/sbin/riak-repl
+        fi
+        if [ -e /usr/sbin/search-cmd ]; then
+                rm /usr/sbin/search-cmd
+        fi
         if [ -e /etc/init.d/riak ]; then
                 rm  /etc/init.d/riak
         fi
