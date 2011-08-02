@@ -39,10 +39,14 @@ install: build
 		debian/$(package)/usr/share/man/man1/riak.1.gz
 	install -p -D -m 0644 doc/man/man1/riak-admin.1.gz \
 		debian/$(package)/usr/share/man/man1/riak-admin.1.gz
+	install -p -D -m 0644 doc/man/man1/search-cmd.1.gz \
+		debian/$(package)/usr/share/man/man1/search-cmd.1.gz
 	install -p -D -m 0755 rel/riak/bin/riak \
 		debian/$(package)/usr/sbin/riak
 	install -p -D -m 0755 rel/riak/bin/riak-admin \
 		debian/$(package)/usr/sbin/riak-admin
+	install -p -D -m 0755 rel/riak/bin/search-cmd \
+		debian/$(package)/usr/sbin/search-cmd
 	install -m644 rel/$(package)/etc/app.config \
 		debian/$(package)/etc/riak/app.config
 	install -m644 rel/$(package)/etc/vm.args \
