@@ -17,6 +17,7 @@ build: buildrel depend pkginfo prototype
 	@echo
 	@echo Wrote: $(CURDIR)/packages/$(PKGFILE).gz
 	@echo
+	cd packages && digest -a md5 -v $(PKGFILE).gz > $(PKGFILE).gz.md5
 
 # Build the release we need to package
 buildrel:
