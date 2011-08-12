@@ -17,6 +17,10 @@ build: $(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz rpmbuild
 		 --define "_version $(PKG_VERSION)" \
 		 --define "_release $(RELEASE)" \
 		 -ba $(PKGERDIR)/SPECS/$(APP).spec
+	cd packages && \
+		for rpmfile in `ls *.rpm`; do \
+			sha256sum $${rpmfile} > $${rpmfile}.sha \
+		; done
 
 rpmbuild:
 	@mkdir -p rpmbuild/BUILD
