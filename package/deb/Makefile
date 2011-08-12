@@ -13,8 +13,8 @@ build:  $(BUILDPATH)/debian \
 		-uc -us
 	mkdir -p packages
 	mv debuild/$(APP)_$(REVISION)-$(RELEASE)_*.deb packages
-	cd packages && md5sum $(APP)_$(REVISION)-$(RELEASE)_*.deb \
-            > `ls $(APP)_$(REVISION)-$(RELEASE)_*.deb`.md5
+	cd packages && sha256sum $(APP)_$(REVISION)-$(RELEASE)_*.deb \
+            > `ls $(APP)_$(REVISION)-$(RELEASE)_*.deb`.sha
 
 $(BUILDPATH): $(APP)-$(REVISION).tar.gz
 	mkdir -p debuild

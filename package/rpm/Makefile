@@ -19,7 +19,7 @@ build: $(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz rpmbuild
 		 -ba $(PKGERDIR)/SPECS/$(APP).spec
 	cd packages && \
 		for rpmfile in `ls *.rpm`; do \
-			md5sum $${rpmfile} > $${rpmfile}.md5 \
+			sha256sum $${rpmfile} > $${rpmfile}.sha \
 		; done
 
 rpmbuild:
