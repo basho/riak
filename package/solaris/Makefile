@@ -17,6 +17,7 @@ build: buildrel depend pkginfo prototype
 	@echo
 	@echo Wrote: $(CURDIR)/packages/$(PKGFILE).gz
 	@echo
+	cd packages && echo "`digest -a sha256 $(PKGFILE).gz`  $(PKGFILE).gz" > $(PKGFILE).gz.sha
 
 # Build the release we need to package
 buildrel:

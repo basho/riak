@@ -25,7 +25,7 @@
     {search,  "acc:(aab AND (NOT aba))", []},
 
     {echo,    "+/- Operators"},
-    {search,  "-acc:AAD", []},
+    {error, {search,  "-acc:AAD", []}, throw, {error, single_negated_term}},
     {search,  "+acc:aab AND -acc:aac", []},
     {search,  "+acc:aab AND -acc:aeb", []},
     {search,  "acc:(aab AND -aac)", []},
