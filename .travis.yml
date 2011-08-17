@@ -1,5 +1,4 @@
 language: erlang
-script: "./rebar get-deps compile eunit"
 notifications:
   disabled: true
 env:
