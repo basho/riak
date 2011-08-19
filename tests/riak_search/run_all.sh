@@ -58,7 +58,7 @@ fi
 
 for x in $TESTS
 do
-    if [ "$x" == "$TEST_DIR/replication_test" ] && [ "$all" == "no" ]
+    if [ "${x##/*/}" == "replication_test" ] && [ "$all" == "no" ]
     then
         continue
     else
