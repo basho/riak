@@ -225,9 +225,17 @@ case "$1" in
         # Start the VM
         exec $CMD
         ;;
-
+    chkconfig)
+        RES=`$NODETOOL chkconfig $RUNNER_ETC_DIR/app.config`
+        if [ "$RES" != "ok" ]; then
+            echo "Error reading $RUNNER_ETC_DIR/app.config"
+            echo $RES
+            exit 1
+        fi
+        echo "config is OK"
+        ;;
     *)
-        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach}"
+        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig}"
         exit 1
         ;;
 esac
