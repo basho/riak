@@ -22,6 +22,9 @@
 ## Tweak GC to run more often 
 -env ERL_FULLSWEEP_AFTER 0
 
+## Set the location of crash dumps
+-env ERL_CRASH_DUMP {{crash_dump}}
+
 ## Begin SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
 
 ## To enable SSL encryption of the Erlang intra-cluster communication,
