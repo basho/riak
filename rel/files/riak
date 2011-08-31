@@ -64,6 +64,7 @@ ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
 
 # Setup command to control the node
 NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
+NODETOOL_LITE="$ERTS_PATH/escript $ERTS_PATH/nodetool"
 
 # Scrape out SSL distribution config info from vm.args into $SSL_DIST_CONFIG
 rm -f $SSL_DIST_CONFIG
@@ -80,7 +81,7 @@ case "$1" in
             exit 1
         fi
         # Sanity check the app.config file
-        RES=`$NODETOOL chkconfig $RUNNER_ETC_DIR/app.config`
+        RES=`$NODETOOL_LITE chkconfig $RUNNER_ETC_DIR/app.config`
         if [ "$RES" != "ok" ]; then
             echo "Error reading $RUNNER_ETC_DIR/app.config"
             echo $RES
@@ -196,7 +197,7 @@ case "$1" in
             exit 1
         fi
         # Sanity check the app.config file
-        RES=`$NODETOOL chkconfig $RUNNER_ETC_DIR/app.config`
+        RES=`$NODETOOL_LITE chkconfig $RUNNER_ETC_DIR/app.config`
         if [ "$RES" != "ok" ]; then
             echo "Error reading $RUNNER_ETC_DIR/app.config"
             echo $RES
@@ -226,7 +227,7 @@ case "$1" in
         exec $CMD
         ;;
     chkconfig)
-        RES=`$NODETOOL chkconfig $RUNNER_ETC_DIR/app.config`
+        RES=`$NODETOOL_LITE chkconfig $RUNNER_ETC_DIR/app.config`
         if [ "$RES" != "ok" ]; then
             echo "Error reading $RUNNER_ETC_DIR/app.config"
             echo $RES
