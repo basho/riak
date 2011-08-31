@@ -37,6 +37,13 @@ cd $RUNNER_BASE_DIR
 # Make sure log directory exists
 mkdir -p $RUNNER_LOG_DIR
 
+# Warn the user if they don't have write permissions on the log dir
+if [ ! -w $RUNNER_LOG_DIR ]; then
+    echo "!!!!"
+    echo "!!!! WARNING: $RUNNER_LOG_DIR not writable; logs and crash dumps unavailable."
+    echo "!!!!"
+fi
+
 # Extract the target node name from node.args
 NAME_ARG=`grep '\-[s]*name' $RUNNER_ETC_DIR/vm.args`
 if [ -z "$NAME_ARG" ]; then
