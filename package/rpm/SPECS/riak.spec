@@ -60,6 +60,7 @@ cat > rel/vars.config <<EOF
 {platform_log_dir, "%{platform_log_dir}"}.
 % vm.args
 {node,         "riak@127.0.0.1"}.
+{crash_dump,   "%{platform_log_dir}/erl_crash.dump"}.
 % bin/riak*
 {runner_script_dir,  "%{platform_bin_dir}"}.
 {runner_base_dir,    "%{platform_lib_dir}"}.
