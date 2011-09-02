@@ -17,6 +17,11 @@ PKGERDIR	= solaris
 DISTRO		= $(shell head -1 /etc/release|awk \
                    '{if ($$1 == "OpenSolaris") {print $$1} else {print "Solaris"}}')
 endif
+ifeq ($(OS),Darwin)
+PKGER           = make
+PKGERDIR        = osx
+BUILDDIR        = osxbuild
+endif
 
 APP		 = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
 # Assumes CURDIR is .../$(APP)/package/$(APP)/
@@ -27,7 +32,7 @@ $(APP)-$(REVISION).tar.gz: ../$(RIAK_TAG).tar.gz
 	ln -s $< $@
 
 pkgclean: $(PKGERDIR)/pkgclean
-	rm -rf $(APP)-$(REVISION).tar.gz working rpmbuild debuild packages
+	rm -rf $(APP)-$(REVISION).tar.gz working rpmbuild debuild packages osxbuild
 
 pkgcheck:
 	$(if $(RIAK_TAG),,$(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
