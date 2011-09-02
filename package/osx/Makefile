@@ -6,7 +6,8 @@ build: buildrel
 	@echo "Building package $(PKGNAME)"
 	mkdir -p packages
 	cd $(BUILDDIR)/$(REPO)-$(REVISION) && \
-		tar -czf ../../packages/$(PKGNAME) rel
+		cp -R rel/riak $(REPO)-$(REVISION) && \
+		tar -czf ../../packages/$(PKGNAME) $(REPO)-$(REVISION)
 	cd packages && \
 		for tarfile in `ls *.gz`; do \
 			shasum -a 256 $${tarfile} > $${tarfile}.sha \
