@@ -18,6 +18,7 @@ buildrel: $(BUILDDIR)/$(APP)-$(REVISION)
 	cd $^ && $(MAKE) deps compile rel
 
 $(BUILDDIR)/$(APP)-$(REVISION): $(BUILDDIR) $(APP)-$(REVISION).tar.gz
+	mkdir -p $@
 	tar xz -C $(BUILDDIR) -f $(APP)-$(REVISION).tar.gz
 
 $(BUILDDIR):
