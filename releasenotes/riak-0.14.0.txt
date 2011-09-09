@@ -1,26 +1,102 @@
 -------------------------
+Riak 0.? Release Notes
+-------------------------
+
+Bugs Fixed
+----------
+0520 - vnode throws error during handoff
+
+-------------------------
+Riak 0.14.2 Release Notes
+-------------------------
+
+Riak 0.14.2 is a patch-level release for the 0.14 series and as such restricted
+to bug fixes.
+
+Bugs Fixed
+----------
+0977 - riak_kv_vnode:syntactic_put_merge creates different merged timestamps if
+       clock skewed
+1006 - Objects not found in map-reduce are no longer retried on other vnodes in preflist
+1009 - Empty js files in js_source_dir caused crash on start
+1015 - Queued javascript map phases are processed even after a map reduce job
+       has failed (e.g. client receives timeout)
+1090 - bitcask_nifs_keydir_itr() has a race condition wrt. thread creation
+1094 - Read repair introduces 'undefined' timestamps
+1095 - result non-determinstic with allow_mult=false and siblings have same timestamp
+1104 - MapReduce queries return results from other MapReduce queries
+1112 - Map phase retries on not_found causes "500 Internal Server Error" response when 
+       input contains the same bucket/key pair multiple times
+1113 - Map phase retries on not_found causes "500 Internal Server Error" response when 
+       nodes are down
+1114 - Map phase retries on not_found causes "500 Internal Server Error" response 
+       (function_clause) when nodes are down
+ 
+All bug and issue numbers reference https://issues.basho.com.
+
+-------------------------
+Riak 0.14.1 Release Notes
+-------------------------
+
+Riak 0.14.1 is a patch-level release for the 0.14 series and as such restricted
+to bug fixes.
+
+Bugs Fixed
+----------
+0969 - Map/reduce cache fails to prune
+0971 - Latency of "/stats" request steadily increases over time
+0982 - riak-admin js_reload does not work
+0987 - cluster_info formatting needs truncation limits
+1000 - Ensure Riak and Riak EE use latest riak-erlang-client library
+
+All bug and issue numbers reference https://issues.basho.com.
+
+-------------------------
 Riak 0.14.0 Release Notes
 -------------------------
 
-Riak 0.14.0, aka "Dakota," is officially tagged and ready for downloading. We made a lot of strides in both feature robustness and overall stability. 
+Riak 0.14.0, aka "Dakota," is officially tagged and ready for downloading. We
+made a lot of strides in both feature robustness and overall stability.
 
 Here are the highlights:
 
-1) Map/Reduce performance has been further improved in three areas. The first, Key Filters, will enable you to build metadata into your keys so that you can filter a set of inputs for a given criterion before being processed by the Map/Reduce job. This reduces the number of keys passed to the Map/Reduce job and improves performance for many queries. 
+1) Map/Reduce performance has been further improved in three areas. The first,
+Key Filters, will enable you to build metadata into your keys so that you can
+filter a set of inputs for a given criterion before being processed by the
+Map/Reduce job. This reduces the number of keys passed to the Map/Reduce job and
+improves performance for many queries.
 
-The second major enhancement is a rework of the Map/Reduce Query Planner. The new planner takes a more sophisticated approach to analyzing and scheduling bucket/key pairs around the cluster. Using batches of 50 bucket/key pairs, the new code schedules bucket/key pairs onto common vnodes in a single message, thus reducing chattiness and improving overall throughput. 
+The second major enhancement is a rework of the Map/Reduce Query Planner. The
+new planner takes a more sophisticated approach to analyzing and scheduling
+bucket/key pairs around the cluster. Using batches of 50 bucket/key pairs, the
+new code schedules bucket/key pairs onto common vnodes in a single message, thus
+reducing chattiness and improving overall throughput.
 
-Finally, 0.14 supports three different JavaScript VM pools to reduce overall contention. Users can tailor the size of each pool to their particular needs via configuration values that regulate the VMs allocated to map functions, reduce functions, and pre-commit hooks (the three major points of JavaScript invocation). 
+Finally, 0.14 supports three different JavaScript VM pools to reduce overall
+contention. Users can tailor the size of each pool to their particular needs via
+configuration values that regulate the VMs allocated to map functions, reduce
+functions, and pre-commit hooks (the three major points of JavaScript
+invocation).
 
-2) Cluster and node debugging facilities have been added in the form of cluster_info and riak_err. The former gathers environment, configuration, and runtime statistics and writes them to a single file for admin or developer review. The latter, riak_err, limits the amount of RAM that is used while processing event log messages. There is some new documentation on the wiki that further describes how to use the cluster_info feature. See the bottom of http://wiki.basho.com/Command-Line-Tools.html
+2) Cluster and node debugging facilities have been added in the form of
+cluster_info and riak_err. The former gathers environment, configuration, and
+runtime statistics and writes them to a single file for admin or developer
+review. The latter, riak_err, limits the amount of RAM that is used while
+processing event log messages. There is some new documentation on the wiki that
+further describes how to use the cluster_info feature. See the bottom of
+http://wiki.basho.com/Command-Line-Tools.html
 
-3) Windowed Merges in Bitcask - Bitcask performs periodic merges over all non-active files to compact the space being occupied by old versions of stored data. In certain situations this can cause some memory and CPU spikes on the Riak node where the merge is taking place. To that end, we've added the ability to specify when Bitcask will perform merges. This can be set here: https://github.com/basho/bitcask/blob/master/ebin/bitcask.app#L38
+3) Windowed Merges in Bitcask - Bitcask performs periodic merges over all
+non-active files to compact the space being occupied by old versions of stored
+data. In certain situations this can cause some memory and CPU spikes on the
+Riak node where the merge is taking place. To that end, we've added the ability
+to specify when Bitcask will perform merges. This can be set here:
+https://github.com/basho/bitcask/blob/master/ebin/bitcask.app#L38
 
 4) Other noteworthy enhancements include:
-* Support for HTTPS and multiple HTTP IPs (thanks Benjamin Black)
-* Packaging scripts for building debs, rpms and Solaris packages
-* The ability to list buckets through the REST API.
-
+ * Support for HTTPS and multiple HTTP IPs (thanks Benjamin Black)
+ * Packaging scripts for building debs, rpms and Solaris packages
+ * The ability to list buckets through the REST API.
 
 Here's the full list of enhancements and bug fixes:
 
