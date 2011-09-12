@@ -102,6 +102,22 @@ variety of bugs and limitations.
   load / normal operation.
 * Various other clustering bug/fixes. See the fixed bug list for details.
 
+8) Search Integration
+
+Prior to the 1.0 release if you wanted a Riak cluster with search
+capability you needed to install the Riak Search package.  As of 1.0
+this functionality is now included with the standard and enterprise
+Riak packages.  By default this functionality is turned off but
+enabling it is a simple matter of changing the `enabled` flag to
+`true` in the `riak_search` section of the `app.config` file.
+
+9) Data Center Replication Support for Search
+
+Multi-datacenter replication that comes with Riak EDS now fully
+supports Search.  Now, not only will the standard KV data be
+replicated but also any indexes created by Search.  To be clear, this
+includes all indexes no matter how they were created; whether by the
+Search bucket hook, `search-cmd index`, or the Solr-like interface.
 
 Notes:
 * "riak-admin join" has new semantics. The command is now a one-way
@@ -206,32 +222,44 @@ bz0808 - The use of fold/3 function in do_list_keys/6 in riak_kv_vnode
          optimizations
 bz0823 - Handoff processes crash irretrievably when receiving TCP garbage, 
          resulting in node failure
+bz0861 - merge_index throws errors when data path contains a period
 bz0869 - Any commands that change the ring should require the ringready command to 
          return TRUE
 bz0878 - riak-admin leave, then stop node, then restart -> handoff transfers do not resume
 bz0911 - Fix #scope{} and #group{} operator preplanning
 bz0931 - Cluster should not use partition ownership to find list of nodes
 bz0939 - Fast map phase can overrun slower reduce phase
+bz0948 - Fix or remove commented out QC tests
 bz0953 - Change Riak Search to use the Whitespace analyzer by default
 bz0954 - Wildcard queries are broken with Whitespace analyzer
+bz0963 - UTF8_test errors
 bz0967 - Upgrade riak_search to compile on Erlang R14B01
+bz0970 - Deleting a non-indexed object from an indexed bucket throws an error
 bz0989 - riak_kv_map_master crashes when counters are out of date
 bz1003 - REST API and PBC API have incompatible naming rules
 bz1024 - Valid objects return notfound during heavy partition transfer
 bz1033 - delete_resource doesn't handle case where object is no longer extant
 bz1047 - Javascript VM worker process is not restarted after crash
+bz1050 - Add inline field support / filter support to the KV interface
 bz1052 - riak_core_ring_handler:ensure_vnodes_started breaks on multiple vnode types
 bz1055 - riak_core_vnode_master keeps unnecessary "exclusions list" in its state
+bz1065 - mi_buffer_converter processes sit idle with large heap
 bz1067 - deprecate riak_kv_util:[try_cast/fallback]
 bz1072 - spiraltime crash (in riak_kv_stat)
 bz1075 - java.net.SocketException: Connection reset by peer from proto client 
          (thundering (small) herd)
 bz1077 - nodetool needs to support Erlang SSL distribution
+bz1086 - merge_index doesn't tolerate dashes in parent paths
 bz1097 - Truncated data file then merge triggers error in bitcask_fileops:fold/3
+bz1103 - RHEL/CentOS riaksearch init script uses 'riaksearch' as
+         username but riaksearch install RPM creates 'riak' user
 bz1109 - PB interface error when content-type is JSON and {not_found} in results
-bz1110 - Riak Search integration with MapReduce does not work as of Riak Search 0.14.2rc9
+bz1110 - Riak Search integration with MapReduce does not work as of
+         Riak Search 0.14.2rc9
+bz1116 - riak_search_sup never starts riak_kv_js_manager
 bz1125 - HTTP Delete returns a 204 when the RW param cannot be satisfied, expected 500
 bz1126 - riak_kv_cache_backend doesn't stop
+bz1131 - js_thread_stack isn't described in /etc/riaksearch/app.config
 bz1144 - Riak Search custom JS extractor not initializing VM pool properly
 bz1147 - "Proxy Objects" are not cleaned
 bz1149 - Delete op should not use user-supplied timeout for tombstone harvest
