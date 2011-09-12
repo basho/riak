@@ -172,6 +172,54 @@ until the final 1.0.0 release is made.
     an object could be.
 
 
+*** Search
+
+**** Integration into Riak
+
+Prior to the 1.0 release if you wanted a Riak cluster with search
+capability you needed to install the Riak Search package.  As of 1.0
+this functionality is now included with the standard and enterprise
+Riak packages.  By default this functionality is turned off but
+enabling it is a simple matter of changing the =enabled= flag to
+=true= in the =riak_search= section of the =app.config= file.
+
+**** Data Center Replication Support
+
+Multi-datacenter replication that comes with Riak EDS now fully
+supports Search.  Now, not only will the standard KV data be
+replicated but also any indexes created by Search.  To be clear, this
+includes all indexes no matter how they were created; whether by the
+Search bucket hook, =search-cmd index=, or the Solr-like interface.
+
+**** Removal of Java Support
+
+Prior to 1.0 Riak Search provided the ability to interface with the
+standard Lucene analyzers or even other customer analyzers written in
+Java.  While this certainly can be useful it added extra complexity to
+both the code and the running system.  After consulting with our
+clients and community it was determined that removing Java support
+makes the most sense at this point in time.
+
+**** Miscellaneous
+
+- [[https://github.com/basho/riak_search/pull/66][Fixed]] memory leak that could occur as the result of running
+  intersection queries.
+
+- The Solr-like interface now allows to "presort" based on key (where
+  key is the matching "document" id, in the case of an indexed bucket
+  this is the object key) which may be useful if the key has a
+  meaningful order.  For example, the timestamp of a tweet.
+
+- Removed the search shell.
+
+- Removed JavaScript extractor support.
+
+- Ability to enabled KV indexing by setting the =search= bucket
+  property to =true=.
+
+- [[https://github.com/basho/riak_search/pull/84][Streamlined]] custom extractor bucket property.
+
+
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?idi=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
 -[[https://issues.basho.com/show_bug.cgi?id=0123][bz0123 - default_bucket_props in app.config is not merged with the hardcoded defaults]]
@@ -193,30 +241,40 @@ until the final 1.0.0 release is made.
 -[[https://issues.basho.com/show_bug.cgi?id=0716][bz0716 - Handoff Sender crashes loudly when remote node dies]]
 -[[https://issues.basho.com/show_bug.cgi?id=0808][bz0808 - The use of fold/3 function in do_list_keys/6 in riak_kv_vnode does not allow backends to take advantage of bucket aware optimizations]]
 -[[https://issues.basho.com/show_bug.cgi?id=0823][bz0823 - Handoff processes crash irretrievably when receiving TCP garbage, resulting in node failure]]
+-[[https://issues.basho.com/show_bug.cgi%3Fid%3D861][bz0861 - merge_index throws errors when data path contains a period]]
 -[[https://issues.basho.com/show_bug.cgi?id=0869][bz0869 - Any commands that change the ring should require the ringready command to return TRUE]]
 -[[https://issues.basho.com/show_bug.cgi?id=0878][bz0878 - riak-admin leave, then stop node, then restart -> handoff transfers do not resume]]
 -[[https://issues.basho.com/show_bug.cgi?id=0911][bz0911 - Fix #scope{} and #group{} operator preplanning]]
 -[[https://issues.basho.com/show_bug.cgi?id=0931][bz0931 - Cluster should not use partition ownership to find list of nodes]]
 -[[https://issues.basho.com/show_bug.cgi?id=0939][bz0939 - Fast map phase can overrun slower reduce phase]]
+-[[https://issues.basho.com/show_bug.cgi%3Fid%3D948][bz0948 - Fix or remove commented out QC tests]]
 -[[https://issues.basho.com/show_bug.cgi?id=0953][bz0953 - Change Riak Search to use the Whitespace analyzer by default]]
 -[[https://issues.basho.com/show_bug.cgi?id=0954][bz0954 - Wildcard queries are broken with Whitespace analyzer]]
+-[[https://issues.basho.com/show_bug.cgi%3Fid%3D963][bz0963 - UTF8_test errors]]
 -[[https://issues.basho.com/show_bug.cgi?id=0967][bz0967 - Upgrade riak_search to compile on Erlang R14B01]]
+-[[https://issues.basho.com/show_bug.cgi%3Fid%3D970][bz0970 - Deleting a non-indexed object from an indexed bucket throws an error]]
 -[[https://issues.basho.com/show_bug.cgi?id=0989][bz0989 - riak_kv_map_master crashes when counters are out of date]]
 -[[https://issues.basho.com/show_bug.cgi?id=1003][bz1003 - REST API and PBC API have incompatible naming rules]]
 -[[https://issues.basho.com/show_bug.cgi?id=1024][bz1024 - Valid objects return notfound during heavy partition transfer]]
 -[[https://issues.basho.com/show_bug.cgi?id=1033][bz1033 - delete_resource doesn't handle case where object is no longer extant]] 
 -[[https://issues.basho.com/show_bug.cgi?id=1047][bz1047 - Javascript VM worker process is not restarted after crash]]
+-[[https://issues.basho.com/show_bug.cgi%3Fid%3D1050][bz1050 - Add inline field support / filter support to the KV interface]]
 -[[https://issues.basho.com/show_bug.cgi?id=1052][bz1052 - riak_core_ring_handler:ensure_vnodes_started breaks on multiple vnode types]]
 -[[https://issues.basho.com/show_bug.cgi?id=1055][bz1055 - riak_core_vnode_master keeps unnecessary "exclusions list" in its state]]
+-[[https://issues.basho.com/show_bug.cgi%3Fid%3D1065][bz1065 - mi_buffer_converter processes sit idle with large heap]]
 -[[https://issues.basho.com/show_bug.cgi?id=1067][bz1067 - deprecate riak_kv_util:try_cast/fallback]]
 -[[https://issues.basho.com/show_bug.cgi?id=1072][bz1072 - spiraltime crash (in riak_kv_stat)]]
 -[[https://issues.basho.com/show_bug.cgi?id=1075][bz1075 - java.net.SocketException: Connection reset by peer from proto client (thundering (small) herd)]]
 -[[https://issues.basho.com/show_bug.cgi?id=1077][bz1077 - nodetool needs to support Erlang SSL distribution]]
+-[[https://issues.basho.com/show_bug.cgi%3Fid%3D1086][bz1086 - merge_index doesn't tolerate dashes in parent paths]]
 -[[https://issues.basho.com/show_bug.cgi?id=1097][bz1097 - Truncated data file then merge triggers error in bitcask_fileops:fold/3]]
+-[[https://issues.basho.com/show_bug.cgi%3Fid%3D1103][bz1103 - RHEL/CentOS riaksearch init script uses 'riaksearch' as username but riaksearch install RPM creates 'riak' user]]
 -[[https://issues.basho.com/show_bug.cgi?id=1109][bz1109 - PB interface error when content-type is JSON and {not_found} in results]]
 -[[https://issues.basho.com/show_bug.cgi?id=1110][bz1110 - Riak Search integration with MapReduce does not work as of Riak Search 0.14.2rc9]]
+-[[https://issues.basho.com/show_bug.cgi%3Fid%3D1116][bz1116 - riak_search_sup never starts riak_kv_js_manager]]
 -[[https://issues.basho.com/show_bug.cgi?id=1125][bz1125 - HTTP Delete returns a 204 when the RW param cannot be satisfied, expected 500]]
 -[[https://issues.basho.com/show_bug.cgi?id=1126][bz1126 - riak_kv_cache_backend doesn't stop]]
+-[[https://issues.basho.com/show_bug.cgi%3Fid%3D1131][bz1131 - js_thread_stack isn't described in /etc/riaksearch/app.config]]
 -[[https://issues.basho.com/show_bug.cgi?id=1144][bz1144 - Riak Search custom JS extractor not initializing VM pool properly]]
 -[[https://issues.basho.com/show_bug.cgi?id=1147][bz1147 - "Proxy Objects" are not cleaned]]
 -[[https://issues.basho.com/show_bug.cgi?id=1149][bz1149 - Delete op should not use user-supplied timeout for tombstone harvest]]
