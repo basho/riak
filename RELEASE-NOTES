@@ -102,6 +102,22 @@ variety of bugs and limitations.
   load / normal operation.
 * Various other clustering bug/fixes. See the fixed bug list for details.
 
+8) Search Integration
+
+Prior to the 1.0 release if you wanted a Riak cluster with search
+capability you needed to install the Riak Search package.  As of 1.0
+this functionality is now included with the standard and enterprise
+Riak packages.  By default this functionality is turned off but
+enabling it is a simple matter of changing the `enabled` flag to
+`true` in the `riak_search` section of the `app.config` file.
+
+9) Data Center Replication Support for Search
+
+Multi-datacenter replication that comes with Riak EDS now fully
+supports Search.  Now, not only will the standard KV data be
+replicated but also any indexes created by Search.  To be clear, this
+includes all indexes no matter how they were created; whether by the
+Search bucket hook, `search-cmd index`, or the Solr-like interface.
 
 Notes:
 * "riak-admin join" has new semantics. The command is now a one-way
