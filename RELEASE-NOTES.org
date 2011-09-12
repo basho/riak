@@ -22,15 +22,15 @@ until the final 1.0.0 release is made.
 
 *** Backend Refactoring
    There are 3 main areas of change with regard to the backend refactoring.
-   1. Changes to the suite of available backends
+   **** Changes to the suite of available backends
       - Added: eleveldb backend
       - Merged: ets and cache backend have been consolidated into a single 
         memory backend.
       - Removed: dets, filesystem (fs), and gb_trees backends
-   2. Standardized API
+   **** Standardized API
       - All of the backend modules now share a common API.
       - Vnode code has been greatly simplified.
-   3. Asynchronous folding
+   **** Asynchronous folding
       - The vnode no longer has to be blocked by fold operations.
       - A node for a backend capable of asynchronous folds starts a worker 
         pool to handle fold requests.
