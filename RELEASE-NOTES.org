@@ -22,28 +22,29 @@ until the final 1.0.0 release is made.
 
 *** Backend Refactoring
    There are 3 main areas of change with regard to the backend refactoring.
-   **** Changes to the suite of available backends
-      - Added: eleveldb backend
-      - Merged: ets and cache backend have been consolidated into a single 
+**** Changes to the suite of available backends
+     - Added: eleveldb backend
+     -  Merged: ets and cache backend have been consolidated into a single 
         memory backend.
-      - Removed: dets, filesystem (fs), and gb_trees backends
-   **** Standardized API
-      - All of the backend modules now share a common API.
-      - Vnode code has been greatly simplified.
-   **** Asynchronous folding
-      - The vnode no longer has to be blocked by fold operations.
-      - A node for a backend capable of asynchronous folds starts a worker 
-        pool to handle fold requests.
-      - Asynchronous folds are done using read-only snapshots of the data.
-      - Bitcask, eleveldb, memory, and multi backends support asynchronous folding.
-      - Asynchronous folding may be disabled by adding {async_folds, false} 
-        in the riak_kv section of the app.config file. 
+     -  Removed: dets, filesystem (fs), and gb_trees backends
+**** Standardized API
+     - All of the backend modules now share a common API.
+     - Vnode code has been greatly simplified.
+**** Asynchronous folding
+     - The vnode no longer has to be blocked by fold operations.
+     - A node for a backend capable of asynchronous folds starts a worker 
+       pool to handle fold requests.
+     - Asynchronous folds are done using read-only snapshots of the data.
+     - Bitcask, eleveldb, memory, and multi backends support asynchronous folding.
+     - Asynchronous folding may be disabled by adding {async_folds, false} 
+       in the riak_kv section of the app.config file. 
 
 *** Lager
     Lager is Riak’s new logging library.  It aims to alleviate some of the
     shortcomings in Erlang/OTP’s bundled logging library; specifically
     more readable log messages, support for external logfile rotation,
     more granular log levels and runtime changes.
+
 *** LevelDB
     Riak now has support for LevelDB, a fast key-value storage library
     written at Google that provides an ordered mapping from string keys to
@@ -54,16 +55,7 @@ until the final 1.0.0 release is made.
     keep portions of the keyspace in memory.  This design allows LevelDB to
     effectively deal with very large keyspaces, but at the cost of
     additional seeks on read.
-*** Pipe
-    Riak now has support for LevelDB, a fast key-value storage library
-    written at Google that provides an ordered mapping from string keys to
-    string values.  This backend provides a viable alternative to the
-    innostore backend, with better performance.  LevelDB has an append-only
-    design that provides high-performance writes.  Unlike Bitcask, however,
-    LevelDB keeps keys in sorted order and uses a multi-level cache to
-    keep portions of the keyspace in memory.  This design allows LevelDB to
-    effectively deal with very large keyspaces, but at the cost of
-    additional seeks on read.
+
 *** Pipe
     Riak Pipe is the new plumbing for Riak's MapReduce system.  It improves
     upon the legacy system in many ways, including built-in backpressure
@@ -77,6 +69,7 @@ until the final 1.0.0 release is made.
     of your node’s app.config.   To force Riak to use the legacy system for
     MapReduce, set `{mapred_system, legacy}` in the `riak_kv` section of
     app.config instead.
+
 *** URL encoding changes over REST API
     Riak now decode URL encoded bucket/keys over the REST API, rather than
     prior behavior which was to decode links but not decode
@@ -87,6 +80,7 @@ until the final 1.0.0 release is made.
 
     The module riak_kv_encoding_migrate.erl is also provided to help
     migrate existing encoded buckets/keys to their decoded equivalents
+
 *** Riak Clustering Overhaul
     The clustering subsystem of Riak has been overhauled for 1.0, addressing a 
     variety of bugs and limitations.
@@ -127,6 +121,7 @@ until the final 1.0.0 release is made.
        nodes and performing ring rebalances.  Nodes marked as down will
        automatically rejoin and reintegrate into the cluster when they come
        back online.
+
 *** Get/Put/Delete Improvements
     The way that Riak versions and updates objects has been
     overhauled.  ClientIds are no longer used when updating objects, the
@@ -175,6 +170,7 @@ until the final 1.0.0 release is made.
     properties to [{notfound_ok, true}, {basic_quorum, false}] and reduce
     the number of cases where notfound is returned on first request when
     an object could be.
+
 
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?idi=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
