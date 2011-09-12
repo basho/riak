@@ -17,7 +17,7 @@ until the final 1.0.0 release is made.
     MapReduce.  In this release, the query feature set is minimal: only
     exact match and range queries are supported, and only on a single
     field.  In addition, the system must be configured to use the
-    riak_kv_eleveldb_backend.  Future releases will bring support for more
+    =riak_kv_eleveldb_backend=.  Future releases will bring support for more
     complex queries and additional backends, depending upon user feedback.
 
 *** Backend Refactoring
@@ -36,7 +36,7 @@ until the final 1.0.0 release is made.
        pool to handle fold requests.
      - Asynchronous folds are done using read-only snapshots of the data.
      - Bitcask, eleveldb, memory, and multi backends support asynchronous folding.
-     - Asynchronous folding may be disabled by adding {async_folds, false} 
+     - Asynchronous folding may be disabled by adding ={async_folds, false}=
        in the riak_kv section of the app.config file. 
 
 *** Lager
@@ -65,20 +65,20 @@ until the final 1.0.0 release is made.
     processing system, which new applications may find is a more natural
     starting point than bare Riak Core.   Riak Pipe is the default plumbing
     for MapReduce queries on new clusters.   To move old clusters onto Riak
-    Pipe MapReduce, add `{mapred_system, pipe}` to the `riak_kv` section
+    Pipe MapReduce, add ={mapred_system, pipe}= to the =riak_kv= section
     of your node’s app.config.   To force Riak to use the legacy system for
-    MapReduce, set `{mapred_system, legacy}` in the `riak_kv` section of
-    app.config instead.
+    MapReduce, set ={mapred_system, legacy}= in the =riak_kv= section of
+    =app.config= instead.
 
 *** URL encoding changes over REST API
     Riak now decode URL encoded bucket/keys over the REST API, rather than
     prior behavior which was to decode links but not decode
     buckets/keys.  The default cluster behavior is configurable in
-    riak_core section of app.config: {http_url_decoding, on} provides the
+    riak_core section of app.config: ={http_url_decoding, on}= provides the
     new behavior (decode everything), missing/anything else provides the
     current behavior.
 
-    The module riak_kv_encoding_migrate.erl is also provided to help
+    The module =riak_kv_encoding_migrate.erl= is also provided to help
     migrate existing encoded buckets/keys to their decoded equivalents
 
 *** Riak Clustering Overhaul
@@ -89,7 +89,7 @@ until the final 1.0.0 release is made.
       officially changing the ownership in the ring. This fixes a bug
       where 404s could appear while ownership was being changed.
     - Adding/removing nodes to a cluster is now more robust, and it is no 
-      longer necessary to check for ring convergence (riak-admin ringready) 
+      longer necessary to check for ring convergence (=riak-admin ringready=)
       between adding/removing nodes. Adding multiple nodes all at once should 
       "just work".  
     - Handoff related to changing node owners can now occur while a cluster is 
@@ -97,17 +97,17 @@ until the final 1.0.0 release is made.
       load / normal operation.
     - Various other clustering bug/fixes. See the fixed bug list for details.    
 **** Notes
-     - "riak-admin join" has new semantics.  The command is now a one-way
+     - =riak-admin join= has new semantics.  The command is now a one-way
        operation that joins a single node to cluster.  The node that the
        command is executed under should be the desired joining node, and
        the target of the command should be a member of the desired target
        cluster.  The new command requires the joining node to be a singleton
        (1-node) cluster.
-     - "riak-admin leave" is now the only safe way to remove a node from a
+     - =riak-admin leave= is now the only safe way to remove a node from a
        cluster.  The leave command ensures that the exiting node will
        handoff all its partitions before leaving the cluster.  It should be
        executed by the node intended to leave.
-     - "riak-admin remove" is now changed to a force-remove, where a node
+     - =riak-admin remove= is now changed to a force-remove, where a node
        is immediately removed from the cluster without waiting on
        handoff.  This is designed for cases where a node is unrecoverable
        and for which handoff does not make sense.
@@ -116,7 +116,7 @@ until the final 1.0.0 release is made.
        data to be rebalanced.  During brief node outages, the new protocol
        will wait until all nodes are eventually back online and continue
        automatically.  If it is known that a node will be offline for an
-       extended period, the new 'riak-admin down' command can be used to
+       extended period, the new =riak-admin down= command can be used to
        mark a node as offline and the cluster will then resume integrating
        nodes and performing ring rebalances.  Nodes marked as down will
        automatically rejoin and reintegrate into the cluster when they come
@@ -130,7 +130,7 @@ until the final 1.0.0 release is made.
     New clusters are configured with the new vclock behavior turned on.
     If you are performing a rolling upgrade of an existing cluster, once
     all nodes have been upgraded the app.config needs to be updated to add
-    {vnode_vclocks, true}.
+    ={vnode_vclocks, true}=.
     
     Puts are now coordinated in the same way as on the original Dynamo
     system.  Requests must be handled by a node in the preference list
@@ -143,7 +143,7 @@ until the final 1.0.0 release is made.
     sides.
     
     Error proofing for the failure scenarios has made it so that clients
-    no longer have to be well behaved.   If allow_mult is set true, every
+    no longer have to be well behaved.   If =allow_mult= is set =true=, every
     time you create a new object and put over an existing one it will
     create a sibling.  Vector clocks should now be much smaller in size as
     only a few vclock ids are now updated.  This should resolve a number of
@@ -153,7 +153,7 @@ until the final 1.0.0 release is made.
     Prior to 1.0 there were cases where Riak returned not found if not
     enough valid responses were returned.  The case of not enough responses
     has been changed to an error instead reported as 503 over HTTP or as
-    {error, {r_val_unsatistfied, R, NumResponses}} for Erlang/PBC clients.
+    ={error, {r_val_unsatistfied, R, NumResponses}}= for Erlang/PBC clients.
 
     New options have been added to the get requests for handling
     notfound.  Prior to 1.0 only successful reads were counted towards R
@@ -167,7 +167,7 @@ until the final 1.0.0 release is made.
     Now that other enhancements have been made (delete and asynchronous
     improvements to the vnodes) we can change notfounds to be counted
     towards R and disable the basic_quorum logic by setting bucket
-    properties to [{notfound_ok, true}, {basic_quorum, false}] and reduce
+    properties to =[{notfound_ok, true}, {basic_quorum, false}]= and reduce
     the number of cases where notfound is returned on first request when
     an object could be.
 
