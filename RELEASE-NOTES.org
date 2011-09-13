@@ -20,6 +20,7 @@ until the final 1.0.0 release is made.
     =riak_kv_eleveldb_backend=.  Future releases will bring support for more
     complex queries and additional backends, depending upon user feedback.
 
+
 *** Backend Refactoring
    There are 3 main areas of change with regard to the backend refactoring.
 **** Changes to the suite of available backends
@@ -37,13 +38,15 @@ until the final 1.0.0 release is made.
      - Asynchronous folds are done using read-only snapshots of the data.
      - Bitcask, eleveldb, memory, and multi backends support asynchronous folding.
      - Asynchronous folding may be disabled by adding ={async_folds, false}=
-       in the riak_kv section of the app.config file. 
+       in the =riak_kv= section of the =app.config= file. 
+
 
 *** Lager
     Lager is Riak’s new logging library.  It aims to alleviate some of the
     shortcomings in Erlang/OTP’s bundled logging library; specifically
     more readable log messages, support for external logfile rotation,
     more granular log levels and runtime changes.
+
 
 *** LevelDB
     Riak now has support for LevelDB, a fast key-value storage library
@@ -56,6 +59,7 @@ until the final 1.0.0 release is made.
     effectively deal with very large keyspaces, but at the cost of
     additional seeks on read.
 
+
 *** Pipe
     Riak Pipe is the new plumbing for Riak's MapReduce system.  It improves
     upon the legacy system in many ways, including built-in backpressure
@@ -66,20 +70,22 @@ until the final 1.0.0 release is made.
     starting point than bare Riak Core.   Riak Pipe is the default plumbing
     for MapReduce queries on new clusters.   To move old clusters onto Riak
     Pipe MapReduce, add ={mapred_system, pipe}= to the =riak_kv= section
-    of your node’s app.config.   To force Riak to use the legacy system for
+    of your node’s =app.config=.   To force Riak to use the legacy system for
     MapReduce, set ={mapred_system, legacy}= in the =riak_kv= section of
     =app.config= instead.
+
 
 *** URL encoding changes over REST API
     Riak now decode URL encoded bucket/keys over the REST API, rather than
     prior behavior which was to decode links but not decode
     buckets/keys.  The default cluster behavior is configurable in
-    riak_core section of app.config: ={http_url_decoding, on}= provides the
+    =riak_core= section of =app.config=: ={http_url_decoding, on}= provides the
     new behavior (decode everything), missing/anything else provides the
     current behavior.
 
     The module =riak_kv_encoding_migrate.erl= is also provided to help
     migrate existing encoded buckets/keys to their decoded equivalents
+
 
 *** Riak Clustering Overhaul
     The clustering subsystem of Riak has been overhauled for 1.0, addressing a 
@@ -122,6 +128,7 @@ until the final 1.0.0 release is made.
        automatically rejoin and reintegrate into the cluster when they come
        back online.
 
+
 *** Get/Put/Delete Improvements
     The way that Riak versions and updates objects has been
     overhauled.  ClientIds are no longer used when updating objects, the
@@ -129,7 +136,7 @@ until the final 1.0.0 release is made.
     
     New clusters are configured with the new vclock behavior turned on.
     If you are performing a rolling upgrade of an existing cluster, once
-    all nodes have been upgraded the app.config needs to be updated to add
+    all nodes have been upgraded the =app.config= needs to be updated to add
     ={vnode_vclocks, true}=.
     
     Puts are now coordinated in the same way as on the original Dynamo
