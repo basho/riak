@@ -281,6 +281,7 @@ makes the most sense at this point in time.
 -[[https://issues.basho.com/show_bug.cgi?id=1116][bz1116 - riak_search_sup never starts riak_kv_js_manager]]
 -[[https://issues.basho.com/show_bug.cgi?id=1125][bz1125 - HTTP Delete returns a 204 when the RW param cannot be satisfied, expected 500]]
 -[[https://issues.basho.com/show_bug.cgi?id=1126][bz1126 - riak_kv_cache_backend doesn't stop]]
+-[[https://issues.basho.com/show_bug.cgi?id=1130][bz1130 - Debian packages should depend on 'sudo']]
 -[[https://issues.basho.com/show_bug.cgi?id=1131][bz1131 - js_thread_stack isn't described in /etc/riaksearch/app.config]]
 -[[https://issues.basho.com/show_bug.cgi?id=1144][bz1144 - Riak Search custom JS extractor not initializing VM pool properly]]
 -[[https://issues.basho.com/show_bug.cgi?id=1147][bz1147 - "Proxy Objects" are not cleaned]]
