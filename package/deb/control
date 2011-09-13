@@ -8,7 +8,7 @@ Homepage: http://basho.com/
 
 Package: riak-ee
 Architecture: any
-Depends: adduser, logrotate, ${shlibs:Depends}, ${misc:Depends}
+Depends: adduser, logrotate, ${shlibs:Depends}, ${misc:Depends}, sudo
 Description: Distributed data store written in Erlang
   Riak combines a decentralized key-value store, a flexible map/reduce engine, 
   and a friendly HTTP/JSON query interface to provide a database ideally suited 
