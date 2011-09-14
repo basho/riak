@@ -108,6 +108,42 @@
   [{q, "acc:ABC"}, {wt, json}, {start, 70}, {rows, 20}, {rows, 999}],
   [{length, 18}]},
 
+ {echo, "Test fl (JSON)"},
+ {solr_select,
+  [{q, "key:[keyAAA TO keyAAC]"}, {fl, "id"}, {wt, json}],
+  [{length, 3}, {docids, [<<"idAAA">>, <<"idAAB">>, <<"idAAC">>]}]},
+
+  {solr_select,
+   [{q, "key:[keyAAA TO keyAAC]"}, {fl, "id"}, {sort, "color"}, {wt, json}],
+   400,
+   [{length, 3}, {docids, [<<"idAAA">>, <<"idAAB">>, <<"idAAC">>]}]},
+
+ {solr_select,
+  [{q, "key:[keyAAA TO keyAAC]"}, {fl, "id,color"}, {sort, "color"}, {wt, json}],
+  [{length, 3}, {docids, [<<"idAAB">>, <<"idAAA">>, <<"idAAC">>]}]},
+
+ {solr_select,
+  [{q, "key:[keyAAA TO keyAAC]"}, {fl, "id,parity"}, {sort, "color"}, {wt, json}],
+  [{length, 3}, {docids, [<<"idAAB">>, <<"idAAA">>, <<"idAAC">>]}]},
+
+ {echo, "Test fl (XML)"},
+ {solr_select,
+  [{q, "key:[keyAAA TO keyAAC]"}, {fl, "id"}, {wt, xml}],
+  [{length, 3}, {docids, ["idAAA", "idAAB", "idAAC"]}]},
+
+  {solr_select,
+   [{q, "key:[keyAAA TO keyAAC]"}, {fl, "id"}, {sort, "color"}, {wt, xml}],
+   400,
+   [{length, 3}, {docids, ["idAAA", "idAAB", "idAAC"]}]},
+
+ {solr_select,
+  [{q, "key:[keyAAA TO keyAAC]"}, {fl, "id,color"}, {sort, "color"}, {wt, xml}],
+  [{length, 3}, {docids, ["idAAB", "idAAA", "idAAC"]}]},
+
+ {solr_select,
+  [{q, "key:[keyAAA TO keyAAC]"}, {fl, "id,parity"}, {sort, "color"}, {wt, xml}],
+  [{length, 3}, {docids, ["idAAB", "idAAA", "idAAC"]}]},
+
  {echo, "Test <commit />, which is a noop in Riak Search."},
  {solr_update, "./commit.xml"},
 
