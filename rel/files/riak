@@ -125,7 +125,7 @@ case "$1" in
 
     attach)
         # Make sure a node IS running
-        RES=`$NODETOOL ping`
+        RES=`$NODETOOL ping < /dev/null`
         if [ "$RES" != "pong" ]; then
             echo "Node is not running!"
             exit 1
@@ -136,7 +136,7 @@ case "$1" in
         ;;
 
     console)
-        RES=`$NODETOOL ping`
+        RES=`$NODETOOL ping < /dev/null`
         if [ "$RES" = "pong" ]; then
             echo "Node is already running - use '$SCRIPT attach' instead"
             exit 1
