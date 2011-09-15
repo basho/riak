@@ -151,6 +151,23 @@ case "$1" in
         $NODETOOL rpc riak_kv_console status $@
         ;;
 
+    backend_status)
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT backend_status"
+            exit 1
+        fi
+
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+
+        $NODETOOL rpc riak_kv_console backend_status $@
+        ;;
+
     ringready)
         if [ $# -ne 1 ]; then
             echo "Usage: $SCRIPT ringready"
