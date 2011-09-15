@@ -1,4 +1,57 @@
 -------------------------
+Riak 0.? Release Notes
+-------------------------
+
+Bugs Fixed
+----------
+0520 - vnode throws error during handoff
+
+-------------------------
+Riak 0.14.2 Release Notes
+-------------------------
+
+Riak 0.14.2 is a patch-level release for the 0.14 series and as such restricted
+to bug fixes.
+
+Bugs Fixed
+----------
+0977 - riak_kv_vnode:syntactic_put_merge creates different merged timestamps if
+       clock skewed
+1006 - Objects not found in map-reduce are no longer retried on other vnodes in preflist
+1009 - Empty js files in js_source_dir caused crash on start
+1015 - Queued javascript map phases are processed even after a map reduce job
+       has failed (e.g. client receives timeout)
+1090 - bitcask_nifs_keydir_itr() has a race condition wrt. thread creation
+1094 - Read repair introduces 'undefined' timestamps
+1095 - result non-determinstic with allow_mult=false and siblings have same timestamp
+1104 - MapReduce queries return results from other MapReduce queries
+1112 - Map phase retries on not_found causes "500 Internal Server Error" response when 
+       input contains the same bucket/key pair multiple times
+1113 - Map phase retries on not_found causes "500 Internal Server Error" response when 
+       nodes are down
+1114 - Map phase retries on not_found causes "500 Internal Server Error" response 
+       (function_clause) when nodes are down
+ 
+All bug and issue numbers reference https://issues.basho.com.
+
+-------------------------
+Riak 0.14.1 Release Notes
+-------------------------
+
+Riak 0.14.1 is a patch-level release for the 0.14 series and as such restricted
+to bug fixes.
+
+Bugs Fixed
+----------
+0969 - Map/reduce cache fails to prune
+0971 - Latency of "/stats" request steadily increases over time
+0982 - riak-admin js_reload does not work
+0987 - cluster_info formatting needs truncation limits
+1000 - Ensure Riak and Riak EE use latest riak-erlang-client library
+
+All bug and issue numbers reference https://issues.basho.com.
+
+-------------------------
 Riak 0.14.0 Release Notes
 -------------------------
 
