@@ -1,4 +1,3 @@
-
 * Riak 1.0.0 Release Notes
 
 NOTE: These release notes should be considered a work in progress
@@ -228,7 +227,7 @@ makes the most sense at this point in time.
 
 
 ** Bugs Fixed
--[[https://issues.basho.com/show_bug.cgi?idi=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
+-[[https://issues.basho.com/show_bug.cgi?id=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
 -[[https://issues.basho.com/show_bug.cgi?id=0123][bz0123 - default_bucket_props in app.config is not merged with the hardcoded defaults]]
 -[[https://issues.basho.com/show_bug.cgi?id=0218][bz0218 - bin/riak-admin leave needs to remove abandoned ring files]]
 -[[https://issues.basho.com/show_bug.cgi?id=0260][bz0260 - Expose tombstones as conflicts when allow_mult is true]]
