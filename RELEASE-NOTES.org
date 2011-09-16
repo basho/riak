@@ -292,3 +292,5 @@ makes the most sense at this point in time.
 -[[https://issues.basho.com/show_bug.cgi?id=1177][bz1177 - riak_kv_bitcask_backend.erl's use of symlinks breaks upgrade from 0.14.2]]
 -[[https://issues.basho.com/show_bug.cgi?id=1178][bz1178 - ring mgr and bucket fixups not playing well on startup]]
 -[[https://issues.basho.com/show_bug.cgi?id=1186][bz1186 - riak_kv_w_reduce batch size should default to 20]]
+-[[https://issues.basho.com/show_bug.cgi?id=1191][bz1191 - Pipe-based mapred reverses inputs to reduce]]
+-[[https://issues.basho.com/show_bug.cgi?id=1200][bz1200 - Bitcask backend merges repeatedly, and misplaces files]]
