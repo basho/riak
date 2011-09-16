@@ -151,9 +151,9 @@ case "$1" in
         $NODETOOL rpc riak_kv_console status $@
         ;;
 
-    backend_status)
+    vnode-status)
         if [ $# -ne 1 ]; then
-            echo "Usage: $SCRIPT backend_status"
+            echo "Usage: $SCRIPT vnode-status"
             exit 1
         fi
 
@@ -165,7 +165,7 @@ case "$1" in
         fi
         shift
 
-        $NODETOOL rpc riak_kv_console backend_status $@
+        $NODETOOL rpc riak_kv_console vnode_status $@
         ;;
 
     ringready)
