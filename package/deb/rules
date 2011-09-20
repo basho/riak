@@ -55,12 +55,12 @@ install: build
 		debian/$(package)/usr/sbin/riak-repl
 	install -p -D -m 0755 rel/riak/bin/search-cmd \
 		debian/$(package)/usr/sbin/search-cmd
-	install -m644 rel/$(package)/etc/app.config \
+	install -m644 rel/riak/etc/app.config \
 		debian/$(package)/etc/riak/app.config
-	install -m644 rel/$(package)/etc/vm.args \
+	install -m644 rel/riak/etc/vm.args \
 		debian/$(package)/etc/riak/vm.args
 	install -m755 debian/debian_riak_init debian/$(package)/etc/init.d/riak
-	install -m644 rel/$(package)/etc/snmp/agent/conf/* \
+	install -m644 rel/riak/etc/snmp/agent/conf/* \
 		debian/$(package)/etc/riak/snmp/agent/conf
 	chmod 555 debian/$(package)/usr/lib/riak/lib/riak_jmx-*/priv/riak_jmx.sh
 
