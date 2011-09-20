@@ -206,6 +206,21 @@ both the code and the running system.  After consulting with our
 clients and community it was determined that removing Java support
 makes the most sense at this point in time.
 
+**** Add field listing support to Solr-like interface
+
+[[https://github.com/basho/riak_search/pull/86][A patch submitted by Greg Pascale]] adds field listing support for
+Search's Solr-like interface.  This allows you to return only the
+fields you want by specifying a list of comma-separated field names
+for the query param =fl=.  Furthermore, if you specify only the unique
+field (which is =id= by default) then Search will perform an
+optimization and not fetch any of the underlying objects.  This is
+very nice if you're only interested in the keys of the matching
+objects as it potentially saves Search from doing a lot of unnecessary
+work.  However, note that if you specify something like
+=fl=id&sort=other_field= that Search will return a =400 Bad Request=.
+This is because the above optimization currently prevents Search from
+access to the =other_field=.
+
 **** Miscellaneous
 
 - [[https://github.com/basho/riak_search/pull/66][Fixed]] memory leak that could occur as the result of running
