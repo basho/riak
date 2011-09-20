@@ -23,6 +23,7 @@ chown -R riak:riak /var/run/riak
 chown -R riak:riak /var/log/riak
 chmod 0755 /var/run/riak /etc/riak 
 
+
 case "$1" in
     configure)
     ;;
