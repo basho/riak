@@ -1,8 +1,8 @@
-
 ## Name of the riak node
 -name {{node}}
 
-## Cookie for distributed erlang
+## Cookie for distributed erlang.  All nodes in the same cluster
+## should use the same cookie or they will not be able to communicate.
 -setcookie riak
 
 ## Heartbeat management; auto-restarts VM if it dies or becomes unresponsive
@@ -22,6 +22,9 @@
 ## Tweak GC to run more often 
 -env ERL_FULLSWEEP_AFTER 0
 
+## Set the location of crash dumps
+-env ERL_CRASH_DUMP {{crash_dump}}
+
 ## Begin SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
 
 ## To enable SSL encryption of the Erlang intra-cluster communication,
@@ -34,5 +37,3 @@
 
 ## End SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
 
-## Set the location of crash dumps
--env ERL_CRASH_DUMP {{crash_dump}}

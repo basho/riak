@@ -70,10 +70,10 @@ do_start()
 do_stop()
 {
 	# Try to stop via "riak stop" first
-  RETVAL=`su - riak -c "$DAEMON ping"`
-  [ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON stop"
+	RETVAL=`su - riak -c "$DAEMON ping"`
+	[ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON stop"
 	sleep 2
-	RETVAL=`pidof beam.smp`
+	RETVAL=`pidof $ERTS_PATH/beam.smp`
 	[ "$RETVAL" = "" ] && return 0
 	#
 	# It didn't exit nicely, be mean.

@@ -1,7 +1,7 @@
 Source: riak-ee
 Section: net
 Priority: extra
-Maintainer: Grant Schofield <grant@basho.com>
+Maintainer: Jared Morrow <jared@basho.com>
 Build-Depends: debhelper (>= 7)
 Standards-Version: 3.8.3
 Homepage: http://basho.com/
