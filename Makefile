@@ -118,7 +118,7 @@ buildtar = mkdir distdir && \
                      cd $${dep} && \
                      $(call archive,$${dep},../../../$(RIAK_TAG)) && \
                      mkdir -p ../../../$(RIAK_TAG)/$${dep}/priv && \
-                     git rev-list --max-count=1 HEAD > ../../../$(RIAK_TAG)/$${dep}/priv/git.vsn && \
+                     git describe --tags > ../../../$(RIAK_TAG)/$${dep}/priv/vsn.git && \
                      cd ../..; done
 
 distdir:
