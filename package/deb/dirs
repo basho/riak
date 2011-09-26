@@ -8,9 +8,8 @@ usr/lib/riak
 usr/sbin
 usr/share/man/man1
 var/run/riak
-var/lib/riak/dets
-var/lib/riak/ring
 var/lib/riak/bitcask
+var/lib/riak/ring
 var/lib/riak/snmp
 var/lib/riak/snmp/agent
 var/lib/riak/snmp/agent/db

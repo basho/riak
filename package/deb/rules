@@ -30,8 +30,6 @@ build:
 clean: 
 	dh_clean
 	rm -f build
-
-	# Add here commands to clean up after the build process.
 	make clean
 
 install: build
@@ -45,6 +43,10 @@ install: build
 	chmod 0755 debian/$(package)/usr/lib/riak/erts*/bin/*
 	install -p -D -m 0644 doc/man/man1/riak.1.gz \
 		debian/$(package)/usr/share/man/man1/riak.1.gz
+	install -p -D -m 0644 doc/man/man1/riak-admin.1.gz \
+		debian/$(package)/usr/share/man/man1/riak-admin.1.gz
+	install -p -D -m 0644 doc/man/man1/search-cmd.1.gz \
+		debian/$(package)/usr/share/man/man1/search-cmd.1.gz
 	install -p -D -m 0755 rel/riak/bin/riak \
 		debian/$(package)/usr/sbin/riak
 	install -p -D -m 0755 rel/riak/bin/riak-admin \

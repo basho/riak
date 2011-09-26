@@ -103,9 +103,12 @@ mkdir -p %{buildroot}%{platform_lib_dir}
 mkdir -p %{buildroot}%{_mandir}/man1
 mkdir -p %{buildroot}%{platform_data_dir}/dets
 mkdir -p %{buildroot}%{platform_data_dir}/bitcask
+mkdir -p %{buildroot}%{platform_data_dir}/leveldb
 mkdir -p %{buildroot}%{platform_data_dir}/ring
+mkdir -p %{buildroot}%{platform_data_dir}/merge_index
 mkdir -p %{buildroot}%{platform_data_dir}/riak_repl
 mkdir -p %{buildroot}%{platform_data_dir}/snmp/agent/db
+mkdir -p %{buildroot}%{platform_log_dir}
 mkdir -p %{buildroot}%{platform_log_dir}/sasl
 mkdir -p %{buildroot}%{platform_log_dir}/riak_repl
 mkdir -p %{buildroot}%{platform_data_dir}/mr_queue

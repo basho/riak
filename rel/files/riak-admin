@@ -118,6 +118,22 @@ case "$1" in
         $NODETOOL rpc riak_kv_console remove $@
         ;;
 
+    down)
+        if [ $# -ne 2 ]; then
+            echo "Usage: $SCRIPT down <node>"
+            exit 1
+        fi
+
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+
+        shift
+        $NODETOOL rpc riak_kv_console down $@
+        ;;
+
     status)
         if [ $# -ne 1 ]; then
             echo "Usage: $SCRIPT status"
@@ -184,6 +200,40 @@ case "$1" in
         shift
 
         $NODETOOL rpc riak_kv_console transfers $@
+        ;;
+
+    member_status)
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT member_status"
+            exit 1
+        fi
+
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+
+        $NODETOOL rpc riak_core_console member_status $@
+        ;;
+
+    ring_status)
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT ring_status"
+            exit 1
+        fi
+
+        # Make sure the local node IS running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+
+        $NODETOOL rpc riak_core_console ring_status $@
         ;;
 
     cluster_info)
@@ -328,7 +378,8 @@ case "$1" in
     *)
         echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
         echo "                    reip | js_reload | wait-for-service | ringready | "
-        echo "                    transfers | remove | cluster_info }"
+        echo "                    transfers | remove | down | cluster_info | "
+        echo "                    member_status | ring_status }"
         exit 1
         ;;
 esac
