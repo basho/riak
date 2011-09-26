@@ -73,6 +73,10 @@ ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
 NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
 NODETOOL_LITE="$ERTS_PATH/escript $ERTS_PATH/nodetool"
 
+function ping_node() {
+    $NODETOOL ping < /dev/null
+}
+
 # Scrape out SSL distribution config info from vm.args into $SSL_DIST_CONFIG
 rm -f $SSL_DIST_CONFIG
 sed -n '/Begin SSL distribution items/,/End SSL distribution items/p' \
@@ -82,7 +86,7 @@ sed -n '/Begin SSL distribution items/,/End SSL distribution items/p' \
 case "$1" in
     start)
         # Make sure there is not already a node running
-        RES=`$NODETOOL ping`
+        RES=`ping_node`
         if [ "$RES" = "pong" ]; then
             echo "Node is already running!"
             exit 1
@@ -110,7 +114,7 @@ case "$1" in
         while [ $WAIT -gt 0 ]; do
             WAIT=`expr $WAIT - 1`
             sleep 1
-            RES=`$NODETOOL ping`
+            RES=`ping_node`
             if [ "$?" -ne 0 ]; then
                 continue
             fi
@@ -177,7 +181,7 @@ case "$1" in
 
     ping)
         ## See if the VM is alive
-        $NODETOOL ping
+        ping_node
         ES=$?
         if [ "$ES" -ne 0 ]; then
             exit $ES
@@ -186,7 +190,7 @@ case "$1" in
 
     attach)
         # Make sure a node IS running
-        RES=`$NODETOOL ping`
+        RES=`ping_node`
         ES=$?
         if [ "$ES" -ne 0 ]; then
             echo "Node is not running!"
@@ -198,7 +202,7 @@ case "$1" in
         ;;
 
     console)
-        RES=`$NODETOOL ping`
+        RES=`ping_node`
         if [ "$RES" = "pong" ]; then
             echo "Node is already running - use '$SCRIPT attach' instead"
             exit 1
