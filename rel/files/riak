@@ -10,7 +10,8 @@ RUNNER_ETC_DIR={{runner_etc_dir}}
 RUNNER_LOG_DIR={{runner_log_dir}}
 PIPE_DIR={{pipe_dir}}
 RUNNER_USER={{runner_user}}
-SSL_DIST_CONFIG={{platform_data_dir}}/ssl_distribution.args_file
+PLATFORM_DATA_DIR={{platform_data_dir}}
+SSL_DIST_CONFIG=$PLATFORM_DATA_DIR/ssl_distribution.args_file
 
 # Make sure this script is running as the appropriate user
 if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
@@ -36,6 +37,9 @@ cd $RUNNER_BASE_DIR
 
 # Make sure log directory exists
 mkdir -p $RUNNER_LOG_DIR
+
+# Make sure the data directory exists
+mkdir -p $PLATFORM_DATA_DIR
 
 # Warn the user if they don't have write permissions on the log dir
 if [ ! -w $RUNNER_LOG_DIR ]; then
