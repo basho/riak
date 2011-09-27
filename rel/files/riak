@@ -123,7 +123,8 @@ case "$1" in
                 exit 0
             fi
         done
-        echo "Riak failed to start within ${WAIT_FOR_ERLANG:-15} seconds."
+        echo "Riak failed to start within ${WAIT_FOR_ERLANG:-15} seconds,"
+        echo "see the output of 'riak console' for more information."
         echo "If you want to wait longer, set the environment variable"
         echo "WAIT_FOR_ERLANG to the number of seconds to wait."
         exit 1
