@@ -252,6 +252,7 @@ access to the =other_field=.
 -[[https://issues.basho.com/show_bug.cgi?id=0426][bz0426 - bin/riak-admin leave has poor console output]]
 -[[https://issues.basho.com/show_bug.cgi?id=0441][bz0441 - detect and report bad datafile entry]]
 -[[https://issues.basho.com/show_bug.cgi?id=0461][bz0461 - Guard against non-string values of content-type in riak-erlang-client]]
+-[[https://issues.basho.com/show_bug.cgi?id=464][bz0464 - riak-admin status has garbage cpu_nprocs/avg1/5/15 on Solaris]]
 -[[https://issues.basho.com/show_bug.cgi?id=475][bz0475 - k/v FSMs should fail if no nodes are available - currently they time out]]
 -[[https://issues.basho.com/show_bug.cgi?id=0502][bz0502 - Minor merge_index code cleanup]]
 -[[https://issues.basho.com/show_bug.cgi?id=0564][bz0564 - Planner's subprocesses run long after {timeout, range_loop} exception]]
