@@ -77,7 +77,7 @@ ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
 NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
 NODETOOL_LITE="$ERTS_PATH/escript $ERTS_PATH/nodetool"
 
-function ping_node() {
+ping_node() {
     $NODETOOL ping < /dev/null
 }
 
