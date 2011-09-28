@@ -206,6 +206,21 @@ both the code and the running system.  After consulting with our
 clients and community it was determined that removing Java support
 makes the most sense at this point in time.
 
+**** Add field listing support to Solr-like interface
+
+[[https://github.com/basho/riak_search/pull/86][A patch submitted by Greg Pascale]] adds field listing support for
+Search's Solr-like interface.  This allows you to return only the
+fields you want by specifying a list of comma-separated field names
+for the query param =fl=.  Furthermore, if you specify only the unique
+field (which is =id= by default) then Search will perform an
+optimization and not fetch any of the underlying objects.  This is
+very nice if you're only interested in the keys of the matching
+objects as it potentially saves Search from doing a lot of unnecessary
+work.  However, note that if you specify something like
+=fl=id&sort=other_field= that Search will return a =400 Bad Request=.
+This is because the above optimization currently prevents Search from
+access to the =other_field=.
+
 **** Miscellaneous
 
 - [[https://github.com/basho/riak_search/pull/66][Fixed]] memory leak that could occur as the result of running
@@ -237,6 +252,8 @@ makes the most sense at this point in time.
 -[[https://issues.basho.com/show_bug.cgi?id=0426][bz0426 - bin/riak-admin leave has poor console output]]
 -[[https://issues.basho.com/show_bug.cgi?id=0441][bz0441 - detect and report bad datafile entry]]
 -[[https://issues.basho.com/show_bug.cgi?id=0461][bz0461 - Guard against non-string values of content-type in riak-erlang-client]]
+-[[https://issues.basho.com/show_bug.cgi?id=464][bz0464 - riak-admin status has garbage cpu_nprocs/avg1/5/15 on Solaris]]
+-[[https://issues.basho.com/show_bug.cgi?id=475][bz0475 - k/v FSMs should fail if no nodes are available - currently they time out]]
 -[[https://issues.basho.com/show_bug.cgi?id=0502][bz0502 - Minor merge_index code cleanup]]
 -[[https://issues.basho.com/show_bug.cgi?id=0564][bz0564 - Planner's subprocesses run long after {timeout, range_loop} exception]]
 -[[https://issues.basho.com/show_bug.cgi?id=0599][bz0599 - Consider adding erlang:memory/0 information to stats output]]
@@ -292,5 +309,14 @@ makes the most sense at this point in time.
 -[[https://issues.basho.com/show_bug.cgi?id=1177][bz1177 - riak_kv_bitcask_backend.erl's use of symlinks breaks upgrade from 0.14.2]]
 -[[https://issues.basho.com/show_bug.cgi?id=1178][bz1178 - ring mgr and bucket fixups not playing well on startup]]
 -[[https://issues.basho.com/show_bug.cgi?id=1186][bz1186 - riak_kv_w_reduce batch size should default to 20]]
+-[[https://issues.basho.com/show_bug.cgi?id=1188][bz1188 - Worker pools don't complete work on vnode shutdown]]
 -[[https://issues.basho.com/show_bug.cgi?id=1191][bz1191 - Pipe-based mapred reverses inputs to reduce]]
+-[[https://issues.basho.com/show_bug.cgi?id=1195][bz1195 - Running "make rel" fails with riak-1.0.0pre3 source tarball]]
+-[[https://issues.basho.com/show_bug.cgi?id=1197][bz1197 - riak attach does not play well with scripting - stdin data may be lost]]
 -[[https://issues.basho.com/show_bug.cgi?id=1200][bz1200 - Bitcask backend merges repeatedly, and misplaces files]]
+-[[https://issues.basho.com/show_bug.cgi?id=1202][bz1202 - Bucket listing fails when there are indexed objects]]
+-[[https://issues.basho.com/show_bug.cgi?id=1214][bz1214 - Handoff crash with async enabled+leveldb]]
+-[[https://issues.basho.com/show_bug.cgi?id=1215][bz1215 - get FSM timeout causes new stats to crash]]
+-[[https://issues.basho.com/show_bug.cgi?id=1216][bz1216 - Not possible to control search hook order with bucket fixups]]
+-[[https://issues.basho.com/show_bug.cgi?id=1220][bz1220 - riak-admin ringready only shows 1.0 nodes in a mixed cluster]]
+-[[https://issues.basho.com/show_bug.cgi?id=1224][bz1224 - platform_data_dir (/data) is not being created before accessed for some packages]]
