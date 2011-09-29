@@ -1,18 +1,4 @@
-riak (0.10.1-1) unstable; urgency=low
+riak (1.0.0-1) stable; urgency=low
 
-  * First 0.10.1 Release
- -- grant <grant@basho.com>  Fri, 26 Apr 2010 16:00:00 -0600
-riak (0.10-1) unstable; urgency=low
-
-  * First 0.10 Release
- -- grant <grant@basho.com>  Fri, 23 Apr 2010 09:30:00 -0600
-riak (0.9.1-2) unstable; urgency=low
-
-  * Changed pipe dir to tmp. riak is now a system user
-
- -- grant <grant@basho.com>  Tue, 10 Feb 2010 18:30:00 -0600
-riak (0.9.1-1) unstable; urgency=low
-
-  * Initial release of Riak  in binary form for deb based systems
-
- -- grant <grant@basho.com>  Tue, 10 Feb 2010 18:30:00 -0600
+  * Initial 1.0.0 release. See RELEASE-NOTES for changes
+ -- Jared Morrow <jared@basho.com>  Mon, 19 Sep 2011 21:09:51 -0700
