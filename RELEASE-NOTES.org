@@ -298,6 +298,8 @@ access to the =other_field=.
 
 - [[https://github.com/basho/riak_search/pull/84][Streamlined]] custom extractor bucket property.
 
+- Fixed bug in =lucene_parser= to handle all errors returned from
+  calls to =lucene_scan:string=.
 
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
