@@ -1,8 +1,5 @@
 * Riak 1.0.0 Release Notes
 
-NOTE: These release notes should be considered a work in progress
-until the final 1.0.0 release is made.
-
 ** Major Features and Improvements for Riak
 *** 2i
     Secondary Indexes (2I) makes it easier to find your data in
