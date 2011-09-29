@@ -1,7 +1,24 @@
 * Riak 1.0.0 Release Notes
 
-NOTE: These release notes should be considered a work in progress
-until the final 1.0.0 release is made.
+
+** Rolling Upgrade From Riak Search 14.2 to Riak 1.0.0
+
+There are a couple of caveats for rolling upgrade from Riak Search
+14.2 to Riak 1.0.0.
+
+First, there are some extra steps that need to be taken when
+installing the new package.  Instead of simply installing the new
+package you must uninstall the old one, move the data dir, and then
+install the new package.
+
+Second, while in a mixed cluster state some queries will return
+incorrect results.  It's tough to say which queries will exhibit this
+behavior because it depends on which node the data is stored and what
+node is making the query.  Essentially, if two nodes with different
+versions need to coordinate on a query it will produce incorrect
+results.  Once all nodes have been upgrade to 1.0.0 all queries will
+return the correct results.
+
 
 ** Major Features and Improvements for Riak
 *** 2i
@@ -281,6 +298,8 @@ access to the =other_field=.
 
 - [[https://github.com/basho/riak_search/pull/84][Streamlined]] custom extractor bucket property.
 
+- Fixed bug in =lucene_parser= to handle all errors returned from
+  calls to =lucene_scan:string=.
 
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
@@ -361,3 +380,6 @@ access to the =other_field=.
 -[[https://issues.basho.com/show_bug.cgi?id=1216][bz1216 - Not possible to control search hook order with bucket fixups]]
 -[[https://issues.basho.com/show_bug.cgi?id=1220][bz1220 - riak-admin ringready only shows 1.0 nodes in a mixed cluster]]
 -[[https://issues.basho.com/show_bug.cgi?id=1224][bz1224 - platform_data_dir (/data) is not being created before accessed for some packages]]
+-[[https://issues.basho.com/show_bug.cgi?id=1226][bz1226 - Riak creates identical vtags for the same bucket/key with different values]]
+-[[https://issues.basho.com/show_bug.cgi?id=1227][bz1227 - badstate crash in handoff]]
+
