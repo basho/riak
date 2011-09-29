@@ -1,5 +1,5 @@
-This package was debianized by grant <grant@basho.com> on
-Fri, 19 Feb 2010 21:48:05 -0600.
+This package was debianized by jared <jared@basho.com> on
+Mon, 19 Sep 2011 16:00:05 -0600.
 
 It was downloaded from <url://example.com>
 
@@ -7,7 +7,7 @@ Upstream Author(s):
     
 
 Copyright:
-    2007-2010 Basho Technologies
+    2011 Basho Technologies
 
 License:
     Licensed under the Apache License, Version 2.0 (the "License");
@@ -24,7 +24,7 @@ License:
 
 The Debian packaging is:
 
-    2007-2010 Basho Technologies
+    2011 Basho Technologies
 
 and is licensed under the Apache License, Version 2.0
 
