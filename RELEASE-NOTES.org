@@ -3,6 +3,25 @@
 NOTE: These release notes should be considered a work in progress
 until the final 1.0.0 release is made.
 
+** Rolling Upgrade From Riak Search 14.2 to Riak 1.0.0
+
+There are a couple of caveats for rolling upgrade from Riak Search
+14.2 to Riak 1.0.0.
+
+First, there are some extra steps that need to be taken when
+installing the new package.  Instead of simply installing the new
+package you must uninstall the old one, move the data dir, and then
+install the new package.
+
+Second, while in a mixed cluster state some queries will return
+incorrect results.  It's tough to say which queries will exhibit this
+behavior because it depends on which node the data is stored and what
+node is making the query.  Essentially, if two nodes with different
+versions need to coordinate on a query it will produce incorrect
+results.  Once all nodes have been upgrade to 1.0.0 all queries will
+return the correct results.
+
+
 ** Major Features and Improvements for Riak
 *** 2i
     Secondary Indexes (2I) makes it easier to find your data in
