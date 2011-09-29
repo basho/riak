@@ -128,7 +128,7 @@ until the final 1.0.0 release is made.
        back online.
 
 
-*** Get/Put/Delete Improvements
+*** Get/Put Improvements
     The way that Riak versions and updates objects has been
     overhauled.  ClientIds are no longer used when updating objects, the
     server handles all versioning using a vector clock id per-vnode.
@@ -177,6 +177,47 @@ until the final 1.0.0 release is made.
     the number of cases where notfound is returned on first request when
     an object could be.
 
+*** Delete Changes
+
+    The changes to the vector clocks make it very important that the tombstones
+    written by deletes are removed from all vnodes.  In 0.14.2 the tombstone
+    was removed as it was confirmed that all vnodes had the tombstone stored.
+    For 1.0.0 this has been changed to delay the removal by a short period of
+    time (default 3s) and is aborted if the object is updated.  The behavior
+    is configurable by setting {delete_mode, Mode} in the riak_kv secion of
+    app.config and can be set to the following
+
+      keep - tombstones are kept forever
+
+      immediate - tombstones are removed without delay - 0.14.2 behavior.
+
+      NNNN - delay in microseconds to check for changes before removing tombstone.
+             The default is 3000 for 3s.
+
+    The riak_client, HTTP and PBC interfaces have been modified to return vclock 
+    information for deleted objects.  riak_client:get accepts a deletedvclock
+    option which changes a deleted object read from {error, notfound} to
+    {error, {deleted, VClock}}.
+
+    The HTTP interface returns X-Riak-Vclock with 404s now.  The PBC interface
+    can request the vclock setting the deletedvclock option on get requests.
+
+    Clients that have not been updated to take advantage of the new information
+    may create siblings with tombstones if they create a new object over one
+    deleted recently enough the tombstone still exists.
+
+*** Backup/Restore Changes
+
+    Restore has been changed to restore the exact objects that were backed up.
+    This means that if they have been updated since the backup, or deleted
+    recently enough that the tombstone has not been removed, then the backed
+    up object will not be restored.  Waiting until the tombstones are removed
+    should enable the objects to be restored (however if delete_mode=keep this will
+    never happen).
+
+    In 0.14.2 restoring an object would have updted the vclock with a random
+    client id and created a sibling, and if allow_mult=false the two resolved
+    by the last updated time.
 
 *** Search
 
