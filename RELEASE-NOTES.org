@@ -314,22 +314,21 @@ return the correct results.
 There is a harmless race condition that sometimes triggers a crash when a node leaves
 the cluster. It can be ignored.  It shows up on the console/logs as:
 
-08:00:31.564 [notice] "node removal completed, exiting."
-08:00:31.578 [error] CRASH REPORT Process riak_core_ring_manager with 0 neighbours crashed with reason: timeout_value
+=08:00:31.564 [notice] "node removal completed, exiting."=
+=08:00:31.578 [error] CRASH REPORT Process riak_core_ring_manager with 0 neighbours crashed with reason: timeout_value=
 
 *** Node stats incorrectly report pbc_connects_total
 
 The new code path for recording stats is not currently incrementing the
 total number of protocol buffer connections made to the node, causing it 
-to incorrectly report 0 in both `riak-admin status` and GET /stats.
+to incorrectly report 0 in both =riak-admin status= and =GET /stats= .
 
 *** Secondary Indexes not supported under Multi Backend
 
 Multi Backend does not correctly expose all capabilities of its
 child backends. This prohibits using Secondary Indexes with Multi
 Backend. Currently, Secondary Indexing is only supported for the
-ELevelDB backend (=riak_kv_eleveldb_backend=). Tracked as
-https://issues.basho.com/1231.
+ELevelDB backend (=riak_kv_eleveldb_backend=). Tracked as [[https://issues.basho.com/show_bug.cgi?id=1231][Bug 1231]].
 
 *** MapReduce reduce phase may run more often than requested
 
@@ -337,8 +336,7 @@ If a reduce phase of a MapReduce query is handed off from one Riak
 Pipe vnode to another it immediately and unconditionally reduces the
 inputs it has accumulated.  This may cause the reduce function to be
 evaluated more often than requested by the batch size configuration
-options.  Tracked as https://issues.basho.com/1183 and
-https://issues.basho.com/1184.
+options.  Tracked as [[https://issues.basho.com/show_bug.cgi?id=1183][Bug 1183]] and [[https://issues.basho.com/show_bug.cgi?id=1184][Bug 1184]].
 
 *** Potential Cluster/Gossip Overload
 
