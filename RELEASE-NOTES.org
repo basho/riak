@@ -314,8 +314,9 @@ return the correct results.
 There is a harmless race condition that sometimes triggers a crash when a node leaves
 the cluster. It can be ignored.  It shows up on the console/logs as:
 
-=08:00:31.564 [notice] "node removal completed, exiting."=
-=08:00:31.578 [error] CRASH REPORT Process riak_core_ring_manager with 0 neighbours crashed with reason: timeout_value=
+ =(08:00:31.564 [notice] "node removal completed, exiting.")=
+
+=(08:00:31.578 [error] CRASH REPORT Process riak_core_ring_manager with 0 neighbours crashed with reason: timeout_value)=
 
 *** Node stats incorrectly report pbc_connects_total
 
