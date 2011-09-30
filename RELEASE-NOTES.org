@@ -323,6 +323,15 @@ Backend. Currently, Secondary Indexing is only supported for the
 ELevelDB backend (=riak_kv_eleveldb_backend=). Tracked as
 https://issues.basho.com/1231.
 
+*** MapReduce reduce phase may run more often than requested
+
+If a reduce phase of a MapReduce query is handed off from one Riak
+Pipe vnode to another it immediately and unconditionally reduces the
+inputs it has accumulated.  This may cause the reduce function to be
+evaluated more often than requested by the batch size configuration
+options.  Tracked as https://issues.basho.com/1183 and
+https://issues.basho.com/1184.
+
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
 -[[https://issues.basho.com/show_bug.cgi?id=0123][bz0123 - default_bucket_props in app.config is not merged with the hardcoded defaults]]
