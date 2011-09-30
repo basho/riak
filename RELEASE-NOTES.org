@@ -315,6 +315,14 @@ The new code path for recording stats is not currently incrementing the
 total number of protocol buffer connections made to the node, causing it 
 to incorrectly report 0 in both `riak-admin status` and GET /stats.
 
+*** Secondary Indexes not supported under Multi Backend
+
+Multi Backend does not correctly expose all capabilities of its
+child backends. This prohibits using Secondary Indexes with Multi
+Backend. Currently, Secondary Indexing is only supported for the
+ELevelDB backend (=riak_kv_eleveldb_backend=). Tracked as
+https://issues.basho.com/1231.
+
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
 -[[https://issues.basho.com/show_bug.cgi?id=0123][bz0123 - default_bucket_props in app.config is not merged with the hardcoded defaults]]
