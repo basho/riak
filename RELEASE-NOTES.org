@@ -293,8 +293,8 @@ access to the =other_field=.
 ** Known Issues
 *** Rolling Upgrade From Riak Search 14.2 to Riak 1.0.0
 
-There are a couple of caveats for rolling upgrade from Riak Search
-14.2 to Riak 1.0.0.
+There are a couple of caveats for rolling upgrade from 
+Riak Search 0.14.2 to Riak 1.0.0.
 
 First, there are some extra steps that need to be taken when
 installing the new package.  Instead of simply installing the new
