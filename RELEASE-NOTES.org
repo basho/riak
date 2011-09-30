@@ -301,6 +301,14 @@ versions need to coordinate on a query it will produce incorrect
 results.  Once all nodes have been upgrade to 1.0.0 all queries will
 return the correct results.
 
+*** Intermittent CRASH REPORT on node leave (bz://1218)
+
+There is a harmless race condition that sometimes triggers a crash when a node leaves
+the cluster. It can be ignored.  It shows up on the console/logs as:
+
+08:00:31.564 [notice] "node removal completed, exiting."
+08:00:31.578 [error] CRASH REPORT Process riak_core_ring_manager with 0 neighbours crashed with reason: timeout_value
+
 
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
