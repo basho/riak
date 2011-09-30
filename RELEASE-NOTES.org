@@ -191,7 +191,7 @@ until the final 1.0.0 release is made.
 
       immediate - tombstones are removed without delay - 0.14.2 behavior.
 
-      NNNN - delay in microseconds to check for changes before removing tombstone.
+      NNNN - delay in milliseconds to check for changes before removing tombstone.
              The default is 3000 for 3s.
 
     The riak_client, HTTP and PBC interfaces have been modified to return vclock 
@@ -212,10 +212,10 @@ until the final 1.0.0 release is made.
     This means that if they have been updated since the backup, or deleted
     recently enough that the tombstone has not been removed, then the backed
     up object will not be restored.  Waiting until the tombstones are removed
-    should enable the objects to be restored (however if delete_mode=keep this will
-    never happen).
+    should enable the objects to be restored (however if delete_mode=keep
+    tombstones are never removed).
 
-    In 0.14.2 restoring an object would have updted the vclock with a random
+    In 0.14.2 restoring an object would have updated the vclock with a random
     client id and created a sibling, and if allow_mult=false the two resolved
     by the last updated time.
 
