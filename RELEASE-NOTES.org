@@ -340,6 +340,23 @@ evaluated more often than requested by the batch size configuration
 options.  Tracked as https://issues.basho.com/1183 and
 https://issues.basho.com/1184.
 
+*** Potential Cluster/Gossip Overload
+
+The new cluster protocol is designed to ensure that a Riak cluster
+converges as quickly as possible. When running multiple Riak nodes on
+a single-machine, the underlying gossip mechanism may become CPU-bound
+for a period of time and cause cluster related commands to
+timeout. This includes the following =riak-admin= commands: =join,
+leave, remove, member_status, ring_status=.  Incoming client requests
+and other Riak operations will continue to function, although latency
+may be impacted. The cluster will continue to handle gossip messages
+and will eventually converge, resolving this issue. Note: This
+behavior only occurs when adding/removing nodes from the cluster, and
+will not occur when a cluster is stable. Also, this behavior has only
+been observed when running multiple nodes on a single machine, and has
+not been observed when running Riak on multiple servers or EC2
+instances.
+
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
 -[[https://issues.basho.com/show_bug.cgi?id=0123][bz0123 - default_bucket_props in app.config is not merged with the hardcoded defaults]]
