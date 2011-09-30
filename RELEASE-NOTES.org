@@ -109,10 +109,12 @@
        cluster.  The leave command ensures that the exiting node will
        handoff all its partitions before leaving the cluster.  It should be
        executed by the node intended to leave.
-     - =riak-admin remove= is now changed to a force-remove, where a node
-       is immediately removed from the cluster without waiting on
-       handoff.  This is designed for cases where a node is unrecoverable
-       and for which handoff does not make sense.
+     - =riak-admin remove= no longer exists. Use =riak-admin leave= to safely
+       remove a node from the cluster, or =riak-admin force-remove= to remove
+       an unrecoverable node.
+     - =riak-admin force-remove= immediately removes a node from the cluster
+       without having it first handoff data. All data replicas are therefore
+       lost. This is designed for cases where a node is unrecoverable
      - The new cluster changes require all nodes to be up and reachable in
        order for new members to be integrated into the cluster and for the
        data to be rebalanced.  During brief node outages, the new protocol
@@ -123,6 +125,12 @@
        nodes and performing ring rebalances.  Nodes marked as down will
        automatically rejoin and reintegrate into the cluster when they come
        back online.
+     - When performing a rolling upgrade, the cluster will auto-negotiate
+       the proper gossip protocol, using the legacy gossip protocol while
+       there is a mixed-verison cluster. During the upgrade, executing
+       =riak-admin ringready= and =riak-admin transfers= from a non-1.0
+       node will fail. However, executing those commands from a 1.0 node
+       will succeed and give the desired information.
 
 
 *** Get/Put Improvements
@@ -413,4 +421,5 @@ https://issues.basho.com/1184.
 -[[https://issues.basho.com/show_bug.cgi?id=1224][bz1224 - platform_data_dir (/data) is not being created before accessed for some packages]]
 -[[https://issues.basho.com/show_bug.cgi?id=1226][bz1226 - Riak creates identical vtags for the same bucket/key with different values]]
 -[[https://issues.basho.com/show_bug.cgi?id=1227][bz1227 - badstate crash in handoff]]
+-[[https://issues.basho.com/show_bug.cgi?id=1229][bz1229 - "Downed" (riak-admin down) nodes don't rejoin cluster]]
 
