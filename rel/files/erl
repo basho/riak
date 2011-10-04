@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 ## This script replaces the default "erl" in erts-VSN/bin. This is necessary
 ## as escript depends on erl and in turn, erl depends on having access to a

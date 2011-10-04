@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/sh
 
 RUNNER_SCRIPT_DIR={{runner_script_dir}}
 RUNNER_SCRIPT=${0##*/}
