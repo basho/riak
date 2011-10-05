@@ -17,13 +17,16 @@ Welcome to Riak.
         - architecture.txt: details about the underlying design of Riak
         - basic-client.txt: slightly more detail on using Riak
         - basic-setup.txt:  slightly more detail on setting up Riak
-        - basic-mapreduce.txt: introduction to map/reduce on Riak
-        - js-mapreduce.org: using Javascript with Riak map/reduce
         - man/riak.1.gz: manual page for the riak(1) command
         - man/riak-admin.1.gz manual page for the riak-admin(1) command
         - raw-http-howto.txt: using the Riak HTTP interface
 
+* Where to find more
 
+Below, you'll find a basic introduction to starting and using Riak as
+a key/value store.  For more information about Riak's extended feature
+set, including MapReduce, Search, Secondary Indexes, various storage
+strategies, and more, please visit our wiki at http://wiki.basho.com/.
 
 * Quick Start
 
