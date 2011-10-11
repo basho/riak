@@ -1,5 +1,5 @@
 {
-    schema, 
+    schema,
     [
         {version, "1.1"},
         {default_field, "value"},
@@ -52,22 +52,22 @@
         {field, [
             {name, "inline"},
             {inline, true}
-        ]},      
+        ]},
 
-        {dynamic_field, [       
+        {dynamic_field, [
             {name, "*_i"},
             {type, integer},
             {padding_size, 4}
         ]},
 
-        {dynamic_field, [       
+        {dynamic_field, [
             {name, "*_sd"},
             {type, string},
             %% {analyzer_factory, "com.basho.search.analysis.StandardAnalyzerFactory"}
             {analyzer_factory, {erlang, text_analyzers, standard_analyzer_factory}}
         ]},
 
-        {dynamic_field, [       
+        {dynamic_field, [
             {name, "*_sw"},
             {type, string},
             %% {analyzer_factory, "com.basho.search.analysis.WhitespaceAnalyzerFactory"}
@@ -84,20 +84,20 @@
             {inline, true}
         ]},
 
-        {dynamic_field, [       
+        {dynamic_field, [
             {name, "i_*"},
             {type, integer},
             {padding_size, 4}
         ]},
 
-        {dynamic_field, [       
+        {dynamic_field, [
             {name, "sd_*"},
             {type, string},
             %% {analyzer_factory, "com.basho.search.analysis.StandardAnalyzerFactory"}
             {analyzer_factory, {erlang, text_analyzers, standard_analyzer_factory}}
         ]},
 
-        {dynamic_field, [       
+        {dynamic_field, [
             {name, "sw_*"},
             {type, string},
             %% {analyzer_factory, "com.basho.search.analysis.WhitespaceAnalyzerFactory"}
@@ -131,7 +131,7 @@
             {type, integer},
             {padding_size, 4}
         ]},
-        
+
         % This field should be ignored.
         {field, [
             {name, "order2_int"},
