@@ -3,7 +3,7 @@
     {schema, "schema.def"},
 
     %% Index the solr in "0"...
-    {echo,   "Indexing documents..."}, 
+    {echo,   "Indexing documents..."},
     {solr,   "./solr_add.xml"},
 
     {echo,   "Verify that we find all five documents containing 'one'."},
@@ -17,11 +17,11 @@
     {search, "whitespace:million", [{length, 0}]},
     {search, "whitespace:million,a", [{length, 1}]},
 
-    %% {echo,   "Verify inline fields."},
-    %% {search, "key:one", [{property, <<"inline">>, <<"one">>}]}, 
-    %% {search, "key:one AND inline:one", [{property, <<"inline">>, <<"one">>}]}, 
-    %% {search, "key:twenty", [{property, <<"inline">>, <<"twenty">>}]}, 
-    %% {search, "key:twenty AND inline:twenty", [{property, <<"inline">>, <<"twenty">>}]}, 
+    {echo,   "Verify inline fields."},
+    {search, "key:one", [{property, <<"inline">>, <<"one">>}]},
+    {search, "key:one AND inline:one", [{property, <<"inline">>, <<"one">>}]},
+    {search, "key:twenty", [{property, <<"inline">>, <<"twenty">>}]},
+    {search, "key:twenty AND inline:twenty", [{property, <<"inline">>, <<"twenty">>}]},
 
     {echo,   "Verify dynamic string fields."},
     {search, "dyn_sd:million", [{length, 1}]},
@@ -160,22 +160,25 @@
     {search, "i_dyn:[20 TO '-01']", [{length, 4}]},
     {search, "i_dyn:[0020 TO '-001']", [{length, 4}]},
 
-    %% {echo,   "Verify dynamic inline fields."},
-    %% {search, "key:one", [{property, "dyn_inline", "one"}]}, 
-    %% {search, "key:one AND dyn_inline:one", [{property, "dyn_inline", "one"}]}, 
-    %% {search, "(key:one OR key:two) AND dyn_inline:one", [{property, "dyn_inline", "one"}]}, 
+    {echo,   "Verify dynamic inline fields."},
+    {search, "key:one", [{property, <<"dyn_inline">>, <<"one">>}]},
+    {search, "key:one AND dyn_inline:one", [{property, <<"dyn_inline">>, <<"one">>}]},
+    {search, "(key:one OR key:two) AND dyn_inline:one", [{property, <<"dyn_inline">>, <<"one">>}]},
 
-    %% {search, "key:twenty", [{property, "dyn_inline", "twenty"}]}, 
-    %% {search, "key:twenty AND dyn_inline:twenty", [{property, "dyn_inline", "twenty"}]}, 
-    %% {search, "(key:twenty OR key:hundred) AND dyn_inline:twenty", [{property, "dyn_inline", "twenty"}]}, 
+    {search, "key:twenty", [{property, <<"dyn_inline">>, <<"twenty">>}]},
+    {search, "key:twenty AND dyn_inline:twenty", [{property, <<"dyn_inline">>, <<"twenty">>}]},
+    {search, "(key:twenty OR key:hundred) AND dyn_inline:twenty", [{property, <<"dyn_inline">>, <<"twenty">>}]},
 
-    %% {search, "key:one", [{property, "inline_dyn", "one"}]}, 
-    %% {search, "key:one AND inline_dyn:one", [{property, "inline_dyn", "one"}]}, 
-    %% {search, "(key:one OR key:two) AND inline_dyn:one", [{property, "inline_dyn", "one"}]}, 
+    {search, "key:one", [{property, <<"inline_dyn">>, <<"one">>}]},
+    {search, "key:one AND inline_dyn:one", [{property, <<"inline_dyn">>, <<"one">>}]},
+    {search, "(key:one OR key:two) AND inline_dyn:one", [{property, <<"inline_dyn">>, <<"one">>}]},
 
-    %% {search, "key:twenty", [{property, "inline_dyn", "twenty"}]}, 
-    %% {search, "key:twenty AND inline_dyn:twenty", [{property, "inline_dyn", "twenty"}]}, 
-    %% {search, "(key:twenty OR key:hundred) AND inline_dyn:twenty", [{property, "inline_dyn", "twenty"}]}, 
+    {search, "key:twenty", [{property, <<"inline_dyn">>, <<"twenty">>}]},
+    {search, "key:twenty AND inline_dyn:twenty", [{property, <<"inline_dyn">>, <<"twenty">>}]},
+    {search, "(key:twenty OR key:hundred) AND inline_dyn:twenty", [{property, <<"inline_dyn">>, <<"twenty">>}]},
+
+    {search, "inline:one", "inline:one", [{length, 1}]},
+    {search, "inline:one", "inline:foo", [{length, 0}]},
 
     {echo,   "Verify field ordering."},
     {search, "order1_int:1", [{length, 1}]},
