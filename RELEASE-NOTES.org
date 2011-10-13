@@ -1,8 +1,5 @@
 * Riak 1.0.0 Release Notes
 
-NOTE: These release notes should be considered a work in progress
-until the final 1.0.0 release is made.
-
 ** Major Features and Improvements for Riak
 *** 2i
     Secondary Indexes (2I) makes it easier to find your data in
@@ -112,10 +109,12 @@ until the final 1.0.0 release is made.
        cluster.  The leave command ensures that the exiting node will
        handoff all its partitions before leaving the cluster.  It should be
        executed by the node intended to leave.
-     - =riak-admin remove= is now changed to a force-remove, where a node
-       is immediately removed from the cluster without waiting on
-       handoff.  This is designed for cases where a node is unrecoverable
-       and for which handoff does not make sense.
+     - =riak-admin remove= no longer exists. Use =riak-admin leave= to safely
+       remove a node from the cluster, or =riak-admin force-remove= to remove
+       an unrecoverable node.
+     - =riak-admin force-remove= immediately removes a node from the cluster
+       without having it first handoff data. All data replicas are therefore
+       lost. This is designed for cases where a node is unrecoverable
      - The new cluster changes require all nodes to be up and reachable in
        order for new members to be integrated into the cluster and for the
        data to be rebalanced.  During brief node outages, the new protocol
@@ -126,6 +125,12 @@ until the final 1.0.0 release is made.
        nodes and performing ring rebalances.  Nodes marked as down will
        automatically rejoin and reintegrate into the cluster when they come
        back online.
+     - When performing a rolling upgrade, the cluster will auto-negotiate
+       the proper gossip protocol, using the legacy gossip protocol while
+       there is a mixed-verison cluster. During the upgrade, executing
+       =riak-admin ringready= and =riak-admin transfers= from a non-1.0
+       node will fail. However, executing those commands from a 1.0 node
+       will succeed and give the desired information.
 
 
 *** Get/Put Improvements
@@ -191,7 +196,7 @@ until the final 1.0.0 release is made.
 
       immediate - tombstones are removed without delay - 0.14.2 behavior.
 
-      NNNN - delay in microseconds to check for changes before removing tombstone.
+      NNNN - delay in milliseconds to check for changes before removing tombstone.
              The default is 3000 for 3s.
 
     The riak_client, HTTP and PBC interfaces have been modified to return vclock 
@@ -212,10 +217,10 @@ until the final 1.0.0 release is made.
     This means that if they have been updated since the backup, or deleted
     recently enough that the tombstone has not been removed, then the backed
     up object will not be restored.  Waiting until the tombstones are removed
-    should enable the objects to be restored (however if delete_mode=keep this will
-    never happen).
+    should enable the objects to be restored (however if delete_mode=keep
+    tombstones are never removed).
 
-    In 0.14.2 restoring an object would have updted the vclock with a random
+    In 0.14.2 restoring an object would have updated the vclock with a random
     client id and created a sibling, and if allow_mult=false the two resolved
     by the last updated time.
 
@@ -281,6 +286,75 @@ access to the =other_field=.
 
 - [[https://github.com/basho/riak_search/pull/84][Streamlined]] custom extractor bucket property.
 
+- Fixed bug in =lucene_parser= to handle all errors returned from
+  calls to =lucene_scan:string=.
+
+
+** Known Issues
+*** Rolling Upgrade From Riak Search 14.2 to Riak 1.0.0
+
+There are a couple of caveats for rolling upgrade from 
+Riak Search 0.14.2 to Riak 1.0.0.
+
+First, there are some extra steps that need to be taken when
+installing the new package.  Instead of simply installing the new
+package you must uninstall the old one, move the data dir, and then
+install the new package.
+
+Second, while in a mixed cluster state some queries will return
+incorrect results.  It's tough to say which queries will exhibit this
+behavior because it depends on which node the data is stored and what
+node is making the query.  Essentially, if two nodes with different
+versions need to coordinate on a query it will produce incorrect
+results.  Once all nodes have been upgrade to 1.0.0 all queries will
+return the correct results.
+
+*** Intermittent CRASH REPORT on node leave (bz://1218)
+
+There is a harmless race condition that sometimes triggers a crash when a node leaves
+the cluster. It can be ignored.  It shows up on the console/logs as:
+
+ =(08:00:31.564 [notice] "node removal completed, exiting.")=
+
+=(08:00:31.578 [error] CRASH REPORT Process riak_core_ring_manager with 0 neighbours crashed with reason: timeout_value)=
+
+*** Node stats incorrectly report pbc_connects_total
+
+The new code path for recording stats is not currently incrementing the
+total number of protocol buffer connections made to the node, causing it 
+to incorrectly report 0 in both =riak-admin status= and =GET /stats= .
+
+*** Secondary Indexes not supported under Multi Backend
+
+Multi Backend does not correctly expose all capabilities of its
+child backends. This prohibits using Secondary Indexes with Multi
+Backend. Currently, Secondary Indexing is only supported for the
+ELevelDB backend (=riak_kv_eleveldb_backend=). Tracked as [[https://issues.basho.com/show_bug.cgi?id=1231][Bug 1231]].
+
+*** MapReduce reduce phase may run more often than requested
+
+If a reduce phase of a MapReduce query is handed off from one Riak
+Pipe vnode to another it immediately and unconditionally reduces the
+inputs it has accumulated.  This may cause the reduce function to be
+evaluated more often than requested by the batch size configuration
+options.  Tracked as [[https://issues.basho.com/show_bug.cgi?id=1183][Bug 1183]] and [[https://issues.basho.com/show_bug.cgi?id=1184][Bug 1184]].
+
+*** Potential Cluster/Gossip Overload
+
+The new cluster protocol is designed to ensure that a Riak cluster
+converges as quickly as possible. When running multiple Riak nodes on
+a single-machine, the underlying gossip mechanism may become CPU-bound
+for a period of time and cause cluster related commands to
+timeout. This includes the following =riak-admin= commands: =join,
+leave, remove, member_status, ring_status=.  Incoming client requests
+and other Riak operations will continue to function, although latency
+may be impacted. The cluster will continue to handle gossip messages
+and will eventually converge, resolving this issue. Note: This
+behavior only occurs when adding/removing nodes from the cluster, and
+will not occur when a cluster is stable. Also, this behavior has only
+been observed when running multiple nodes on a single machine, and has
+not been observed when running Riak on multiple servers or EC2
+instances.
 
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
@@ -361,3 +435,7 @@ access to the =other_field=.
 -[[https://issues.basho.com/show_bug.cgi?id=1216][bz1216 - Not possible to control search hook order with bucket fixups]]
 -[[https://issues.basho.com/show_bug.cgi?id=1220][bz1220 - riak-admin ringready only shows 1.0 nodes in a mixed cluster]]
 -[[https://issues.basho.com/show_bug.cgi?id=1224][bz1224 - platform_data_dir (/data) is not being created before accessed for some packages]]
+-[[https://issues.basho.com/show_bug.cgi?id=1226][bz1226 - Riak creates identical vtags for the same bucket/key with different values]]
+-[[https://issues.basho.com/show_bug.cgi?id=1227][bz1227 - badstate crash in handoff]]
+-[[https://issues.basho.com/show_bug.cgi?id=1229][bz1229 - "Downed" (riak-admin down) nodes don't rejoin cluster]]
+
