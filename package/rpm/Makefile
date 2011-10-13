@@ -1,6 +1,6 @@
 
 DISTRO = $(shell head -1 /etc/redhat-release| awk \
-           '{if ($$0 ~ /CentOS/) { print ".el5."} else { print "." }} ')
+           '{if ($$0 ~ /CentOS release 5/) { print ".el5."} else { print "." }} ')
 
 build: $(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz rpmbuild
 	@echo "DISTRO = $(DISTRO)"
