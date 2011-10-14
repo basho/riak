@@ -379,7 +379,7 @@ case "$1" in
         echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
         echo "                    reip | js_reload | wait-for-service | ringready | "
         echo "                    transfers | remove | down | cluster_info | "
-        echo "                    member_status | ring_status }"
+        echo "                    member_status | ring_status | vnode-status}"
         exit 1
         ;;
 esac
