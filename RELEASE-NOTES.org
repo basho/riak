@@ -1,3 +1,21 @@
+* Riak 1.0.1 Release Notes
+** Bugs Fixed
+-[[https://issues.basho.com/show_bug.cgi?id=1183][bz1183 - Handoff may cause riak_kv_w_reduce to over-reduce]]
+-[[https://issues.basho.com/show_bug.cgi?id=1184][bz1184 - riak_kv_w_reduce should respect reduce_phase_only_1 during handoff]]
+-[[https://issues.basho.com/show_bug.cgi?id=1213][bz1213 - HTTP and Javascript map phases can't use do_prereduce]]
+-[[https://issues.basho.com/show_bug.cgi?id=1225][bz1225 - Exact phrase search fails on repeated words]]
+-[[https://issues.basho.com/show_bug.cgi?id=1228][bz1228 - riak_core_ring_manager crashes with function clause and state of 'ok' ]]
+-[[https://issues.basho.com/show_bug.cgi?id=1234][bz1234 - Mixed 0.14/1.0.0 cluster puts can fail for clusters with more than N nodes]]
+-[[https://issues.basho.com/show_bug.cgi?id=1235][bz1235 - vnode crashes due to receiving handoff data in deleted state]]
+-[[https://issues.basho.com/show_bug.cgi?id=1236][bz1236 - riak_pipe vnode crash in Java client test suite]]
+-[[https://issues.basho.com/show_bug.cgi?id=1237][bz1237 - File descriptor leak in riak_kv_bitcask_backend fold]]
+-[[https://issues.basho.com/show_bug.cgi?id=1238][bz1238 - Prereduce uses map phase arg instead of reduce phase arg]]
+-[[https://issues.basho.com/show_bug.cgi?id=1242][bz1242 - Handoff stops when the ring is modified by fix-up modules]]
+-[[https://issues.basho.com/show_bug.cgi?id=1243][bz1243 - JSONified riak_object drops multiple index entries]]
+-[[https://issues.basho.com/show_bug.cgi?id=1244][bz1244 - riak_kv_wm_object makes call to riak_client:get/3 with invalid type for key]]
+-[[https://issues.basho.com/show_bug.cgi?id=1249][bz1249 - Backup/restore fail if ring is fixed-up]]
+-[[https://issues.basho.com/show_bug.cgi?id=1250][bz1250 - bitcask partition data isn't cleaned up after handoff]]
+
 * Riak 1.0.0 Release Notes
 
 ** Major Features and Improvements for Riak
