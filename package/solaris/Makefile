@@ -1,7 +1,6 @@
 # requires GNU make
 PKG		 = BASHO$(APP)
 # possible ARCH values are i386, sparc, all
-ARCH		 = $(shell uname -p)
 SOLARIS_VER	?= $(shell echo "$(KERNEL)" | sed -e 's/^5\.//')
 PKGFILE		 = $(PKG)-$(REVISION)-$(RELEASE)-$(DISTRO)$(SOLARIS_VER)-$(ARCH).pkg
 
@@ -24,6 +23,8 @@ buildrel:
 	@# Make sure we set our EUID properly
 	echo "" >> $(RIAK_PATH)/rel/vars.config
 	echo '{runner_user, "riak"}.' >> $(RIAK_PATH)/rel/vars.config
+	cp $(RIAK_PATH)/rel/files/riak $(RIAK_PATH)/rel/files/riak.tmp
+	sed -e "s/^RIAK_VERSION.*$$/RIAK_VERSION=\"${VERSIONSTRING}\"/" < $(RIAK_PATH)/rel/files/riak.tmp > $(RIAK_PATH)/rel/files/riak
 	@# Ye Olde Bourne Shell on Solaris means we have to do it old school
 	echo "Using `which erl` to build"; \
 	$(MAKE) -C $(RIAK_PATH) deps rel

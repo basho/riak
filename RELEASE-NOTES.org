@@ -1,5 +1,6 @@
 * Riak 1.0.1 Release Notes
 ** Bugs Fixed
+-[[https://issues.basho.com/show_bug.cgi?id=15][bz0015 - Merge js-mapreduce.org and basic-mapreduce.txt]]
 -[[https://issues.basho.com/show_bug.cgi?id=1183][bz1183 - Handoff may cause riak_kv_w_reduce to over-reduce]]
 -[[https://issues.basho.com/show_bug.cgi?id=1184][bz1184 - riak_kv_w_reduce should respect reduce_phase_only_1 during handoff]]
 -[[https://issues.basho.com/show_bug.cgi?id=1213][bz1213 - HTTP and Javascript map phases can't use do_prereduce]]
