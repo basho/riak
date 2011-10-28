@@ -69,6 +69,8 @@ cat > rel/vars.config <<EOF
 {pipe_dir,           "%{_localstatedir}/run/%{name}/"}.
 {runner_user,        "%{name}"}.
 EOF
+cp rel/files/riak rel/files/riak.tmp
+sed -e "s/^RIAK_VERSION.*$/RIAK_VERSION=\"%{_versionstring}\"/" < rel/files/riak.tmp > rel/files/riak
 
 %build
 mkdir %{name}
