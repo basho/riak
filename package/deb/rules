@@ -17,6 +17,8 @@ LDFLAGS=
 
 build:
 	cp -f debian/vars.config rel/vars.config
+	cp rel/files/riak rel/files/riak.tmp
+	sed -e "s/^RIAK_VERSION.*$$/RIAK_VERSION=\"${VERSIONSTRING}\"/" < rel/files/riak.tmp > rel/files/riak && \
 	unset CC CFLAGS CPPFLAGS LDFLAGS CXX CXXFLAGS \
 		&& make rel
 	touch build
