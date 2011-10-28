@@ -12,6 +12,7 @@ PIPE_DIR={{pipe_dir}}
 RUNNER_USER={{runner_user}}
 PLATFORM_DATA_DIR={{platform_data_dir}}
 SSL_DIST_CONFIG=$PLATFORM_DATA_DIR/ssl_distribution.args_file
+RIAK_VERSION="git"
 
 # Make sure this script is running as the appropriate user
 if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
@@ -251,8 +252,11 @@ case "$1" in
         fi
         echo "config is OK"
         ;;
+    version)
+        echo $RIAK_VERSION
+        ;;
     *)
-        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig}"
+        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig|version}"
         exit 1
         ;;
 esac

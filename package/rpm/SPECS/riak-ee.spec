@@ -78,6 +78,8 @@ cat > rel/vars.config <<EOF
 % etc/snmp/agent.conf
 {snmp_agent_port,    4000}.
 EOF
+cp rel/files/riak rel/files/riak.tmp
+sed -e "s/^RIAK_VERSION.*$/RIAK_VERSION=\"%{_versionstring}\"/" < rel/files/riak.tmp > rel/files/riak
 
 
 %build
