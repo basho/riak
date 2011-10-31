@@ -10,6 +10,7 @@ build:  $(BUILDPATH)/debian \
 	        --prepend-path=$(ERLANG_BIN) \
 		-e REVISION=$(REVISION) \
 		-e RELEASE=$(RELEASE) \
+		-e VERSIONSTRING="$(VERSIONSTRING)" \
 		-uc -us
 	mkdir -p packages
 	mv debuild/$(APP)_$(REVISION)-$(RELEASE)_*.deb packages

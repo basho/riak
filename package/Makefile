@@ -2,26 +2,36 @@ OS		= $(shell uname -s)
 KERNEL		= $(shell uname -r)
 ERLANG_BIN	= $(shell dirname $(shell which erl))
 ifeq ($(OS),Linux)
+ARCH		= $(shell uname -m)
 PKGER		= $(shell cat /etc/redhat-release 2> /dev/null)
 ifeq ($(PKGER),)
+OSNAME		= Debian
 PKGER		= debuild
 PKGERDIR	= deb
 else
+OSNAME		= RedHat
 PKGER		= rpmbuild
 PKGERDIR	= rpm
 endif
 endif
 ifeq ($(OS),SunOS)
+ARCH		= $(shell uname -p)
 PKGER		= make
 PKGERDIR	= solaris
 DISTRO		= $(shell head -1 /etc/release|awk \
                    '{if ($$1 == "OpenSolaris") {print $$1} else {print "Solaris"}}')
+OSNAME		= ${DISTRO}
 endif
 ifeq ($(OS),Darwin)
-PKGER           = make
-PKGERDIR        = osx
-BUILDDIR        = osxbuild
+OSNAME		= OSX
+ARCH		= $(shell uname -m)
+PKGER		= make
+PKGERDIR	= osx
+BUILDDIR	= osxbuild
 endif
+
+DATE		= $(shell date +%Y-%m-%d)
+VERSIONSTRING	= $(APP) ($(REVISION) $(DATE)) $(OSNAME) $(ARCH)
 
 APP		 = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
 # Assumes CURDIR is .../$(APP)/package/$(APP)/
