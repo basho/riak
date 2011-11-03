@@ -33,7 +33,7 @@ DAEMON=/usr/sbin/$NAME
 
 start() {
         #Check if Riak is running
-        RETVAL=`$DAEMON ping`
+	RETVAL=`su - riak -c "$DAEMON ping"`
         [ "$RETVAL" = "pong" ] && echo "Riak is already running" && return 1
 
 	# Start daemons.
