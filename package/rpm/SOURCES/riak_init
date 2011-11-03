@@ -71,6 +71,12 @@ reload() {
 	return $RETVAL
 }
 
+status() {
+	RETVAL=`su - riak -c "$DAEMON ping"`
+	[ "$RETVAL" = "pong" ] && echo $"$NAME is running..." && return 0
+	echo $"$NAME is stopped"
+	return 3
+}
 
 # See how we were called.
 case "$1" in
@@ -86,6 +92,9 @@ case "$1" in
 	;;
   reload)
 	reload
+	;;
+  status)
+	status
 	;;
   ping)
 	su - riak -c "$DAEMON ping" || exit $?
