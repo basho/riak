@@ -17,6 +17,7 @@ build: $(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz rpmbuild
 		 --define "_repo $(REPO)" \
 		 --define "_version $(PKG_VERSION)" \
 		 --define "_release $(RELEASE)" \
+		 --define "_versionstring $(VERSIONSTRING)" \
 		 -ba $(PKGERDIR)/SPECS/$(APP).spec
 	cd packages && \
 		for rpmfile in `ls *.rpm`; do \
