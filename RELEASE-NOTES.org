@@ -374,6 +374,71 @@ been observed when running multiple nodes on a single machine, and has
 not been observed when running Riak on multiple servers or EC2
 instances.
 
+*** Large Ring Sizes
+
+The new cluster protocol in 1.0 leads to a practical limit on the size
+of the ring in a Riak cluster. While there is no hard coded limit, large
+ring sizes lead to increasingly slower performance and potentially unstable
+clusters. This limitation will be addressed in a future major release of
+Riak. For the time being, it is recommended that users limit clusters to
+no more than 256, 512, 1024 partitions depending on the performance of the
+underlying hardware.
+
+*** Ownership Handoff Stall
+
+It has been observed that 1.0 clusters can end up in a state with ownership
+handoff failing to complete. This state should not happen under normal
+circumstances, but has been observed in cases where Riak nodes crashed due
+to unrelated issues (eg. running out of disk space/memory) during cluster
+membership changes. The behavior can be identified by looking at the output
+of =riak-admin ring_status= and looking for transfers that are waiting on an
+empty set. As an example:
+
+#+BEGIN_SRC
+============================== Ownership Handoff ==============================
+Owner:      riak@host1
+Next Owner: riak@host2
+
+Index: 123456789123456789123456789123456789123456789123
+  Waiting on: []
+  Complete:   [riak_kv_vnode,riak_pipe_vnode]
+#+END_SRC
+
+To fix this issue, copy/paste the following code sequence into an Erlang
+shell for each =Owner= node in =riak-admin ring_status= for which
+this case has been identified. The Erlang shell can be accessed with =riak attach=
+
+#+BEGIN_SRC
+fun() ->
+  Node = node(),
+  {_Claimant, _RingReady, _Down, _MarkedDown, Changes} =
+      riak_core_status:ring_status(),
+  Stuck =
+      [{Idx, Complete} || {{Owner, NextOwner}, Transfers} <- Changes,
+                          {Idx, Waiting, Complete, Status} <- Transfers,
+                          Owner =:= Node,
+                          Waiting =:= [],
+                          Status =:= awaiting],
+
+  RT = fun(Ring, _) ->
+           NewRing = lists:foldl(fun({Idx, Mods}, Ring1) ->
+                         lists:foldl(fun(Mod, Ring2) ->
+                             riak_core_ring:handoff_complete(Ring2, Idx, Mod)
+                         end, Ring1, Mods)
+                     end, Ring, Stuck),
+           {new_ring, NewRing}
+       end,
+
+  case Stuck of
+      [] ->
+          ok;
+      _ ->
+          riak_core_ring_manager:ring_trans(RT, []),
+          ok
+  end
+end().
+#+END_SRC
+ 
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
 -[[https://issues.basho.com/show_bug.cgi?id=0123][bz0123 - default_bucket_props in app.config is not merged with the hardcoded defaults]]
