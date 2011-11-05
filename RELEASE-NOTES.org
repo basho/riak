@@ -4,7 +4,6 @@
 -[[https://issues.basho.com/show_bug.cgi?id=1261][bz1261 - pipe mapreduce jobs fail in mixed 1.0.0/1.0.1 clusters]]
 -[[https://issues.basho.com/show_bug.cgi?id=1263][bz1263 - bitcask-backed vnodes handle requests while dropping]]
 -[[https://issues.basho.com/show_bug.cgi?id=1265][bz1265 - eleveldb not opened with configuration options from environment]]
--[[https://issues.basho.com/show_bug.cgi?id=1271][bz1271 - Can't replicate between 1.0 and 0.14 clusters]]
 
 ** Other Additions
 *** New stats
