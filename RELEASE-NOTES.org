@@ -100,7 +100,30 @@ fun() ->
   end
 end().
 #+END_SRC
- 
+
+*** Innostore on 32-bit systems
+
+Depending on the partition count and the default stack size of the
+operating system, using Innostore as the backend on 32-bit systems can
+cause problems. A symptom of this problem would be a message similar
+to this on the console or in the Riak error log:
+
+#+BEGIN_SRC
+10:22:38.719 [error] Failed to start riak_kv_innostore_backend for index 1415829711164312202009819681693899175291684651008. Reason: {eagain,[{erlang,open_port,[{spawn,innostore_drv},[binary]]},{innostore,connect,0},{riak_kv_innostore_backend,start,2},{riak_kv_vnode,init,1},{riak_core_vnode,init,1},{gen_fsm,init_it,6},{proc_lib,init_p_do_apply,3}]}
+10:22:38.871 [notice] "backend module failed to start."
+#+END_SRC
+
+The workaround for this problem is to reduce the stack size for the
+user the Riak is run as (=riak= for most distributions). For example
+on Linux, the current stack size can be viewed using =ulimit -s= and
+can be altered by adding entries to the =/etc/security/limits.conf=
+file such as these:
+
+#+BEGIN_SRC
+riak             soft    stack           1024
+riak             hard    stack           1024
+#+END_SRC
+
 * Riak 1.0.1 Release Notes
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=15][bz0015 - Merge js-mapreduce.org and basic-mapreduce.txt]]
