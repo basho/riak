@@ -114,7 +114,7 @@ to this on the console or in the Riak error log:
 #+END_SRC
 
 The workaround for this problem is to reduce the stack size for the
-user the Riak is run as (=riak= for most distributions). For example
+user Riak is run as (=riak= for most distributions). For example
 on Linux, the current stack size can be viewed using =ulimit -s= and
 can be altered by adding entries to the =/etc/security/limits.conf=
 file such as these:
