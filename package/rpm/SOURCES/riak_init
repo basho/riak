@@ -82,11 +82,11 @@ case "$1" in
   reload)
 	reload
 	;;
-  ping)
+  ping|status)
 	su - riak -c "$DAEMON ping" || exit $?
         ;;
   *)
-	echo $"Usage: $0 {start|stop|reload|restart|ping}"
+	echo $"Usage: $0 {start|stop|reload|restart|ping|status}"
 	exit 1
 esac
 
