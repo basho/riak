@@ -31,6 +31,16 @@ rel: deps
 relclean:
 	rm -rf rel/riak
 
+rel/riak/etc/cert.pem rel/riak/etc/key.pem: sslgen
+
+sslgen: rel/riak
+	cd rel/riak/etc
+	openssl genrsa -des3 -out server.key -passout pass:riakssl 1024
+	openssl req -new -key server.key -out server.csr -passin pass:riakssl \
+		-subj /DC=US/DC=Massachussets/DC=Cambridge/O=Basho/OU=Engineering/CN=Riak
+	openssl rsa -in server.key -out key.pem -passin pass:riakssl
+	openssl x509 -req -days 365 -in server.csr -signkey server.key -out cert.pem -passin pass:riakssl
+	rm server.key server.csr
 ##
 ## Developer targets
 ##
@@ -46,6 +56,18 @@ dev1 dev2 dev3 dev4:
 
 devclean: clean
 	rm -rf dev
+
+ssldev: dev/dev1/etc dev/dev2/etc dev/dev3/etc dev/dev4/etc
+	$(foreach dev,$^,\
+	    cd $(dev);\
+	  	openssl genrsa -des3 -out server.key -passout pass:riakssl 1024;\
+		openssl req -new -key server.key -out server.csr -passin pass:riakssl \
+		-subj /DC=US/DC=Massachussets/DC=Cambridge/O=Basho/OU=Engineering/CN=Riak;\
+		openssl rsa -in server.key -out key.pem -passin pass:riakssl;\
+		openssl x509 -req -days 365 -in server.csr -signkey server.key -out cert.pem -passin pass:riakssl;\
+		rm server.key server.csr;\
+	    cd -)
+
 
 stage : rel
 	$(foreach dep,$(wildcard deps/*), rm -rf rel/riak/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) rel/riak/lib;)
