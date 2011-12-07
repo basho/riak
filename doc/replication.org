@@ -60,6 +60,37 @@
    =fullsync_interval= parameter. See the "Configuration" section
    below for more details.
 
+** Replication Hooks
+
+   Riak replication allows applications to register replication hooks to control
+   when extra objects need to be replicated along with the current object, or
+   when an object should not be replicated.
+
+   To register a hook, you must call:
+
+   riak_core:register([{repl_helper, MyMod}])
+
+   Where MyMod defines the following functions:
+
+*** =send_realtime/2= (Object, RiakClient) -> ok | cancel
+
+   This hook controls whether an object replicated in realtime should be sent.
+   To send this object, return 'ok', otherwise return 'cancel'.
+
+*** =send/2= (Object, RiakClient) -> ok | cancel | [Objects]
+
+   This hook is used in fullsync replication. As above, you can return ok or
+   cancel, but you can also return a list of riak objects to be replicated
+   immediately *before* the current object. This is useful for when you have an
+   object that refers to other objects (eg. a chunked file) and want to be sure
+   all the needed keys are replicated before the key referencing them is
+   replicated.
+
+*** =send/2= (Object) -> ok | cancel
+
+   When an object is received by the client site, this hook is run. You can use
+   it to update some metadata, or to deny the object.
+
 * Configuration
 ** =app.config= Settings
 
