@@ -292,6 +292,11 @@ strategies, and more, please visit our wiki at http://wiki.basho.com/.
   - Basho engineers will review your pull-request, suggest changes,
     and merge it when it's ready.
 
+** How to Report a Bug
+
+  - The Basho Bug Tracker: [[https://issues.basho.com]]
+  - Read More at: [[http://wiki.basho.com/How-to-Report-a-Bug.html]]
+
 ** Testing
   To make sure your patch works, be sure to run the test suite in each
   modified sub-project, and dialyzer from the top-level project to
