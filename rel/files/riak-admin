@@ -65,15 +65,6 @@ ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
 # Setup command to control the node
 NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
 
-# Riaknostic location
-RIAKNOSTIC_LOC="$ERTS_PATH/../lib/riaknostic/riaknostic"
-
-# Setup command to run riaknostic
-RIAKNOSTIC="$ERTS_PATH/escript $RIAKNOSTIC_LOC -etc $RUNNER_ETC_DIR -base $RUNNER_BASE_DIR -user $RUNNER_USER"
-
-# URL for Riaknostic download instructions
-RIAKNOSTIC_URL="http://riaknostic.basho.com/"
-
 # Check the first argument for instructions
 case "$1" in
     join)
@@ -396,6 +387,22 @@ case "$1" in
 
         ;;
     diag)
+        # Riaknostic location
+        RIAKNOSTIC_LOC="$ERTS_PATH/../lib/riaknostic/riaknostic"
+
+        # Riaknostic user
+        RIAKNOSTIC_USER=$RUNNER_USER
+        if [ -z $RUNNER_USER ]; then
+            RIAKNOSTIC_USER=$LOGNAME
+        fi
+
+        # Setup command to run riaknostic
+        RIAKNOSTIC="$ERTS_PATH/escript $RIAKNOSTIC_LOC --user $RIAKNOSTIC_USER \
+            --etc $RUNNER_ETC_DIR --base $RUNNER_BASE_DIR"
+
+        # URL for Riaknostic download instructions
+        RIAKNOSTIC_URL="http://riaknostic.basho.com/"
+
         shift
         
         if [ -f "$RIAKNOSTIC_LOC" ]; then
