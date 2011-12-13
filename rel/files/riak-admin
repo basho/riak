@@ -388,7 +388,7 @@ case "$1" in
         ;;
     diag)
         # Riaknostic location
-        RIAKNOSTIC_LOC="$ERTS_PATH/../lib/riaknostic/riaknostic"
+        RIAKNOSTIC_LOC="$ERTS_PATH/../../lib/riaknostic/riaknostic"
 
         # Riaknostic user
         RIAKNOSTIC_USER=$RUNNER_USER
