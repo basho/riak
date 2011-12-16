@@ -310,6 +310,17 @@ case "$1" in
         $NODETOOL rpc riak_kv_js_manager reload $@
         ;;
 
+    erl_reload)
+        # Reload user Erlang code
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        
+        $NODETOOL rpc riak_kv_console reload_code
+        ;;
+
     reip)
         ACTION=$1
         shift
@@ -388,9 +399,9 @@ case "$1" in
         ;;
     *)
         echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
-        echo "                    reip | js_reload | wait-for-service | ringready | "
-        echo "                    transfers | force-remove | down | cluster_info | "
-        echo "                    member_status | ring_status | vnode-status}"
+        echo "                    reip | js_reload | erl_reload | wait-for-service | "
+        echo "                    ringready | transfers | force-remove | down | "
+        echo "                    cluster_info | member_status | ring_status | vnode-status}"
         exit 1
         ;;
 esac
