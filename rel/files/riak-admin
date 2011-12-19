@@ -103,8 +103,19 @@ case "$1" in
         ;;
 
     remove)
+        echo "The 'remove' command no longer exists. If you want a node to"
+        echo "safely leave the cluster (handoff its data before exiting),"
+        echo "then execute 'leave' on the desired node. If a node is down and"
+        echo "unrecoverable (and therefore cannot be safely removed), then"
+        echo "use the 'force-remove' command. A force removal drops all data"
+        echo "owned by the removed node. Read-repair can be used to restore"
+        echo "lost replicas."
+        exit 1
+        ;;
+
+    force-remove)
         if [ $# -ne 2 ]; then
-            echo "Usage: $SCRIPT remove <node>"
+            echo "Usage: $SCRIPT force-remove <node>"
             exit 1
         fi
 
@@ -299,6 +310,17 @@ case "$1" in
         $NODETOOL rpc riak_kv_js_manager reload $@
         ;;
 
+    erl_reload)
+        # Reload user Erlang code
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+
+        $NODETOOL rpc riak_kv_console reload_code
+        ;;
+
     reip)
         ACTION=$1
         shift
@@ -393,7 +415,7 @@ case "$1" in
         RIAKNOSTIC_URL="http://riaknostic.basho.com/"
 
         shift
-    
+
         if [ -f "$RIAKNOSTIC_LOC" ]; then
             $RIAKNOSTIC "$@"
         else
@@ -401,13 +423,14 @@ case "$1" in
             echo "Visit $RIAKNOSTIC_URL for instructions."
             exit 1
         fi
-    
+
         ;;
     *)
         echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
-        echo "                    reip | js_reload | wait-for-service | ringready | "
-        echo "                    transfers | remove | down | cluster_info | "
-        echo "                    member_status | ring_status | vnode-status | diag}"
+        echo "                    reip | js_reload | erl_reload | wait-for-service | "
+        echo "                    ringready | transfers | force-remove | down | "
+        echo "                    cluster_info | member_status | ring_status | vnode-status |"
+        echo "                    diag }"
         exit 1
         ;;
 esac
