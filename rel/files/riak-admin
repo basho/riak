@@ -317,7 +317,7 @@ case "$1" in
             echo "Node is not running!"
             exit 1
         fi
-        
+
         $NODETOOL rpc riak_kv_console reload_code
         ;;
 
@@ -397,11 +397,40 @@ case "$1" in
                               end."
 
         ;;
+    diag)
+        # Riaknostic location
+        RIAKNOSTIC_LOC="$ERTS_PATH/../../lib/riaknostic/riaknostic"
+
+        # Riaknostic user
+        RIAKNOSTIC_USER=$RUNNER_USER
+        if [ -z $RUNNER_USER ]; then
+            RIAKNOSTIC_USER=$LOGNAME
+        fi
+
+        # Setup command to run riaknostic
+        RIAKNOSTIC="$ERTS_PATH/escript $RIAKNOSTIC_LOC --user $RIAKNOSTIC_USER \
+            --etc $RUNNER_ETC_DIR --base $RUNNER_BASE_DIR"
+
+        # URL for Riaknostic download instructions
+        RIAKNOSTIC_URL="http://riaknostic.basho.com/"
+
+        shift
+
+        if [ -f "$RIAKNOSTIC_LOC" ]; then
+            $RIAKNOSTIC "$@"
+        else
+            echo "Riak diagnostics utility is not present!"
+            echo "Visit $RIAKNOSTIC_URL for instructions."
+            exit 1
+        fi
+
+        ;;
     *)
         echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
         echo "                    reip | js_reload | erl_reload | wait-for-service | "
         echo "                    ringready | transfers | force-remove | down | "
-        echo "                    cluster_info | member_status | ring_status | vnode-status}"
+        echo "                    cluster_info | member_status | ring_status | vnode-status |"
+        echo "                    diag }"
         exit 1
         ;;
 esac
