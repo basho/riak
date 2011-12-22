@@ -86,7 +86,7 @@
    all the needed keys are replicated before the key referencing them is
    replicated.
 
-*** =send/2= (Object) -> ok | cancel
+*** =recv/1= (Object) -> ok | cancel
 
    When an object is received by the client site, this hook is run. You can use
    it to update some metadata, or to deny the object.
