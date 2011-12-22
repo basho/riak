@@ -66,6 +66,8 @@ install: build
 		debian/$(package)/etc/riak/snmp/agent/conf
 	chmod 555 debian/$(package)/usr/lib/riak/lib/riak_jmx-*/priv/riak_jmx.sh
 
+	dh_shlibdeps
+
 binary-indep: install
 # We have nothing to do by default.
 
