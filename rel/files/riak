@@ -8,10 +8,12 @@ RUNNER_SCRIPT=${0##*/}
 RUNNER_BASE_DIR={{runner_base_dir}}
 RUNNER_ETC_DIR={{runner_etc_dir}}
 RUNNER_LOG_DIR={{runner_log_dir}}
+# Note the trailing slash on $PIPE_DIR/
 PIPE_DIR={{pipe_dir}}
 RUNNER_USER={{runner_user}}
 PLATFORM_DATA_DIR={{platform_data_dir}}
 SSL_DIST_CONFIG=$PLATFORM_DATA_DIR/ssl_distribution.args_file
+RIAK_VERSION="git"
 
 # Make sure this script is running as the appropriate user
 if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
@@ -49,14 +51,14 @@ if [ ! -w $RUNNER_LOG_DIR ]; then
 fi
 
 # Extract the target node name from node.args
-NAME_ARG=`grep '\-[s]*name' $RUNNER_ETC_DIR/vm.args`
+NAME_ARG=`egrep '^\-s?name' $RUNNER_ETC_DIR/vm.args`
 if [ -z "$NAME_ARG" ]; then
     echo "vm.args needs to have either -name or -sname parameter."
     exit 1
 fi
 
 # Extract the target cookie
-COOKIE_ARG=`grep '\-setcookie' $RUNNER_ETC_DIR/vm.args`
+COOKIE_ARG=`grep '^\-setcookie' $RUNNER_ETC_DIR/vm.args`
 if [ -z "$COOKIE_ARG" ]; then
     echo "vm.args needs to have a -setcookie parameter."
     exit 1
@@ -105,7 +107,7 @@ case "$1" in
         HEART_COMMAND="$RUNNER_SCRIPT_DIR/$SCRIPT start"
         export HEART_COMMAND
         mkdir -p $PIPE_DIR
-        $ERTS_PATH/run_erl -daemon $PIPE_DIR/ $RUNNER_LOG_DIR \
+        $ERTS_PATH/run_erl -daemon $PIPE_DIR $RUNNER_LOG_DIR \
             "exec $RUNNER_SCRIPT_DIR/$SCRIPT console" 2>&1
 
         # Wait for the node to come up. We can't just ping it because
@@ -251,8 +253,11 @@ case "$1" in
         fi
         echo "config is OK"
         ;;
+    version)
+        echo $RIAK_VERSION
+        ;;
     *)
-        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig}"
+        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig|version}"
         exit 1
         ;;
 esac

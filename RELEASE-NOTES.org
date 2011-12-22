@@ -1,3 +1,148 @@
+* Riak 1.0.2 Release Notes
+** Bugs Fixed
+-[[https://issues.basho.com/show_bug.cgi?id=1227][bz1227 - badstate crash in handoff]]
+-[[https://issues.basho.com/show_bug.cgi?id=1261][bz1261 - pipe mapreduce jobs fail in mixed 1.0.0/1.0.1 clusters]]
+-[[https://issues.basho.com/show_bug.cgi?id=1263][bz1263 - bitcask-backed vnodes handle requests while dropping]]
+-[[https://issues.basho.com/show_bug.cgi?id=1265][bz1265 - eleveldb not opened with configuration options from environment]]
+-[[https://issues.basho.com/show_bug.cgi?id=1271][bz1271 - Can't replicate between 1.0 and 0.14 clusters]]
+
+** Other Additions
+*** New stats
+Two new stats categories have been added to riak stats.
+
+-=node_get_fsm_siblings= reports the statstics on the number of siblings retrieved with get over the last minute.
+-=node_get_fsm_objsize= reports an estimate of the object sizes retrieved with get over the last minute.
+
+For both categories mean, median, max, 95th & 99th percentiles are given.  
+The new stats are available using riak-admin status or from the /stats endpoint.
+
+The new stats are not currently available over JMX or SNMP.  We intend to overhaul stats in a future major release.
+** Known Issues
+*** Pipe based MapReduce during rolling upgrades
+[[https://issues.basho.com/show_bug.cgi?id=1261][BZ1261]] 
+A bug was found that caused pipe-based MapReduce to be
+unusable during rolling upgrades from 1.0.0 to 1.0.1 (they work again
+once the upgrade is complete).  The problem has been fixed such that
+MapReduce will stay available when upgrading from 1.0.1 to 1.0.2, and
+also from 1.0.2 onward.
+
+If you are still using Riak 1.0.0, pipe-based MapReduce will still be
+unusable during the rolling upgrade to 1.0.2.  We apologize for the
+inconvenience.  If your MapReduce queries work on the legacy
+subsystem, you may want to switch back to it for the duration of your
+upgrade to 1.0.2.  To switch MapReduce subsystems, either edit the
+'mapred_system' setting in your app.config and restart each node, or
+connect to each nodes console and evaluate
+'application:set_env(riak_kv, mapred_system, Choice).' where 'Choice'
+is either 'legacy' or 'pipe'.
+
+*** Large Ring Sizes
+
+The new cluster protocol in 1.0 leads to a practical limit on the size
+of the ring in a Riak cluster. While there is no hard coded limit, large
+ring sizes lead to increasingly slower performance and potentially unstable
+clusters. This limitation will be addressed in a future major release of
+Riak. For the time being, it is recommended that users limit clusters to
+no more than 256, 512, 1024 partitions depending on the performance of the
+underlying hardware.
+
+*** Ownership Handoff Stall
+
+It has been observed that 1.0 clusters can end up in a state with ownership
+handoff failing to complete. This state should not happen under normal
+circumstances, but has been observed in cases where Riak nodes crashed due
+to unrelated issues (eg. running out of disk space/memory) during cluster
+membership changes. The behavior can be identified by looking at the output
+of =riak-admin ring_status= and looking for transfers that are waiting on an
+empty set. As an example:
+
+#+BEGIN_SRC
+============================== Ownership Handoff ==============================
+Owner:      riak@host1
+Next Owner: riak@host2
+
+Index: 123456789123456789123456789123456789123456789123
+  Waiting on: []
+  Complete:   [riak_kv_vnode,riak_pipe_vnode]
+#+END_SRC
+
+To fix this issue, copy/paste the following code sequence into an Erlang
+shell for each =Owner= node in =riak-admin ring_status= for which
+this case has been identified. The Erlang shell can be accessed with =riak attach=
+
+#+BEGIN_SRC
+fun() ->
+  Node = node(),
+  {_Claimant, _RingReady, _Down, _MarkedDown, Changes} =
+      riak_core_status:ring_status(),
+  Stuck =
+      [{Idx, Complete} || {{Owner, NextOwner}, Transfers} <- Changes,
+                          {Idx, Waiting, Complete, Status} <- Transfers,
+                          Owner =:= Node,
+                          Waiting =:= [],
+                          Status =:= awaiting],
+
+  RT = fun(Ring, _) ->
+           NewRing = lists:foldl(fun({Idx, Mods}, Ring1) ->
+                         lists:foldl(fun(Mod, Ring2) ->
+                             riak_core_ring:handoff_complete(Ring2, Idx, Mod)
+                         end, Ring1, Mods)
+                     end, Ring, Stuck),
+           {new_ring, NewRing}
+       end,
+
+  case Stuck of
+      [] ->
+          ok;
+      _ ->
+          riak_core_ring_manager:ring_trans(RT, []),
+          ok
+  end
+end().
+#+END_SRC
+
+*** Innostore on 32-bit systems
+
+Depending on the partition count and the default stack size of the
+operating system, using Innostore as the backend on 32-bit systems can
+cause problems. A symptom of this problem would be a message similar
+to this on the console or in the Riak error log:
+
+#+BEGIN_SRC
+10:22:38.719 [error] Failed to start riak_kv_innostore_backend for index 1415829711164312202009819681693899175291684651008. Reason: {eagain,[{erlang,open_port,[{spawn,innostore_drv},[binary]]},{innostore,connect,0},{riak_kv_innostore_backend,start,2},{riak_kv_vnode,init,1},{riak_core_vnode,init,1},{gen_fsm,init_it,6},{proc_lib,init_p_do_apply,3}]}
+10:22:38.871 [notice] "backend module failed to start."
+#+END_SRC
+
+The workaround for this problem is to reduce the stack size for the
+user Riak is run as (=riak= for most distributions). For example
+on Linux, the current stack size can be viewed using =ulimit -s= and
+can be altered by adding entries to the =/etc/security/limits.conf=
+file such as these:
+
+#+BEGIN_SRC
+riak             soft    stack           1024
+riak             hard    stack           1024
+#+END_SRC
+
+* Riak 1.0.1 Release Notes
+** Bugs Fixed
+-[[https://issues.basho.com/show_bug.cgi?id=15][bz0015 - Merge js-mapreduce.org and basic-mapreduce.txt]]
+-[[https://issues.basho.com/show_bug.cgi?id=1183][bz1183 - Handoff may cause riak_kv_w_reduce to over-reduce]]
+-[[https://issues.basho.com/show_bug.cgi?id=1184][bz1184 - riak_kv_w_reduce should respect reduce_phase_only_1 during handoff]]
+-[[https://issues.basho.com/show_bug.cgi?id=1213][bz1213 - HTTP and Javascript map phases can't use do_prereduce]]
+-[[https://issues.basho.com/show_bug.cgi?id=1225][bz1225 - Exact phrase search fails on repeated words]]
+-[[https://issues.basho.com/show_bug.cgi?id=1228][bz1228 - riak_core_ring_manager crashes with function clause and state of 'ok' ]]
+-[[https://issues.basho.com/show_bug.cgi?id=1234][bz1234 - Mixed 0.14/1.0.0 cluster puts can fail for clusters with more than N nodes]]
+-[[https://issues.basho.com/show_bug.cgi?id=1235][bz1235 - vnode crashes due to receiving handoff data in deleted state]]
+-[[https://issues.basho.com/show_bug.cgi?id=1236][bz1236 - riak_pipe vnode crash in Java client test suite]]
+-[[https://issues.basho.com/show_bug.cgi?id=1237][bz1237 - File descriptor leak in riak_kv_bitcask_backend fold]]
+-[[https://issues.basho.com/show_bug.cgi?id=1238][bz1238 - Prereduce uses map phase arg instead of reduce phase arg]]
+-[[https://issues.basho.com/show_bug.cgi?id=1242][bz1242 - Handoff stops when the ring is modified by fix-up modules]]
+-[[https://issues.basho.com/show_bug.cgi?id=1243][bz1243 - JSONified riak_object drops multiple index entries]]
+-[[https://issues.basho.com/show_bug.cgi?id=1244][bz1244 - riak_kv_wm_object makes call to riak_client:get/3 with invalid type for key]]
+-[[https://issues.basho.com/show_bug.cgi?id=1249][bz1249 - Backup/restore fail if ring is fixed-up]]
+-[[https://issues.basho.com/show_bug.cgi?id=1250][bz1250 - bitcask partition data isn't cleaned up after handoff]]
+
 * Riak 1.0.0 Release Notes
 
 ** Major Features and Improvements for Riak
@@ -289,7 +434,6 @@ access to the =other_field=.
 - Fixed bug in =lucene_parser= to handle all errors returned from
   calls to =lucene_scan:string=.
 
-
 ** Known Issues
 *** Rolling Upgrade From Riak Search 14.2 to Riak 1.0.0
 
@@ -355,6 +499,7 @@ will not occur when a cluster is stable. Also, this behavior has only
 been observed when running multiple nodes on a single machine, and has
 not been observed when running Riak on multiple servers or EC2
 instances.
+
 
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=0105][bz0105 - Python client new_binary doesn't set the content_type well]]
@@ -436,6 +581,5 @@ instances.
 -[[https://issues.basho.com/show_bug.cgi?id=1220][bz1220 - riak-admin ringready only shows 1.0 nodes in a mixed cluster]]
 -[[https://issues.basho.com/show_bug.cgi?id=1224][bz1224 - platform_data_dir (/data) is not being created before accessed for some packages]]
 -[[https://issues.basho.com/show_bug.cgi?id=1226][bz1226 - Riak creates identical vtags for the same bucket/key with different values]]
--[[https://issues.basho.com/show_bug.cgi?id=1227][bz1227 - badstate crash in handoff]]
 -[[https://issues.basho.com/show_bug.cgi?id=1229][bz1229 - "Downed" (riak-admin down) nodes don't rejoin cluster]]
 

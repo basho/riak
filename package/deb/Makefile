@@ -10,6 +10,7 @@ build:  $(BUILDPATH)/debian \
 		--prepend-path=$(ERLANG_BIN) \
 		-e REVISION=$(REVISION) \
 		-e RELEASE=$(RELEASE) \
+ 		-e VERSIONSTRING="$(VERSIONSTRING)" \
 		-e CLASSPATH=$${CLASSPATH} \
 		-uc -us
 	mkdir -p packages
