@@ -63,8 +63,8 @@
 
  {sleep, 1},
  {echo, "Verify replication of index on dev2"},
- {search_node, 'dev2@127.0.0.1', "value:Baltimore", [{length, 2}]},
- {search_node, 'dev2@127.0.0.1', "value:Cambridge", [{length, 1}]},
+ {search_node, 'dev2@127.0.0.1', "value:Baltimore", [], [{length, 2}]},
+ {search_node, 'dev2@127.0.0.1', "value:Cambridge", [], [{length, 1}]},
 
  {echo, "De-index KV objects"},
  {delobj, <<"test">>, <<"v1">>},
@@ -78,8 +78,8 @@
 
  {sleep, 1},
  {echo, "Verify replication of de-indexing to dev2"},
- {search_node, 'dev2@127.0.0.1', "value:Baltimore", [{length, 0}]},
- {search_node, 'dev2@127.0.0.1', "value:Cambridge", [{length, 0}]},
+ {search_node, 'dev2@127.0.0.1', "value:Baltimore", [], [{length, 0}]},
+ {search_node, 'dev2@127.0.0.1', "value:Cambridge", [], [{length, 0}]},
 
  {echo, "Index local documents"},
  {index,  "../_files/docs"},
@@ -89,7 +89,7 @@
 
  {echo, "Verify repliction of index to dev2"},
  {sleep, 1},
- {search_node, 'dev2@127.0.0.1', "value:brown", [{length, 1}]},
+ {search_node, 'dev2@127.0.0.1', "value:brown", [], [{length, 1}]},
 
  {echo, "De-index local documents"},
  {delete, "../_files/docs"},
@@ -99,7 +99,7 @@
 
  {echo, "Verify replication of de-indexing to dev2"},
  {sleep, 1},
- {search_node, 'dev2@127.0.0.1', "value:brown", [{length, 0}]},
+ {search_node, 'dev2@127.0.0.1', "value:brown", [], [{length, 0}]},
 
  {echo, "Done"}
 ].
