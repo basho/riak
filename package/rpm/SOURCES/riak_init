@@ -3,7 +3,7 @@
 # Riak Distributed Data Store
 #
 # chkconfig: 2345 80 30
-# description: Riak is a distrubuted data store.
+# description: Riak is a distributed data store.
 # processname: beam 
 # config: /etc/riak/app.config
 # config: /etc/riak/vm.args
@@ -16,7 +16,12 @@
 [ -x /usr/sbin/riak ] || exit 0
 [ -d /etc/riak ] || exit 0
 [ -d /var/lib/riak ] || exit 0
-[ -d /var/run/riak ] || exit 0
+
+# Create /var/run/riak if necessary (/var/run may be in a tmpfs filesystem).
+if [ ! -d /var/run/riak ]; then
+    mkdir -p /var/run/riak
+    chown riak:riak /var/run/riak
+fi
 
 RETVAL=0
 
@@ -27,66 +32,74 @@ DAEMON=/usr/sbin/$NAME
 
 
 start() {
-        #Check if Riak is running
-        RETVAL=`$DAEMON ping`
-        [ "$RETVAL" = "pong" ] && echo "Riak is already running" && return 1
+    #Check if Riak is running
+    RETVAL=`su - riak -c "$DAEMON ping"`
+    [ "$RETVAL" = "pong" ] && echo "Riak is already running" && return 1
 
-	# Start daemons.
-	echo -n $"Starting Riak: "
-	su - riak -c "$DAEMON start" && success || failure $"$NAME start"
-	RETVAL=$?
-	[ $RETVAL -eq 0 ]
-        echo
-	return $RETVAL
+    # Start daemons.
+    echo -n $"Starting Riak: "
+    su - riak -c "$DAEMON start" && success || failure $"$NAME start"
+    RETVAL=$?
+    [ $RETVAL -eq 0 ]
+    echo
+    return $RETVAL
 }
 
 stop() {
-        # Stop daemon.
-	echo -n $"Stopping Riak: "
-  	RETVAL=`su - riak -c "$DAEMON ping"`
-  	[ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON stop 2>/dev/null 1>&2" 
-        sleep 2
-        RETVAL=`pidof beam.smp`
-        [ "$RETVAL" = "" ] && success && echo && return 0 || failure $"$NAME stop"
-        sleep 10
-        RETVAL=`pidof beam.smp`
-        [ "$RETVAL" = "" ] && success && echo && return 0 || failure $"$NAME failed to stop"
-        echo
-        return 1
-
+    # Stop daemon.
+    echo -n $"Stopping Riak: "
+    RETVAL=`su - riak -c "$DAEMON ping"`
+    [ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON stop 2>/dev/null 1>&2" 
+    sleep 2
+    RETVAL=`pidof beam.smp`
+    [ "$RETVAL" = "" ] && success && echo && return 0 || failure $"$NAME stop"
+    sleep 10
+    RETVAL=`pidof beam.smp`
+    [ "$RETVAL" = "" ] && success && echo && return 0 || failure $"$NAME failed to stop"
+    echo
+    return 1
 }
 
 reload() {
-        # Restart the VM without exiting the process
-	echo -n $"Reloading Riak: "
-  	RETVAL=`su - riak -c "$DAEMON ping"`
-  	[ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON restart 2>/dev/null 1>&2" \
+    # Restart the VM without exiting the process
+    echo -n $"Reloading Riak: "
+    RETVAL=`su - riak -c "$DAEMON ping"`
+    [ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON restart 2>/dev/null 1>&2" \
         && success && echo && return 0 || failure $"$NAME restart" 
-        echo
-	return $RETVAL
+    echo
+    return $RETVAL
 }
 
+status() {
+    RETVAL=`su - riak -c "$DAEMON ping"`
+    [ "$RETVAL" = "pong" ] && echo $"$NAME is running..." && return 0
+    echo $"$NAME is stopped"
+    return 3
+}
 
 # See how we were called.
 case "$1" in
   start)
-	start
-	;;
+        start
+        ;;
   stop)
-	stop
+        stop
 	;;
   restart)
- 	stop
+        stop
 	start
 	;;
   reload)
 	reload
 	;;
+  status)
+	status
+	;;
   ping)
-	su - riak -c "$DAEMON ping" || exit $?
+        su - riak -c "$DAEMON ping" || exit $?
         ;;
   *)
-	echo $"Usage: $0 {start|stop|reload|restart|ping}"
+        echo $"Usage: $0 {start|stop|reload|restart|ping}"
 	exit 1
 esac
 

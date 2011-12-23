@@ -1,6 +1,7 @@
 #!/usr/bin/env escript
-%% -*- erlang -*-
 %%! -args_file {{platform_data_dir}}/ssl_distribution.args_file
+%% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
+%% ex: ft=erlang ts=4 sw=4 et
 %% -------------------------------------------------------------------
 %%
 %% nodetool: Helper Script for interacting with live nodes
@@ -36,7 +37,7 @@ main(Args) ->
 
     %% See if the node is currently running  -- if it's not, we'll bail
     case {net_kernel:hidden_connect_node(TargetNode), net_adm:ping(TargetNode)} of
-        {true, pong} -> 
+        {true, pong} ->
             ok;
         {_, pang} ->
             io:format("Node ~p not responding to pings.\n", [TargetNode]),
@@ -89,7 +90,7 @@ main(Args) ->
             io:format("Usage: nodetool {ping|stop|restart|reboot|chkconfig}\n")
     end,
     net_kernel:stop().
-    
+
 process_args([], Acc, TargetNode) ->
     {lists:reverse(Acc), TargetNode};
 process_args(["-setcookie", Cookie | Rest], Acc, TargetNode) ->

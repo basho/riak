@@ -55,6 +55,8 @@ install: build
 		debian/$(package)/etc/riak/vm.args
 	install -m755 debian/debian_riak_init debian/$(package)/etc/init.d/riak
 
+	dh_shlibdeps
+
 binary-indep: install
 # We have nothing to do by default.
 

@@ -21,6 +21,10 @@
 case "$1" in
     purge)
         rm -f /etc/default/riak
+
+        # ensure we remove the rc.d scripts installed by postinst
+        update-rc.d riak remove >/dev/null
+
         if [ -d /var/lib/riak ]; then
                 rm -r /var/lib/riak
         fi
@@ -57,7 +61,7 @@ case "$1" in
     ;;
 
     *)
-        echo "postrm called with unknown argument \`$1'" >&2
+        echo "postrm called with unknown argument \`$1\`" >&2
         exit 1
     ;;
 esac

@@ -5,6 +5,8 @@
 
 set -e
 
+# install startup script
+update-rc.d riak defaults >/dev/null
 
 # create riak group
 if ! getent group riak >/dev/null; then
@@ -14,7 +16,7 @@ fi
 # create raiak user
 if ! getent passwd riak >/dev/null; then
         adduser --ingroup riak --home /var/lib/riak --disabled-password \
-		--system --shell /bin/bash --no-create-home \
+		--system --shell /bin/false --no-create-home \
 		--gecos "Riak Data Store" riak
 fi
 
