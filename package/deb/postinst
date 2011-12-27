@@ -16,7 +16,7 @@ fi
 # create raiak user
 if ! getent passwd riak >/dev/null; then
         adduser --ingroup riak --home /var/lib/riak --disabled-password \
-		--system --shell /bin/false --no-create-home \
+		--system --shell /bin/bash --no-create-home \
 		--gecos "Riak Data Store" riak
 fi
 
