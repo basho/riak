@@ -7,6 +7,7 @@ RUNNER_SCRIPT=${0##*/}
 
 RUNNER_BASE_DIR={{runner_base_dir}}
 RUNNER_ETC_DIR={{runner_etc_dir}}
+RUNNER_LIB_DIR={{platform_lib_dir}}
 RUNNER_LOG_DIR={{runner_log_dir}}
 PIPE_DIR={{pipe_dir}}
 RUNNER_USER={{runner_user}}
@@ -227,6 +228,7 @@ case "$1" in
         PROGNAME=`echo $0 | sed 's/.*\///'`
         CMD="$BINDIR/erlexec -boot $RUNNER_BASE_DIR/releases/$APP_VSN/$SCRIPT \
             -embedded -config $RUNNER_ETC_DIR/app.config \
+            -pa $RUNNER_LIB_DIR/basho-patches \
             -args_file $RUNNER_ETC_DIR/vm.args -- ${1+"$@"}"
         export EMU
         export ROOTDIR
