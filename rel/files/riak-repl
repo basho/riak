@@ -141,17 +141,6 @@ case "$1" in
         fi
         $NODETOOL rpc riak_repl_console del_site $1
         ;;
-    status)
-        ACTION=$1
-        shift
-        # Make sure the local node is running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
-        $NODETOOL rpc riak_repl_console get_status
-        ;;
     start-fullsync)
         ACTION=$1
         shift
