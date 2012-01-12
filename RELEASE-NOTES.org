@@ -24,10 +24,10 @@ scheduler threads; this is the result of extensive load testing in a
 production environment. As a result of this change, it can now support
 =O_SYNC= on Linux.
 
-*** increase to default gossip limit
-TODO
-*** new default claim algorithm
-TODO
+*** New Claim Algorithm 
+The new claim algorithm introduced in the 1.0 release has been set as
+the default.
+
 *** Changes to Handoff Concurrency
 The default value for =handoff_concurrency= was set to 1 to err on the
 side of caution and not overload the cluster with handoff traffic.
