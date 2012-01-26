@@ -1,11 +1,13 @@
 
-DISTRO = $(shell head -1 /etc/redhat-release| awk \
-           '{if ($$0 ~ /CentOS release 5/) { print ".el5."} else { print "." }} ')
+DISTRO 			= $(shell head -1 /etc/redhat-release| awk \
+                          '{if ($$0 ~ /CentOS release 5/) { print ".el5."} else { print "." }} ')
 
-build: $(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz rpmbuild
+PKG_VERSION_NO_H	?= $(shell echo $(PKG_VERSION) | tr - .)
+
+build: $(PKGERDIR)/SOURCES/$(APP)-$(PKG_VERSION).tar.gz rpmbuild
 	@echo "DISTRO = $(DISTRO)"
 	@echo "RIAK_TAG = $(RIAK_TAG)"
-	@echo "REVISION = $(REVISION)"
+	@echo "REVISION = $(PKG_VERSION)"
 	@echo "RELEASE  = $(RELEASE)"
 	rpmbuild --define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}$(DISTRO)%%{ARCH}.rpm" \
 		 --define '_topdir $(CURDIR)/rpmbuild' \
@@ -13,8 +15,8 @@ build: $(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz rpmbuild
 		 --define '_specdir $(CURDIR)/$(PKGERDIR)/SPECS' \
 		 --define '_rpmdir $(CURDIR)/packages' \
 		 --define '_srcrpmdir $(CURDIR)/packages' \
-		 --define "_revision $(REVISION)" \
-		 --define "_version $(PKG_VERSION)" \
+		 --define "_revision $(PKG_VERSION)" \
+		 --define "_version $(PKG_VERSION_NO_H)" \
 		 --define "_release $(RELEASE)" \
 		 --define "_versionstring $(VERSIONSTRING)" \
 		 -ba $(PKGERDIR)/SPECS/$(APP).spec
@@ -31,9 +33,9 @@ rpmbuild:
 $(PKGERDIR)/SOURCES:
 	@mkdir -m 0755 -p $(PKGERDIR)/SOURCES
 
-$(PKGERDIR)/SOURCES/$(APP)-$(REVISION).tar.gz:  $(APP)-$(REVISION).tar.gz \
-						$(PKGERDIR)/SOURCES
-	cp $(APP)-$(REVISION).tar.gz $(PKGERDIR)/SOURCES
+$(PKGERDIR)/SOURCES/$(APP)-$(PKG_VERSION).tar.gz:  $(APP)-$(PKG_VERSION).tar.gz \
+						   $(PKGERDIR)/SOURCES
+	cp $(APP)-$(PKG_VERSION).tar.gz $(PKGERDIR)/SOURCES
 
 $(PKGERDIR)/pkgclean:
 	@echo

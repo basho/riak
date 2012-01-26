@@ -2,7 +2,7 @@
 PKG		 = BASHO$(APP)
 # possible ARCH values are i386, sparc, all
 SOLARIS_VER	?= $(shell echo "$(KERNEL)" | sed -e 's/^5\.//')
-PKGFILE		 = $(PKG)-$(REVISION)-$(RELEASE)-$(DISTRO)$(SOLARIS_VER)-$(ARCH).pkg
+PKGFILE		 = $(PKG)-$(PKG_VERSION)-$(RELEASE)-$(DISTRO)$(SOLARIS_VER)-$(ARCH).pkg
 
 build: buildrel depend pkginfo prototype
 	cp $(PKGERDIR)/copyright $(PKGERDIR)/preinstall $(PKGERDIR)/*.preserve .
@@ -38,7 +38,7 @@ depend:
 	fi
 
 pkginfo:
-	sed -e 's/@@VERSION@@/$(REVISION)-$(RELEASE)/g' \
+	sed -e 's/@@VERSION@@/$(PKG_VERSION)-$(RELEASE)/g' \
 		-e 's/@@PKG@@/$(PKG)/g' \
 		-e 's/@@PKGNAME@@/$(APP)/g' \
 		< $(PKGERDIR)/pkginfo.tmpl > pkginfo
