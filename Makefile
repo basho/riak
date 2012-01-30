@@ -125,18 +125,19 @@ archive_git = git archive --format=tar --prefix=$(1)/ HEAD | (cd $(2) && tar xf 
 
 # Checkout tag, fetch deps (so we don't have to do it multiple times) and collect
 # the version of all the dependencies into the MANIFEST_FILE
-CLONEDIR := riak-clone
-MANIFEST_FILE := dependency_manifest.git
+CLONEDIR ?= riak-clone
+MANIFEST_FILE ?= dependency_manifest.git
 get_dist_deps = mkdir distdir && \
-		 git clone . distdir/$(CLONEDIR) && \
-		 cd distdir/$(CLONEDIR) && \
-		 git checkout $(REPO_TAG) && \
-		 make deps; \
-		 echo "Dependencies and their tags at build time of $(REPO) at $(REPO_TAG)" > $(MANIFEST_FILE); \
-		 for dep in deps/*; do \
-		    cd $${dep} && \
-                    printf "$${dep} version `git describe --tags`\n" >> ../../$(MANIFEST_FILE) && \
-		    cd ../..; done
+                git clone . distdir/$(CLONEDIR) && \
+                cd distdir/$(CLONEDIR) && \
+                git checkout $(REPO_TAG) && \
+                make deps; \
+                echo "- Dependencies and their tags at build time of $(REPO) at $(REPO_TAG)" > $(MANIFEST_FILE); \
+                for dep in deps/*; do \
+                    cd $${dep} && \
+                    printf "$${dep} version `git describe --long --tags`\n" >> ../../$(MANIFEST_FILE) && \
+                    cd ../..; done; \
+                export LC_ALL=POSIX && sort $(MANIFEST_FILE) > $(MANIFEST_FILE).tmp && mv $(MANIFEST_FILE).tmp $(MANIFEST_FILE);
 
 
 # Name resulting direcotry & tar file based on current status of the git tag
@@ -155,13 +156,13 @@ endif
 # To ensure a clean build, copy the CLONEDIR at a specific tag to a new directory
 # which will be the basis of the src tar file (and packages)
 build_clean_dir = cd distdir/$(CLONEDIR) && \
-		  $(call archive_git,$(DISTNAME),..) && \
-		  cp $(MANIFEST_FILE) ../$(DISTNAME)/ && \
-		  mkdir ../$(DISTNAME)/deps; \
-		  for dep in deps/*; do \
-			cd $${dep} && \
-			$(call archive_git,$${dep},../../../$(DISTNAME)) && \
-			cd ../..; done
+                  $(call archive_git,$(DISTNAME),..) && \
+                  cp $(MANIFEST_FILE) ../$(DISTNAME)/ && \
+                  mkdir ../$(DISTNAME)/deps; \
+                  for dep in deps/*; do \
+                      cd $${dep} && \
+                      $(call archive_git,$${dep},../../../$(DISTNAME)) && \
+                      cd ../..; done
 
 distdirprep: 
 	$(if $(REPO_TAG), $(call get_dist_deps), $(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
