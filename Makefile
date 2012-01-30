@@ -137,7 +137,7 @@ get_dist_deps = mkdir distdir && \
                     cd $${dep} && \
                     printf "$${dep} version `git describe --long --tags`\n" >> ../../$(MANIFEST_FILE) && \
                     cd ../..; done; \
-                export LC_ALL=POSIX && sort $(MANIFEST_FILE) > $(MANIFEST_FILE).tmp && mv $(MANIFEST_FILE).tmp $(MANIFEST_FILE);
+                LC_ALL=POSIX && export LC_ALL && sort $(MANIFEST_FILE) > $(MANIFEST_FILE).tmp && mv $(MANIFEST_FILE).tmp $(MANIFEST_FILE);
 
 
 # Name resulting direcotry & tar file based on current status of the git tag
