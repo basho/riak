@@ -131,12 +131,12 @@ get_dist_deps = mkdir distdir && \
                 git clone . distdir/$(CLONEDIR) && \
                 cd distdir/$(CLONEDIR) && \
                 git checkout $(REPO_TAG) && \
-                make deps; \
-                echo "- Dependencies and their tags at build time of $(REPO) at $(REPO_TAG)" > $(MANIFEST_FILE); \
+                make deps && \
+                echo "- Dependencies and their tags at build time of $(REPO) at $(REPO_TAG)" > $(MANIFEST_FILE) && \
                 for dep in deps/*; do \
                     cd $${dep} && \
                     printf "$${dep} version `git describe --long --tags`\n" >> ../../$(MANIFEST_FILE) && \
-                    cd ../..; done; \
+                    cd ../..; done && \
                 LC_ALL=POSIX && export LC_ALL && sort $(MANIFEST_FILE) > $(MANIFEST_FILE).tmp && mv $(MANIFEST_FILE).tmp $(MANIFEST_FILE);
 
 
@@ -158,19 +158,20 @@ endif
 build_clean_dir = cd distdir/$(CLONEDIR) && \
                   $(call archive_git,$(DISTNAME),..) && \
                   cp $(MANIFEST_FILE) ../$(DISTNAME)/ && \
-                  mkdir ../$(DISTNAME)/deps; \
+                  mkdir ../$(DISTNAME)/deps && \
                   for dep in deps/*; do \
                       cd $${dep} && \
                       $(call archive_git,$${dep},../../../$(DISTNAME)) && \
                       cd ../..; done
 
-distdirprep: 
+
+distdir/$(CLONEDIR)/$(MANIFEST_FILE): 
 	$(if $(REPO_TAG), $(call get_dist_deps), $(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
 
-distdir: distdirprep
+distdir/$(DISTNAME): distdir/$(CLONEDIR)/$(MANIFEST_FILE)
 	$(call build_clean_dir)
 
-dist $(DISTNAME).tar.gz: distdir
+dist $(DISTNAME).tar.gz: distdir/$(DISTNAME)
 	cd distdir && \
 	tar czf ../$(DISTNAME).tar.gz $(DISTNAME)
 
