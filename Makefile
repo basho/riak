@@ -18,7 +18,7 @@ distclean: clean devclean relclean ballclean
 
 # Test each dependency individually in its own VM
 test: deps compile
-	$(foreach dep, $(wildcard deps/*), ./rebar eunit app=$(notdir $(dep)))
+	$(foreach dep, $(wildcard deps/*), ./rebar eunit app=$(notdir $(dep)) || exit 1;)
 	./rebar eunit skip_deps=true
 
 
