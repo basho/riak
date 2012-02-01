@@ -16,11 +16,20 @@ clean:
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
-# Test each dependency individually in its own VM
-test: deps compile
-	$(foreach dep, $(wildcard deps/*), ./rebar eunit app=$(notdir $(dep)) || exit 1;)
-	./rebar eunit skip_deps=true
 
+TEST_LOG_FILE := eunit.log
+testclean:
+	@rm $(TEST_LOG_FILE)
+
+# Test each dependency individually in its own VM
+test: testclean
+	@$(foreach dep, \
+                $(wildcard deps/*), \
+                    ./rebar eunit app=$(notdir $(dep)) \
+                        || echo "Eunit: $(notdir $(dep)) FAILED" >> $(TEST_LOG_FILE);)	
+	@test -s $(TEST_LOG_FILE) && cat $(TEST_LOG_FILE)
+	./rebar eunit skip_deps=true
+	@exit `wc -l < $(TEST_LOG_FILE)`
 
 ##
 ## Release targets
