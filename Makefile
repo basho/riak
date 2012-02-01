@@ -16,8 +16,11 @@ clean:
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
-test:
-	./rebar skip_deps=true eunit
+# Test each dependency individually in its own VM
+test: deps compile
+	$(foreach dep, $(wildcard deps/*), ./rebar eunit app=$(notdir $(dep)))
+	./rebar eunit skip_deps=true
+
 
 ##
 ## Release targets
