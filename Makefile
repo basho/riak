@@ -10,7 +10,7 @@ compile:
 deps:
 	./rebar get-deps
 
-clean:
+clean: testclean
 	./rebar clean
 
 distclean: clean devclean relclean ballclean
@@ -19,10 +19,10 @@ distclean: clean devclean relclean ballclean
 
 TEST_LOG_FILE := eunit.log
 testclean:
-	@rm $(TEST_LOG_FILE)
+	@rm -f $(TEST_LOG_FILE)
 
 # Test each dependency individually in its own VM
-test: testclean
+test: deps compile testclean
 	@$(foreach dep, \
                 $(wildcard deps/*), \
                     ./rebar eunit app=$(notdir $(dep)) \
@@ -152,7 +152,7 @@ get_dist_deps = mkdir distdir && \
                 LC_ALL=POSIX && export LC_ALL && sort $(MANIFEST_FILE) > $(MANIFEST_FILE).tmp && mv $(MANIFEST_FILE).tmp $(MANIFEST_FILE);
 
 
-# Name resulting direcotry & tar file based on current status of the git tag
+# Name resulting directory & tar file based on current status of the git tag
 # If it is a tagged release (REVISION == MAJOR_VERSION), use the toplevel 
 #   tag as the package name, otherwise generate a unique hash of all the 
 #   dependencies revisions to make the package name unique. 
