@@ -146,7 +146,7 @@ get_dist_deps = mkdir distdir && \
 #   dependencies revisions to make the package name unique. 
 #   This enables the toplevel repository package to change names
 #   when underlying dependencies change.
-NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) | cut -c 1-8)
+NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/null | cut -c 1-8)
 ifeq ($(REVISION), $(MAJOR_VERSION))
 DISTNAME := $(REPO_TAG)
 else
