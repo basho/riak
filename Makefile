@@ -14,15 +14,29 @@ compile:
 deps:
 	./rebar get-deps
 
-clean:
+clean: testclean
 	./rebar clean
 	if [ -d deps/riak_jmx ]; then make -C deps/riak_jmx/java_src clean; fi
 
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
-test:
-	./rebar skip_deps=true eunit
+
+TEST_LOG_FILE := eunit.log
+testclean:
+	@rm -f $(TEST_LOG_FILE)
+
+# Test each dependency individually in its own VM
+test: deps compile testclean
+	@$(foreach dep, \
+            $(wildcard deps/*), \
+                ./rebar eunit app=$(notdir $(dep)) \
+                    || echo "Eunit: $(notdir $(dep)) FAILED" >> $(TEST_LOG_FILE);)	
+	./rebar eunit skip_deps=true
+	@if test -s $(TEST_LOG_FILE) ; then \
+             cat $(TEST_LOG_FILE) && \
+             exit `wc -l < $(TEST_LOG_FILE)`; \
+        fi
 
 ##
 ## Release targets
