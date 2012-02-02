@@ -27,8 +27,8 @@ test: deps compile testclean
                 $(wildcard deps/*), \
                     ./rebar eunit app=$(notdir $(dep)) \
                         || echo "Eunit: $(notdir $(dep)) FAILED" >> $(TEST_LOG_FILE);)	
-	@test -s $(TEST_LOG_FILE) && cat $(TEST_LOG_FILE)
 	./rebar eunit skip_deps=true
+	@test -s $(TEST_LOG_FILE) && cat $(TEST_LOG_FILE)
 	@exit `wc -l < $(TEST_LOG_FILE)`
 
 ##
