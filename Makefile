@@ -1,9 +1,6 @@
 REPO		?= riak_ee
-RIAK_TAG	 = $(shell git describe --tags)
-REVISION	?= $(shell echo $(RIAK_TAG) | sed -e 's/^$(REPO)-//')
-PKG_VERSION	?= $(shell echo $(REVISION) | tr - .)
 
-.PHONY: rel stagedevrel deps package pkgclean
+.PHONY: rel stagedevrel deps
 
 all: deps compile
 
@@ -60,7 +57,6 @@ dev1 dev2 dev3 dev4 dev5 dev6:
 	mkdir -p dev
 	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
 
-
 devclean: clean
 	rm -rf dev
 
@@ -87,8 +83,7 @@ orgs-README:
 
 APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
 	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
-COMBO_PLT = $(HOME)/.riak_ee_combo_dialyzer_plt
-
+COMBO_PLT = $(HOME)/.$(REPO)_combo_dialyzer_plt
 
 check_plt: compile
 	dialyzer --check_plt --plt $(COMBO_PLT) --apps $(APPS) \
@@ -103,6 +98,7 @@ dialyzer: compile
 	@echo Use "'make check_plt'" to check PLT prior to using this target.
 	@echo Use "'make build_plt'" to build PLT prior to using this target.
 	@echo
+	@sleep 1
 	dialyzer -Wno_return --plt $(COMBO_PLT) deps/*/ebin | \
 	    fgrep -v -f ./dialyzer.ignore-warnings
 
@@ -114,39 +110,98 @@ cleanplt:
 	sleep 5
 	rm $(COMBO_PLT)
 
-# Release tarball creation
-# Generates a tarball that includes all the deps sources so no checkouts are necessary
-archivegit = git archive --format=tar --prefix=$(1)/ HEAD | (cd $(2) && tar xf -)
-archivehg = hg archive $(2)/$(1)
-archive = if [ -d ".git" ]; then \
-		$(call archivegit,$(1),$(2)); \
-	    else \
-		$(call archivehg,$(1),$(2)); \
-	    fi
+##
+## Version and naming variables for distribution and packaging
+##
 
-buildtar = mkdir distdir && \
-		 git clone . distdir/$(REPO)-clone && \
-		 cd distdir/$(REPO)-clone && \
-		 git checkout $(RIAK_TAG) && \
-		 $(call archive,$(RIAK_TAG),..) && \
-		 mkdir ../$(RIAK_TAG)/deps && \
-		 make deps; \
-		 for dep in deps/*; do \
-                     cd $${dep} && \
-                     $(call archive,$${dep},../../../$(RIAK_TAG)) && \
-                     mkdir -p ../../../$(RIAK_TAG)/$${dep}/priv && \
-                     git describe --tags > ../../../$(RIAK_TAG)/$${dep}/priv/vsn.git && \
-                     cd ../..; done
+# Tag from git with style <tagname>-<commits_since_tag>-<current_commit_hash>
+# Ex: When on a tag:            riak-1.0.3   (no commits since tag)
+#     For most normal Commits:  riak-1.1.0pre1-27-g1170096
+#                                 Last tag:          riak-1.1.0pre1
+#                                 Commits since tag: 27
+#                                 Hash of commit:    g1170096
+REPO_TAG 	:= $(shell git describe --tags)
 
-distdir:
-	$(if $(RIAK_TAG), $(call buildtar), $(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
+# Split off repo name
+# Changes to 1.0.3 or 1.1.0pre1-27-g1170096 from example above
+REVISION 	?= $(shell echo $(REPO_TAG) | sed -e 's/^$(REPO)-//')
 
-dist $(RIAK_TAG).tar.gz: distdir
-	cd distdir; \
-	tar czf ../$(RIAK_TAG).tar.gz $(RIAK_TAG)
+# Primary version identifier, strip off commmit information
+# Changes to 1.0.3 or 1.1.0pre1 from example above
+MAJOR_VERSION	?= $(shell echo $(REVISION) | sed -e 's/\([0-9.]*\)-.*/\1/')
+
+
+##
+## Release tarball creation
+## Generates a tarball that includes all the deps sources so no checkouts are necessary
+##
+
+# Use git archive to copy a repository at a current revision to a new directory
+archive_git = git archive --format=tar --prefix=$(1)/ HEAD | (cd $(2) && tar xf -)
+
+# Checkout tag, fetch deps (so we don't have to do it multiple times) and collect
+# the version of all the dependencies into the MANIFEST_FILE
+CLONEDIR ?= riak-clone
+MANIFEST_FILE ?= dependency_manifest.git
+get_dist_deps = mkdir distdir && \
+                git clone . distdir/$(CLONEDIR) && \
+                cd distdir/$(CLONEDIR) && \
+                git checkout $(REPO_TAG) && \
+                make deps && \
+                echo "- Dependencies and their tags at build time of $(REPO) at $(REPO_TAG)" > $(MANIFEST_FILE) && \
+                for dep in deps/*; do \
+                    cd $${dep} && \
+                    printf "$${dep} version `git describe --long --tags`\n" >> ../../$(MANIFEST_FILE) && \
+                    cd ../..; done && \
+                LC_ALL=POSIX && export LC_ALL && sort $(MANIFEST_FILE) > $(MANIFEST_FILE).tmp && mv $(MANIFEST_FILE).tmp $(MANIFEST_FILE);
+
+
+# Name resulting directory & tar file based on current status of the git tag
+# If it is a tagged release (REVISION == MAJOR_VERSION), use the toplevel 
+#   tag as the package name, otherwise generate a unique hash of all the 
+#   dependencies revisions to make the package name unique. 
+#   This enables the toplevel repository package to change names
+#   when underlying dependencies change.
+NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/null | cut -c 1-8)
+ifeq ($(REVISION), $(MAJOR_VERSION))
+DISTNAME := $(REPO_TAG)
+else
+DISTNAME = $(REPO)-$(MAJOR_VERSION)-$(NAME_HASH)
+endif
+
+# To ensure a clean build, copy the CLONEDIR at a specific tag to a new directory
+# which will be the basis of the src tar file (and packages)
+build_clean_dir = cd distdir/$(CLONEDIR) && \
+                  $(call archive_git,$(DISTNAME),..) && \
+                  cp $(MANIFEST_FILE) ../$(DISTNAME)/ && \
+                  mkdir ../$(DISTNAME)/deps && \
+                  for dep in deps/*; do \
+                      cd $${dep} && \
+                      $(call archive_git,$${dep},../../../$(DISTNAME)) && \
+                      cd ../..; done
+
+
+distdir/$(CLONEDIR)/$(MANIFEST_FILE): 
+	$(if $(REPO_TAG), $(call get_dist_deps), $(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
+
+distdir/$(DISTNAME): distdir/$(CLONEDIR)/$(MANIFEST_FILE)
+	$(call build_clean_dir)
+
+dist $(DISTNAME).tar.gz: distdir/$(DISTNAME)
+	cd distdir && \
+	tar czf ../$(DISTNAME).tar.gz $(DISTNAME)
 
 ballclean:
-	rm -rf $(RIAK_TAG).tar.gz distdir
+	rm -rf $(DISTNAME).tar.gz distdir
+
+
+## 
+## Packaging targets reside in package directory
+##
+
+# Strip off repo name for packaging
+PKG_VERSION = $(shell echo $(DISTNAME) | sed -e 's/^$(REPO)-//')
+
 
 package: dist
 	$(MAKE) -C package package
@@ -154,4 +209,5 @@ package: dist
 pkgclean:
 	$(MAKE) -C package pkgclean
 
-export PKG_VERSION REPO REVISION RIAK_TAG
+.PHONY: package
+export PKG_VERSION REPO DISTNAME

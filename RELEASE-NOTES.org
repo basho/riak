@@ -1,3 +1,47 @@
+* Riak 1.0.3 Release Notes
+** Bugs Fixed
+-[[https://issues.basho.com/show_bug.cgi?id=1291][bz1291 - Incorrect match of erlang:decode_packet return value in mochiweb]]
+-[[https://issues.basho.com/show_bug.cgi?id=1306][bz1306 - get_fsm crashes when riak_object value is not a binary]]
+** Other Additions
+*** riak-admin top
+=riak-admin= can now run top against the server.  Top provides
+information about what the erlang processes inside of Riak are doing.
+Top reports process reductions (an indicator of CPU utilization),
+memory used and message queue sizes.
+
+Start with =riak-admin top= and exit with double-^C
+
+*** busy_port / busy_dist_port 
+Riak will now log whenever distributed erlang is overloaded by logging
+=busy_dist_port= messages on the console and to the logs.  If the
+message is being logged frequently, the buffer used for distributed
+erlang can be increased by adding +zdbbl KBytes in the =vm.args= file
+(in =/etc/riak= or =/opt/riak/etc= depending on platform).
+
+*** Bitcask Support for O_SYNC
+Bitcask has been reworked to perform I/O directly on the Erlang
+scheduler threads; this is the result of extensive load testing in a
+production environment. As a result of this change, it can now support
+=O_SYNC= on Linux.
+
+*** New Claim Algorithm 
+The new claim algorithm introduced in the 1.0 release has been set as
+the default for 1.0.3.
+
+The new claim algorithm significantly reduces the amount of ownerhip
+shuffling for clusters with more than N+2 nodes in them.  Changes to
+the cluster membership code in 1.0 made the original claim algorithm
+fall back to just reordering nodes in sequence in more cases than it
+used to, causing massive handoff activity on larger clusters.  Mixed
+clusters including pre-1.0 nodes will still use the original algorithm
+until all nodes are upgraded.
+
+*** Changes to Handoff Concurrency
+The default value for =handoff_concurrency= was set to 1 to err on the
+side of caution and not overload the cluster with handoff traffic.
+
+** Known Issues
+
 * Riak 1.0.2 Release Notes
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=1227][bz1227 - badstate crash in handoff]]

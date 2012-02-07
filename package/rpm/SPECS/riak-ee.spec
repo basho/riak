@@ -40,15 +40,15 @@ Riak is a distrubuted data store.
 %setup -q -n %{_repo}-%{_revision}
 cat > rel/vars.config <<EOF
 % app.config
-{web_ip,            "127.0.0.1"}.
-{web_port,          8098}.
-{handoff_port,      8099}.
-{pb_ip,             "127.0.0.1"}.
-{pb_port,           8087}.
+{web_ip,       "127.0.0.1"}.
+{web_port,     8098}.
+{handoff_port, 8099}.
+{pb_ip,        "127.0.0.1"}.
+{pb_port,      8087}.
 {ring_state_dir,        "%{platform_data_dir}/ring"}.
 {bitcask_data_root,     "%{platform_data_dir}/bitcask"}.
 {leveldb_data_root,     "%{platform_data_dir}/leveldb"}.
-{merge_index_data_root, "%{platform_data_dir}/merge_index"}.
+{merge_index_data_root,    "%{platform_data_dir}/merge_index"}.
 {merge_index_data_root_2i, "%{platform_data_dir}/merge_index_2i"}.
 {sasl_error_log,        "%{platform_log_dir}/sasl-error.log"}.
 {sasl_log_dir,          "%{platform_log_dir}/sasl"}.
@@ -83,11 +83,6 @@ sed -e "s/^RIAK_VERSION.*$/RIAK_VERSION=\"%{_versionstring}\"/" < rel/files/riak
 
 
 %build
-#mkdir %{appname}
-#
-# Temporary work around for Blaire
-#
-#make rel
 make deps compile
 RIAK_SNMP=apps/riak_snmp
 if [ -d deps/riak_snmp ]; then
