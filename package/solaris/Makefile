@@ -2,7 +2,7 @@
 PKG		 = BASHO$(APP)
 # possible ARCH values are i386, sparc, all
 SOLARIS_VER	?= $(shell echo "$(KERNEL)" | sed -e 's/^5\.//')
-PKGFILE		 = $(PKG)-$(REVISION)-$(RELEASE)-$(DISTRO)$(SOLARIS_VER)-$(ARCH).pkg
+PKGFILE		 = $(PKG)-$(PKG_VERSION)-$(RELEASE)-$(DISTRO)$(SOLARIS_VER)-$(ARCH).pkg
 
 build: buildrel depend pkginfo prototype
 	cp $(PKGERDIR)/copyright $(PKGERDIR)/preinstall $(PKGERDIR)/*.preserve .
@@ -26,8 +26,6 @@ buildrel:
 	cp $(RIAK_PATH)/rel/files/riak $(RIAK_PATH)/rel/files/riak.tmp
 	sed -e "s/^RIAK_VERSION.*$$/RIAK_VERSION=\"${VERSIONSTRING}\"/" < $(RIAK_PATH)/rel/files/riak.tmp > $(RIAK_PATH)/rel/files/riak
 	@# Ye Olde Bourne Shell on Solaris means we have to do it old school
-	PATH=/opt/erlang/R14B02-$(DISTRO)$(SOLARIS_VER):$${PATH}; \
-	export PATH; \
 	echo "Using `which erl` to build"; \
 	$(MAKE) -C $(RIAK_PATH) deps compile; \
 	cp $(RIAK_PATH)/deps/riak_snmp/mibs/* \
@@ -35,8 +33,6 @@ buildrel:
 	$(MAKE) -C $(RIAK_PATH) rel; \
 	chmod 0755 $(RIAK_PATH)/rel/riak/bin/* \
 		$(RIAK_PATH)/rel/riak/erts-*/bin/*
-	@# The proper make target instead of the make/cp/make above
-	#$(MAKE) -C $(RIAK_PATH) rel; \
 
 depend:
 	cp $(PKGERDIR)/depend .
@@ -45,7 +41,7 @@ depend:
 	fi
 
 pkginfo:
-	sed -e 's/@@VERSION@@/$(REVISION)-$(RELEASE)/g' \
+	sed -e 's/@@VERSION@@/$(PKG_VERSION)-$(RELEASE)/g' \
 		-e 's/@@PKG@@/$(PKG)/g' \
 		-e 's/@@PKGNAME@@/$(APP)/g' \
 		< $(PKGERDIR)/pkginfo.tmpl > pkginfo

@@ -19,9 +19,6 @@ RIAK_SNMP = $(shell if test -d apps/riak_snmp; then echo apps/riak_snmp; else ec
 build:
 	cp -f debian/vars.config rel/vars.config
 	cp rel/files/riak rel/files/riak.tmp
-	# The proper command istead of the make/cp/make below
-	#unset CC CFLAGS CPPFLAGS LDFLAGS CXX CXXFLAGS \
-	#	&& make rel
 	sed -e "s/^RIAK_VERSION.*$$/RIAK_VERSION=\"${VERSIONSTRING}\"/" < rel/files/riak.tmp > rel/files/riak && \
 	unset CC CFLAGS CPPFLAGS LDFLAGS CXX CXXFLAGS \
 		&& make deps compile \

@@ -31,23 +31,23 @@ BUILDDIR	= osxbuild
 endif
 
 DATE		= $(shell date +%Y-%m-%d)
-VERSIONSTRING	= $(APP) ($(REVISION) $(DATE)) $(OSNAME) $(ARCH)
+VERSIONSTRING	= $(APP) ($(PKG_VERSION) $(DATE)) $(OSNAME) $(ARCH)
 
 APP		 = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
-# Assumes CURDIR is $(REPO)/package/
+# Assumes CURDIR is .../$(APP)/package/$(APP)/
 RIAK_PATH	?= ..
 RELEASE		?= 
 
-$(APP)-$(REVISION).tar.gz: ../$(RIAK_TAG).tar.gz
+$(APP)-$(PKG_VERSION).tar.gz: ../$(DISTNAME).tar.gz
 	ln -s $< $@
 
 pkgclean: $(PKGERDIR)/pkgclean
-	rm -rf $(APP)-$(REVISION).tar.gz working rpmbuild debuild packages osxbuild
+	rm -rf $(APP)-$(PKG_VERSION).tar.gz working rpmbuild debuild packages osxbuild
 
 pkgcheck:
-	$(if $(RIAK_TAG),,$(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
+	$(if $(DISTNAME),,$(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
 	$(if $(RELEASE),,$(error "You must provide a package release number via RELEASE= on the command line"))
-	@echo "Packaging \"$(RIAK_TAG)\""
+	@echo "Packaging \"$(DISTNAME)\""
 
 # The heavy lifting is done by the individual packager Makefiles
 package: pkgcheck build

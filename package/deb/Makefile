@@ -1,26 +1,26 @@
-BUILDPATH	= debuild/$(REPO)-$(REVISION)
+BUILDPATH	= debuild/$(REPO)-$(PKG_VERSION)
 
 build:  $(BUILDPATH)/debian \
-	debuild/$(APP)_$(REVISION).orig.tar.gz
+	debuild/$(APP)_$(PKG_VERSION).orig.tar.gz
 	export DEBFULLNAME="Basho Buildbot Packager"; \
 	export DEBEMAIL="support@basho.com"; \
 	dch  --noquery -c $(BUILDPATH)/debian/changelog \
-		-b -v "$(REVISION)-$(RELEASE)" "pants on head"
+		-b -v "$(PKG_VERSION)-$(RELEASE)" "pants on head"
 	cd $(BUILDPATH) && debuild --no-lintian \
-		--prepend-path=$(ERLANG_BIN) \
-		-e REVISION=$(REVISION) \
+	        --prepend-path=$(ERLANG_BIN) \
+		-e REVISION=$(PKG_VERSION) \
 		-e RELEASE=$(RELEASE) \
  		-e VERSIONSTRING="$(VERSIONSTRING)" \
 		-e CLASSPATH=$${CLASSPATH} \
 		-uc -us
 	mkdir -p packages
-	mv debuild/$(APP)_$(REVISION)-$(RELEASE)_*.deb packages
+	mv debuild/$(APP)_$(PKG_VERSION)-$(RELEASE)_*.deb packages
 	cd packages && \
 		for debfile in `ls *.deb`; do \
 			sha256sum $${debfile} > $${debfile}.sha \
 		; done
 
-$(BUILDPATH): $(APP)-$(REVISION).tar.gz
+$(BUILDPATH): $(APP)-$(PKG_VERSION).tar.gz
 	mkdir -p debuild
 	tar xz -C debuild -f $^
 
@@ -28,7 +28,7 @@ $(BUILDPATH)/debian: $(BUILDPATH)
 	cp -a $(PKGERDIR) $@
 	rm -rf $@/.hg $@/Makefile $@/.*.swp
 
-debuild/$(APP)_$(REVISION).orig.tar.gz: $(APP)-$(REVISION).tar.gz
+debuild/$(APP)_$(PKG_VERSION).orig.tar.gz: $(APP)-$(PKG_VERSION).tar.gz
 	cp $^ $@
 
 $(PKGERDIR)/pkgclean:
