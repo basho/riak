@@ -36,8 +36,6 @@ SCRIPTNAME=/etc/init.d/$NAME
 # Load the VERBOSE setting and other rcS variables
 . /lib/init/vars.sh
 . /lib/lsb/init-functions
-# Setup command to control the node
-NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
 
 #
 # Function that starts the daemon/service
@@ -52,17 +50,6 @@ do_start()
 	RETVAL=`$DAEMON ping`
 	[ "$RETVAL" = "pong" ] && return 1
 	
-#
-#	--chuid just doesn't seem to work at all
-#
-#	start-stop-daemon --start \
-#		--name riak \
-#		--chdir /var/lib/riak \
-#		--chuid riak \
-#		--user riak \
-#		--exec $DAEMON -- $DAEMON_ARGS \
-#		|| return 2
-
 	su - riak -c "$DAEMON $DAEMON_ARGS" || return 2
 }
 

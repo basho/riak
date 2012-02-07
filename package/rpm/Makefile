@@ -16,6 +16,7 @@ build: $(PKGERDIR)/SOURCES/$(APP)-$(PKG_VERSION).tar.gz rpmbuild
 		 --define '_rpmdir $(CURDIR)/packages' \
 		 --define '_srcrpmdir $(CURDIR)/packages' \
 		 --define "_revision $(PKG_VERSION)" \
+		 --define "_repo $(REPO)" \
 		 --define "_version $(PKG_VERSION_NO_H)" \
 		 --define "_release $(RELEASE)" \
 		 --define "_versionstring $(VERSIONSTRING)" \
