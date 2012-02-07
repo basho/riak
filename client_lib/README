@@ -1,23 +1,6 @@
 Riak client libraries are available for many languages.  Rather than
 bundle them with the Riak server source code, we have given them each
-their own source repository.  Currently, official Riak client language
-libraries include:
+their own source repository.
 
-   + Javascript
-     https://github.com/basho/riak-javascript-client
-
-   + Python
-     https://github.com/basho/riak-python-client
-
-   + Ruby
-     http://github.com/seancribbs/ripple/
-
-   + Java
-     https://github.com/basho/riak-java-client
-
-   + PHP
-     https://github.com/basho/riak-php-client
-
-   + Erlang
-     https://github.com/basho/riak-erlang-client
-     (using protocol buffers instead of distributed Erlang)
+The most up-to-date information on our client libraries can be found
+on our wiki clients page http://wiki.basho.com/Client-Libraries.html
