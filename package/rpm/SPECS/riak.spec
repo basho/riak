@@ -9,7 +9,7 @@ Version: %{_version}
 Release: %{_release}%{?dist}
 License: Apache License
 Group: Development/Libraries
-Source: http://bitbucket.org/basho/riak/get/%{name}-%{_revision}.tar.gz
+Source: %{name}-%{_revision}.tar.gz
 Source1: riak_init
 URL: http://basho.com
 Vendor: Basho Technologies
@@ -53,14 +53,14 @@ cat > rel/vars.config <<EOF
 {reduce_js_vms, 6}.
 {hook_js_vms, 2}.
 % Platform-specific installation paths
-{platform_bin_dir, "%{platform_bin_dir}"}.
+{platform_bin_dir,  "%{platform_bin_dir}"}.
 {platform_data_dir, "%{platform_data_dir}"}.
-{platform_etc_dir, "%{platform_etc_dir}"}.
-{platform_lib_dir, "%{platform_lib_dir}"}.
-{platform_log_dir, "%{platform_log_dir}"}.
+{platform_etc_dir,  "%{platform_etc_dir}"}.
+{platform_lib_dir,  "%{platform_lib_dir}"}.
+{platform_log_dir,  "%{platform_log_dir}"}.
 % vm.args
-{node,         "riak@127.0.0.1"}.
-{crash_dump,   "%{platform_log_dir}/erl_crash.dump"}.
+{node,              "riak@127.0.0.1"}.
+{crash_dump,        "%{platform_log_dir}/erl_crash.dump"}.
 % bin/riak*
 {runner_script_dir,  "%{platform_bin_dir}"}.
 {runner_base_dir,    "%{platform_lib_dir}"}.
