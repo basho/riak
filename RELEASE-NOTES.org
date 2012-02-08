@@ -13,7 +13,6 @@
 **** Snappy Support Enabled
 **** Compaction Changes
 *** Riak KV Improvements
-**** Log post-commit errors
 **** Listkeys Backpressure
 ** Other Additions
 *** Default =small_vclock= to be equal to =big_vclock=
@@ -34,6 +33,7 @@ the number of entries will almost always stay below the threshold in a
 well behaved cluster (i.e. one not under constant node membership
 change or network partitions).
 ** Known Issues
+-Luwak has been deprecated in the 1.1 release
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=775][bz775 - Start-up script does not recreate /var/run/riak]]
 -[[https://issues.basho.com/show_bug.cgi?id=1283][bz1283 - erlang_js uses non-thread-safe driver function]]
