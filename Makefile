@@ -168,7 +168,9 @@ DISTNAME = $(REPO)-$(MAJOR_VERSION)-$(NAME_HASH)
 endif
 
 # To ensure a clean build, copy the CLONEDIR at a specific tag to a new directory
-# which will be the basis of the src tar file (and packages)
+#  which will be the basis of the src tar file (and packages)
+# The vsn.git file is required by rebar to be able to build from the resulting
+#  tar file
 build_clean_dir = cd distdir/$(CLONEDIR) && \
                   $(call archive_git,$(DISTNAME),..) && \
                   cp $(MANIFEST_FILE) ../$(DISTNAME)/ && \
@@ -176,6 +178,8 @@ build_clean_dir = cd distdir/$(CLONEDIR) && \
                   for dep in deps/*; do \
                       cd $${dep} && \
                       $(call archive_git,$${dep},../../../$(DISTNAME)) && \
+                      mkdir -p ../../../$(DISTNAME)/$${dep}/priv && \
+                      git describe --tags > ../../../$(DISTNAME)/$${dep}/priv/vsn.git && \
                       cd ../..; done
 
 
