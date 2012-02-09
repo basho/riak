@@ -178,7 +178,7 @@ build_clean_dir = cd distdir/$(CLONEDIR) && \
                   for dep in deps/*; do \
                       cd $${dep} && \
                       $(call archive_git,$${dep},../../../$(DISTNAME)) && \
-                      mkdir -p ../../../$(DISTNAME)/$${dep}}/priv && \
+                      mkdir -p ../../../$(DISTNAME)/$${dep}/priv && \
                       git describe --tags > ../../../$(DISTNAME)/$${dep}/priv/vsn.git && \
                       cd ../..; done
 
