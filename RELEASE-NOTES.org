@@ -8,12 +8,15 @@
 -[[http://riaknostic.basho.com/][Riaknostic Homepage]]
 *** Bitcask Improvements
 *** Lager Improvements
-- Tracing support (see the [[https://github.com/basho/lager/blob/master/README.org][README])
+- Tracing support (see the [[https://github.com/basho/lager/blob/master/README.org][README]])
 - Term printing is ~4x faster and much more correct (compared to io:format)
 **** Bitstring printing support
 *** LevelDB Improvements
 **** Snappy Support Enabled
 **** Compaction Changes
+*** MapReduce Improvements                                                                                                              
+- The MapReduce interface now supports requests with empty queries. This allows the 2i, list-keys, and search inputs to return matching keys to clients without needing to include a reduce_identity query phase.
+- MapReduce error messages have been improved.  Most error cases should now return helpful information all the way to the client, while also producing less spam in Riak's logs.
 *** Riak KV Improvements
 **** Listkeys Backpressure
 ** Other Additions
@@ -36,6 +39,7 @@ well behaved cluster (i.e. one not under constant node membership
 change or network partitions).
 ** Known Issues
 -Luwak has been deprecated in the 1.1 release
+-[[https://issues.basho.com/show_bug.cgi?id=1160][bz1160 - Bitcask fails to merge on corrupt file]]
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=775][bz775 - Start-up script does not recreate /var/run/riak]]
 -[[https://issues.basho.com/show_bug.cgi?id=1283][bz1283 - erlang_js uses non-thread-safe driver function]]
