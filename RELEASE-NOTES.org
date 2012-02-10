@@ -8,6 +8,8 @@
 -[[http://riaknostic.basho.com/][Riaknostic Homepage]]
 *** Bitcask Improvements
 *** Lager Improvements
+- Tracing support (see the [[https://github.com/basho/lager/blob/master/README.org][README])
+- Term printing is ~4x faster and much more correct (compared to io:format)
 **** Bitstring printing support
 *** LevelDB Improvements
 **** Snappy Support Enabled
@@ -37,5 +39,13 @@ change or network partitions).
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=775][bz775 - Start-up script does not recreate /var/run/riak]]
 -[[https://issues.basho.com/show_bug.cgi?id=1283][bz1283 - erlang_js uses non-thread-safe driver function]]
--[[https://github.com/basho/lager/pull/37][Lager#37 - Fix atom leak]]
+-[[https://issues.basho.com/show_bug.cgi?id=1333][bz1333 - Bitcask attempts to open backup/other files]]
 -[[http://basho.com/blog/technical/2012/01/27/Quick-Checking-Poolboy-for-Fun-and-Profit/][Poolboy - Lots of potential bugs fixed, see detailed post by Andrew Thompson]]
+*** Lager Specific Bugs Fixed
+- #26 - don't make a crash log called 'undefined'
+- #28 - R13A support (god only knows why I bothered merging this)
+- #29 - Don't unnecessarily quote atoms
+- #31 - Better crash reports for proc_lib processes
+- #33 - Don't assume supervisor children are named with atoms
+- #35 - Support printing bitstrings (binaries with trailing bits)
+- #37 - Don't generate dynamic atoms
