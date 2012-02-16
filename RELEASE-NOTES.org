@@ -19,6 +19,28 @@
 - MapReduce error messages have been improved.  Most error cases should now return helpful information all the way to the client, while also producing less spam in Riak's logs.
 *** Riak KV Improvements
 **** Listkeys Backpressure
+**** Don't drop post-commit errors on floor
+
+In previous releases there is no easy way to determine if a
+post-commit hook is failing.  In this release two counters have been
+added to =riak-admin status= that will indicate pre/post-commit hook
+failures.  They are =precommit_fail= and =postcommit_fail=.  By
+default the errors themselves are not logged.  The thought is that a
+bad hook could cause unnecessary IO overload.
+
+If the error needs to be discovered then Lager, Riak's logging system,
+will allow you to dynamically change the logging level to debug on the
+function executing the hook.  To do that you need to =riak attach= on
+one of the nodes and run the following.
+
+={ok, Trace} = lager:trace_file("<path>/failing-postcommits", [{module, riak_kv_put_fsm}, {function, decode_postcommit}], debug).=
+
+This will output all post-commit errors to
+=<path>/failing-postcommits=.  When you've got enough samples you can
+stop the trace like so.
+
+=lager:stop_trace(Trace).=
+
 ** Other Additions
 *** Default =small_vclock= to be equal to =big_vclock=
 
