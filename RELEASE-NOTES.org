@@ -7,13 +7,16 @@
 -[[http://basho.com/blog/technical/2011/12/15/announcing-riaknostic/][Blog post announcing riaknostic]]
 -[[http://riaknostic.basho.com/][Riaknostic Homepage]]
 *** Bitcask Improvements
+- CRC checks have been added to hintfiles for bitcask
+*** LevelDB Improvements
+- Snappy (compression algorithm from Google) has been enabled
+- The compaction algorithm has been tuned to reduce delays due to compaction
+*** Other backend changes
+- Multi-backend now supports 2i properly
 *** Lager Improvements
 - Tracing support (see the [[https://github.com/basho/lager/blob/master/README.org][README]])
 - Term printing is ~4x faster and much more correct (compared to io:format)
-**** Bitstring printing support
-*** LevelDB Improvements
-**** Snappy Support Enabled
-**** Compaction Changes
+- Bitstring printing support was added
 *** MapReduce Improvements                                                                                                              
 - The MapReduce interface now supports requests with empty queries. This allows the 2i, list-keys, and search inputs to return matching keys to clients without needing to include a reduce_identity query phase.
 - MapReduce error messages have been improved.  Most error cases should now return helpful information all the way to the client, while also producing less spam in Riak's logs.
