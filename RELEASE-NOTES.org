@@ -22,6 +22,28 @@
 - MapReduce error messages have been improved.  Most error cases should now return helpful information all the way to the client, while also producing less spam in Riak's logs.
 *** Riak KV Improvements
 **** Listkeys Backpressure
+
+Backpressure has been added to listkeys to prevent the node listing keys from being
+overwhelemed.  The change has required a protocol change so that the key lister
+can limit the rate it receives data.
+
+In mixed clusters where some of the nodes are < 1.1 please set listkeys_backpressure
+false in the riak_kv section of app.config until all nodes are upgraded.
+
+={listkeys_backpressure, false}=
+
+Once all nodes are upgraded, set listkeys_backpressue to true in the riak_kv section of app.config
+
+={listkeys_backpressure, true}=
+
+Running nodes can be upgraded without restarting by running this snippet from
+the riak console
+
+=application:set_env(riak_kv, listkeys_backpressure, true).=
+
+Fresh 1.1.0 and above installs default to using listkeys backpressure - adjust app.config if
+different behavior is desired.
+
 **** Don't drop post-commit errors on floor
 
 In previous releases there is no easy way to determine if a
