@@ -1,4 +1,4 @@
-* Riak 1.1.0 Release Notes (INITIAL DRAFT)
+* Riak 1.1.0 Release Notes
 ** Major Features and Improvements for Riak
 *** Riak Control
 -[[http://basho.com/blog/technical/2012/01/30/Riak-in-Production-at-Posterous-Riak-Control-Preview/][Riak Control preview demo]]
