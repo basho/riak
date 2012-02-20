@@ -66,6 +66,26 @@ stop the trace like so.
 
 =lager:stop_trace(Trace).=
 
+*** Replication
+- Per-bucket replication.
+- Pluggable fullsync strategy. Current strategy remains as strategy named =syncv1=
+- New fullsync strategy, keylist, that reduces the volume of data exchanged (still
+  proportional to the number of objects in a partition, but less overhead).
+  The new strategy uses much less memory than the old.
+- Tunable TCP send/recv buffers, to cope with slow WAN links. No longer need
+  to configure large buffers for all sockets in the kernel.
+- Configurable sized worker pools for retrieving/storing objects to bound
+  memory consumption and improve performance.
+- On reconnect after leader change, the order of partitions to synchronize
+  is randomized to improve sync progress on all partitions during failure/
+  network partitions.
+- Improved internal fault recovery (overhauled erlang process supervision)
+
+**** Replication Bugfixes:
+- Secondary IPs are allowed as repl listener IPs.
+- Replication can be cancelled while paused.
+- Mismatched ring sizes trigger an error.
+
 ** Other Additions
 *** Default =small_vclock= to be equal to =big_vclock=
 
