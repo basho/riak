@@ -14,7 +14,7 @@
 *** Other backend changes
 - Multi-backend now supports 2i properly
 *** Lager Improvements
-- Tracing support (see the [[https://github.com/basho/lager/blob/master/README.org][README]])
+- Tracing support (see the [[https://github.com/basho/lager/blob/master/README.org/][README]])
 - Term printing is ~4x faster and much more correct (compared to io:format)
 - Bitstring printing support was added
 *** MapReduce Improvements                                                                                                              
