@@ -114,7 +114,7 @@ change or network partitions).
 -[[http://basho.com/blog/technical/2012/01/27/Quick-Checking-Poolboy-for-Fun-and-Profit/][Poolboy - Lots of potential bugs fixed, see detailed post by Andrew Thompson]]
 *** Lager Specific Bugs Fixed
 - #26 - don't make a crash log called 'undefined'
-- #28 - R13A support (god only knows why I bothered merging this)
+- #28 - R13A support
 - #29 - Don't unnecessarily quote atoms
 - #31 - Better crash reports for proc_lib processes
 - #33 - Don't assume supervisor children are named with atoms
