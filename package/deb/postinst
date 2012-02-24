@@ -13,7 +13,7 @@ if ! getent group riak >/dev/null; then
         addgroup --system riak 
 fi
 
-# create raiak user
+# create riak user
 if ! getent passwd riak >/dev/null; then
         adduser --ingroup riak --home /var/lib/riak --disabled-password \
 		--system --shell /bin/bash --no-create-home \
