@@ -1,3 +1,47 @@
+* Riak 1.1.1 Release Notes
+** Major Features and Improvements for Riak
+*** MapReduce Changes
+This release includes fixes for systems with heavy MapReduce load.
+
+Pipe maintains a limit on the number of active worker processes in the system.
+Workers are created on demand when the pipe executes - they are not reserved
+at pipe creation time.  
+
+Prior to 1.1.1 not all fittings (e.g. get object from riak, map value, reduce)
+were checking to make sure their output was being delivered to the next stage
+of the pipeline.  This has been changed so that the pipe will error if
+processing errors or system limits are hit.  
+
+As a result of the change if the pipe is overloaded clients will see errors of this form:
+={error,<<"Error sending inputs: {error,worker_limit_reached}">>}=
+
+Clients can either decide to retry (preferably with a backoff/retries limit
+mechanism) or if the hardware has sufficient capacity the number of workers
+per vnode can be increased by setting worker_limit in =etc/app.config=.
+
+={riak_pipe, [{worker_limit, #Workers}]}=
+
+Different numbers of workers are used based on the type of MapReduce query so
+tuning will be very workload dependent.
+
+If you are using Javascript MapReduce you will also need to increase the number of
+Javascript virtual machines in the =riak_kv= section of =app.config=. 
+
+#+BEGIN_SRC erlangB
+            {map_js_vm_count,  #MapVMs},
+            {reduce_js_vm_count, #ReduceVMs}
+#+END_SRC
+
+Again, tuning will be workload dependent.  If sufficient resources are available
+setting #MapVMs to the maximum number of JS MapReduce jobs being run in parallel
+will give best results and #ReduceVMs set to number of jobs / number of nodes plus
+a margin for overload.
+
+** Bugs Fixed
+-[[https://github.com/basho/riak_core/issues/144][Map-reduce jobs fail during rolling upgrade to 1.1]]
+-[[https://github.com/basho/riak_kv/issues/287][Race Condition causes Javascript VMs to never be returned to VM Pool]]
+-[[https://issues.basho.com/show_bug.cgi?id=1258][Avoid {case_clause, ok} errors when vnode backend fails to start]]
+
 * Riak 1.1.0 Release Notes
 ** Major Features and Improvements for Riak
 *** Riak Control
