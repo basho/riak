@@ -41,6 +41,7 @@ a margin for overload.
 -[[https://github.com/basho/riak_core/issues/144][Map-reduce jobs fail during rolling upgrade to 1.1]]
 -[[https://github.com/basho/riak_kv/issues/287][Race Condition causes Javascript VMs to never be returned to VM Pool]]
 -[[https://issues.basho.com/show_bug.cgi?id=1258][Avoid {case_clause, ok} errors when vnode backend fails to start]]
+-[[https://github.com/basho/bitcask/issues/39][Bitcask - Fix incorrect NIF error tuples]]
 
 * Riak 1.1.0 Release Notes
 ** Major Features and Improvements for Riak
