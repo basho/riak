@@ -114,9 +114,9 @@ case "$1" in
         exit 1
         ;;
 
-    force-remove)
+    force[_-]remove)
         if [ $# -ne 2 ]; then
-            echo "Usage: $SCRIPT force-remove <node>"
+            echo "Usage: $SCRIPT $1 <node>"
             exit 1
         fi
 
@@ -163,9 +163,9 @@ case "$1" in
         $NODETOOL rpc riak_kv_console status $@
         ;;
 
-    vnode-status)
+    vnode[_-]status)
         if [ $# -ne 1 ]; then
-            echo "Usage: $SCRIPT vnode-status"
+            echo "Usage: $SCRIPT $1"
             exit 1
         fi
 
@@ -214,9 +214,9 @@ case "$1" in
         $NODETOOL rpc riak_kv_console transfers $@
         ;;
 
-    member_status)
+    member[_-]status)
         if [ $# -ne 1 ]; then
-            echo "Usage: $SCRIPT member_status"
+            echo "Usage: $SCRIPT $1"
             exit 1
         fi
 
@@ -231,9 +231,9 @@ case "$1" in
         $NODETOOL rpc riak_core_console member_status $@
         ;;
 
-    ring_status)
+    ring[_-]status)
         if [ $# -ne 1 ]; then
-            echo "Usage: $SCRIPT ring_status"
+            echo "Usage: $SCRIPT $1"
             exit 1
         fi
 
@@ -248,9 +248,9 @@ case "$1" in
         $NODETOOL rpc riak_core_console ring_status $@
         ;;
 
-    cluster_info)
+    cluster[_-]info)
         if [ $# -lt 2 ]; then
-            echo "Usage: $SCRIPT cluster_info <output_file> ['local' | <node> ['local' | <node>] [...]]"
+            echo "Usage: $SCRIPT $1 <output_file> ['local' | <node> ['local' | <node>] [...]]"
             exit 1
         fi
 
@@ -269,11 +269,11 @@ case "$1" in
         $NODETOOL rpcterms riak_core_node_watcher services ''
         ;;
 
-    wait-for-service)
+    wait[_-]for[_-]service)
         SVC=$2
         TARGETNODE=$3
         if [ $# -lt 3 ]; then
-            echo "Usage: $SCRIPT wait-for-service <service_name> <target_node>"
+            echo "Usage: $SCRIPT $1 <service_name> <target_node>"
             exit 1
         fi
 
@@ -299,7 +299,7 @@ case "$1" in
         done
         ;;
 
-    js_reload)
+    js[_-]reload)
         # Reload all Javascript VMs
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
@@ -311,7 +311,7 @@ case "$1" in
         $NODETOOL rpc riak_kv_js_manager reload $@
         ;;
 
-    erl_reload)
+    erl[_-]reload)
         # Reload user Erlang code
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
@@ -450,9 +450,9 @@ case "$1" in
         ;;
     *)
         echo "Usage: $SCRIPT { join | leave | backup | restore | test | status | "
-        echo "                    reip | js_reload | erl_reload | wait-for-service | "
+        echo "                    reip | js-reload | erl-reload | wait-for-service | "
         echo "                    ringready | transfers | force-remove | down | "
-        echo "                    cluster_info | member_status | ring_status | vnode-status |"
+        echo "                    cluster-info | member-status | ring-status | vnode-status |"
         echo "                    diag |"
         echo "                    top [-interval N] [-sort reductions|memory|msg_q} [-lines N]"
         exit 1
