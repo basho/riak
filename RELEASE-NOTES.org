@@ -1,3 +1,28 @@
+* Riak 1.1.2 Release Notes
+** Features and Improvements for Riak
+
+This is mainly a stabalization release, adding a few stability improvements
+for heavily loaded networks and improving support for running mixed clusters 
+while migrating to the 1.1.x series.
+
+The frequency that Riak checks whether primary partitions need to be transferred
+and also a few other administrative tasks has been lowered from every 30s to
+every 10s by default.  It is also configurable on an application environment
+variable in app.config.
+
+#+BEGIN_SRC erlangB
+  {riak_core, [{vnode_management_timer, #Millisecs}, ...]}
+#+END_SRC
+
+** Bugs Fixed
+
+-[[https://github.com/basho/riak_sysmon/issues/5][Work-around for net_kernel:get_status() race condition]]
+-[[https://github.com/basho/riak_core/issues/152][Handoff reported as started even if rejected for exceeding handoff concurrency]]
+-[[https://github.com/basho/riak_core/issues/153][Intermittent hang with handoff sender]]
+-[[https://github.com/basho/riak_core/issues/154][handoff of fallback data can be delayed or never performed]]
+-[[https://github.com/basho/riak_core/issues/155][Chicken & egg problem with vnode proxy process start & registration?]]
+-[[https://github.com/basho/riak_kv/issues/300][Put FSM crashes if forwarded node goes down]]
+
 * Riak 1.1.1 Release Notes
 ** Major Features and Improvements for Riak
 *** MapReduce Changes
