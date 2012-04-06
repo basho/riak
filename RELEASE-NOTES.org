@@ -14,6 +14,14 @@ variable in app.config.
   {riak_core, [{vnode_management_timer, #Millisecs}, ...]}
 #+END_SRC
 
+*** Replication
+
+Heartbeat has been added to the replication protocol so that lost connections
+are now detected.
+
+The =repl-repl add-site= can now be used to append additional remote site IPs
+without removing the original site.
+
 ** Bugs Fixed
 
 -[[https://github.com/basho/riak_sysmon/issues/5][Work-around for net_kernel:get_status() race condition]]
@@ -22,6 +30,8 @@ variable in app.config.
 -[[https://github.com/basho/riak_core/issues/154][handoff of fallback data can be delayed or never performed]]
 -[[https://github.com/basho/riak_core/issues/155][Chicken & egg problem with vnode proxy process start & registration?]]
 -[[https://github.com/basho/riak_kv/issues/300][Put FSM crashes if forwarded node goes down]]
+-[[https://github.com/basho/riak_repl/issues/43][Add heartbeat to repl protocol]]
+-[[https://github.com/basho/riak_repl/issues/45][Cannot add IP/ports to existing sites]]
 
 * Riak 1.1.1 Release Notes
 ** Major Features and Improvements for Riak
