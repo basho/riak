@@ -39,6 +39,9 @@ main(Args) ->
     case {net_kernel:hidden_connect_node(TargetNode), net_adm:ping(TargetNode)} of
         {true, pong} ->
             ok;
+        {false,pong} ->
+            io:format("Failed to connect to node ~p .\n", [TargetNode]),
+            halt(1);
         {_, pang} ->
             io:format("Node ~p not responding to pings.\n", [TargetNode]),
             halt(1)
