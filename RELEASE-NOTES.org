@@ -16,11 +16,30 @@ variable in app.config.
 
 *** Replication
 
+Replication bucket properties have been extended to give finer grained control
+over how objects are replicated.  This is done via new values for the 'repl' 
+bucket property:
+
+-{repl, both} - both types of replication, same as {repl, true}
+-{repl, fullsync} - only fullsync this bucket, no realtime
+-{repl, realtime} - only realtime repl this bucket, no fullsync
+
+Along side the the two existing settings
+
+-{repl, true} - realtime and fullsync replication, a synonym for {repl, both} so 
+old configurations can be left unchanged
+-{repl, false} - disable replication for the bucket
+
+This release also fixes a bug with setting {repl, false} in the 
+default_bucket_props in the riak_core section of app.config.  Before the setting
+was ignored and buckets would be replicated unless they were explicitly disabled.
+
 Heartbeat has been added to the replication protocol so that lost connections
 are now detected.
 
 The =repl-repl add-site= can now be used to append additional remote site IPs
-without removing the original site.
+without removing the original site while the cluster is running.  It may take
+a few minutes for the change to be picked up by the client connection.
 
 ** Known Issues
 
@@ -48,6 +67,9 @@ mkdir /var/run/riak && chown -R riak /var/run/riak
 -[[https://github.com/basho/riak_kv/issues/300][Put FSM crashes if forwarded node goes down]]
 -[[https://github.com/basho/riak_repl/issues/43][Add heartbeat to repl protocol]]
 -[[https://github.com/basho/riak_repl/issues/45][Cannot add IP/ports to existing sites]]
+-[[https://github.com/basho/riak_repl/pull/51][Fix repl so it can be disabled in default_bucket_props]]
+-[[https://github.com/basho/riak_repl/pull/52][Bump socket send_timeout to 60s, reliability improvement]]
+-[[https://github.com/basho/riak_repl/pull/54][Re-read site IPs when the list to try runs out]]
 
 * Riak 1.1.1 Release Notes
 ** Major Features and Improvements for Riak
