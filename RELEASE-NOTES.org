@@ -22,6 +22,21 @@ are now detected.
 The =repl-repl add-site= can now be used to append additional remote site IPs
 without removing the original site.
 
+** Known Issues
+
+*** [[https://github.com/basho/riak/issues/130][https://github.com/basho/riak/issues/130]]
+
+The /usr/sbin/riak script expects /var/run/riak to exist.  On Fedora and possibly
+other Linux distributions /var/run is built on tmpfs, so the directory created
+at package install time goes away on reboot and the /usr/sbin/riak script does not 
+have permissions to recreate it.
+
+As a work around, add this to /etc/rc.local
+#+BEGIN_SRC sh
+mkdir /var/run/riak && chown -R riak /var/run/riak
+#+END_SRC
+
+
 ** Bugs Fixed
 
 -[[https://github.com/basho/riak_sysmon/issues/5][Work-around for net_kernel:get_status() race condition]]
