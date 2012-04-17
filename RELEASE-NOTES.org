@@ -2,7 +2,7 @@
 ** Features and Improvements for Riak
 
 This is mainly a stabalization release, adding a few stability improvements
-for heavily loaded networks and improving support for running mixed clusters 
+for heavily loaded networks and improving support for running mixed clusters
 while migrating to the 1.1.x series.
 
 The frequency that Riak checks whether primary partitions need to be transferred
@@ -17,7 +17,7 @@ variable in app.config.
 *** Replication
 
 Replication bucket properties have been extended to give finer grained control
-over how objects are replicated.  This is done via new values for the 'repl' 
+over how objects are replicated.  This is done via new values for the 'repl'
 bucket property:
 
 -{repl, both} - both types of replication, same as {repl, true}
@@ -26,11 +26,11 @@ bucket property:
 
 Along side the the two existing settings
 
--{repl, true} - realtime and fullsync replication, a synonym for {repl, both} so 
+-{repl, true} - realtime and fullsync replication, a synonym for {repl, both} so
 old configurations can be left unchanged
 -{repl, false} - disable replication for the bucket
 
-This release also fixes a bug with setting {repl, false} in the 
+This release also fixes a bug with setting {repl, false} in the
 default_bucket_props in the riak_core section of app.config.  Before the setting
 was ignored and buckets would be replicated unless they were explicitly disabled.
 
@@ -47,7 +47,7 @@ a few minutes for the change to be picked up by the client connection.
 
 The /usr/sbin/riak script expects /var/run/riak to exist.  On Fedora and possibly
 other Linux distributions /var/run is built on tmpfs, so the directory created
-at package install time goes away on reboot and the /usr/sbin/riak script does not 
+at package install time goes away on reboot and the /usr/sbin/riak script does not
 have permissions to recreate it.
 
 As a work around, add this to /etc/rc.local
@@ -58,7 +58,7 @@ mkdir /var/run/riak && chown -R riak /var/run/riak
 
 ** Bugs Fixed
 
--[[https://github.com/basho/erlang_js/issues/18][erlang_js inlines don't work on XCode 4.3]]
+-[[https://github.com/basho/erlang_js/issues/18][erlang_js inlines do not work on XCode 4.3]]
 -[[https://github.com/basho/riak_sysmon/issues/5][Work-around for net_kernel:get_status() race condition]]
 -[[https://github.com/basho/riak_core/issues/152][Handoff reported as started even if rejected for exceeding handoff concurrency]]
 -[[https://github.com/basho/riak_core/issues/153][Intermittent hang with handoff sender]]
@@ -78,12 +78,12 @@ This release includes fixes for systems with heavy MapReduce load.
 
 Pipe maintains a limit on the number of active worker processes in the system.
 Workers are created on demand when the pipe executes - they are not reserved
-at pipe creation time.  
+at pipe creation time.
 
 Prior to 1.1.1 not all fittings (e.g. get object from riak, map value, reduce)
 were checking to make sure their output was being delivered to the next stage
 of the pipeline.  This has been changed so that the pipe will error if
-processing errors or system limits are hit.  
+processing errors or system limits are hit.
 
 As a result of the change if the pipe is overloaded clients will see errors of this form:
 ={error,<<"Error sending inputs: {error,worker_limit_reached}">>}=
@@ -98,7 +98,7 @@ Different numbers of workers are used based on the type of MapReduce query so
 tuning will be very workload dependent.
 
 If you are using Javascript MapReduce you will also need to increase the number of
-Javascript virtual machines in the =riak_kv= section of =app.config=. 
+Javascript virtual machines in the =riak_kv= section of =app.config=.
 
 #+BEGIN_SRC erlangB
             {map_js_vm_count,  #MapVMs},
@@ -136,7 +136,7 @@ a margin for overload.
 - Tracing support (see the [[https://github.com/basho/lager/blob/master/README.org][README]])
 - Term printing is ~4x faster and much more correct (compared to io:format)
 - Bitstring printing support was added
-*** MapReduce Improvements                                                                                                              
+*** MapReduce Improvements
 - The MapReduce interface now supports requests with empty queries. This allows the 2i, list-keys, and search inputs to return matching keys to clients without needing to include a reduce_identity query phase.
 - MapReduce error messages have been improved.  Most error cases should now return helpful information all the way to the client, while also producing less spam in Riak's logs.
 *** Riak KV Improvements
