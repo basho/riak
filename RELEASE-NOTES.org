@@ -31,7 +31,7 @@ mkdir /var/run/riak && chown -R riak /var/run/riak
 
 ** Bugs Fixed
 
--[[https://github.com/basho/erlang_js/issues/18][erlang_js inlines don't work on XCode 4.3]]
+-[[https://github.com/basho/erlang_js/issues/18][erlang_js inlines do not work on XCode 4.3]]
 -[[https://github.com/basho/riak_sysmon/issues/5][Work-around for net_kernel:get_status() race condition]]
 -[[https://github.com/basho/riak_core/issues/152][Handoff reported as started even if rejected for exceeding handoff concurrency]]
 -[[https://github.com/basho/riak_core/issues/153][Intermittent hang with handoff sender]]
