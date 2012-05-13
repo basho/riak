@@ -263,11 +263,15 @@ case "$1" in
         fi
         echo "config is OK"
         ;;
+    escript)
+        shift
+        $ERTS_PATH/escript "$@"
+        ;;
     version)
         echo $RIAK_VERSION
         ;;
     *)
-        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig|version}"
+        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig|escript|version}"
         exit 1
         ;;
 esac
