@@ -19,7 +19,7 @@ RUNNER_USER={{runner_user}}
 
 # Make sure this script is running as the appropriate user
 if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
-    type -p sudo > /dev/null 2>&1
+    type sudo > /dev/null 2>&1
     if [ $? -ne 0 ]; then
         echo "sudo doesn't appear to be installed and your EUID isn't $RUNNER_USER" 1>&2
         exit 1

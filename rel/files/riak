@@ -26,7 +26,7 @@ RIAK_VERSION="git"
 
 # Make sure this script is running as the appropriate user
 if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
-    type -p sudo > /dev/null 2>&1
+    type sudo > /dev/null 2>&1
     if [ $? -ne 0 ]; then
         echo "sudo doesn't appear to be installed and your EUID isn't $RUNNER_USER" 1>&2
         exit 1
@@ -171,7 +171,7 @@ case "$1" in
         if [ "$ES" -ne 0 ]; then
             exit $ES
         fi
-        while `kill -0 $PID 2>/dev/null`;
+        while `kill -s 0 $PID 2>/dev/null`;
         do
             sleep 1
         done
