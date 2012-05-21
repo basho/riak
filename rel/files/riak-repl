@@ -95,6 +95,22 @@ case "$1" in
         $NODETOOL rpc riak_repl_console add_listener $1 $2 $3
         ;;
 
+    add-nat-listener)
+        ACTION=$1
+        shift
+        if [ $# -lt 5 ]; then
+            echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port> <public_ip> <public_port>"
+            exit 1
+        fi
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        $NODETOOL rpc riak_repl_console add_nat_listener $1 $2 $3 $4 $5
+        ;;
+
+
     del-listener)
         ACTION=$1
         shift
@@ -188,7 +204,7 @@ case "$1" in
     *)
         echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | status |"
         echo "                   start-fullsync | cancel-fullsync |"
-        echo "                   pause-fullsync | resume-fullsync }"
+        echo "                   pause-fullsync | resume-fullsync | add-nat-listener }"
         exit 1
         ;;
 esac
