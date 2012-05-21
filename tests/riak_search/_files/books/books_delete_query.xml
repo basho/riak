@@ -1,4 +1,0 @@
-<delete>
-  <query>title:organization AND title:processing</query>
-  <query>author_last_name:dybvig</query>
-</delete>
