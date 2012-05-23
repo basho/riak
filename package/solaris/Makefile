@@ -9,7 +9,7 @@ build: buildrel depend pkginfo prototype
 	mkdir -p pkgbuild packages
 	pkgmk -o -d pkgbuild -a $(ARCH)
 	touch packages/$(PKGFILE)
-	pkgtrans -s pkgbuild packages/$(PKGFILE) $(PKG) 
+	pkgtrans -s pkgbuild packages/$(PKGFILE) $(PKG)
 	rm -r pkgbuild/$(PKG)
 	gzip packages/$(PKGFILE)
 	chmod 0644 $(CURDIR)/packages/$(PKGFILE).gz
@@ -33,9 +33,6 @@ buildrel:
 
 depend:
 	cp $(PKGERDIR)/depend .
-	if [ $(DISTRO) = "OpenSolaris" ]; then \
-		echo "P SUNWgawk   GNU implementation of awk" >> depend; \
-	fi
 
 pkginfo:
 	sed -e 's/@@VERSION@@/$(PKG_VERSION)-$(RELEASE)/g' \
