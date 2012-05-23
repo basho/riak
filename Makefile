@@ -26,7 +26,7 @@ test: deps compile testclean
 	@$(foreach dep, \
             $(wildcard deps/*), \
                 ./rebar eunit app=$(notdir $(dep)) \
-                    || echo "Eunit: $(notdir $(dep)) FAILED" >> $(TEST_LOG_FILE);)	
+                    || echo "Eunit: $(notdir $(dep)) FAILED" >> $(TEST_LOG_FILE);)
 	./rebar eunit skip_deps=true
 	@if test -s $(TEST_LOG_FILE) ; then \
              cat $(TEST_LOG_FILE) && \
@@ -101,10 +101,10 @@ dialyzer: compile
 	    fgrep -v -f ./dialyzer.ignore-warnings
 
 cleanplt:
-	@echo 
+	@echo
 	@echo "Are you sure?  It takes about 1/2 hour to re-build."
 	@echo Deleting $(COMBO_PLT) in 5 seconds.
-	@echo 
+	@echo
 	sleep 5
 	rm $(COMBO_PLT)
 
@@ -145,7 +145,7 @@ get_dist_deps = mkdir distdir && \
                 git clone . distdir/$(CLONEDIR) && \
                 cd distdir/$(CLONEDIR) && \
                 git checkout $(REPO_TAG) && \
-                make deps && \
+                $(MAKE) deps && \
                 echo "- Dependencies and their tags at build time of $(REPO) at $(REPO_TAG)" > $(MANIFEST_FILE) && \
                 for dep in deps/*; do \
                     cd $${dep} && \
@@ -155,9 +155,9 @@ get_dist_deps = mkdir distdir && \
 
 
 # Name resulting directory & tar file based on current status of the git tag
-# If it is a tagged release (REVISION == MAJOR_VERSION), use the toplevel 
-#   tag as the package name, otherwise generate a unique hash of all the 
-#   dependencies revisions to make the package name unique. 
+# If it is a tagged release (REVISION == MAJOR_VERSION), use the toplevel
+#   tag as the package name, otherwise generate a unique hash of all the
+#   dependencies revisions to make the package name unique.
 #   This enables the toplevel repository package to change names
 #   when underlying dependencies change.
 NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/null | cut -c 1-8)
@@ -183,7 +183,7 @@ build_clean_dir = cd distdir/$(CLONEDIR) && \
                       cd ../..; done
 
 
-distdir/$(CLONEDIR)/$(MANIFEST_FILE): 
+distdir/$(CLONEDIR)/$(MANIFEST_FILE):
 	$(if $(REPO_TAG), $(call get_dist_deps), $(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
 
 distdir/$(DISTNAME): distdir/$(CLONEDIR)/$(MANIFEST_FILE)
@@ -197,7 +197,7 @@ ballclean:
 	rm -rf $(DISTNAME).tar.gz distdir
 
 
-## 
+##
 ## Packaging targets reside in package directory
 ##
 
