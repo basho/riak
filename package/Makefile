@@ -19,7 +19,7 @@ ARCH		= $(shell uname -p)
 PKGER		= make
 PKGERDIR	= solaris
 DISTRO		= $(shell head -1 /etc/release|awk \
-                   '{if ($$1 == "OpenSolaris") {print $$1} else {print "Solaris"}}')
+                   '{if ($$1 == "OmniOS") {print $$1} else {print "Solaris"}}')
 OSNAME		= ${DISTRO}
 endif
 ifeq ($(OS),Darwin)
@@ -36,7 +36,7 @@ VERSIONSTRING	= $(APP) ($(PKG_VERSION) $(DATE)) $(OSNAME) $(ARCH)
 APP		 = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
 # Assumes CURDIR is .../$(APP)/package/$(APP)/
 RIAK_PATH	?= ..
-RELEASE		?= 
+RELEASE		?=
 
 $(APP)-$(PKG_VERSION).tar.gz: ../$(DISTNAME).tar.gz
 	ln -s $< $@
