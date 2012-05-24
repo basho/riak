@@ -18,7 +18,7 @@ BuildRoot: %{_tmppath}/%{name}-%{version}-%{release}-root
 Summary: Riak Distributed Data Store
 
 %description
-Riak is a distrubuted data store.
+Riak is a highly scalable, fault-tolerant distributed database
 
 %define riak_lib %{_libdir}/%{name}
 %define init_script %{_sysconfdir}/init.d/%{name}
@@ -34,34 +34,51 @@ Riak is a distrubuted data store.
 
 %prep
 %setup -q -n %{name}-%{_revision}
+
+# Override the default vars.config with platform specific settings
 cat > rel/vars.config <<EOF
-% app.config
-{web_ip,       "127.0.0.1"}.
-{web_port,     8098}.
-{handoff_port, 8099}.
-{pb_ip,        "127.0.0.1"}.
-{pb_port,      8087}.
-{ring_state_dir,        "%{platform_data_dir}/ring"}.
-{bitcask_data_root,     "%{platform_data_dir}/bitcask"}.
-{leveldb_data_root,     "%{platform_data_dir}/leveldb"}.
-{merge_index_data_root,    "%{platform_data_dir}/merge_index"}.
-{merge_index_data_root_2i, "%{platform_data_dir}/merge_index_2i"}.
-{sasl_error_log,        "%{platform_log_dir}/sasl-error.log"}.
-{sasl_log_dir,          "%{platform_log_dir}/sasl"}.
-{mapred_queue_dir,      "%{platform_data_dir}/mr_queue"}.
-{map_js_vms,   8}.
-{reduce_js_vms, 6}.
-{hook_js_vms, 2}.
 % Platform-specific installation paths
 {platform_bin_dir,  "%{platform_bin_dir}"}.
 {platform_data_dir, "%{platform_data_dir}"}.
 {platform_etc_dir,  "%{platform_etc_dir}"}.
 {platform_lib_dir,  "%{platform_lib_dir}"}.
 {platform_log_dir,  "%{platform_log_dir}"}.
-% vm.args
-{node,              "riak@127.0.0.1"}.
-{crash_dump,        "%{platform_log_dir}/erl_crash.dump"}.
-% bin/riak*
+
+%%
+%% etc/app.config
+%%
+{web_ip,            "127.0.0.1"}.
+{web_port,          8098}.
+{handoff_port,      8099}.
+{pb_ip,             "127.0.0.1"}.
+{pb_port,           8087}.
+{ring_state_dir,    "%{platform_data_dir}/ring"}.
+{bitcask_data_root, "%{platform_data_dir}/bitcask"}.
+{leveldb_data_root, "%{platform_data_dir}/leveldb"}.
+{sasl_error_log,    "%{platform_log_dir}/sasl-error.log"}.
+{sasl_log_dir,      "%{platform_log_dir}/sasl"}.
+{mapred_queue_dir,  "%{platform_data_dir}/mr_queue"}.
+
+%% riak_search
+{merge_index_data_root,  "%{platform_data_dir}/merge_index"}.
+
+%% secondary indices
+{merge_index_data_root_2i,  "%{platform_data_dir}/merge_index_2i"}.
+
+%% Javascript VMs
+{map_js_vms,   8}.
+{reduce_js_vms, 6}.
+{hook_js_vms, 2}.
+
+%%
+%% etc/vm.args
+%%
+{node,         "riak@127.0.0.1"}.
+{crash_dump,   "%{platform_log_dir}/erl_crash.dump"}.
+
+%%
+%% bin/riak
+%%
 {runner_script_dir,  "%{platform_bin_dir}"}.
 {runner_base_dir,    "%{platform_lib_dir}"}.
 {runner_etc_dir,     "%{platform_etc_dir}"}.
@@ -69,6 +86,8 @@ cat > rel/vars.config <<EOF
 {pipe_dir,           "%{_localstatedir}/run/%{name}/"}.
 {runner_user,        "%{name}"}.
 EOF
+
+# Set the 'riak version' output
 cp rel/files/riak rel/files/riak.tmp
 sed -e "s/^RIAK_VERSION.*$/RIAK_VERSION=\"%{_versionstring}\"/" < rel/files/riak.tmp > rel/files/riak
 
@@ -93,26 +112,26 @@ mkdir -p %{buildroot}%{platform_data_dir}/mr_queue
 #Copy all necessary lib files etc.
 cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/lib %{buildroot}%{platform_lib_dir}
 cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/erts-* \
-		%{buildroot}%{platform_lib_dir}
+                %{buildroot}%{platform_lib_dir}
 cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/releases \
-		%{buildroot}%{platform_lib_dir}
+                %{buildroot}%{platform_lib_dir}
 cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/doc/man/man1/*.gz \
-		%{buildroot}%{_mandir}/man1
+                %{buildroot}%{_mandir}/man1
 install -p -D -m 0644 \
-	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/etc/app.config \
-	%{buildroot}%{platform_etc_dir}/
+        $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/etc/app.config \
+        %{buildroot}%{platform_etc_dir}/
 install -p -D -m 0644 \
-	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/etc/vm.args \
-	%{buildroot}%{platform_etc_dir}/
+        $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/etc/vm.args \
+        %{buildroot}%{platform_etc_dir}/
 install -p -D -m 0755 \
-	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name} \
-	%{buildroot}/%{platform_bin_dir}/%{name}
+        $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name} \
+        %{buildroot}/%{platform_bin_dir}/%{name}
 install -p -D -m 0755 \
-	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name}-admin \
-	%{buildroot}/%{platform_bin_dir}/%{name}-admin
+        $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/%{name}-admin \
+        %{buildroot}/%{platform_bin_dir}/%{name}-admin
 install -p -D -m 0755 \
-	$RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/search-cmd \
-	%{buildroot}/%{platform_bin_dir}/search-cmd
+        $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/bin/search-cmd \
+        %{buildroot}/%{platform_bin_dir}/search-cmd
 install -p -D -m 0755 %{SOURCE1} %{buildroot}/%{init_script}
 
 # Needed to work around check-rpaths which seems to be hardcoded into recent
