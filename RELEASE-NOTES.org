@@ -1,3 +1,44 @@
+* Riak 1.1.2 Release Notes
+** Features and Improvements for Riak
+
+This is mainly a stabalization release, adding a few stability improvements
+for heavily loaded networks and improving support for running mixed clusters
+while migrating to the 1.1.x series.
+
+The frequency that Riak checks whether primary partitions need to be transferred
+and also a few other administrative tasks has been lowered from every 30s to
+every 10s by default.  It is also configurable on an application environment
+variable in app.config.
+
+#+BEGIN_SRC erlangB
+  {riak_core, [{vnode_management_timer, #Millisecs}, ...]}
+#+END_SRC
+
+** Known Issues
+
+*** [[https://github.com/basho/riak/issues/130][https://github.com/basho/riak/issues/130]]
+
+The /usr/sbin/riak script expects /var/run/riak to exist.  On Fedora and possibly
+other Linux distributions /var/run is built on tmpfs, so the directory created
+at package install time goes away on reboot and the /usr/sbin/riak script does not
+have permissions to recreate it.
+
+As a work around, add this to /etc/rc.local
+#+BEGIN_SRC sh
+mkdir /var/run/riak && chown -R riak /var/run/riak
+#+END_SRC
+
+
+** Bugs Fixed
+
+-[[https://github.com/basho/erlang_js/issues/18][erlang_js inlines do not work on XCode 4.3]]
+-[[https://github.com/basho/riak_sysmon/issues/5][Work-around for net_kernel:get_status() race condition]]
+-[[https://github.com/basho/riak_core/issues/152][Handoff reported as started even if rejected for exceeding handoff concurrency]]
+-[[https://github.com/basho/riak_core/issues/153][Intermittent hang with handoff sender]]
+-[[https://github.com/basho/riak_core/issues/154][handoff of fallback data can be delayed or never performed]]
+-[[https://github.com/basho/riak_core/issues/155][Chicken & egg problem with vnode proxy process start & registration?]]
+-[[https://github.com/basho/riak_kv/issues/300][Put FSM crashes if forwarded node goes down]]
+
 * Riak 1.1.1 Release Notes
 ** Major Features and Improvements for Riak
 *** MapReduce Changes
@@ -5,12 +46,12 @@ This release includes fixes for systems with heavy MapReduce load.
 
 Pipe maintains a limit on the number of active worker processes in the system.
 Workers are created on demand when the pipe executes - they are not reserved
-at pipe creation time.  
+at pipe creation time.
 
 Prior to 1.1.1 not all fittings (e.g. get object from riak, map value, reduce)
 were checking to make sure their output was being delivered to the next stage
 of the pipeline.  This has been changed so that the pipe will error if
-processing errors or system limits are hit.  
+processing errors or system limits are hit.
 
 As a result of the change if the pipe is overloaded clients will see errors of this form:
 ={error,<<"Error sending inputs: {error,worker_limit_reached}">>}=
@@ -25,7 +66,7 @@ Different numbers of workers are used based on the type of MapReduce query so
 tuning will be very workload dependent.
 
 If you are using Javascript MapReduce you will also need to increase the number of
-Javascript virtual machines in the =riak_kv= section of =app.config=. 
+Javascript virtual machines in the =riak_kv= section of =app.config=.
 
 #+BEGIN_SRC erlangB
             {map_js_vm_count,  #MapVMs},
@@ -59,71 +100,12 @@ a margin for overload.
 *** Other backend changes
 - Multi-backend now supports 2i properly
 *** Lager Improvements
-- Tracing support (see the [[https://github.com/basho/lager/blob/master/README.org/][README]])
+- Tracing support (see the [[https://github.com/basho/lager/blob/master/README.org][README]])
 - Term printing is ~4x faster and much more correct (compared to io:format)
 - Bitstring printing support was added
-*** MapReduce Improvements                                                                                                              
+*** MapReduce Improvements
 - The MapReduce interface now supports requests with empty queries. This allows the 2i, list-keys, and search inputs to return matching keys to clients without needing to include a reduce_identity query phase.
 - MapReduce error messages have been improved.  Most error cases should now return helpful information all the way to the client, while also producing less spam in Riak's logs.
-
-*** Riak Core Improvements
-There has been numerous changes to =riak_core= which address issues
-with cluster scalability, and enable Riak to better handle large
-clusters and large rings. Specifically, the warnings about potential
-gossip overload and large ring sizes from the Riak 1.0 release notes
-are no longer valid.  However, there are a few user visible
-configuration changes impacted by these improvements.
-
-First, Riak has a new routing layer that determines how requests are
-sent to vnodes for servicing. In order to support mixed-version clusters
-during a rolling upgrade, Riak 1.1 starts in a legacy routing mode that
-is slower than the traditional behavior in prior releases. After upgrading
-or deploying a cluster that is composed solely of Riak 1.1 nodes, the legacy
-mode can be disabled by adding the following to the riak_core section of
-app.config:
-
-={legacy_vnode_routing, false}=
-
-Second, the =handoff_concurrency= setting that can be enabled in the riak_core
-section of app.config has been changed to limit both incoming and outgoing
-handoff from a node. Prior to 1.1, this setting only limited the amount of
-outgoing handoff traffic from a node, and was unable to prevent a node from
-becoming overloaded with too much inbound traffic.
-
-Finally, the =gossip_interval= setting that can be enabled in riak_core section
-of app.config has been removed, and replaced with a new =gossip_limit= setting.
-The =gossip_limit= setting takes the form ={allowed_gossips, interval_in_ms}=.
-For example, the default setting is ={45, 10000}= which limits gossip to 45
-gossip messages every 10 seconds.
-
-*** New Ownership Claim Algorithm 
-The new ring ownership claim algorithm introduced as an optional
-setting in the 1.0 release has been set as the default for 1.1.
-
-The new claim algorithm significantly reduces the amount of ownerhip
-shuffling for clusters with more than N+2 nodes in them.  Changes to
-the cluster membership code in 1.0 made the original claim algorithm
-fall back to just reordering nodes in sequence in more cases than it
-used to, causing massive handoff activity on larger clusters.  Mixed
-clusters including pre-1.0 nodes will still use the original algorithm
-until all nodes are upgraded.
-
-NOTE: The semantics of the new algorithm are different than the old
-algorithm when the number of nodes in the cluster is less than the
-=target_n_val= setting. When the number of nodes in your cluster is
-less than =target_n_val=, Riak will not guarantee that each of your
-replicas are on distinct physical nodes. By default, Riak is setup
-with a default replication value N=3 and a =target_n_val= of 4. As
-such, you must have at least a 4-node cluster in order to have your
-replicas placed on different physical nodes. If you want to deploy a
-3-replica, 3-node cluster, you can override the =target_n_val= setting
-in the riak_core section of app.config:
-
-={target_n_val, 3}=
-
-In practice, you should set =target_n_val= to match the largest replication
-value you plan to use across your entire cluster.
-
 *** Riak KV Improvements
 **** Listkeys Backpressure
 
@@ -188,89 +170,9 @@ creation, for this particular reason, may be entirely avoided since
 the number of entries will almost always stay below the threshold in a
 well behaved cluster (i.e. one not under constant node membership
 change or network partitions).
-
 ** Known Issues
 -Luwak has been deprecated in the 1.1 release
 -[[https://issues.basho.com/show_bug.cgi?id=1160][bz1160 - Bitcask fails to merge on corrupt file]]
-
-*** Innostore on 32-bit systems
-
-Depending on the partition count and the default stack size of the
-operating system, using Innostore as the backend on 32-bit systems can
-cause problems. A symptom of this problem would be a message similar
-to this on the console or in the Riak error log:
-
-#+BEGIN_SRC
-10:22:38.719 [error] Failed to start riak_kv_innostore_backend for index 1415829711164312202009819681693899175291684651008. Reason: {eagain,[{erlang,open_port,[{spawn,innostore_drv},[binary]]},{innostore,connect,0},{riak_kv_innostore_backend,start,2},{riak_kv_vnode,init,1},{riak_core_vnode,init,1},{gen_fsm,init_it,6},{proc_lib,init_p_do_apply,3}]}
-10:22:38.871 [notice] "backend module failed to start."
-#+END_SRC
-
-The workaround for this problem is to reduce the stack size for the
-user Riak is run as (=riak= for most distributions). For example
-on Linux, the current stack size can be viewed using =ulimit -s= and
-can be altered by adding entries to the =/etc/security/limits.conf=
-file such as these:
-
-#+BEGIN_SRC
-riak             soft    stack           1024
-riak             hard    stack           1024
-#+END_SRC
-
-*** Ownership Handoff Stall
-
-It has been observed that 1.1.0 clusters can end up in a state with ownership
-handoff failing to complete. This state should not happen under normal
-circumstances, but has been observed in cases where Riak nodes crashed due
-to unrelated issues (eg. running out of disk space/memory) during cluster
-membership changes. The behavior can be identified by looking at the output
-of =riak-admin ring_status= and looking for transfers that are waiting on an
-empty set. As an example:
-
-#+BEGIN_SRC
-============================== Ownership Handoff ==============================
-Owner:      riak@host1
-Next Owner: riak@host2
-
-Index: 123456789123456789123456789123456789123456789123
-  Waiting on: []
-  Complete:   [riak_kv_vnode,riak_pipe_vnode]
-#+END_SRC
-
-To fix this issue, copy/paste the following code sequence into an Erlang
-shell for each =Owner= node in =riak-admin ring_status= for which
-this case has been identified. The Erlang shell can be accessed with =riak attach=
-
-#+BEGIN_SRC
-fun() ->
-  Node = node(),
-  {_Claimant, _RingReady, _Down, _MarkedDown, Changes} =
-      riak_core_status:ring_status(),
-  Stuck =
-      [{Idx, Complete} || {{Owner, NextOwner}, Transfers} <- Changes,
-                          {Idx, Waiting, Complete, Status} <- Transfers,
-                          Owner =:= Node,
-                          Waiting =:= [],
-                          Status =:= awaiting],
-
-  RT = fun(Ring, _) ->
-           NewRing = lists:foldl(fun({Idx, Mods}, Ring1) ->
-                         lists:foldl(fun(Mod, Ring2) ->
-                             riak_core_ring:handoff_complete(Ring2, Idx, Mod)
-                         end, Ring1, Mods)
-                     end, Ring, Stuck),
-           {new_ring, NewRing}
-       end,
-
-  case Stuck of
-      [] ->
-          ok;
-      _ ->
-          riak_core_ring_manager:ring_trans(RT, []),
-          ok
-  end
-end().
-#+END_SRC
-
 ** Bugs Fixed
 -[[https://issues.basho.com/show_bug.cgi?id=775][bz775 - Start-up script does not recreate /var/run/riak]]
 -[[https://issues.basho.com/show_bug.cgi?id=1283][bz1283 - erlang_js uses non-thread-safe driver function]]
