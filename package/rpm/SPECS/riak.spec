@@ -167,7 +167,7 @@ find %{platform_lib_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 %attr(0644,root,root) %{_mandir}/man1/*
 %{platform_data_dir}
 %{platform_log_dir}
-%{_localstatedir}/run/%{name}
+/tmp/%{name}
 
 %clean
 rm -rf %{buildroot}
