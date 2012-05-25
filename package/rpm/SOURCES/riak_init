@@ -4,7 +4,7 @@
 #
 # chkconfig: 2345 80 30
 # description: Riak is a distributed data store.
-# processname: beam 
+# processname: beam
 # config: /etc/riak/app.config
 # config: /etc/riak/vm.args
 #
@@ -17,10 +17,10 @@
 [ -d /etc/riak ] || exit 0
 [ -d /var/lib/riak ] || exit 0
 
-# Create /var/run/riak if necessary (/var/run may be in a tmpfs filesystem).
-if [ ! -d /var/run/riak ]; then
-    mkdir -p /var/run/riak
-    chown riak:riak /var/run/riak
+# Create /tmp/riak if necessary
+if [ ! -d /tmp/riak ]; then
+    mkdir -p /tmp/riak
+    chown riak:riak /tmp/riak
 fi
 
 RETVAL=0
@@ -49,7 +49,7 @@ stop() {
     # Stop daemon.
     echo -n $"Stopping Riak: "
     RETVAL=`su - riak -c "$DAEMON ping"`
-    [ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON stop 2>/dev/null 1>&2" 
+    [ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON stop 2>/dev/null 1>&2"
     sleep 2
     RETVAL=`pidof beam.smp`
     [ "$RETVAL" = "" ] && success && echo && return 0 || failure $"$NAME stop"
@@ -65,7 +65,7 @@ reload() {
     echo -n $"Reloading Riak: "
     RETVAL=`su - riak -c "$DAEMON ping"`
     [ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON restart 2>/dev/null 1>&2" \
-        && success && echo && return 0 || failure $"$NAME restart" 
+        && success && echo && return 0 || failure $"$NAME restart"
     echo
     return $RETVAL
 }

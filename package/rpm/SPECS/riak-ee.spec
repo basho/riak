@@ -90,7 +90,7 @@ cat > rel/vars.config <<EOF
 {runner_base_dir,    "%{platform_lib_dir}"}.
 {runner_etc_dir,     "%{platform_etc_dir}"}.
 {runner_log_dir,     "%{platform_log_dir}"}.
-{pipe_dir,           "%{_localstatedir}/run/%{appname}/"}.
+{pipe_dir,           "/tmp/%{appname}/"}.
 {runner_user,        "%{appuser}"}.
 
 %%
@@ -202,7 +202,7 @@ find %{platform_lib_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 %attr(0644,root,root) %{_mandir}/man1/*
 %{platform_data_dir}
 %{platform_log_dir}
-%{_localstatedir}/run/%{appname}
+/tmp/%{appname}
 
 %clean
 rm -rf %{buildroot}
