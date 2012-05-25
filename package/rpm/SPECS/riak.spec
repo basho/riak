@@ -83,7 +83,7 @@ cat > rel/vars.config <<EOF
 {runner_base_dir,    "%{platform_lib_dir}"}.
 {runner_etc_dir,     "%{platform_etc_dir}"}.
 {runner_log_dir,     "%{platform_log_dir}"}.
-{pipe_dir,           "%{_localstatedir}/run/%{name}/"}.
+{pipe_dir,           "/tmp/%{name}/"}.
 {runner_user,        "%{name}"}.
 EOF
 
