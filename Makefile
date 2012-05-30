@@ -208,7 +208,7 @@ PKG_VERSION = $(shell echo $(DISTNAME) | sed -e 's/^$(REPO)-//')
 package: dist
 	$(MAKE) -C package package
 
-pkgclean:
+pkgclean: distclean
 	$(MAKE) -C package pkgclean
 
 .PHONY: package
