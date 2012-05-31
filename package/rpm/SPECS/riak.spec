@@ -62,9 +62,6 @@ cat > rel/vars.config <<EOF
 %% riak_search
 {merge_index_data_root,  "%{platform_data_dir}/merge_index"}.
 
-%% secondary indices
-{merge_index_data_root_2i,  "%{platform_data_dir}/merge_index_2i"}.
-
 %% Javascript VMs
 {map_js_vms,   8}.
 {reduce_js_vms, 6}.
