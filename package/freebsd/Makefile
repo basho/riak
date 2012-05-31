@@ -23,7 +23,6 @@ packing_list: $(BUILD_STAGE_DIR)
 	echo "@cwd /usr/local" >> plist
 	echo "@conflicts riak-*" >> plist
 	echo "@conflicts riak-ee-*" >> plist
-	echo "@pkgdep openssl-1.0.1_2" >> plist
 	echo "@exec if ! pw groupshow riak 2>/dev/null; then pw groupadd riak; fi" >> plist
 	echo "@exec if ! pw usershow riak 2>/dev/null; then pw useradd riak -g riak -h - -d /usr/local/riak -s /bin/sh -c \"Riak Server\"; fi" >> plist
 	echo "@owner riak" >> plist
