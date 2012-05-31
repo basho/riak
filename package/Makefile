@@ -6,17 +6,14 @@ ARCH		= $(shell uname -m)
 PKGER		= $(shell cat /etc/redhat-release 2> /dev/null)
 ifeq ($(PKGER),)
 OSNAME		= Debian
-PKGER		= debuild
 PKGERDIR	= deb
 else
 OSNAME		= RedHat
-PKGER		= rpmbuild
 PKGERDIR	= rpm
 endif
 endif
 ifeq ($(OS),SunOS)
 ARCH		= $(shell uname -p)
-PKGER		= make
 PKGERDIR	= solaris
 DISTRO		= $(shell head -1 /etc/release|awk \
                    '{if ($$1 == "OmniOS") {print $$1} else {print "Solaris"}}')
@@ -25,9 +22,14 @@ endif
 ifeq ($(OS),Darwin)
 OSNAME		= OSX
 ARCH		= $(shell uname -m)
-PKGER		= make
 PKGERDIR	= osx
 BUILDDIR	= osxbuild
+endif
+ifeq ($(OS),FreeBSD)
+OSNAME          = $(OS)
+ARCH            = $(shell uname -p)
+PKGERDIR        = freebsd
+BUILDDIR        = bsdbuild
 endif
 
 DATE		= $(shell date +%Y-%m-%d)
@@ -42,7 +44,7 @@ $(APP)-$(PKG_VERSION).tar.gz: ../$(DISTNAME).tar.gz
 	ln -s $< $@
 
 pkgclean: $(PKGERDIR)/pkgclean
-	rm -rf $(APP)-$(PKG_VERSION).tar.gz working rpmbuild debuild packages osxbuild
+	rm -rf $(APP)-*.tar.gz working rpmbuild debuild packages osxbuild bsdbuild
 
 pkgcheck:
 	$(if $(DISTNAME),,$(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
