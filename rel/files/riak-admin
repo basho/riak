@@ -4,8 +4,10 @@
 if [ `uname -s` = 'SunOS' -a "${POSIX_SHELL}" != "true" ]; then
     POSIX_SHELL="true"
     export POSIX_SHELL
-    exec /usr/bin/ksh $0 "$@"
+    # To support 'whoami' add /usr/ucb to path
     PATH=/usr/ucb:$PATH
+    export PATH
+    exec /usr/bin/ksh $0 "$@"
 fi
 unset POSIX_SHELL # clear it so if we invoke other scripts, they run as ksh as well
 
