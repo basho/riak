@@ -51,6 +51,7 @@ $(BUILD_STAGE_DIR): buildrel
 	mkdir -p $@
 	cp -r $(BUILD_RIAK_PATH)/rel/riak $(BUILD_STAGE_DIR)
 	mkdir -p $(BUILD_STAGE_DIR)/riak/data/snmp/agent/db
+	touch $(BUILD_STAGE_DIR)/riak/data/snmp/agent/db/empty
 
 # Build the release we need to package
 #  Also ensure all binaries are executable
