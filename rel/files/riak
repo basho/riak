@@ -121,6 +121,8 @@ case "$1" in
         HEART_COMMAND="$RUNNER_SCRIPT_DIR/$SCRIPT start"
         export HEART_COMMAND
         mkdir -p $PIPE_DIR
+        # print node name and IP address 
+        $ERTS_PATH/erl -noshell $NAME_ARG -eval 'case inet:getaddr(lists:subtract(element(2,lists:splitwith(fun(T) -> T =/= 64 end, atom_to_list(node()))),"@"),inet) of {ok, {A,B,C,D}} -> io:format("Starting node ~p with IP ~p.~p.~p.~p~n",[node(),A,B,C,D]); _ -> io:format("WARNING: Unable to determine IP from node name ~p~n",[node()]) end.' -eval "init:stop()"
         $ERTS_PATH/run_erl -daemon $PIPE_DIR $RUNNER_LOG_DIR \
             "exec $RUNNER_SCRIPT_DIR/$SCRIPT console" 2>&1
 
