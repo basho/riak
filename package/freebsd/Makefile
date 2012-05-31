@@ -1,4 +1,4 @@
-BUILD_RIAK_PATH = $(BUILDDIR)/$(APP)-$(PKG_VERSION)
+BUILD_RIAK_PATH = $(BUILDDIR)/$(REPO)-$(PKG_VERSION)
 BUILD_STAGE_DIR = $(BUILDDIR)/$(APP)
 PKGNAME = $(APP)-$(PKG_VERSION)-$(OSNAME)-$(ARCH).tbz
 
@@ -22,6 +22,8 @@ packing_list: $(BUILD_STAGE_DIR)
 	echo "@name $(APP)-$(PKG_VERSION)" >> plist
 	echo "@cwd /usr/local" >> plist
 	echo "@conflicts riak-*" >> plist
+	echo "@conflicts riak-ee-*" >> plist
+	echo "@pkgdep openssl-1.0.1_2" >> plist
 	echo "@exec if ! pw groupshow riak 2>/dev/null; then pw groupadd riak; fi" >> plist
 	echo "@exec if ! pw usershow riak 2>/dev/null; then pw useradd riak -g riak -h - -d /usr/local/riak -s /bin/sh -c \"Riak Server\"; fi" >> plist
 	echo "@owner riak" >> plist
@@ -48,6 +50,7 @@ $(BUILD_STAGE_DIR): buildrel
 	@echo "Copying rel directory to staging directory"
 	mkdir -p $@
 	cp -r $(BUILD_RIAK_PATH)/rel/riak $(BUILD_STAGE_DIR)
+	mkdir -p $(BUILD_STAGE_DIR)/riak/data/snmp/agent/db
 
 # Build the release we need to package
 #  Also ensure all binaries are executable
