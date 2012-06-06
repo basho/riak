@@ -149,7 +149,7 @@ get_dist_deps = mkdir distdir && \
                 echo "- Dependencies and their tags at build time of $(REPO) at $(REPO_TAG)" > $(MANIFEST_FILE) && \
                 for dep in deps/*; do \
                     cd $${dep} && \
-                    printf "$${dep} version `git describe --long --tags`\n" >> ../../$(MANIFEST_FILE) && \
+                    printf "$${dep} version `git describe --long --tags 2>/dev/null || git rev-parse HEAD`\n" >> ../../$(MANIFEST_FILE) && \
                     cd ../..; done && \
                 LC_ALL=POSIX && export LC_ALL && sort $(MANIFEST_FILE) > $(MANIFEST_FILE).tmp && mv $(MANIFEST_FILE).tmp $(MANIFEST_FILE);
 
@@ -179,7 +179,7 @@ build_clean_dir = cd distdir/$(CLONEDIR) && \
                       cd $${dep} && \
                       $(call archive_git,$${dep},../../../$(DISTNAME)) && \
                       mkdir -p ../../../$(DISTNAME)/$${dep}/priv && \
-                      git describe --tags > ../../../$(DISTNAME)/$${dep}/priv/vsn.git && \
+                      printf "`git describe --long --tags 2>/dev/null || git rev-parse HEAD`" > ../../../$(DISTNAME)/$${dep}/priv/vsn.git && \
                       cd ../..; done
 
 
