@@ -89,15 +89,15 @@ cluster_admin()
             ;;
         leave)
             if [ $# -eq 1 ]; then
-                node=""
+                ensure_node_running
+                $NODETOOL rpc riak_core_console stage_leave
             elif [ $# -eq 2 ]; then
-                node="$2"
+                ensure_node_running
+                $NODETOOL rpc riak_core_console stage_leave "$2"
             else
                 echo "Usage: $SCRIPT cluster leave [<node>]"
                 exit 1
             fi
-            ensure_node_running
-            $NODETOOL rpc riak_core_console stage_leave "$node"
             ;;
         force-remove)
             if [ $# -ne 2 ]; then
@@ -569,12 +569,23 @@ case "$1" in
         shift
         cluster_admin "$@"
         ;;
+    transfer_limit)
+        if [ $# -gt 3 ]; then
+            echo "Usage: $SCRIPT transfer_limit"
+            echo "       $SCRIPT transfer_limit <limit>"
+            echo "       $SCRIPT transfer_limit <node> <limit>"
+            exit
+        fi
+        ensure_node_running
+        shift
+        $NODETOOL rpc riak_core_console transfer_limit "$@"
+        ;;
     *)
         echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
         echo "                    reip | js_reload | erl_reload | wait-for-service | "
         echo "                    ringready | transfers | force-remove | down | "
         echo "                    cluster_info | member_status | ring_status | vnode-status |"
-        echo "                    diag | status | "
+        echo "                    diag | status | transfer_limit | "
         echo "                    top [-interval N] [-sort reductions|memory|msg_q} [-lines N]"
         exit 1
         ;;
