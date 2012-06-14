@@ -157,11 +157,11 @@ find %{platform_lib_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 %{_libdir}/*
 %dir %{platform_etc_dir}
 %config(noreplace) %{platform_etc_dir}/*
-%attr(0755,-,-) %{init_script}
-%attr(0755,-,-) %{platform_bin_dir}/%{name}
-%attr(0755,-,-) %{platform_bin_dir}/%{name}-admin
-%attr(0755,-,-) %{platform_bin_dir}/search-cmd
-%attr(0644,-,-) %{_mandir}/man1/*
+%{init_script}
+%{platform_bin_dir}/%{name}
+%{platform_bin_dir}/%{name}-admin
+%{platform_bin_dir}/search-cmd
+%{_mandir}/man1/*
 %attr(-,riak,riak) %{platform_data_dir}
 %attr(-,riak,riak) %{platform_log_dir}
 
