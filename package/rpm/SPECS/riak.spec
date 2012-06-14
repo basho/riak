@@ -153,17 +153,17 @@ fi
 find %{platform_lib_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 
 %files
-%defattr(-,riak,riak)
-%attr(-,root,root) %{_libdir}/*
+%defattr(-,root,root)
+%{_libdir}/*
 %dir %{platform_etc_dir}
 %config(noreplace) %{platform_etc_dir}/*
-%attr(0755,root,root) %{init_script}
-%attr(0755,root,root) %{platform_bin_dir}/%{name}
-%attr(0755,root,root) %{platform_bin_dir}/%{name}-admin
-%attr(0755,root,root) %{platform_bin_dir}/search-cmd
-%attr(0644,root,root) %{_mandir}/man1/*
-%{platform_data_dir}
-%{platform_log_dir}
+%attr(0755,-,-) %{init_script}
+%attr(0755,-,-) %{platform_bin_dir}/%{name}
+%attr(0755,-,-) %{platform_bin_dir}/%{name}-admin
+%attr(0755,-,-) %{platform_bin_dir}/search-cmd
+%attr(0644,-,-) %{_mandir}/man1/*
+%attr(-,riak,riak) %{platform_data_dir}
+%attr(-,riak,riak) %{platform_log_dir}
 
 %clean
 rm -rf %{buildroot}
