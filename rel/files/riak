@@ -210,7 +210,7 @@ case "$1" in
         ;;
 
     attach)
-        if [[ $2 == "-f" ]]; then
+        if [ "$2" = "-f" ]; then
           echo "Forcing connection..."
         else  
           # Make sure a node is running
