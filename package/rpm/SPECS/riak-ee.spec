@@ -20,6 +20,7 @@ Packager: Basho Technologies <riak-user@lists.basho.com>
 BuildRoot: %{_tmppath}/%{name}-%{_revision}-%{release}-root
 Summary: Riak Distributed Data Store
 Obsoletes: riak
+requires: sudo
 
 %description
 Riak is a highly scalable, fault-tolerant distributed database
