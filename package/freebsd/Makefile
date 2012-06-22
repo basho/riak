@@ -26,6 +26,8 @@ packing_list: $(BUILD_STAGE_DIR)
 	echo "@exec if ! pw usershow riak 2>/dev/null; then pw useradd riak -g riak -h - -d /usr/local/riak -s /bin/sh -c \"Riak Server\"; fi" >> plist
 	echo "@owner riak" >> plist
 	echo "@group riak" >> plist
+	echo "@pkgdep openssl-1.0.0_7" >> plist
+	echo "@comment ORIGIN:basho/riak" >> plist
 	mv plist $(BUILD_STAGE_DIR)/+CONTENTS
 	cd $(BUILD_STAGE_DIR) && \
            find riak -type f >> +CONTENTS
@@ -42,7 +44,7 @@ templates: $(BUILD_STAGE_DIR)
            $(PKGERDIR)/+MTREE_DIRS $(PKGERDIR)/+DISPLAY \
            $(BUILD_STAGE_DIR)
 
-# Copy the app rel directory to the staging directory to build our 
+# Copy the app rel directory to the staging directory to build our
 # package structure
 $(BUILD_STAGE_DIR): buildrel
 	@echo "Copying rel directory to staging directory"
