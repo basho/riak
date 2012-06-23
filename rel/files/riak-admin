@@ -291,6 +291,7 @@ case "$1" in
         shift
 
         $NODETOOL rpc riak_kv_console status $@
+        $NODETOOL rpc riak_core_console status $@
         ;;
 
     vnode[_-]status)
