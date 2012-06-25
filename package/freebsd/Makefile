@@ -78,7 +78,7 @@ templates: $(BUILD_STAGE_DIR)
 manpages: $(BUILD_STAGE_DIR) plist_header
 	@echo "Copying Man pages to staging directory"
 	mkdir -p $(MAN_DIR)
-	cp -r $(BUILD_RIAK_PATH)/doc/man/man1 $(MAN_DIR)
+	cp -R $(BUILD_RIAK_PATH)/doc/man/man1 $(MAN_DIR)
 	echo "man/man1/riak-admin.1.gz" >> plist
 	echo "man/man1/riak.1.gz" >> plist
 	echo "man/man1/search-cmd.1.gz" >> plist
@@ -103,19 +103,18 @@ plist_header: $(BUILD_STAGE_DIR)
 $(BUILD_STAGE_DIR): buildrel
 	@echo "Copying rel directory to staging directory"
 	mkdir -p $@
-	cp -r $(BUILD_RIAK_PATH)/rel/riak $(BUILD_STAGE_DIR)
+	cp -R $(BUILD_RIAK_PATH)/rel/riak $(BUILD_STAGE_DIR)
 	mkdir -p $(PBIN_DIR)
-	cp -r $(BUILD_RIAK_PATH)/rel/riak/bin/* $(PBIN_DIR)
+	cp -R $(BUILD_RIAK_PATH)/rel/riak/bin/* $(PBIN_DIR)
 	mkdir -p $(PETC_DIR)
-	cp -r $(BUILD_RIAK_PATH)/rel/riak/etc/* $(PETC_DIR)
+	cp -R $(BUILD_RIAK_PATH)/rel/riak/etc/* $(PETC_DIR)
 	mkdir -p $(PLIB_DIR)
-	cp -r $(BUILD_RIAK_PATH)/rel/riak/lib $(PLIB_DIR)
-	cp -r $(BUILD_RIAK_PATH)/rel/riak/erts-* $(PLIB_DIR)
-	cp -r $(BUILD_RIAK_PATH)/rel/riak/releases $(PLIB_DIR)
+	cp -R $(BUILD_RIAK_PATH)/rel/riak/lib $(PLIB_DIR)
+	cp -R $(BUILD_RIAK_PATH)/rel/riak/erts-* $(PLIB_DIR)
+	cp -R $(BUILD_RIAK_PATH)/rel/riak/releases $(PLIB_DIR)
 	mkdir -p $(PDATA_DIR)
-	cp -r $(BUILD_RIAK_PATH)/rel/riak/data/* $(PDATA_DIR)
+	cp -R $(BUILD_RIAK_PATH)/rel/riak/data/* $(PDATA_DIR)
 	mkdir -p $(PLOG_DIR)
-	cp -r $(BUILD_RIAK_PATH)/rel/riak/log/* $(PLOG_DIR)
 
 
 # Build the release we need to package
