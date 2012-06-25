@@ -16,5 +16,3 @@ Add /usr/local/sbin to your path to run the riak, riak-admin, and search-cmd
 scripts directly.
 
 Man pages are available for riak(1), riak-admin(1), and search-cmd(1)
-
-

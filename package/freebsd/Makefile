@@ -3,17 +3,17 @@ BUILD_STAGE_DIR = $(BUILDDIR)/$(APP)
 
 # Where we install things (based on vars.config)
 # /usr/local based dirs
-PMAN_DIR         = $(BUILD_STAGE_DIR)/man/
-PBIN_DIR         = $(BUILD_STAGE_DIR)/sbin/
-PETC_DIR         = $(BUILD_STAGE_DIR)/etc/riak/
-PLIB_DIR         = $(BUILD_STAGE_DIR)/lib/riak/
+PMAN_DIR         = $(BUILD_STAGE_DIR)/man
+PBIN_DIR         = $(BUILD_STAGE_DIR)/sbin
+PETC_DIR         = $(BUILD_STAGE_DIR)/etc/riak
+PLIB_DIR         = $(BUILD_STAGE_DIR)/lib/riak
 # /var based dirs
-PDATA_DIR        = $(BUILD_STAGE_DIR)/db/riak/
-PLOG_DIR         = $(BUILD_STAGE_DIR)/log/riak/
+PDATA_DIR        = $(BUILD_STAGE_DIR)/db/riak
+PLOG_DIR         = $(BUILD_STAGE_DIR)/log/riak
 
 PKGNAME = $(APP)-$(PKG_VERSION)-$(OSNAME)-$(ARCH).tbz
 
-build: packing_list_files
+build: packing_list_files templates
 	@echo "Building package $(PKGNAME)"
 	mkdir -p packages
 	cd $(BUILD_STAGE_DIR) && \
@@ -23,50 +23,69 @@ build: packing_list_files
 		shasum -a 256 $${tarfile} > $${tarfile}.sha \
 	; done
 
-# Where most of the magic happens
+# Where most of the magic (horror?) happens
 # Create a packing list according to pkg_create(1)
 # Write initial settings to a local file then copy
 #   to the destination folder where we use 'find'
 #   to populate the files and directories
-packing_list_files: var_plist usr_local_plist
-	cd $(BUILD_STAGE_DIR) && \
-	   echo "@display +DISPLAY" >> +CONTENTS
+packing_list_files: $(BUILD_STAGE_DIR)
+	@echo "Adding to packaging list $(APP)-$(PKG_VERSION)"
+	echo "@name $(APP)-$(PKG_VERSION)" >> plist
+	echo "@conflicts riak-*" >> plist
+	echo "@exec if ! pw groupshow riak 2>/dev/null; then pw groupadd riak; fi" >> plist
+	echo "@exec if ! pw usershow riak 2>/dev/null; then pw useradd riak -g riak -h - -d /usr/local/lib/riak -s /bin/sh -c \"Riak Server\"; fi" >> plist
+	echo "@pkgdep openssl-1.0.0_7" >> plist
+	echo "@comment ORIGIN:basho/riak" >> plist
 
-var_plist: build_stage_dir_complete
-	cd $(BUILD_STAGE_DIR) && \
-	   echo "@cwd /var" >> +CONTENTS
-	cd $(BUILD_STAGE_DIR) && \
-	   find db -type f >> +CONTENTS && \
-	   find db -type d -exec echo "@dirrm {}" \; >> +CONTENTS && \
-	   echo "@exec chown -R riak:riak /var/db/riak" >> +CONTENTS
-	cd $(BUILD_STAGE_DIR) && \
-	   find log -type f >> +CONTENTS && \
-	   find log -type d -exec echo "@dirrm {}" \; >> +CONTENTS && \
-	   echo "@exec chown -R riak:riak /var/log/riak" >> +CONTENTS
+	@echo "Copying Man pages to staging directory"
+	mkdir -p $(PMAN_DIR)
+	cp -R $(BUILD_RIAK_PATH)/doc/man/man1 $(PMAN_DIR)
+	echo "@cwd /usr/local" >> plist
+	echo "@owner root" >> plist
+	echo "@group wheel" >> plist
+	echo "man/man1/riak-admin.1.gz" >> plist
+	echo "man/man1/riak.1.gz" >> plist
+	echo "man/man1/search-cmd.1.gz" >> plist
 
-usr_local_plist: build_stage_dir_complete
+	@echo "Copying staging package listing to +CONTENTS"
+	mv plist $(BUILD_STAGE_DIR)/+CONTENTS
+
+	@echo "Packaging /usr/local files"
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@cwd /usr/local" >> +CONTENTS && \
 	   echo "@owner riak" >> +CONTENTS && \
 	   echo "@group riak" >> +CONTENTS
 	cd $(BUILD_STAGE_DIR) && \
 	   find sbin -type f >> +CONTENTS && \
-           find sbin -type d -exec echo "@dirrm {}" \; >> +CONTENTS
-	cd $(BUILD_STAGE_DIR) && \
-	   echo "@owner" >> +CONTENTS && \
-	   echo "@group" >> +CONTENTS && \
-	   find etc -type f >> +CONTENTS && \
-           find etc -type d -exec echo "@dirrm {}" \; >> +CONTENTS
+           find sbin -d -type d -exec echo "@dirrm {}" \; >> +CONTENTS
 	cd $(BUILD_STAGE_DIR) && \
 	   find lib -type f >> +CONTENTS && \
-           find lib -type d -exec echo "@dirrm {}" \; >> +CONTENTS && \
+	   find lib -d -type d -exec echo "@dirrm {}" \; >> +CONTENTS && \
 	   echo "@exec chown -R riak:riak /usr/local/lib/riak" >> +CONTENTS
+	cd $(BUILD_STAGE_DIR) && \
+	   echo "@owner root" >> +CONTENTS && \
+	   echo "@group wheel" >> +CONTENTS && \
+	   find etc -type f >> +CONTENTS && \
+	   find etc -d -type d -exec echo "@dirrm {}" \; >> +CONTENTS
 
+	@echo "Packaging /var files"
+	cd $(BUILD_STAGE_DIR) && \
+	   echo "@cwd /var" >> +CONTENTS
+	cd $(BUILD_STAGE_DIR) && \
+	   echo "@owner riak" >> +CONTENTS && \
+	   echo "@group riak" >> +CONTENTS
+	cd $(BUILD_STAGE_DIR) && \
+	   find db -type f >> +CONTENTS && \
+           find db -d -type d -exec echo "@dirrm {}" \; >> +CONTENTS && \
+	   echo "@exec chown -R riak:riak /var/db/riak" >> +CONTENTS
+	cd $(BUILD_STAGE_DIR) && \
+	   find log -type f >> +CONTENTS && \
+           find log -d -type d -exec echo "@dirrm {}" \; >> +CONTENTS && \
+	   echo "@exec chown -R riak:riak /var/log/riak" >> +CONTENTS
 
+	cd $(BUILD_STAGE_DIR) && \
+	   echo "@display +DISPLAY" >> +CONTENTS
 
-# Meta-target for all staging directory tasks to be completed
-build_stage_dir_complete: $(BUILD_STAGE_DIR) plist_header manpages templates
-	mv plist $(BUILD_STAGE_DIR)/+CONTENTS
 
 templates: $(BUILD_STAGE_DIR)
 	@echo "Copying metadata files to package"
@@ -74,32 +93,13 @@ templates: $(BUILD_STAGE_DIR)
            $(PKGERDIR)/+MTREE_DIRS $(PKGERDIR)/+DISPLAY \
            $(BUILD_STAGE_DIR)
 
-# Install man pages and add to package listing
-manpages: $(BUILD_STAGE_DIR) plist_header
-	@echo "Copying Man pages to staging directory"
-	mkdir -p $(MAN_DIR)
-	cp -R $(BUILD_RIAK_PATH)/doc/man/man1 $(MAN_DIR)
-	echo "man/man1/riak-admin.1.gz" >> plist
-	echo "man/man1/riak.1.gz" >> plist
-	echo "man/man1/search-cmd.1.gz" >> plist
-
-# Create the header of the plist
-# Anything listed dynamically should be done in another makefile target
-plist_header: $(BUILD_STAGE_DIR)
-	@echo "Adding to packaging list $(APP)-$(PKG_VERSION)"
-	echo "@name $(APP)-$(PKG_VERSION)" >> plist
-	echo "@conflicts riak-*" >> plist
-	echo "@exec if ! pw groupshow riak 2>/dev/null; then pw groupadd riak; fi" >> plist
-	echo "@exec if ! pw usershow riak 2>/dev/null; then pw useradd riak -g riak -h - -d /usr/local/riak -s /bin/sh -c \"Riak Server\"; fi" >> plist
-	echo "@owner riak" >> plist
-	echo "@group riak" >> plist
-	echo "@pkgdep openssl-1.0.0_7" >> plist
-	echo "@comment ORIGIN:basho/riak" >> plist
 
 # Copy the app rel directory to the staging directory to build our
 # package structure and move the directories into the right place
 # for the package, see the vars.config file for destination
 # directories
+# The data and log directories are by default empty, so create
+# an empty file in them so the file listing makes the directories
 $(BUILD_STAGE_DIR): buildrel
 	@echo "Copying rel directory to staging directory"
 	mkdir -p $@
@@ -114,7 +114,9 @@ $(BUILD_STAGE_DIR): buildrel
 	cp -R $(BUILD_RIAK_PATH)/rel/riak/releases $(PLIB_DIR)
 	mkdir -p $(PDATA_DIR)
 	cp -R $(BUILD_RIAK_PATH)/rel/riak/data/* $(PDATA_DIR)
+	touch $(PDATA_DIR)/.empty
 	mkdir -p $(PLOG_DIR)
+	touch $(PLOG_DIR)/.empty
 
 
 # Build the release we need to package
