@@ -37,7 +37,7 @@ fi
 cd $RUNNER_BASE_DIR
 
 # Extract the target node name from node.args
-NAME_ARG=`grep '\-[s]*name' $RUNNER_ETC_DIR/vm.args`
+NAME_ARG=`grep "^[[:space:]]*-s\?name" $RUNNER_ETC_DIR/vm.args`
 if [ -z "$NAME_ARG" ]; then
     echo "vm.args needs to have either -name or -sname parameter."
     exit 1
