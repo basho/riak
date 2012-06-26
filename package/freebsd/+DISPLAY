@@ -1,17 +1,18 @@
 Thank you for installing Riak.
 
-Riak has been installed in /usr/local/riak owned by user:group riak:riak
+Riak has been installed in /usr/local owned by user:group riak:riak
 
 The primary directories are:
 
-    {platform_bin_dir, "/usr/local/riak/bin"}
-    {platform_data_dir, "/usr/local/riak/data"}
-    {platform_etc_dir, "/usr/local/riak/etc"}
-    {platform_lib_dir, "/usr/local/riak/lib"}
-    {platform_log_dir, "/usr/local/riak/log"}
+    {platform_bin_dir, "/usr/local/sbin"}
+    {platform_data_dir, "/var/db/riak"}
+    {platform_etc_dir, "/usr/local/etc/riak"}
+    {platform_lib_dir, "/usr/local/lib/riak"}
+    {platform_log_dir, "/var/log/riak"}
 
 These can be configured and changed in the platform_etc_dir/app.config.
 
-Add /usr/local/riak/bin to your path to run the riak, riak-admin, and search-cmd 
+Add /usr/local/sbin to your path to run the riak, riak-admin, and search-cmd
 scripts directly.
 
+Man pages are available for riak(1), riak-admin(1), and search-cmd(1)
