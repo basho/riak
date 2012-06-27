@@ -210,12 +210,16 @@ case "$1" in
         ;;
 
     attach)
-        # Make sure a node IS running
-        RES=`ping_node`
-        ES=$?
-        if [ "$ES" -ne 0 ]; then
-            echo "Node is not running!"
-            exit $ES
+        if [ "$2" = "-f" ]; then
+          echo "Forcing connection..."
+        else  
+          # Make sure a node is running
+          RES=`ping_node`
+          ES=$?
+          if [ "$ES" -ne 0 ]; then
+              echo "Node is not running!"
+              exit $ES
+          fi
         fi
 
         shift
