@@ -13,6 +13,11 @@ if [ `uname -s` = 'SunOS' -a "${POSIX_SHELL}" != "true" ]; then
 fi
 unset POSIX_SHELL # clear it so if we invoke other scripts, they run as ksh as well
 
+#OLDPWD isn't properly set on OSX, so cheat
+if [ ! "$CALLING_DIR" ]; then
+    export CALLING_DIR=`pwd`
+fi
+
 RUNNER_SCRIPT_DIR={{runner_script_dir}}
 RUNNER_SCRIPT=${0##*/}
 
@@ -37,7 +42,7 @@ if ([ "$RUNNER_USER" ] && [ "x$WHOAMI" != "x$RUNNER_USER" ]); then
         exit 1
     fi
     echo "Attempting to restart script through sudo -u $RUNNER_USER"
-    exec sudo -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
+    exec sudo -u $RUNNER_USER CALLING_DIR=$CALLING_DIR -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 fi
 
 # Warn the user if ulimit -n is less than 1024
