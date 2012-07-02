@@ -1,0 +1,10 @@
+Riak is a Dynamo-inspired key/value store with a distributed database
+network platform that makes storing and retrieving data simple, safe
+and low-cost. Riak liberates data from vulnerable centralized databases,
+allowing it to escape catastrophic losses and surges while accelerating
+the speed of applications. Riak has no single point of failure. Its
+multiple nodes create a truly fault-tolerant system for storing any
+type of mission-critical data.
+
+Homepage:
+http://basho.com/products/riak-overview/
