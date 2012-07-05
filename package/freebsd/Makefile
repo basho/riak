@@ -29,6 +29,12 @@ build: packing_list_files templates
 # Write initial settings to a local file then copy
 #   to the destination folder where we use 'find'
 #   to populate the files and directories
+# Regarding @owner and @group callouts
+#   They work on files, but not on directories.
+#   Also, the last callout should be blank to revert
+#   back to the default so the /var/db/pkg directory
+#   doesn't get set to something bad (which is a 
+#   horrible bug in pkg_add).
 packing_list_files: $(BUILD_STAGE_DIR)
 	@echo "Adding to packaging list $(APP)-$(PKG_VERSION)"
 	echo "@name $(APP)-$(PKG_VERSION)" >> plist
@@ -37,6 +43,7 @@ packing_list_files: $(BUILD_STAGE_DIR)
 	echo "@exec if ! pw groupshow riak 2>/dev/null; then pw groupadd riak; fi" >> plist
 	echo "@exec if ! pw usershow riak 2>/dev/null; then pw useradd riak -g riak -h - -d /usr/local/lib/riak -s /bin/sh -c \"Riak Server\"; fi" >> plist
 	echo "@pkgdep openssl-1.0.0_7" >> plist
+	echo "@pkgdep openjdk6-b24" >> plist
 	echo "@comment ORIGIN:basho/riak" >> plist
 
 	@echo "Copying Man pages to staging directory"
@@ -67,6 +74,7 @@ packing_list_files: $(BUILD_STAGE_DIR)
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@owner root" >> +CONTENTS && \
 	   echo "@group wheel" >> +CONTENTS && \
+	   echo "@mode 0644" >> +CONTENTS && \
 	   find etc -type f >> +CONTENTS && \
 	   find etc -d -type d -exec echo "@dirrm {}" \; >> +CONTENTS
 
@@ -79,13 +87,18 @@ packing_list_files: $(BUILD_STAGE_DIR)
 	cd $(BUILD_STAGE_DIR) && \
 	   find db -type f >> +CONTENTS && \
            find db -d -type d -exec echo "@dirrm {}" \; >> +CONTENTS && \
-	   echo "@exec chown -R riak:riak /var/db/riak" >> +CONTENTS
+	   echo "@exec chown -R riak:riak /var/db/riak" >> +CONTENTS && \
+	   echo "@exec chmod 700 /var/db/riak" >> +CONTENTS
 	cd $(BUILD_STAGE_DIR) && \
 	   find log -type f >> +CONTENTS && \
            find log -d -type d -exec echo "@dirrm {}" \; >> +CONTENTS && \
-	   echo "@exec chown -R riak:riak /var/log/riak" >> +CONTENTS
+	   echo "@exec chown -R riak:riak /var/log/riak" >> +CONTENTS && \
+	   echo "@exec chmod 700 /var/log/riak" >> +CONTENTS
 
 	cd $(BUILD_STAGE_DIR) && \
+	   echo "@owner" >> +CONTENTS && \
+	   echo "@group" >> +CONTENTS && \
+	   echo "@mode"  >> +CONTENTS && \
 	   echo "@display +DISPLAY" >> +CONTENTS
 
 
