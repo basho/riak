@@ -19,9 +19,9 @@ fi
 # Create var directories outside of +CONTENTS
 mkdir -p ${RIAK_DATA_DIR}
 chown -R ${USER}:${USER} ${RIAK_DATA_DIR}
-chmod 770 ${RIAK_DATA_DIR}
+chmod 700 ${RIAK_DATA_DIR}
 mkdir -p ${RIAK_LOG_DIR}
 chown -R ${USER}:${USER} ${RIAK_LOG_DIR}
-chmod 770 ${RIAK_LOG_DIR}
+chmod 700 ${RIAK_LOG_DIR}
 
 exit 0

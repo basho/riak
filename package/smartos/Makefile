@@ -67,7 +67,9 @@ packing_list_files: $(BUILD_STAGE_DIR) templates
 	   echo "@cwd /opt/local" >> +CONTENTS && \
 	   echo "@owner root" >> +CONTENTS && \
 	   echo "@group root" >> +CONTENTS && \
-	   find etc -type f >> +CONTENTS
+	   echo "@mode 0644" >> +CONTENTS && \
+	   find etc -type f >> +CONTENTS && \
+	   echo "@exec chown -R root:root /opt/local/etc/riak" >> +CONTENTS
 
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@cwd /opt/local" >> +CONTENTS && \
@@ -103,7 +105,7 @@ templates: $(BUILD_STAGE_DIR)
 # package structure and move the directories into the right place
 # for the package, see the vars.config file for destination
 # directories
-# The data and log directories need to go into /var, but the 
+# The data and log directories need to go into /var, but the
 # smartos pkg_add doesn't allow this to be in the +CONTENTS
 # file so the directories are created in the +INSTALL script
 $(BUILD_STAGE_DIR): buildrel
