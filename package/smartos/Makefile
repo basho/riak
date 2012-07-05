@@ -69,7 +69,9 @@ packing_list_files: $(BUILD_STAGE_DIR) templates
 	   echo "@cwd /opt/local" >> +CONTENTS && \
 	   echo "@owner root" >> +CONTENTS && \
 	   echo "@group root" >> +CONTENTS && \
-	   find etc -type f >> +CONTENTS
+	   echo "@mode 0644" >> +CONTENTS && \
+	   find etc -type f >> +CONTENTS && \
+	   echo "@exec chown -R root:root /opt/local/etc/riak" >> +CONTENTS
 
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@cwd /opt/local" >> +CONTENTS && \
