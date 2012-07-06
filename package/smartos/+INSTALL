@@ -24,8 +24,8 @@ mkdir -p ${RIAK_DATA_DIR}
 chown -R ${USER}:${USER} ${RIAK_DATA_DIR}
 chmod 700 ${RIAK_DATA_DIR}
 mkdir -p ${RIAK_LOG_DIR}
-chown -R ${USER}:${USER} ${RIAK_LOG_DIR}
 chmod 700 ${RIAK_LOG_DIR}
+chown -R ${USER}:${USER} ${RIAK_LOG_DIR}
 
 # SNMP only
 mkdir -p ${RIAK_SNMP_DATA_DIR}
