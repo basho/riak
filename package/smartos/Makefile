@@ -43,9 +43,9 @@ build: packing_list_files
 
 # Where most of the magic (horror?) happens
 # Create a packing list according to pkg_create(1)
-# Write initial settings to a local file then copy
+# Write initial settings to a local plist then copy
 #   to the destination folder where we use 'find'
-#   to populate the files and directories
+#   to populate the files
 packing_list_files: $(BUILD_STAGE_DIR) templates
 	@echo "Adding to packaging list $(APP)-$(PKG_VERSION)"
 	echo "@name $(APP)-$(PKG_VERSION)" >> plist
@@ -66,10 +66,11 @@ packing_list_files: $(BUILD_STAGE_DIR) templates
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@cwd /opt/local" >> +CONTENTS && \
 	   echo "@owner root" >> +CONTENTS && \
-	   echo "@group root" >> +CONTENTS && \
-	   echo "@mode 0644" >> +CONTENTS && \
+	   echo "@group riak" >> +CONTENTS && \
 	   find etc -type f >> +CONTENTS && \
-	   echo "@exec chown -R root:root /opt/local/etc/riak" >> +CONTENTS
+	   echo "@exec chmod o-r /opt/local/etc/riak/vm.args" >> +CONTENTS && \
+	   echo "@exec chown -R root:riak /opt/local/etc/riak" >> +CONTENTS && \
+	   echo "@exec chmod -R g+r+X /opt/local/etc/riak/" >> +CONTENTS
 
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@cwd /opt/local" >> +CONTENTS && \
@@ -81,6 +82,7 @@ packing_list_files: $(BUILD_STAGE_DIR) templates
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@owner riak" >> +CONTENTS && \
 	   echo "@group riak" >> +CONTENTS && \
+	   echo "@mode 0755" >> +CONTENTS && \
 	   find sbin -type f >> +CONTENTS
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@owner riak" >> +CONTENTS && \
