@@ -11,13 +11,26 @@ PLIB_DIR         = $(BUILD_STAGE_DIR)/lib/riak
 PDATA_DIR        = $(BUILD_STAGE_DIR)/db/riak
 PLOG_DIR         = $(BUILD_STAGE_DIR)/log/riak
 
+TARNAME = $(APP)-$(PKG_VERSION)-$(OSNAME)-$(ARCH).tar
 PKGNAME = $(APP)-$(PKG_VERSION)-$(OSNAME)-$(ARCH).tbz
 
 build: packing_list_files templates
 	@echo "Building package $(PKGNAME)"
 	mkdir -p packages
 	cd $(BUILD_STAGE_DIR) && \
-	tar -cjf ../../packages/$(PKGNAME) *
+	tar -cf $(TARNAME) +CONTENTS +COMMENT +DESC +MTREE_DIRS +DEINSTALL +DISPLAY
+	cd $(BUILD_STAGE_DIR) && \
+	find man -type f | tar -rf $(TARNAME) -T - && \
+	find sbin -type f | tar -rf $(TARNAME) -T - && \
+	find lib -type f | tar -rf $(TARNAME) -T - && \
+	find etc -type f | tar -rf $(TARNAME) -T - && \
+	find db -type f | tar -rf $(TARNAME) -T - && \
+	find log -type f | tar -rf $(TARNAME) -T -
+
+	cd $(BUILD_STAGE_DIR) && \
+	gzip $(TARNAME) && \
+	mv $(TARNAME).gz ../../packages/$(PKGNAME)
+
 	cd packages && \
 		for tarfile in `ls *.tbz`; do \
 		shasum -a 256 $${tarfile} > $${tarfile}.sha \
@@ -60,7 +73,8 @@ packing_list_files: $(BUILD_STAGE_DIR)
 	cd $(BUILD_STAGE_DIR) && \
 	   echo "@cwd /usr/local" >> +CONTENTS && \
 	   echo "@owner riak" >> +CONTENTS && \
-	   echo "@group riak" >> +CONTENTS
+	   echo "@group riak" >> +CONTENTS && \
+	   echo "@mode 0755" >> +CONTENTS
 	cd $(BUILD_STAGE_DIR) && \
 	   find sbin -type f >> +CONTENTS && \
            find sbin -d -type d -exec echo "@dirrm {}" \; >> +CONTENTS
@@ -115,7 +129,6 @@ templates: $(BUILD_STAGE_DIR)
 $(BUILD_STAGE_DIR): buildrel
 	@echo "Copying rel directory to staging directory"
 	mkdir -p $@
-	cp -R $(BUILD_RIAK_PATH)/rel/riak $(BUILD_STAGE_DIR)
 	mkdir -p $(PBIN_DIR)
 	cp -R $(BUILD_RIAK_PATH)/rel/riak/bin/* $(PBIN_DIR)
 	mkdir -p $(PETC_DIR)
