@@ -20,7 +20,7 @@ build: $(PKGERDIR)/SOURCES/$(APP)-$(PKG_VERSION).tar.gz rpmbuild
 		 --define "_version $(PKG_VERSION_NO_H)" \
 		 --define "_release $(RELEASE)" \
 		 --define "_versionstring $(VERSIONSTRING)" \
-		 -bb $(PKGERDIR)/SPECS/$(APP).spec
+		 -ba $(PKGERDIR)/SPECS/$(APP).spec
 	cd packages && \
 		for rpmfile in `ls *.rpm`; do \
 			sha256sum $${rpmfile} > $${rpmfile}.sha \
