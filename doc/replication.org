@@ -1,5 +1,6 @@
 #+SETUPFILE: "basho-doc-style.iorg"
-#+TITLE: Riak Multi-Datacenter Replication Guide
+#+TITLE: Riak Multi-Datacenter Replication Operations Guide
+
 #+OPTIONS: ^:{}
 * Overview
 
@@ -39,10 +40,6 @@
    one node in each cluster will be responsible for serving as the
    client or server to any other clusters.
 
-   If a client/site connects to a listener that is not the leader, it
-   will be redirected to the listener node that is currently the
-   leader.
-
 ** Full-sync
 
    On initial connection, the primary cluster (listener/server) will
@@ -60,68 +57,265 @@
    =fullsync_interval= parameter. See the "Configuration" section
    below for more details.
 
-** Replication Hooks
-
-   Riak replication allows applications to register replication hooks to control
-   when extra objects need to be replicated along with the current object, or
-   when an object should not be replicated.
-
-   To register a hook, you must call:
-
-   riak_core:register([{repl_helper, MyMod}])
-
-   Where MyMod defines the following functions:
-
-*** =send_realtime/2= (Object, RiakClient) -> ok | cancel
-
-   This hook controls whether an object replicated in realtime should be sent.
-   To send this object, return 'ok', otherwise return 'cancel'.
-
-*** =send/2= (Object, RiakClient) -> ok | cancel | [Objects]
-
-   This hook is used in fullsync replication. As above, you can return ok or
-   cancel, but you can also return a list of riak objects to be replicated
-   immediately *before* the current object. This is useful for when you have an
-   object that refers to other objects (eg. a chunked file) and want to be sure
-   all the needed keys are replicated before the key referencing them is
-   replicated.
-
-*** =recv/1= (Object) -> ok | cancel
-
-   When an object is received by the client site, this hook is run. You can use
-   it to update some metadata, or to deny the object.
-
 * Configuration
 ** =app.config= Settings
 
    The configuration for replication is kept in the =riak_repl=
    section of =etc/app.config=.
 
-#+BEGIN_SRC erlang
+   #+BEGIN_SRC erlang
    {riak_repl, [
-                {fullsync_on_connect, true},
-                {fullsync_interval, 360},
-                {data_root, "data/riak_repl"}
-               ]}
-#+END_SRC
-
-*** =fullsync_on_connect= (true/false)
-
-    Whether to initiate a fullsync on initial connection from the
-    secondary cluster. =true= is the default.
-
-*** =fullsync_interval= (integer, in minutes)
-
-    How often to initiate a full synchronization of data, in
-    minutes. This is measured from the completion of one full-sync
-    operation to the initiation of the next. This setting only applies
-    to the primary cluster (listener). =360= is the default (6
-    hours). To disable full synchronization, use =disabled=.
+             {fullsync_on_connect, true},
+             {fullsync_interval, 360},
+             % Debian/Centos/RHEL:
+             {data_root, "/var/lib/riak/data/riak_repl"},
+             % Solaris:
+             % {data_root, "/opt/riak/data/riak_repl"},
+             % FreeBSD/SmartOS:
+             % {data_root, "/var/db/riak/riak_repl"},
+             {queue_size, 104857600},
+             {server_max_pending, 5},
+             {client_ack_frequency, 5}
+          ]}
+    #+END_SRC
 
 *** =data_root= (string)
 
     Path (relative or absolute) to the working directory for the
-    replication process. =data/riak_repl= is the default.
+    replication process.
+
+    Default: =data/riak_repl=
+
+    Please select the appropriate value for your platform:
+    #+BEGIN_SRC erlang
+    % Debian/Centos/RHEL:
+    {data_root, "/var/lib/riak/data/riak_repl"},
+
+    % Solaris:
+    {data_root, "/opt/riak/data/riak_repl"},
+
+    % FreeBSD/SmartOS:
+    {data_root, "/var/db/riak/riak_repl"},
+    #+END_SRC
+
+*** =cacertdir= (string)
+
+    The cacertdir is a fully-qualified directory containing all the CA
+    certificates needed to verify the CA chain back to the root.
+
+    Default: undefined
+
+    Available in version 1.2+
+
+*** =certfile= (string)
+
+    Fully qualified path to a .pem cert file.
+
+    Default: undefined
+
+    Available in version 1.2+
+
+*** =client_ack_frequency= (integer)
+
+    The number of requests a remote leader will handle before sending an
+    acknowledgment to the remote cluster.
+
+    Default: 5
+
+*** =client_connect_timeout= (integer, in milliseconds)
+
+    The number of milliseconds to wait before a client connection timeout
+    occurs.
+
+    Default: 15000
+
+*** =client_retry_timeout= (integer, in milliseconds)
+
+    The number of milliseconds to wait before trying to connect after a
+    retry has occured.
+
+    Default: 30000
+
+*** =diff_batch_size= (integer)
+
+    Defines how many fullsync objects to send before waiting for an acknowledgement
+    from the client site.
+
+    Default: 100
+
+    Available in version 1.1+
+
+*** =fullsync_on_connect= (true/false)
+
+    Whether to initiate a fullsync on initial connection from the secondary
+    cluster.
+
+    Default: true
+
+*** =fullsync_strategies= (string)
+
+    A list of full synchronization strategies to be used by replication.
+    Please contact Basho support for more information.
+
+    Default: [syncv1]
+
+*** =fullsync_interval= (integer, in minutes. Also: disabled)
+
+    How often to initiate a full synchronization of data, in minutes. This
+    is measured from the completion of one full-sync operation to the
+    initiation of the next. This setting only applies to the primary cluster
+    (listener). To disable full synchronization, use: disabled.
+
+    If the fullsync_interval is set to disabled, full synchronization
+    will not occur.
+
+    Default: 360 (6 hours)
+
+*** =keyfile= (string)
+
+    Fully qualified path to an ssl .pem key file.
+
+    Default: undefined
+
+    Available in version 1.2+
+
+*** =max_get_workers= (integer)
+
+    The maximum number of get workers spawned for fullsync.
+
+    Be sure you don't run over the maximum number of allowed processes
+    in an Erlang VM (check vm.args for a +P property)
+
+    Every time a replication difference is found, a GET will be performed
+    to get the actual object to send.
+
+    Default: 100
+
+    Available in version 1.1+
+
+*** =max_put_workers= (integer)
+
+    The maximum number of put workers spawned for fullsync.
+
+    Note: each put worker spawns 2 processes, one for the work, and one
+    for the put FSM. Be sure you don't run over the maximum number of
+    allowed processes in an Erlang VM (check vm.args for a +P property)
+
+    Every time a replication difference is found, a GET will be performed
+    to get the actual object to send.
+
+    Default: 100
+
+    Available in version 1.1+
+
+*** =min_get_workers= (integer)
+
+    The minimum number of get workers spawned for fullsync.
+
+    Every time a replication difference is found, a GET will be performed
+    to get the actual object to send.
+
+    Default: 5
+
+    Available in version 1.1+
+
+*** =min_put_workers= (integer)
+
+    The minimum number of put workers spawned for fullsync.
+
+    Note: each put worker spawns 2 processes, one for the work, and one
+    for the put FSM.
+
+    Every time a replication difference is found, a GET will be performed
+    to get the actual object to send.
+
+
+    Default: 5
+
+    Available in version 1.1+
+
+*** =peer_common_name_acl= ([string], or just "*")
+
+    Verify an SSL peer's certificate common name. You can provide multiple
+    ACLs as a list of strings, and you can wildcard the leftmost part of the 
+    common name, so \*.basho.com would match site3.basho.com but not 
+    foo.bar.basho.com or basho.com. If the ACL is specified and not the special 
+    value \*, certificates not matching any of the rules will not be allowed to
+    connect. If no ACLs are configured, no checks on the common  name are done.
+
+    Default: "*"
+
+    Available in version 1.2+
+
+*** =queue_size= (integer, in bytes)
+
+    The size of the replication queue in bytes before the replication
+    leader will drop requests. If requests are dropped, a full_sync
+    will be required. Information about dropped requests is available
+    by using the command
+
+    #+BEGIN_SRC erlang
+    riak-repl status
+    #+END_SRC
+
+    Default: 104857600  (100 MiB/104.9 MB)
+
+*** =recbuf= (integer, in bytes)
+
+    The buffer size for the site (client) socket measured in bytes.
+
+    Default: OS dependent.
+
+    Available in version 1.1+
+
+*** =server_max_pending= (integer)
+
+    The maximum number of objects the leader will wait to get an
+    acknowledgement from the remote location before queuing the request.
+
+    Default: 5
+
+*** =shuffle_ring= (true/false)
+
+    Toggles whether the ring is traversed in-order or shuffled randomly.
+
+    Default: true (shuffle enabled)
+
+    Available in version 1.1+
+
+*** =sndbuf= (integer, in bytes)
+
+    The buffer size for the listener (server) socket measured in bytes.
+
+    Default: OS dependent.
+
+    Available in version 1.1+
+
+*** =ssl_depth= (integer)
+
+    Set the depth to check for SSL CA certs.
+    See: http://erlang.org/pipermail/erlang-questions/2012-April/065806.html
+
+    Default: 1
+
+    Available in version 1.2+
+
+*** =ssl_enabled= (true/false)
+
+     Enable SSL communications.
+
+     Default: false
+
+     Available in version 1.2+
+
+*** =vnode_gets= (true/false)
+
+    If true, repl will do a direct get against the vnode, rather than use a GET
+    finite state machine.
+
+    Default: true
+
+    Available in version 1.1+
 
 ** The riak-repl Command
 
@@ -129,6 +323,7 @@
 
 #+BEGIN_SRC text
    riak-repl add-listener <nodename> <listen_ip> <port>
+   riak-repl add-nat-listener <nodename> <internal_ip> <internal_port> <nat_ip> <nat_port>
    riak-repl del-listener <nodename> <listen_ip> <port>
    riak-repl add-site <ipaddr> <portnum> <sitename>
    riak-repl del-site <sitename>
@@ -145,10 +340,20 @@
     riak-repl add-listener riak@10.0.1.156 10.0.1.156 9010
 #+END_SRC
 
+*** add-nat-listener
+
+    Adds a NAT aware listener (primary) to the given node, IP address, port,
+    NAT IP, and NAT port. If a non-NAT listener already exists with the same
+    internal ip and port, it is "upgraded" to a NAT Listener.
+
+#+BEGIN_SRC text
+    riak-repl add-nat-listener riak@10.0.1.156 10.0.1.156 9010 50.16.238.123 9010
+#+END_SRC
+
 *** del-listener
 
     Removes and shuts down a listener (primary) on the given node, IP
-    address and port.
+    address and port. Used to delete regular listeners and NAT listeners.
 
 #+BEGIN_SRC text
     riak-repl del-listener riak@10.0.1.156 10.0.1.156 9010
@@ -200,3 +405,183 @@
 #+BEGIN_SRC text
     riak-repl cancel-fullsync
 #+END_SRC
+
+** Replication with NAT
+
+   Replication of data on networks that use static NAT is possible in Riak
+   version 1.2 and above. A common scenario would be if you have servers
+   with both internal and public IP addresses and would like to replicate data
+   over the internet (please see the section on "Riak REPL SSL" if you replicate
+   data over a public network).
+
+*** Requirements:
+
+    Riak EE 1.2+
+
+    In order for Replication to work on a server configured with NAT, the
+    NAT addresses must be configured statically.
+
+*** Example
+
+   Server A is the source of replicated data.
+
+   Servers B and C would like to be clients of the replicated data.
+
+
+   Server A is setup with static NAT, configured for IP addresses:
+   - 192.168.1.10 (internal) and 50.16.238.123 (public)
+
+   Server A replication will listen on:
+   - the internal IP address 192.168.1.10, port 9010
+   - the public IP address 50.16.238.123, port 9011
+
+
+   Server B is setup with a single public IP address: 50.16.238.200
+   - Server B replication will connect as a client to the public IP
+     address 50.16.238.123, port 9011
+
+
+   Server C is setup with a single internal IP address: 192.168.1.20
+   - Server C replication will connect as a client to the internal IP
+     address of 192.168.1.10, port 9010
+
+   Configure a listener on Server A:
+   #+BEGIN_SRC erlang
+   riak-repl add-nat-listener riak@192.168.1.10 192.168.1.10 9010 50.16.238.123 9011
+   #+END_SRC
+
+   Configure a site (client) on Server B
+   #+BEGIN_SRC erlang
+   riak-repl add-site 50.16.238.123 9011 server_a_to_b
+   #+END_SRC
+
+   Configure a site (client) on Server C
+   #+BEGIN_SRC erlang
+   riak-repl add-site 192.168.1.10 9010 server_a_to_c
+   #+END_SRC
+
+** Enable/Disable Replication per Bucket
+
+   To enable or disable replication per bucket, you can use the "repl" bucket property.
+   This feature is only available in Riak EE 1.1 and above.
+
+   These option values are available in Riak EE version 1.1 and above:
+   - true - enable default replication (realtime + fullsync)
+   - false - disable default replication (realtime + fullsync)
+
+   These option values are only available in Riak EE version 1.2 and above:
+   - realtime - replication only occurs in realtime for this bucket
+   - fullsync - replication only occurs during a full-synchronization
+   - both     - replication occurs in realtime and during full-synchronization
+
+   To disable:
+   #+BEGIN_SRC text
+   curl -v -X PUT -H "Content-Type: application/json" -d '{"props":{"repl":false}}' http://127.0.0.1:8091/riak/my_bucket
+   #+END_SRC
+
+   To enable:
+   #+BEGIN_SRC text
+   curl -v -X PUT -H "Content-Type: application/json" -d '{"props":{"repl":true}}' http://127.0.0.1:8091/riak/my_bucket
+   #+END_SRC
+
+** Riak REPL SSL
+*** Features
+
+    Riak REPL SSL support consists of the following items:
+    - Encryption of replication data
+    - SSL certificate chain validation
+    - SSL common name whitelisting support
+
+*** Requirements
+
+    Riak EE 1.2 and above is required for REPL SSL.
+
+*** SSL Configuration
+
+    To configure SSL, you will need to include the following 4 settings in the
+    riak-repl section of app.config
+
+    #+BEGIN_SRC erlang
+    {ssl_enabled, true},
+    {certfile, "/full/path/to/site1-cert.pem"},
+    {keyfile, "/full/path/to/site1-key.pem"},
+    {cacertdir, "/full/path/to/cacertsdir"}
+    #+END_SRC
+
+    The cacertdir is a directory containing all the CA certificates needed to
+    verify the CA chain back to the root.
+
+*** Verifying peer certificates
+
+    Verification of a peer's certificate common name is enabled by using the 
+    peer_common_name_acl property in the riak_repl section of app.config.
+
+    You can provide multiple ACLs, separated by commas, and you can wildcard
+    the leftmost part of the common name. For example, "*.corp.com" would match
+    "site3.corp.com" but not "foo.bar.corp.com" or "corp.com". If the ACL is
+    specified and not the special value "*", certificates not matching any
+    of the rules will not be allowed to connect.
+
+    If no ACLs are configured, no checks on the common name are done.
+
+**** Examples
+
+    The following example will only allow connections from peer certificate names like 
+    db.bashosamplecorp.com and security.bashosamplecorp.com:
+
+    #+BEGIN_SRC erlang
+    {peer_common_name_acl, ["db.bashosamplecorp.com", "security.bashosamplecorp.com"]}
+    #+END_SRC
+
+
+    The following example will allow connections from peer certificate names like 
+    foo.bashosamplecorp.com or db.bashosamplecorp.com, but not a peer certificate name 
+    like db.backup.bashosamplecorp.com.
+    
+    #+BEGIN_SRC erlang
+    {peer_common_name_acl, ["*.bashosamplecorp.com"]}
+    #+END_SRC
+
+
+    This example will match any peer certificate name (and is the default):
+    #+BEGIN_SRC erlang
+    {peer_common_name_acl, "*"}
+    #+END_SRC
+
+*** SSL CA Validation
+
+
+    You can adjust the way CA certificates are validated by adding the following
+    to the riak_repl section of app.config:
+
+    #+BEGIN_SRC erlang
+    {ssl_depth, ...}
+     #+END_SRC
+
+    * Note ssl_depth takes an integer parameter.
+
+    The depth specifies the maximum number of intermediate certificates that may
+    follow the peer certificate in a valid certification path. The intermediate
+    certificates must not be self signed.
+
+    For example,
+    - a depth of 0 indicates that the certificate must be signed directly by a root
+        certificate authority (CA).
+    - a depth of 1 indicates that the certificate may be signed by at most 1
+        intermediate CA's, followed by a root CA.
+    - a depth of 2 indicates that the certificate may be signed by at most 2
+        intermediate CA's, followed by a root CA.
+
+*** Compatibility
+
+    Replication SSL is ONLY available in Riak 1.2+.
+
+    If SSL is enabled and a connection is made to a Riak EE 1.0 or 1.1 node, the
+    connection will be denied and an error will be logged.
+
+*** Self Signed Certificates
+
+   You can generate your own CA and keys by using this guide:
+   http://www.debian-administration.org/articles/618
+
+   Make sure you remove the password protection from the keys you generate.
