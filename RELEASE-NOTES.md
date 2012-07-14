@@ -49,13 +49,13 @@ query stats directly through folsom. Use `folsom_metrics:get_metrics()` to see a
 * See "Bugs Fixed" for packaging related bug fixes
 
 ### Leveldb tuning
-* bloom filter code from google added.  This greatly reduces the search time for keys that do not exist.
-* file sizes increased 10x or more.  This reduces the amount of disk activity, increasing performance.
-* memory usage changed.  Please see XXX, need link, on how to best provision app.config based upon your physical server memory.
+* Bloom filter code from google added.  This greatly reduces the search time for keys that do not exist.
+* File sizes increased 10x or more.  This reduces the amount of disk activity, increasing performance.
+* Memory usage changed.  Please see XXX, need link, on how to best provision app.config based upon your physical server memory.
 
 ### Capability Negotiation
 
-* Riak nodes now negotiation with each other to determine supported operating modes,
+* Riak nodes now negotiate with each other to determine supported operating modes,
   allowing clusters containing mixed-versions of Riak to work properly without special
   configuration.
 
