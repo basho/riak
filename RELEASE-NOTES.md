@@ -31,14 +31,14 @@
 * Riak_search now has stats
 * Getting stats from riak_kv should no longer timeout under very heavy load as there is no longer a gen_server
 process for stats.
-* Stats can still be retrieved as before, with the addition that one cannot attach to a node and
+* Stats can still be retrieved as before, with the addition that one can now attach to a node and
 query stats directly through folsom. Use `folsom_metrics:get_metrics()` to see a list of available stats.
 * Configurable sample types for histogram metrics in riak_kv and riak_search. Defaults to a one minute sliding window, with random uniform reservoir size of 1028 readings per second. This means that the following statistics *may* show slightly different results from pre1.2 nodes as there may be fewer readings than the total number or events.
     * riak_kv_node_get_fsm_siblings
     * riak_kv_node_get_fsm_time,
     * riak_kv_node_put_fsm_time
     * riak_kv_node_get_fsm_objsize
-* You can configure the sample type by adding 
+* You can configure the sample type by adding
     `{stat_sample_type, {slide, Window::int()}}` or `{stat_sample_type, {slide_uniform, {Window::int(), Size::int()}}}` to your `app.config` under the section for riak_kv and/or riak_search. Further you may change the sample type for a named stat only, like this `{{riak_kv, node_get_fsm_time}, {slide_uniform, {60, 10000}}}`
 
 ### Packaging Improvements
@@ -148,7 +148,7 @@ Staging commands:
 
 * [Add CSRF protection to Riak Control resources](https://github.com/basho/riak_control/pull/28).
 * Riak Control now returns the proper [content-types](https://github.com/basho/riak_control/pull/18) and [doctype](https://github.com/basho/riak_control/pull/16).
-* [Updates to Riak Control to resolve issues when viewing 
+* [Updates to Riak Control to resolve issues when viewing
   Control on iOS devices and over connections with high latency.](https://github.com/basho/riak_control/pull/21)
 * [Riak Control now reports pre-1.1 nodes in a mixed version cluster as incompatible instead of unreachable.] (https://github.com/basho/riak_control/pull/24)
 * [Allow commented out -name lines in `vm.args`](https://github.com/basho/riak/issues/175)
