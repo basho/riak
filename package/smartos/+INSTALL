@@ -33,6 +33,7 @@ fi
 if [ "$2" = "POST-INSTALL" ]; then
    # Import SMF definitions
     svccfg import /opt/local/share/smf/riak-epmd/manifest.xml
+    chmod 755 /opt/local/share/smf/riak-epmd/riak-epmd
     svccfg import /opt/local/share/smf/riak/manifest.xml
 fi
 
