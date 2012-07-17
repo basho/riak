@@ -1,0 +1,15 @@
+# Wrapper script for starting epmd
+
+. /lib/svc/share/smf_include.sh
+
+case "$1" in
+'start')
+        /opt/local/lib/riak/%ERTS_PATH%/bin/epmd -kill
+        /opt/local/lib/riak/%ERTS_PATH%/bin/epmd -daemon
+        ;;
+
+*)
+        exit 1
+        ;;
+esac
+exit 0
