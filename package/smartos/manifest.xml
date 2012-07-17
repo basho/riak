@@ -10,6 +10,9 @@
     <dependency name="filesystem" grouping="require_all" restart_on="error" type="service">
       <service_fmri value="svc:/system/filesystem/local" />
     </dependency>
+    <dependency name="@SMF_NAME@-epmd" grouping="require_all" restart_on="none" type="service">
+      <service_fmri value="svc:/network/epmd:default" />
+    </dependency>
     <method_context working_directory="/tmp" project="riak">
       <method_credential user="riak" group="riak" />
       <method_environment>

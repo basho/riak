@@ -1,18 +1,23 @@
-BUILD_RIAK_PATH = $(BUILDDIR)/$(REPO)-$(PKG_VERSION)
-BUILD_STAGE_DIR = $(BUILDDIR)/$(APP)
+BUILD_RIAK_PATH := $(BUILDDIR)/$(REPO)-$(PKG_VERSION)
+BUILD_STAGE_DIR := $(BUILDDIR)/$(APP)
 
 # Where we install things (based on vars.config)
 # /opt/local based dirs
-PMAN_DIR         = $(BUILD_STAGE_DIR)/man
-PBIN_DIR         = $(BUILD_STAGE_DIR)/sbin
-PETC_DIR         = $(BUILD_STAGE_DIR)/etc/riak
-PLIB_DIR         = $(BUILD_STAGE_DIR)/lib/riak
-PSMF_DIR         = $(BUILD_STAGE_DIR)/share/smf/riak
+PMAN_DIR         := $(BUILD_STAGE_DIR)/man
+PBIN_DIR         := $(BUILD_STAGE_DIR)/sbin
+PETC_DIR         := $(BUILD_STAGE_DIR)/etc/riak
+PLIB_DIR         := $(BUILD_STAGE_DIR)/lib/riak
+PSMF_DIR         := $(BUILD_STAGE_DIR)/share/smf/riak
+ESMF_DIR         := $(BUILD_STAGE_DIR)/share/smf/riak-epmd
+
+# Recursive assignment of ERTS version
+# We will know this after building the rel
+ERTS_PATH        = $(shell ls $(BUILD_RIAK_PATH)/rel/riak | egrep -o "erts-.*")
 
 # /var based dirs are handled in the +INSTALL file
 
-TARNAME = $(APP)-$(PKG_VERSION)-$(OSNAME)-$(ARCH).tar
-PKGNAME = $(APP)-$(PKG_VERSION)-$(OSNAME)-$(ARCH).tgz
+TARNAME := $(APP)-$(PKG_VERSION)-$(OSNAME)-$(ARCH).tar
+PKGNAME := $(APP)-$(PKG_VERSION)-$(OSNAME)-$(ARCH).tgz
 
 # pkg_add on Smartos requires that the tar file
 # and +CONTENTS files are in the exact same order
@@ -103,13 +108,16 @@ templates: $(BUILD_STAGE_DIR)
 	   $(PKGERDIR)/+DISPLAY $(BUILD_STAGE_DIR)
 	mkdir -p $(PSMF_DIR)
 	cp $(PKGERDIR)/manifest.xml $(PSMF_DIR)
+	mkdir -p $(ESMF_DIR)
+	sed -e "s/%ERTS_PATH%/${ERTS_PATH}/" < \
+		$(PKGERDIR)/epmd-manifest.xml > $(ESMF_DIR)/manifest.xml
 
 
 # Copy the app rel directory to the staging directory to build our
 # package structure and move the directories into the right place
 # for the package, see the vars.config file for destination
 # directories
-# The data and log directories need to go into /var, but the 
+# The data and log directories need to go into /var, but the
 # smartos pkg_add doesn't allow this to be in the +CONTENTS
 # file so the directories are created in the +INSTALL script
 $(BUILD_STAGE_DIR): buildrel
