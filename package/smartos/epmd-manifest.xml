@@ -1,7 +1,7 @@
 <?xml version="1.0"?>
 <!DOCTYPE service_bundle SYSTEM "/usr/share/lib/xml/dtd/service_bundle.dtd.1">
 <service_bundle type="manifest" name="riak-epmd">
-  <service name="network/epmd" type="service" version="1">
+  <service name="network/riak-epmd" type="service" version="1">
     <create_default_instance enabled="false" />
     <single_instance />
     <dependency name="network" grouping="require_all" restart_on="error" type="service">
@@ -11,12 +11,11 @@
       <service_fmri value="svc:/system/filesystem/local" />
     </dependency>
     <method_context>
-      <method_credential user="nobody" group="nobody" />
+      <method_credential user="riak" group="riak" />
     </method_context>
-    <exec_method type="method" name="start" exec="@LOCALBASE@/lib/riak/%ERTS_PATH%/bin/epmd -daemon" timeout_seconds="60" />
+    <exec_method type="method" name="start" exec="/opt/local/share/smf/riak-epmd/riak-epmd start" timeout_seconds="60" />
     <exec_method type="method" name="stop" exec=":kill" timeout_seconds="60" />
     <property_group name="startd" type="framework">
-      <propval name="duration" type="astring" value="contract" />
       <propval name="ignore_error" type="astring" value="core,signal" />
     </property_group>
     <property_group name="application" type="application"></property_group>

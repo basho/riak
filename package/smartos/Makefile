@@ -110,7 +110,8 @@ templates: $(BUILD_STAGE_DIR)
 	cp $(PKGERDIR)/manifest.xml $(PSMF_DIR)
 	mkdir -p $(ESMF_DIR)
 	sed -e "s/%ERTS_PATH%/${ERTS_PATH}/" < \
-		$(PKGERDIR)/epmd-manifest.xml > $(ESMF_DIR)/manifest.xml
+		$(PKGERDIR)/riak-epmd > $(ESMF_DIR)/riak-epmd
+	cp $(PKGERDIR)/epmd-manifest.xml $(ESMF_DIR)/manifest.xml
 
 
 # Copy the app rel directory to the staging directory to build our

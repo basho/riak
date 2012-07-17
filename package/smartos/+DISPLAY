@@ -22,9 +22,18 @@ Man pages are available for riak(1), riak-admin(1), and search-cmd(1)
 This package is SMF enabled, which means you can use SMF to 'enable',
 'disable' or 'restart' the persistent daemon process, e.g.:
 
-  svcadm enable riak
+  $ svcadm enable -r riak
 
-The SMF manifest was automatically imported now.
+Two SMF manifests were created, "riak-epmd" and "riak".  Riak depends
+on the "riak-epmd" service to be enabled, so either use "-r" to specify
+to "svcadm" (as shown above) to recursively start dependencies or
+start each service independent of each other.
+
+  $ svcadm enable riak-epmd
+  $ svcadm enable riak
+
+You should *NOT* stop or restart the "riak-epmd" service at any time,
+if you need to restart Riak, just restart the "riak" service.
 
 See the SmartOS wiki on what's SMF and how to use it to your advantage:
 
