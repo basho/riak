@@ -1,27 +1,33 @@
 #!/bin/sh
 
-if [ "$2" != "PRE-INSTALL" ]; then
-    exit 0
-fi
-
 USER=riak
 RIAK_DATA_DIR=/var/db/riak
 RIAK_LOG_DIR=/var/log/riak
 
-if ! getent group "${USER}" 2>/dev/null 1>&2; then
-   groupadd ${USER}
+if [ "$2" = "PRE-INSTALL" ]; then
+    if ! getent group "${USER}" 2>/dev/null 1>&2; then
+        groupadd ${USER}
+    fi
+
+    if ! getent passwd "${USER}" 2>/dev/null 1>&2; then
+        useradd -g ${USER} -d /opt/local/lib/${USER} -s /bin/sh ${USER}
+    fi
+
+    # Create var directories outside of +CONTENTS
+    mkdir -p ${RIAK_DATA_DIR}
+    chown -R ${USER}:${USER} ${RIAK_DATA_DIR}
+    chmod 700 ${RIAK_DATA_DIR}
+    mkdir -p ${RIAK_LOG_DIR}
+    chmod 700 ${RIAK_LOG_DIR}
+    chown -R ${USER}:${USER} ${RIAK_LOG_DIR}
+
 fi
 
-if ! getent passwd "${USER}" 2>/dev/null 1>&2; then
-   useradd -g ${USER} -d /opt/local/lib/${USER} -s /bin/sh ${USER}
+if [ "$2" = "POST-INSTALL" ]; then
+    # Import SMF definitions
+    svccfg import /opt/local/share/smf/riak-epmd/manifest.xml
+    chmod 755 /opt/local/share/smf/riak-epmd/riak-epmd
+    svccfg import /opt/local/share/smf/riak/manifest.xml
 fi
-
-# Create var directories outside of +CONTENTS
-mkdir -p ${RIAK_DATA_DIR}
-chown -R ${USER}:${USER} ${RIAK_DATA_DIR}
-chmod 700 ${RIAK_DATA_DIR}
-mkdir -p ${RIAK_LOG_DIR}
-chown -R ${USER}:${USER} ${RIAK_LOG_DIR}
-chmod 700 ${RIAK_LOG_DIR}
 
 exit 0
