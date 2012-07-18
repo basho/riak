@@ -167,7 +167,7 @@ case "$1" in
                 ;;
             SunOS)
                 # PID COMMAND
-                PID=`ps -ef -o pid= -o args=|\
+                PID=`/usr/bin/ps -ef -o pid= -o args=|\
                     grep "$RUNNER_BASE_DIR/.*/[b]eam"|awk '{print $1}'`
                 ;;
         esac
