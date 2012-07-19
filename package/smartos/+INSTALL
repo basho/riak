@@ -32,6 +32,13 @@ if [ "$2" = "POST-INSTALL" ]; then
         chmod 755 ${RIAK_BIN_DIR}/$i
     done
 
+    # Create Riak project
+    if ! projects -l riak >/dev/null 2>&1; then
+        projadd -U riak -G riak \
+        -K "process.max-file-descriptor=(priv,262140,deny)" \
+        -c "Riak default project" riak
+    fi
+
     # Import SMF definitions
     svccfg import /opt/local/share/smf/riak-epmd/manifest.xml
     chmod 755 /opt/local/share/smf/riak-epmd/riak-epmd
