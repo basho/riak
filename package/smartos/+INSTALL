@@ -32,11 +32,11 @@ if [ "$2" = "PRE-INSTALL" ]; then
 fi
 
 if [ "$2" = "POST-INSTALL" ]; then
-    
+
     # Ensure proper permissions on riak scripts
     for i in riak riak-admin search-cmd riak-repl; do
-	chown ${USER}:${USER} ${RIAK_BIN_DIR}/$i
-	chmod 755 ${RIAK_BIN_DIR}/$i
+        chown ${USER}:${USER} ${RIAK_BIN_DIR}/$i
+        chmod 755 ${RIAK_BIN_DIR}/$i
     done
 
     # Import SMF definitions
