@@ -149,7 +149,7 @@ buildrel: $(BUILD_RIAK_PATH)
 	       $(BUILD_RIAK_PATH)/rel/files/riak.tmp > $(BUILD_RIAK_PATH)/rel/files/riak
 	cp $(PKGERDIR)/patches/rel_riak.patch $(BUILD_RIAK_PATH)/rel/files/
 	cd $(BUILD_RIAK_PATH)/rel/files && \
-		patch -p0 < rel_riak.patch
+		patch -p3 < rel_riak.patch
 	cp -f $(PKGERDIR)/vars.config $(BUILD_RIAK_PATH)/rel/vars.config
 	$(MAKE) -C $(BUILD_RIAK_PATH) deps compile
 	cp $(BUILD_RIAK_PATH)/deps/riak_snmp/mibs/* \
