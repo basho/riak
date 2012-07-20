@@ -144,6 +144,9 @@ Staging commands:
 
 ## Known Issues
 
+* The Protocol Buffers interface when returning `RpbErrorResp` responses to the client will set the `errcode` field to `0`, whereas before it was `1` or unset. Only client libraries that previously attempted to apply meaning to the `errcode` field will be affected. Improvement of the error responses from Protocol Buffers is planned for the next major release.
+* Some spurious messages may be sent to the log after a Pipe-based MapReduce job sent via PBC has been shutdown. This does not affect normal operations. [basho/riak_kv#366](https://github.com/basho/riak_kv/issues/366)
+
 ## Bugs Fixed
 
 * [Add CSRF protection to Riak Control resources](https://github.com/basho/riak_control/pull/28).
@@ -164,6 +167,16 @@ Staging commands:
 * [Search - remove solr supervisor](https://github.com/basho/riak_search/pull/113)
 * [Search - honor the '?' wildcard](https://github.com/basho/riak_search/pull/114)
 * [Search - flatten 'MaxScore'](https://github.com/basho/riak_search/pull/119)
+* [riak_api - Add riak_core as application dep to riak_api.app](https://github.com/basho/riak_api/issues/6)
+* [riak_api - Register riak_api_stat mod with riak_core at start up](https://github.com/basho/riak_api/issues/7)
+* [Add eleveldb:close - Fixes MANIFEST file missing bug](https://github.com/basho/eleveldb/pull/33)
+* [riak_kv - Call eleveldb:close before destroy](https://github.com/basho/riak_kv/pull/368)
+* [riak_control - Resolve base64 cookie truncation race condition.
+](https://github.com/basho/riak_control/pull/30)
+* [Fix FreeBSD package permissions on sbin](https://github.com/basho/riak/pull/183)
+* [Create SmartOS SMF service for epmd](https://github.com/basho/riak/pull/187)
+
+
 
 ## Notes
 
