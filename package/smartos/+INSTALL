@@ -3,6 +3,7 @@
 USER=riak
 RIAK_DATA_DIR=/var/db/riak
 RIAK_LOG_DIR=/var/log/riak
+RIAK_BIN_DIR=/opt/local/sbin
 
 if [ "$2" = "PRE-INSTALL" ]; then
     if ! getent group "${USER}" 2>/dev/null 1>&2; then
@@ -24,6 +25,20 @@ if [ "$2" = "PRE-INSTALL" ]; then
 fi
 
 if [ "$2" = "POST-INSTALL" ]; then
+
+    # Ensure proper permissions on riak scripts
+    for i in riak riak-admin search-cmd; do
+        chown ${USER}:${USER} ${RIAK_BIN_DIR}/$i
+        chmod 755 ${RIAK_BIN_DIR}/$i
+    done
+
+    # Create Riak project
+    if ! projects -l riak >/dev/null 2>&1; then
+        projadd -U riak -G riak \
+        -K "process.max-file-descriptor=(priv,262140,deny)" \
+        -c "Riak default project" riak
+    fi
+
     # Import SMF definitions
     svccfg import /opt/local/share/smf/riak-epmd/manifest.xml
     chmod 755 /opt/local/share/smf/riak-epmd/riak-epmd
