@@ -209,6 +209,13 @@ Staging commands:
 ](https://github.com/basho/riak_control/pull/30)
 * [Fix FreeBSD package permissions on sbin](https://github.com/basho/riak/pull/183)
 * [Create SmartOS SMF service for epmd](https://github.com/basho/riak/pull/187)
+* [riak_core - Restructure supervision tree so that folsom is an included app](https://github.com/basho/riak_core/pull/217)
+* [riak_core - Ring mgr crash creates confused cluster](https://github.com/basho/riak_core/issues/166)
+* [riak_core - Make the ring manager responsible for loading the ring](https://github.com/basho/riak_core/pull/214)
+* [riak_core - Fix capability system race condition](https://github.com/basho/riak_core/pull/216)
+* [riak_kv - Changed semantics of backend:drop - backend must close all handles](https://github.com/basho/riak_kv/pull/373)
+* [riak_kv - Call eleveldb:close on vnode stop for eleveldb backend](https://github.com/basho/riak_kv/pull/372)
+
 
 
 
@@ -218,4 +225,3 @@ Staging commands:
 * The Innostore storage backend is deprecated and will not be supported in the 1.2 release.
 
 [xfer_status]: http://basho.com/blog/technical/2012/06/25/Riak-Admin-Transfers-in-1-2-Release/
-
