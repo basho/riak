@@ -137,6 +137,39 @@ Staging commands:
    clear                          Clear the staged changes
 ```
 
+### Replication Improvements
+
+* Replication with NAT
+    - riak-repl now supports NAT listeners through the add-nat-listener command.
+
+* Enable/Disable Replication per Bucket
+
+    These bucket property values are available in Riak EE version 1.1 and above:
+
+    - true - enable default replication (realtime + fullsync)
+    - false - disable default replication (realtime + fullsync)
+
+    These bucket property values are only available in Riak EE version 1.2 and above:
+
+    - realtime - replication only occurs in realtime for this bucket
+    - fullsync - replication only occurs during a full-synchronization
+    - both - replication occurs in realtime and during full-synchronization. Same as true.
+
+
+* SSL
+    - encryption of replication data using "real" certs or self-signed certs.
+
+    - certificate chain depth specifies the maximum number of intermediate certificates that may follow the peer certificate in a valid certification path.
+
+    - common name whitelisting support, which only allow connections from peer certificate names that have been configured.
+
+* Improved replication documentation
+
+
+* Bug fixes
+    * [Redirect 1.0 and earlier nodes to the leader correctly](https://github.com/basho/riak_repl/pull/77)
+
+
 ## Enhancements
 
 * [Search - micro-optimization](https://github.com/basho/riak_search/pull/101)
