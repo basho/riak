@@ -1,0 +1,63 @@
+diff --git a/rel/files/riak b/rel/files/riak
+index 707bc12..fdfe710 100755
+--- a/rel/files/riak
++++ b/rel/files/riak
+@@ -105,6 +105,21 @@ sed -n '/Begin SSL distribution items/,/End SSL distribution items/p' \
+ # Check the first argument for instructions
+ case "$1" in
+     start)
++
++        if [ "${SMF_METHOD}" != "start" ]; then
++            echo "***"
++            echo "Warning: please use 'svcadm enable riak' instead"
++            echo "***"
++        fi
++
++        # Make sure we have access to enough file descriptors
++        ULIMIT_S=$(prctl -n process.max-file-descriptor -t basic -P $$ | awk '/max-file-descriptor/ { print $3 }')
++        ULIMIT_H=$(prctl -n process.max-file-descriptor -t priv -P $$ | awk '/max-file-descriptor/ { print $3 }')
++        if [ ${ULIMIT_S} -lt ${ULIMIT_H} ]; then
++            echo "Trying to raise the file descriptor limit to maximum allowed."
++            prctl -n process.max-file-descriptor -t basic -v ${ULIMIT_H} $$ || true
++        fi
++
+         # Make sure there is not already a node running
+         RES=`ping_node`
+         if [ "$RES" = "pong" ]; then
+@@ -151,6 +166,12 @@ case "$1" in
+         ;;
+ 
+     stop)
++        if [ "${SMF_METHOD}" != "stop" ]; then
++            echo "***"
++            echo "Warning: please use 'svcadm disable riak' instead"
++            echo "***"
++        fi
++
+         UNAME_S=`uname -s`
+         case $UNAME_S in
+             Darwin)
+@@ -212,7 +233,7 @@ case "$1" in
+     attach)
+         if [ "$2" = "-f" ]; then
+           echo "Forcing connection..."
+-        else  
++        else
+           # Make sure a node is running
+           RES=`ping_node`
+           ES=$?
+@@ -227,6 +248,14 @@ case "$1" in
+         ;;
+ 
+     console)
++        # Make sure we have access to enough file descriptors
++        ULIMIT_S=$(prctl -n process.max-file-descriptor -t basic -P $$ | awk '/max-file-descriptor/ { print $3 }')
++        ULIMIT_H=$(prctl -n process.max-file-descriptor -t priv -P $$ | awk '/max-file-descriptor/ { print $3 }')
++        if [ ${ULIMIT_S} -lt ${ULIMIT_H} ]; then
++            echo "Trying to raise the file descriptor limit to maximum allowed."
++            prctl -n process.max-file-descriptor -t basic -v ${ULIMIT_H} $$ || true
++        fi
++
+         RES=`ping_node`
+         if [ "$RES" = "pong" ]; then
+             echo "Node is already running - use '$SCRIPT attach' instead"
