@@ -121,6 +121,12 @@ case "$1" in
         HEART_COMMAND="$RUNNER_SCRIPT_DIR/$SCRIPT start"
         export HEART_COMMAND
         mkdir -p $PIPE_DIR
+        if [ ! -w $PIPE_DIR ]; then
+            echo "Error writing to $PIPE_DIR"
+            echo "Delete this directory and try again."
+            exit 1
+        fi
+
         $ERTS_PATH/run_erl -daemon $PIPE_DIR $RUNNER_LOG_DIR \
             "exec $RUNNER_SCRIPT_DIR/$SCRIPT console" 2>&1
 
