@@ -137,6 +137,39 @@ Staging commands:
    clear                          Clear the staged changes
 ```
 
+### Replication Improvements
+
+* Replication with NAT
+    - riak-repl now supports NAT listeners through the add-nat-listener command.
+
+* Enable/Disable Replication per Bucket
+
+    These bucket property values are available in Riak EE version 1.1 and above:
+
+    - true - enable default replication (realtime + fullsync)
+    - false - disable default replication (realtime + fullsync)
+
+    These bucket property values are only available in Riak EE version 1.2 and above:
+
+    - realtime - replication only occurs in realtime for this bucket
+    - fullsync - replication only occurs during a full-synchronization
+    - both - replication occurs in realtime and during full-synchronization. Same as true.
+
+
+* SSL
+    - encryption of replication data using "real" certs or self-signed certs.
+
+    - certificate chain depth specifies the maximum number of intermediate certificates that may follow the peer certificate in a valid certification path.
+
+    - common name whitelisting support, which only allow connections from peer certificate names that have been configured.
+
+* Improved replication documentation
+
+
+* Bug fixes
+    * [Redirect 1.0 and earlier nodes to the leader correctly](https://github.com/basho/riak_repl/pull/77)
+
+
 ## Enhancements
 
 * [Search - micro-optimization](https://github.com/basho/riak_search/pull/101)
@@ -146,6 +179,7 @@ Staging commands:
 
 * The Protocol Buffers interface when returning `RpbErrorResp` responses to the client will set the `errcode` field to `0`, whereas before it was `1` or unset. Only client libraries that previously attempted to apply meaning to the `errcode` field will be affected. Improvement of the error responses from Protocol Buffers is planned for the next major release.
 * Some spurious messages may be sent to the log after a Pipe-based MapReduce job sent via PBC has been shutdown. This does not affect normal operations. [basho/riak_kv#366](https://github.com/basho/riak_kv/issues/366)
+* The SmartOS packages were tested against 1.5.x and 1.6.x datasets from Joyent.  The newest datasets of SmartOS 1.7.x have not been tested and are not supported currently.
 
 ## Bugs Fixed
 
@@ -175,6 +209,13 @@ Staging commands:
 ](https://github.com/basho/riak_control/pull/30)
 * [Fix FreeBSD package permissions on sbin](https://github.com/basho/riak/pull/183)
 * [Create SmartOS SMF service for epmd](https://github.com/basho/riak/pull/187)
+* [riak_core - Restructure supervision tree so that folsom is an included app](https://github.com/basho/riak_core/pull/217)
+* [riak_core - Ring mgr crash creates confused cluster](https://github.com/basho/riak_core/issues/166)
+* [riak_core - Make the ring manager responsible for loading the ring](https://github.com/basho/riak_core/pull/214)
+* [riak_core - Fix capability system race condition](https://github.com/basho/riak_core/pull/216)
+* [riak_kv - Changed semantics of backend:drop - backend must close all handles](https://github.com/basho/riak_kv/pull/373)
+* [riak_kv - Call eleveldb:close on vnode stop for eleveldb backend](https://github.com/basho/riak_kv/pull/372)
+
 
 
 
@@ -184,4 +225,3 @@ Staging commands:
 * The Innostore storage backend is deprecated and will not be supported in the 1.2 release.
 
 [xfer_status]: http://basho.com/blog/technical/2012/06/25/Riak-Admin-Transfers-in-1-2-Release/
-
