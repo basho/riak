@@ -215,6 +215,7 @@ Staging commands:
 * [riak_core - Fix capability system race condition](https://github.com/basho/riak_core/pull/216)
 * [riak_kv - Changed semantics of backend:drop - backend must close all handles](https://github.com/basho/riak_kv/pull/373)
 * [riak_kv - Call eleveldb:close on vnode stop for eleveldb backend](https://github.com/basho/riak_kv/pull/372)
+* [riak_repl - Fix fullsync crash on 'double continue'](https://github.com/basho/riak_repl/pull/79)
 
 
 
