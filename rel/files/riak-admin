@@ -599,7 +599,7 @@ case "$1" in
         echo "                    ringready | transfers | force-remove | down | "
         echo "                    cluster-info | member-status | ring-status | vnode-status |"
         echo "                    diag | status | transfer-limit | "
-        echo "                    top [-interval N] [-sort reductions|memory|msg_q} [-lines N]"
+        echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N]"
         exit 1
         ;;
 esac
