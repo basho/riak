@@ -218,6 +218,8 @@ Staging commands:
 * [leveldb - Make ref count increase atomic operation under read lock](https://github.com/basho/leveldb/pull/36)
 * [leveldb - Change LRUCache destructor so it does NOT look like a bad reference](https://github.com/basho/leveldb/pull/38)
 * [riak_control - Patch handoff status to work with status_v2](https://github.com/basho/riak_control/pull/34)
+* [riak_core - Ensure legacy nodes are probed when new capabilities registered](https://github.com/basho/riak_core/pull/219)
+* [riak_repl - Fix fullsync crashes on stale message and delayed_write errors](https://github.com/basho/riak_repl/pull/91)
 * [riak_repl - Fix fullsync crash on 'double continue'](https://github.com/basho/riak_repl/pull/79)
 * [riak_snmp - removed check for stats enabled]
 
