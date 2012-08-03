@@ -147,9 +147,7 @@ buildrel: $(BUILD_RIAK_PATH)
 	       $(BUILD_RIAK_PATH)/rel/files/riak.tmp > $(BUILD_RIAK_PATH)/rel/files/riak
 	cp $(PKGERDIR)/patches/* $(BUILD_RIAK_PATH)/rel/files/
 	cd $(BUILD_RIAK_PATH)/rel/files && \
-		patch -p3 < rel_riak.patch
-	cd $(BUILD_RIAK_PATH)/rel/files && \
-		patch -p3 < sudo-minus-eye.patch
+		patch -p3 < rel-files.patch
 	cp -f $(PKGERDIR)/vars.config $(BUILD_RIAK_PATH)/rel/vars.config
 	$(MAKE) -C $(BUILD_RIAK_PATH) deps rel
 	chmod 0755 $(BUILD_RIAK_PATH)/rel/riak/bin/* $(BUILD_RIAK_PATH)/rel/riak/erts-*/bin/*
