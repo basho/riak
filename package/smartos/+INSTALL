@@ -4,6 +4,8 @@ USER=riak
 RIAK_DATA_DIR=/var/db/riak
 RIAK_LOG_DIR=/var/log/riak
 RIAK_BIN_DIR=/opt/local/sbin
+RIAK_ETC_DIR=/opt/local/etc/riak
+RIAK_LIB_DIR=/opt/local/lib/riak
 
 if [ "$2" = "PRE-INSTALL" ]; then
     if ! getent group "${USER}" 2>/dev/null 1>&2; then
@@ -22,6 +24,18 @@ if [ "$2" = "PRE-INSTALL" ]; then
     chmod 700 ${RIAK_LOG_DIR}
     chown -R ${USER}:${USER} ${RIAK_LOG_DIR}
 
+
+    # Backup config files if they already exist
+    if [ -f ${RIAK_ETC_DIR}/vm.args ]; then
+        echo "Config file exists: backing up ${RIAK_ETC_DIR}/vm.args to ${RIAK_ETC_DIR}/vm.args.bak"
+        cp ${RIAK_ETC_DIR}/vm.args ${RIAK_ETC_DIR}/vm.args.bak
+    fi
+
+    if [ -f ${RIAK_ETC_DIR}/app.config ]; then
+        echo "Config file exists: backing up ${RIAK_ETC_DIR}/app.config to ${RIAK_ETC_DIR}/app.config.bak"
+        cp ${RIAK_ETC_DIR}/app.config ${RIAK_ETC_DIR}/app.config.bak
+    fi
+
 fi
 
 if [ "$2" = "POST-INSTALL" ]; then
@@ -30,6 +44,15 @@ if [ "$2" = "POST-INSTALL" ]; then
     for i in riak riak-admin search-cmd; do
         chown ${USER}:${USER} ${RIAK_BIN_DIR}/$i
         chmod 755 ${RIAK_BIN_DIR}/$i
+    done
+
+    # Ensure proper ownership of lib directory
+    chown -R ${USER}:${USER} ${RIAK_LIB_DIR}
+
+    # Ensure config files have the proper ownership
+    for i in app.config vm.args; do
+        chown root:${USER} ${RIAK_ETC_DIR}/$i
+        chmod g+r+X ${RIAK_ETC_DIR}/$i
     done
 
     # Create Riak project
