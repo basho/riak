@@ -51,7 +51,6 @@ query stats directly through folsom. Use `folsom_metrics:get_metrics()` to see a
 ### Leveldb tuning
 * Bloom filter code from google added.  This greatly reduces the search time for keys that do not exist.
 * File sizes increased 10x or more.  This reduces the amount of disk activity, increasing performance.
-* Memory usage changed.  Please see XXX, need link, on how to best provision app.config based upon your physical server memory.
 
 ### Capability Negotiation
 
