@@ -148,6 +148,7 @@ Staging commands:
 * The SmartOS packages were tested against 1.5.x and 1.6.x datasets from Joyent.  The newest datasets of SmartOS 1.7.x have not been tested and are not supported currently.
 * Secondary index queries against a heavily loaded cluster may hit an improperly-handled internal timeout and result in error responses. This affects both HTTP and Protocol Buffers interfaces and has existed since Riak 1.0. [basho/riak_kv#379](https://github.com/basho/riak_kv/pull/379)
 * MapReduce queries may print messages in the log of the form, `[error] Module <module name> must be purged before loading`, due to a race in the code that ensures a module is loaded before it is used. This message may be safely ignored. It can be silenced by attaching to the Riak console and evaluating `code:purge(<module name>).`.
+* Some users may experience a performance regression in 2I compared to 1.0 and 1.1. The problem manifests as higher latencies for range and equality queries. A preliminary investigation suggests the change of the Erlang VM from R14B04 to R15B01 is partially responsible, but there may be other factors.
 
 ## Bugs Fixed
 
@@ -198,4 +199,3 @@ Staging commands:
 * The Innostore storage backend is deprecated and will not be supported in the 1.2 release.
 
 [xfer_status]: http://basho.com/blog/technical/2012/06/25/Riak-Admin-Transfers-in-1-2-Release/
-
