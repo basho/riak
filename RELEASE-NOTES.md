@@ -51,7 +51,6 @@ query stats directly through folsom. Use `folsom_metrics:get_metrics()` to see a
 ### Leveldb tuning
 * Bloom filter code from google added.  This greatly reduces the search time for keys that do not exist.
 * File sizes increased 10x or more.  This reduces the amount of disk activity, increasing performance.
-* Memory usage changed.  Please see XXX, need link, on how to best provision app.config based upon your physical server memory.
 
 ### Capability Negotiation
 
@@ -180,6 +179,9 @@ Staging commands:
 * The Protocol Buffers interface when returning `RpbErrorResp` responses to the client will set the `errcode` field to `0`, whereas before it was `1` or unset. Only client libraries that previously attempted to apply meaning to the `errcode` field will be affected. Improvement of the error responses from Protocol Buffers is planned for the next major release.
 * Some spurious messages may be sent to the log after a Pipe-based MapReduce job sent via PBC has been shutdown. This does not affect normal operations. [basho/riak_kv#366](https://github.com/basho/riak_kv/issues/366)
 * The SmartOS packages were tested against 1.5.x and 1.6.x datasets from Joyent.  The newest datasets of SmartOS 1.7.x have not been tested and are not supported currently.
+* Secondary index queries against a heavily loaded cluster may hit an improperly-handled internal timeout and result in error responses. This affects both HTTP and Protocol Buffers interfaces and has existed since Riak 1.0. [basho/riak_kv#379](https://github.com/basho/riak_kv/pull/379)
+* MapReduce queries may print messages in the log of the form, `[error] Module <module name> must be purged before loading`, due to a race in the code that ensures a module is loaded before it is used. This message may be safely ignored. It can be silenced by attaching to the Riak console and evaluating `code:purge(<module name>).`.
+* Some users may experience a performance regression in 2I compared to 1.0 and 1.1. The problem manifests as higher latencies for range and equality queries. A preliminary investigation suggests the change of the Erlang VM from R14B04 to R15B01 is partially responsible, but there may be other factors.
 
 ## Bugs Fixed
 
@@ -219,6 +221,7 @@ Staging commands:
 * [leveldb - Change LRUCache destructor so it does NOT look like a bad reference](https://github.com/basho/leveldb/pull/38)
 * [riak_control - Patch handoff status to work with status_v2](https://github.com/basho/riak_control/pull/34)
 * [riak_core - Ensure legacy nodes are probed when new capabilities registered](https://github.com/basho/riak_core/pull/219)
+* [riak - `riak attach` fails on some versions of SmartOS](https://github.com/basho/riak/issues/198)
 * [riak_repl - Fix fullsync crashes on stale message and delayed_write errors](https://github.com/basho/riak_repl/pull/91)
 * [riak_repl - Fix fullsync crash on 'double continue'](https://github.com/basho/riak_repl/pull/79)
 * [riak_snmp - removed check for stats enabled]
