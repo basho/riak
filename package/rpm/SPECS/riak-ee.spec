@@ -34,7 +34,8 @@ Riak is a highly scalable, fault-tolerant distributed database
 %define platform_bin_dir %{_sbindir}
 %define platform_data_dir %{_localstatedir}/lib/%{appname}
 %define platform_etc_dir %{_sysconfdir}/%{appname}
-%define platform_lib_dir %{riak_lib}
+%define platform_base_dir %{riak_lib}
+%define platform_lib_dir %{platform_base_dir}/lib
 %define platform_log_dir %{_localstatedir}/log/%{appname}
 
 %prep
@@ -46,6 +47,7 @@ cat > rel/vars.config <<EOF
 {platform_bin_dir,  "%{platform_bin_dir}"}.
 {platform_data_dir, "%{platform_data_dir}"}.
 {platform_etc_dir,  "%{platform_etc_dir}"}.
+{platform_base_dir, "%{platform_base_dir}"}.
 {platform_lib_dir,  "%{platform_lib_dir}"}.
 {platform_log_dir,  "%{platform_log_dir}"}.
 
@@ -85,7 +87,7 @@ cat > rel/vars.config <<EOF
 %% bin/riak
 %%
 {runner_script_dir,  "%{platform_bin_dir}"}.
-{runner_base_dir,    "%{platform_lib_dir}"}.
+{runner_base_dir,    "%{platform_base_dir}"}.
 {runner_etc_dir,     "%{platform_etc_dir}"}.
 {runner_log_dir,     "%{platform_log_dir}"}.
 {pipe_dir,           "/tmp/%{appname}/"}.
@@ -116,6 +118,7 @@ make rel
 %define releasepath     %{_builddir}/%{buildsubdir}/rel/%{appname}
 
 mkdir -p %{buildroot}%{platform_etc_dir}
+mkdir -p %{buildroot}%{platform_base_dir}
 mkdir -p %{buildroot}%{platform_lib_dir}
 mkdir -p %{buildroot}%{_mandir}/man1
 mkdir -p %{buildroot}%{platform_data_dir}/dets
@@ -132,9 +135,9 @@ mkdir -p %{buildroot}%{platform_data_dir}/mr_queue
 mkdir -p %{buildroot}%{_localstatedir}/run/%{appname}
 
 #Copy all necessary lib files etc.
-cp -r %{releasepath}/lib %{buildroot}%{platform_lib_dir}
-cp -r %{releasepath}/erts-* %{buildroot}%{platform_lib_dir}
-cp -r %{releasepath}/releases %{buildroot}%{platform_lib_dir}
+cp -r %{releasepath}/lib %{buildroot}%{platform_base_dir}
+cp -r %{releasepath}/erts-* %{buildroot}%{platform_base_dir}
+cp -r %{releasepath}/releases %{buildroot}%{platform_base_dir}
 cp -r $RPM_BUILD_DIR/%{_repo}-%{_revision}/doc/man/man1/*.gz \
                 %{buildroot}%{_mandir}/man1
 # snmp data
@@ -185,7 +188,7 @@ fi
 
 %post
 # Fixup perms for SELinux
-find %{platform_lib_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
+find %{platform_base_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 
 %files
 %defattr(-,root,root)
