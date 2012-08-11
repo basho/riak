@@ -31,7 +31,8 @@ Riak is a highly scalable, fault-tolerant distributed database
 %define platform_bin_dir %{_sbindir}
 %define platform_data_dir %{_localstatedir}/lib/%{name}
 %define platform_etc_dir %{_sysconfdir}/%{name}
-%define platform_lib_dir %{riak_lib}
+%define platform_base_dir %{riak_lib}
+%define platform_lib_dir %{platform_base_dir}/lib
 %define platform_log_dir %{_localstatedir}/log/%{name}
 
 %prep
@@ -43,6 +44,7 @@ cat > rel/vars.config <<EOF
 {platform_bin_dir,  "%{platform_bin_dir}"}.
 {platform_data_dir, "%{platform_data_dir}"}.
 {platform_etc_dir,  "%{platform_etc_dir}"}.
+{platform_base_dir, "%{platform_base_dir}"}.
 {platform_lib_dir,  "%{platform_lib_dir}"}.
 {platform_log_dir,  "%{platform_log_dir}"}.
 
@@ -79,7 +81,7 @@ cat > rel/vars.config <<EOF
 %% bin/riak
 %%
 {runner_script_dir,  "%{platform_bin_dir}"}.
-{runner_base_dir,    "%{platform_lib_dir}"}.
+{runner_base_dir,    "%{platform_base_dir}"}.
 {runner_etc_dir,     "%{platform_etc_dir}"}.
 {runner_log_dir,     "%{platform_log_dir}"}.
 {pipe_dir,           "/tmp/%{name}/"}.
@@ -96,6 +98,7 @@ make rel
 
 %install
 mkdir -p %{buildroot}%{platform_etc_dir}
+mkdir -p %{buildroot}%{platform_base_dir}
 mkdir -p %{buildroot}%{platform_lib_dir}
 mkdir -p %{buildroot}%{_mandir}/man1
 mkdir -p %{buildroot}%{platform_data_dir}/dets
@@ -109,11 +112,11 @@ mkdir -p %{buildroot}%{_localstatedir}/run/%{name}
 mkdir -p %{buildroot}%{platform_data_dir}/mr_queue
 
 #Copy all necessary lib files etc.
-cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/lib %{buildroot}%{platform_lib_dir}
+cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/lib %{buildroot}%{platform_base_dir}
 cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/erts-* \
-                %{buildroot}%{platform_lib_dir}
+                %{buildroot}%{platform_base_dir}
 cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/rel/%{name}/releases \
-                %{buildroot}%{platform_lib_dir}
+                %{buildroot}%{platform_base_dir}
 cp -r $RPM_BUILD_DIR/%{name}-%{_revision}/doc/man/man1/*.gz \
                 %{buildroot}%{_mandir}/man1
 install -p -D -m 0644 \
@@ -152,7 +155,7 @@ fi
 
 %post
 # Fixup perms for SELinux
-find %{platform_lib_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
+find %{platform_base_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 
 %files
 %defattr(-,root,root)
