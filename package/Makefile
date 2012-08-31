@@ -9,6 +9,12 @@ ifeq ($(PKGER),)             # Debian / Ubuntu
 OSNAME		= Debian
 PKGERDIR	= deb
 BUILDDIR        = debuild
+DISTRO          = $(shell lsb_release -c|awk '{print $$2}')
+ifeq ($(ARCH),x86_64)
+DEBARCH         = amd64
+else
+DEBARCH         = ${ARCH}
+endif # deb arch check
 else                         # Redhat / Centos
 OSNAME		= RedHat
 PKGERDIR	= rpm
