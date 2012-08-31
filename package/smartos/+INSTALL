@@ -49,11 +49,12 @@ if [ "$2" = "POST-INSTALL" ]; then
     # Ensure proper ownership of lib directory
     chown -R ${USER}:${USER} ${RIAK_LIB_DIR}
 
-    # Ensure config files have the proper ownership
-    for i in app.config vm.args; do
-        chown root:${USER} ${RIAK_ETC_DIR}/$i
-        chmod g+r+X ${RIAK_ETC_DIR}/$i
-    done
+    # Ensure proper ownership of etc directory
+    # This shouldn't have to happen in the post-install, but
+    # there is some non-deterministic stuff happening during
+    # install on SmartOS that causes wrong ownership.
+    chown -R root:${USER} ${RIAK_ETC_DIR}
+    chmod -R g+r+X ${RIAK_ETC_DIR}
 
     # Create Riak project
     if ! projects -l riak >/dev/null 2>&1; then
