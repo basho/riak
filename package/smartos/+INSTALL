@@ -8,7 +8,8 @@ RIAK_ETC_DIR=/opt/local/etc/riak
 RIAK_LIB_DIR=/opt/local/lib/riak
 
 # SNMP only
-RIAK_SNMP_DATA_DIR=/var/db/riak/snmp/agent/db
+RIAK_SNMP_ETC_DIR=${RIAK_ETC_DIR}/snmp
+RIAK_SNMP_DATA_DIR=${RIAK_DATA_DIR}/snmp/agent/db
 
 if [ "$2" = "PRE-INSTALL" ]; then
     if ! getent group "${USER}" 2>/dev/null 1>&2; then
@@ -68,6 +69,12 @@ if [ "$2" = "POST-INSTALL" ]; then
         -K "process.max-file-descriptor=(priv,262140,deny)" \
         -c "Riak default project" riak
     fi
+
+    # SNMP only
+    # This shouldn't have to happen in the post-install, but
+    # there is some non-deterministic stuff happening during
+    # install on SmartOS that causes wrong ownership
+    chown -R root:${USER} ${RIAK_SNMP_ETC_DIR}
 
     # Import SMF definitions
     svccfg import /opt/local/share/smf/riak-epmd/manifest.xml
