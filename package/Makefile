@@ -10,11 +10,7 @@ OSNAME		= Debian
 PKGERDIR	= deb
 BUILDDIR        = debuild
 DISTRO          = $(shell lsb_release -c|awk '{print $$2}')
-ifeq ($(ARCH),x86_64)
-DEBARCH         = amd64
-else
-DEBARCH         = ${ARCH}
-endif # deb arch check
+DEBARCH         = $(shell dpkg-architecture -qDEB_BUILD_ARCH)
 else                         # Redhat / Centos
 OSNAME		= RedHat
 PKGERDIR	= rpm
