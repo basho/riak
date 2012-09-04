@@ -212,7 +212,7 @@ case "$1" in
     attach)
         if [ "$2" = "-f" ]; then
           echo "Forcing connection..."
-        else  
+        else
           # Make sure a node is running
           RES=`ping_node`
           ES=$?
