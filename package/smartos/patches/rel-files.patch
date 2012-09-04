@@ -1,11 +1,11 @@
 diff --git a/rel/files/riak b/rel/files/riak
-index 3ffd6e1..0da76c1 100755
+index 4c5a5d1..80b470b 100755
 --- a/rel/files/riak
 +++ b/rel/files/riak
 @@ -37,7 +37,7 @@ if ([ "$RUNNER_USER" ] && [ "x$WHOAMI" != "x$RUNNER_USER" ]); then
          exit 1
      fi
-     echo "Attempting to restart script through sudo -H -u $RUNNER_USER"
+     echo "Attempting to restart script through sudo -H -u $RUNNER_USER" >&2
 -    exec sudo -H -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 +    exec sudo -H -u $RUNNER_USER $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
  fi
@@ -46,15 +46,6 @@ index 3ffd6e1..0da76c1 100755
          UNAME_S=`uname -s`
          case $UNAME_S in
              Darwin)
-@@ -212,7 +233,7 @@ case "$1" in
-     attach)
-         if [ "$2" = "-f" ]; then
-           echo "Forcing connection..."
--        else  
-+        else
-           # Make sure a node is running
-           RES=`ping_node`
-           ES=$?
 @@ -227,6 +248,14 @@ case "$1" in
          ;;
  
@@ -71,26 +62,26 @@ index 3ffd6e1..0da76c1 100755
          if [ "$RES" = "pong" ]; then
              echo "Node is already running - use '$SCRIPT attach' instead"
 diff --git a/rel/files/riak-admin b/rel/files/riak-admin
-index 4711bde..fee8b61 100755
+index 7c37dc1..ec5bbb9 100755
 --- a/rel/files/riak-admin
 +++ b/rel/files/riak-admin
 @@ -30,7 +30,7 @@ if ([ "$RUNNER_USER" ] && [ "x$WHOAMI" != "x$RUNNER_USER" ]); then
          exit 1
      fi
-     echo "Attempting to restart script through sudo -H -u $RUNNER_USER"
+     echo "Attempting to restart script through sudo -H -u $RUNNER_USER" >&2
 -    exec sudo -H -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 +    exec sudo -H -u $RUNNER_USER $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
  fi
  
  # Make sure CWD is set to runner base dir
 diff --git a/rel/files/search-cmd b/rel/files/search-cmd
-index d80fdde..167e246 100755
+index a82af01..d9798f4 100755
 --- a/rel/files/search-cmd
 +++ b/rel/files/search-cmd
 @@ -25,7 +25,7 @@ if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
          exit 1
      fi
-     echo "Attempting to restart script through sudo -H -u $RUNNER_USER"
+     echo "Attempting to restart script through sudo -H -u $RUNNER_USER" >&2
 -    exec sudo -H -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 +    exec sudo -H -u $RUNNER_USER $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
  fi
