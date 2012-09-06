@@ -9,7 +9,7 @@ ifeq ($(PKGER),)             # Debian / Ubuntu
 OSNAME		= Debian
 PKGERDIR	= deb
 BUILDDIR        = debuild
-DISTRO          = $(shell lsb_release -c|awk '{print $$2}')
+DISTRO          = $(shell lsb_release -cs)
 DEBARCH         = $(shell dpkg-architecture -qDEB_BUILD_ARCH)
 else                         # Redhat / Centos
 OSNAME		= RedHat
