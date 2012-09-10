@@ -378,23 +378,6 @@ case "$1" in
         $NODETOOL rpc riak_core_console ring_status $@
         ;;
 
-    cluster[_-]info)
-        if [ $# -lt 2 ]; then
-            echo "Usage: $SCRIPT $1 <output_file> ['local' | <node> ['local' | <node>] [...]]"
-            exit 1
-        fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
-        shift
-
-        $NODETOOL rpc_infinity riak_kv_console cluster_info $@
-        ;;
-
     services)
         $NODETOOL rpcterms riak_core_node_watcher services ''
         ;;
@@ -597,8 +580,8 @@ case "$1" in
         echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
         echo "                    reip | js-reload | erl-reload | wait-for-service | "
         echo "                    ringready | transfers | force-remove | down | "
-        echo "                    cluster-info | member-status | ring-status | vnode-status |"
-        echo "                    diag | status | transfer-limit | "
+        echo "                    member-status | ring-status | vnode-status | diag |"
+        echo "                    status | transfer-limit | "
         echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] }"
         exit 1
         ;;
