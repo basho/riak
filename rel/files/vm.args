@@ -25,6 +25,9 @@
 ## Set the location of crash dumps
 -env ERL_CRASH_DUMP {{crash_dump}}
 
+## Raise the ETS table limit
+-env ERL_MAX_ETS_TABLES 8192
+
 ## Begin SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
 
 ## To enable SSL encryption of the Erlang intra-cluster communication,
