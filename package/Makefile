@@ -16,6 +16,7 @@ BUILDDIR        = rpmbuild
 endif
 endif # linux
 
+
 ifeq ($(OS),SunOS)           # Solaris flavors
 KERNELVER       = $(shell uname -v | grep -c joyent 2> /dev/null)
 ARCH		= $(shell uname -p)

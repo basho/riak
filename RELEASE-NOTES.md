@@ -1,3 +1,10 @@
+# Riak 1.2.1 Release Notes
+
+## Bugs Fixed
+
+* [LevelDB - Restrict number of input files to a compaction.](https://github.com/basho/leveldb/pull/40)
+* [riak_pipe - Avoid race to code:load_file by using code:ensure_loaded instead](https://github.com/basho/riak_pipe/pull/51)
+
 # Riak 1.2 Release Notes
 
 ## Features and Improvements for Riak
