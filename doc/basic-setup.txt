@@ -160,7 +160,7 @@ bit.  Some recommended changes:
   partitions will allow you to add more Riak nodes later, if you need
   to.
 
-To get the cluster, up and running, first start Riak on each node with
+To get the cluster up and running, first start Riak on each node with
 the usual "riak start" command.  Next, tell each node to join the
 cluster with the riak-admin script:
 
