@@ -19,7 +19,7 @@ Starting Your Client Erlang Node
 ---
 
 Riak client nodes must use "long names" and have the Riak ebin
-directoriess in their code path.  The easiest way to start a node of
+directories in their code path.  The easiest way to start a node of
 this nature is:
 
 $ export ERL_LIBS=$PATH_TO_RIAK/apps
