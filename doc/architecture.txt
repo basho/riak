@@ -94,7 +94,7 @@ of Leslie Lamport.[3]
 
 When a value is stored in Riak, it is tagged with a vclock,
 establishing its initial version.  For each update, the vclock is
-extended in such a way that Riak can later compare to versions of the
+extended in such a way that Riak can later compare two versions of the
 object and determine:
 
  1. Whether one object is a direct descendant of the other.
