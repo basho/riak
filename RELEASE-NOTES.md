@@ -23,7 +23,7 @@
   * Network latency between the primary and secondary cluster has been mitigated by a new multi-windowed ACK
     algorithm. Previsously, the primary waited for a batch of updates to be acknowledged by the secondary; this
     would introduce a delay equal to the network latency, which if large would impact the full-sync time to a
-    considerable degree. With this update, multiple flying windows are acknowledged separate which keeps the
+    considerable degree. With this update, multiple flying windows are acknowledged separately which keeps the
     TCP connection's pipe full and avoids delays due to latency.
   * This release uses the old keylist_folder on a cluster of mixed capabilities so that replication can occur
     during rolling upgrades.
