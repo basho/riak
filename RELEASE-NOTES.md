@@ -4,6 +4,11 @@
 
 * [LevelDB - Restrict number of input files to a compaction.](https://github.com/basho/leveldb/pull/40)
 * [riak_pipe - Avoid race to code:load_file by using code:ensure_loaded instead](https://github.com/basho/riak_pipe/pull/51)
+* [riak - Beams in basho-patches don't take precedence over existing code](https://github.com/basho/riak/issues/126)
+* [merge_index - Fix iterator API (Thanks to Arnaud Wetzel)](https://github.com/basho/merge_index/pull/24)
+* [riak_core - Restart vnode worker pool in case of crash](https://github.com/basho/riak_core/pull/212)
+* [riak_kv - Resolve 2I timeout error from case clause](https://github.com/basho/riak_kv/pull/379)
+* [bitcask - Adds "grace period" to stop just-written files from expiring](https://github.com/basho/bitcask/pull/54)
 
 # Riak 1.2 Release Notes
 
