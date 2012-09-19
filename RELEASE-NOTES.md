@@ -15,9 +15,18 @@
 
 ## Features and Improvements for Riak
 
-* Replication Bloom folding (TODO - summarize https://github.com/basho/riak_repl/pull/101 and https://github.com/basho/riak_repl/commit/1621dde5cae652d22ff2d25e950f9874d4aee30f)
-
-
+* Replication Performance Tuning
+  * When all nodes in the ring have been upgraded to 1.2.1, full-sync replication will construct a Bloom filter
+    over the list of keys to record differences and then a disk-order-preserving keylist fold to generate the
+    the final difference list that will greatly reduce disk thrash during the streaming send of key/object diffs
+    to the secondary cluster. By itself, this optimization typically halved the full-sync time.
+  * Network latency between the primary and secondary cluster has been mitigated by a new multi-windowed ACK
+    algorithm. Previsously, the primary waited for a batch of updates to be acknowledged by the secondary; this
+    would introduce a delay equal to the network latency, which if large would impact the full-sync time to a
+    considerable degree. With this update, multiple flying windows are acknowledged separate which keeps the
+    TCP connection's pipe full and avoids delays due to latency.
+  * This release uses the old keylist_folder on a cluster of mixed capabilities so that replication can occur
+    during rolling upgrades.
 
 # Riak 1.2 Release Notes
 
