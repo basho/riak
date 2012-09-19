@@ -8,6 +8,7 @@
 * [merge_index - Fix iterator API (Thanks to Arnaud Wetzel)](https://github.com/basho/merge_index/pull/24)
 * [riak_core - Restart vnode worker pool in case of crash](https://github.com/basho/riak_core/pull/212)
 * [riak_kv - Resolve 2I timeout error from case clause](https://github.com/basho/riak_kv/pull/379)
+* [riak_kv - Add retry on eleveldb lock errors during open for up to 1 minute.](https://github.com/basho/riak_kv/pull/395)
 * [bitcask - Adds "grace period" to stop just-written files from expiring](https://github.com/basho/bitcask/pull/54)
 * [riak_repl - Seperate the bounded_queue out into a seperate process](https://github.com/basho/riak_repl/pull/97)
 * [riak_repl - Better cleanup of open file handles on fullsync exit](https://github.com/basho/riak_repl/pull/103)
