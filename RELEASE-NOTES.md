@@ -10,6 +10,7 @@
 * [riak_kv - Resolve 2I timeout error from case clause](https://github.com/basho/riak_kv/pull/379)
 * [riak_kv - Add retry on eleveldb lock errors during open for up to 1 minute.](https://github.com/basho/riak_kv/pull/395)
 * [bitcask - Adds "grace period" to stop just-written files from expiring](https://github.com/basho/bitcask/pull/54)
+* [erlang_js - ejsLog() kills the erlang vm in a reduce](https://github.com/basho/riak/issues/209)
 
 # Riak 1.2 Release Notes
 
