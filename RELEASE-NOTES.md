@@ -13,7 +13,7 @@
 * [riak_repl - Seperate the bounded_queue out into a seperate process](https://github.com/basho/riak_repl/pull/97)
 * [riak_repl - Better cleanup of open file handles on fullsync exit](https://github.com/basho/riak_repl/pull/103)
 * [riak_repl - Avoid dropping realtime messages right after election](https://github.com/basho/riak_repl/pull/105)
-
+* [erlang_js - ejsLog() kills the erlang vm in a reduce](https://github.com/basho/riak/issues/209)
 
 ## Features and Improvements for Riak
 
