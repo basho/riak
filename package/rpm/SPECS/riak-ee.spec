@@ -56,6 +56,8 @@ cat > rel/vars.config <<EOF
 %%
 {web_ip,            "127.0.0.1"}.
 {web_port,          8098}.
+{cluster_mgr_ip,    "127.0.0.1"}.
+{cluster_mgr_port,  9080}.
 {handoff_port,      8099}.
 {pb_ip,             "127.0.0.1"}.
 {pb_port,           8087}.
