@@ -11,6 +11,8 @@
 * [riak_kv - Add retry on eleveldb lock errors during open for up to 1 minute.](https://github.com/basho/riak_kv/pull/395)
 * [bitcask - Adds "grace period" to stop just-written files from expiring](https://github.com/basho/bitcask/pull/54)
 * [erlang_js - ejsLog() kills the erlang vm in a reduce](https://github.com/basho/riak/issues/209)
+* [bitcask - Validate hint files generated after merge](https://github.com/basho/bitcask/pull/59)
+* [riak_core - Remove publish_capabilities race condition](https://github.com/basho/riak_core/pull/230)
 
 # Riak 1.2 Release Notes
 
