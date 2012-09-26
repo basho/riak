@@ -14,6 +14,8 @@
 * [riak_repl - Better cleanup of open file handles on fullsync exit](https://github.com/basho/riak_repl/pull/103)
 * [riak_repl - Avoid dropping realtime messages right after election](https://github.com/basho/riak_repl/pull/105)
 * [erlang_js - ejsLog() kills the erlang vm in a reduce](https://github.com/basho/riak/issues/209)
+* [bitcask - Validate hint files generated after merge](https://github.com/basho/bitcask/pull/59)
+* [riak_core - Remove publish_capabilities race condition](https://github.com/basho/riak_core/pull/230)
 
 ## Features and Improvements for Riak
 
