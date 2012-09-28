@@ -235,7 +235,7 @@ case "$1" in
             $NODETOOL rpc riak_repl_console $ACTION $1
         fi
         ;;
-    remotes)
+    sinks|clusters)
         ACTION=$1
         shift
         # Make sure the local node is running
@@ -284,7 +284,7 @@ case "$1" in
         case $SUB_CMD in
             enable|disable)
                 if [ $# -lt 1 ]; then
-                    echo "Usage: $SCRIPT $ACTION $SUB_CMD <remotename>"
+                    echo "Usage: $SCRIPT $ACTION {enable|disable} <remotename>"
                     exit 1
                 fi
                 $NODETOOL rpc riak_repl_console $ACTION $SUB_CMD $1
@@ -296,6 +296,12 @@ case "$1" in
                 else
                     $NODETOOL rpc riak_repl_console $ACTION $SUB_CMD $1
                 fi
+                ;;
+            *)
+                echo "Usage: $SCRIPT $ACTION realtime start [<remotename>] |"
+                echo "                       realtime stop [<remotename>]"
+                exit 1
+                ;;
         esac
         ;;
     *)
@@ -304,9 +310,10 @@ case "$1" in
         echo "                   pause-fullsync | resume-fullsync | add-nat-listener |"
         echo "       Repl2 ----------------------------------------------------------------"
         echo "                   clustername [<localname>] |"
+        echo "                   clusters |"
         echo "                   add-sink <remote-ip> <remote-port> |"
         echo "                   del-sink <remote-ip> <remote-port> |"
-        echo "                   remotes |"
+        echo "                   sinks |"
         echo "                   realtime enable <remotename> |"
         echo "                   realtime disable <remotename> |"
         echo "                   realtime start [<remotename>] |"
