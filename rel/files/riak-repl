@@ -276,7 +276,10 @@ case "$1" in
             exit 1
         fi
         if [ $# -lt 1 ]; then
-            echo "Usage: $SCRIPT $ACTION {enable|disable|start|stop}"
+            echo "Usage: $SCRIPT $ACTION enable <remotename> |"
+            echo "                       disable <remotename> |"
+            echo "                       start [<remotename>] |"
+            echo "                       stop [<remotename>]"
             exit 1
         fi
         SUB_CMD=$1
