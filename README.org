@@ -177,13 +177,13 @@ strategies, and more, please visit our wiki at http://wiki.basho.com/.
      https://github.com/basho/riak-javascript-client
 
    + Python
-	 https://github.com/basho/riak-python-client
+     https://github.com/basho/riak-python-client
 
    + Ruby
-     http://github.com/seancribbs/ripple/
+     https://github.com/basho/riak-ruby-client
 
    + Java
-	 https://github.com/basho/riak-java-client
+     https://github.com/basho/riak-java-client
 
    + PHP
      https://github.com/basho/riak-php-client
