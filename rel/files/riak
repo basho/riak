@@ -93,6 +93,12 @@ ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
 NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
 NODETOOL_LITE="$ERTS_PATH/escript $ERTS_PATH/nodetool"
 
+# Grab ports used in app.config
+http=$(cat $RUNNER_ETC_DIR/app.config | grep -i '{http,' | awk '{print $4}')
+https=$(cat $RUNNER_ETC_DIR/app.config | grep -i '{https,' | awk '{print $4}')
+pb=$(cat $RUNNER_ETC_DIR/app.config | grep -i '{pb_port,' | awk '{print $2}')
+handoff=$(cat $RUNNER_ETC_DIR/app.config | grep -i '{handoff_port,' | awk '{print $2}')
+
 ping_node() {
     $NODETOOL ping < /dev/null
 }
@@ -116,6 +122,13 @@ case "$1" in
         if [ "$RES" != "ok" ]; then
             echo "Error reading $RUNNER_ETC_DIR/app.config"
             echo $RES
+            exit 1
+        fi
+        # Check for duplicate ports in the app.config file
+        if [ "$handoff" == "$https" -o "$handoff" == "$pb" -o "$handoff" == "$http" ]; then
+            echo "WARNING - Please use unique ports for http ($http), https ($https), pbc ($pb) and handoff ($handoff)"
+            echo "in $RUNNER_ETC_DIR/app.config"
+            echo "see https://github.com/basho/riak_core/issues/238"
             exit 1
         fi
         HEART_COMMAND="$RUNNER_SCRIPT_DIR/$SCRIPT start"
