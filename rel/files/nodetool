@@ -21,9 +21,15 @@ main(Args) ->
     case RestArgs of
         ["chkconfig", File] ->
             case file:consult(File) of
-                {ok, _} ->
-                    io:format("ok\n"),
-                    halt(0);
+                {ok, Terms} ->
+                    case validate(Terms) of 
+                        ok -> 
+                            io:format("ok\n"),
+                            halt(0);
+                        {error, Problem} ->
+                            io:format("app.config issue: ~s~n", [Problem]),
+                            halt(1)
+                    end;
                 {error, {Line, Mod, Term}} ->
                     io:format(["Error on line ", file:format_error({Line, Mod, Term}), "\n"]),
                     halt(1);
@@ -90,6 +96,43 @@ main(Args) ->
             io:format("Usage: nodetool {ping|stop|restart|reboot|chkconfig}\n")
     end,
     net_kernel:stop().
+
+validate([Terms]) ->
+    {ok, PBCPort} = get_env(Terms, riak_api, pb_port),
+    {ok, HandoffPort} = get_env(Terms, riak_core, handoff_port),
+    HTTP = get_env(Terms, riak_core, http),
+    HTTPS = get_env(Terms, riak_core, https),
+    L0 = [PBCPort, HandoffPort],
+    L1 = case HTTP of
+             undefined -> L0;
+             {ok, [{_, HTTPPort}]} -> L0 ++ [HTTPPort]
+         end,
+    L2 = case HTTPS of
+             undefined -> L1;
+             {ok, [{_, HTTPSPort}]} -> L1 ++ [HTTPSPort]
+         end,
+    case unique(L2) of 
+        true -> ok;
+        false -> {error, "Ports are not all unique"}
+    end.
+
+get_env(List, Section, Setting) ->
+    case [{X,Y} || {X,Y} <- List, X =:= Section] of
+        [{Section, Settings}] ->
+            case [{X,Y} || {X,Y} <- Settings, X =:= Setting] of
+                [{Setting, Val}] -> {ok, Val};
+                _ -> undefined
+            end;
+        _ -> undefined
+    end.
+
+unique([]) ->
+    true;
+unique([H|T]) ->
+    case lists:all(fun(X) -> X =/= H end, T) of 
+        true -> unique(T);
+        false -> false
+    end.
 
 process_args([], Acc, TargetNode) ->
     {lists:reverse(Acc), TargetNode};
