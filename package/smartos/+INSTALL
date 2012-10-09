@@ -66,7 +66,11 @@ if [ "$2" = "POST-INSTALL" ]; then
     # Import SMF definitions
     svccfg import /opt/local/share/smf/riak-epmd/manifest.xml
     chmod 755 /opt/local/share/smf/riak-epmd/riak-epmd
-    svccfg import /opt/local/share/smf/riak/manifest.xml
+    if [ `cat /etc/pkgsrc_version | head -n 1 | awk '{print $2}' | awk -F 'Q' '{print $1}'` == "2012" ]; then
+        svccfg import /opt/local/share/smf/riak/manifest_base.xml
+    else
+        svccfg import /opt/local/share/smf/riak/manifest_smartos.xml
+    fi
 fi
 
 exit 0
