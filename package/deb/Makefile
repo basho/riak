@@ -1,20 +1,19 @@
-BUILDPATH	= debuild/$(REPO)-$(PKG_VERSION)
+BUILDPATH	= debuild/$(APP)-$(PKG_VERSION)
 
 build:  $(BUILDPATH)/debian \
 	debuild/$(APP)_$(PKG_VERSION).orig.tar.gz
 	export DEBFULLNAME="Basho Buildbot Packager"; \
 	export DEBEMAIL="support@basho.com"; \
 	dch  --noquery -c $(BUILDPATH)/debian/changelog \
-		-b -v "$(PKG_VERSION)-$(RELEASE)" "pants on head"
+		-b -v "$(PKG_VERSION)~$(DISTRO)$(RELEASE)" "pants on head"
 	cd $(BUILDPATH) && debuild --no-lintian \
 	        --prepend-path=$(ERLANG_BIN) \
-		-e REVISION=$(PKG_VERSION) \
-		-e RELEASE=$(RELEASE) \
- 		-e VERSIONSTRING="$(VERSIONSTRING)" \
-		-e CLASSPATH=$${CLASSPATH} \
+		-e REVISION="$(PKG_VERSION)" \
+		-e RELEASE="$(RELEASE)" \
+		-e VERSIONSTRING="$(VERSIONSTRING)" \
 		-uc -us
 	mkdir -p packages
-	mv debuild/$(APP)_$(PKG_VERSION)-$(RELEASE)_*.deb packages
+	mv debuild/$(APP)_$(PKG_VERSION)~$(DISTRO)$(RELEASE)_$(DEBARCH).deb packages/$(APP)_$(PKG_VERSION)-$(RELEASE)_$(DEBARCH).deb
 	cd packages && \
 		for debfile in `ls *.deb`; do \
 			sha256sum $${debfile} > $${debfile}.sha \
