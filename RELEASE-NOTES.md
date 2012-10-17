@@ -4,6 +4,33 @@
 
 * [LevelDB - Restrict number of input files to a compaction.](https://github.com/basho/leveldb/pull/40)
 * [riak_pipe - Avoid race to code:load_file by using code:ensure_loaded instead](https://github.com/basho/riak_pipe/pull/51)
+* [riak - Beams in basho-patches don't take precedence over existing code](https://github.com/basho/riak/issues/126)
+* [merge_index - Fix iterator API (Thanks to Arnaud Wetzel)](https://github.com/basho/merge_index/pull/24)
+* [riak_core - Restart vnode worker pool in case of crash](https://github.com/basho/riak_core/pull/212)
+* [riak_kv - Resolve 2I timeout error from case clause](https://github.com/basho/riak_kv/pull/379)
+* [riak_kv - Add retry on eleveldb lock errors during open for up to 1 minute.](https://github.com/basho/riak_kv/pull/395)
+* [bitcask - Adds "grace period" to stop just-written files from expiring](https://github.com/basho/bitcask/pull/54)
+* [riak_repl - Seperate the bounded_queue out into a seperate process](https://github.com/basho/riak_repl/pull/97)
+* [riak_repl - Better cleanup of open file handles on fullsync exit](https://github.com/basho/riak_repl/pull/103)
+* [riak_repl - Avoid dropping realtime messages right after election](https://github.com/basho/riak_repl/pull/105)
+* [erlang_js - ejsLog() kills the erlang vm in a reduce](https://github.com/basho/riak/issues/209)
+* [bitcask - Validate hint files generated after merge](https://github.com/basho/bitcask/pull/59)
+* [riak_core - Remove publish_capabilities race condition](https://github.com/basho/riak_core/pull/230)
+
+## Features and Improvements for Riak
+
+* Replication Performance Tuning
+  * When all nodes in the ring have been upgraded to 1.2.1, full-sync replication will construct a Bloom filter
+    over the list of keys to record differences and then a disk-order-preserving keylist fold to generate the
+    the final difference list that will greatly reduce disk thrash during the streaming send of key/object diffs
+    to the secondary cluster. By itself, this optimization typically halved the full-sync time.
+  * Network latency between the primary and secondary cluster has been mitigated by a new multi-windowed ACK
+    algorithm. Previsously, the primary waited for a batch of updates to be acknowledged by the secondary; this
+    would introduce a delay equal to the network latency, which if large would impact the full-sync time to a
+    considerable degree. With this update, multiple flying windows are acknowledged separately which keeps the
+    TCP connection's pipe full and avoids delays due to latency.
+  * This release uses the old keylist_folder on a cluster of mixed capabilities so that replication can occur
+    during rolling upgrades.
 
 # Riak 1.2 Release Notes
 
