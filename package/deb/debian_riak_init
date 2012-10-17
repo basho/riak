@@ -89,6 +89,15 @@ do_reload() {
 }
 
 
+do_status() {
+
+    RETVAL=`su - riak -c "$DAEMON ping"`
+    [ "$RETVAL" = "pong" ] && echo $"$NAME is running..." && return 0
+    echo $"$NAME is stopped"
+    return 3
+
+}
+
 case "$1" in
   start)
 	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
@@ -132,6 +141,9 @@ case "$1" in
 		log_end_msg 1
 		;;
 	esac
+	;;
+  status)
+        do_status
 	;;
   *)
 	echo "Usage: $SCRIPTNAME {start|stop|ping|restart|force-reload}" >&2
