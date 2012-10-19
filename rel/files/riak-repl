@@ -260,11 +260,17 @@ case "$1" in
             echo "Node is not running!"
             exit 1
         fi
-        if [ $# -lt 2 ]; then
-            echo "Usage: $SCRIPT $ACTION <ipaddr> <portnum>"
+        if [ $# -lt 1 ]; then
+            echo "Usage: $SCRIPT $ACTION {<ipaddr> <portnum> | <ipaddr:portnum> | <clustername>}"
             exit 1
         fi
-        $NODETOOL rpc riak_repl_console $CMD $1 $2
+        if [ $# -lt 2 ]; then
+            # by clustername or ip:port
+            $NODETOOL rpc riak_repl_console $CMD $1
+        else
+            # by IP/Port
+            $NODETOOL rpc riak_repl_console $CMD $1 $2
+        fi
         ;;
     realtime|fullsync)
         ACTION=$1
@@ -314,8 +320,8 @@ case "$1" in
         echo "       Repl2 ----------------------------------------------------------------"
         echo "                   clustername [<localname>] |"
         echo "                   clusters |"
-        echo "                   add-sink <remote-ip> <remote-port> |"
-        echo "                   del-sink <remote-ip> <remote-port> |"
+        echo "                   add-sink {<remote-ip:remote-port> | <remote-ip> <remote-port>} |"
+        echo "                   del-sink {<remote-ip:remote-port> | <remote-ip> <remote-port> | clustername} |"
         echo "                   sinks |"
         echo "                   realtime enable <remotename> |"
         echo "                   realtime disable <remotename> |"
