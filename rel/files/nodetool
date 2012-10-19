@@ -7,6 +7,7 @@
 %% nodetool: Helper Script for interacting with live nodes
 %%
 %% -------------------------------------------------------------------
+-mode(compile).
 
 main(Args) ->
     ok = start_epmd(),
@@ -21,14 +22,24 @@ main(Args) ->
     case RestArgs of
         ["chkconfig", File] ->
             case file:consult(File) of
-                {ok, _} ->
-                    io:format("ok\n"),
-                    halt(0);
+                {ok, Terms} ->
+                    case validate(Terms) of
+                        ok ->
+                            io:format("ok\n"),
+                            halt(0);
+                        {error, Problems} ->
+                            lists:foreach(fun print_issue/1, Problems),
+                            %% halt(1) if any problems were errors
+                            halt(case [x || {error, _} <- Problems] of
+                                     [] -> 0;
+                                     _  -> 1
+                                 end)
+                    end;
                 {error, {Line, Mod, Term}} ->
-                    io:format(["Error on line ", file:format_error({Line, Mod, Term}), "\n"]),
+                    io:format(standard_error, ["Error on line ", file:format_error({Line, Mod, Term}), "\n"], []),
                     halt(1);
                 {error, R} ->
-                    io:format(["Error reading config file: ", file:format_error(R), "\n"]),
+                    io:format(standard_error, ["Error reading config file: ", file:format_error(R), "\n"], []),
                     halt(1)
             end;
         _ ->
@@ -90,6 +101,15 @@ main(Args) ->
             io:format("Usage: nodetool {ping|stop|restart|reboot|chkconfig}\n")
     end,
     net_kernel:stop().
+
+
+unique([]) ->
+    true;
+unique([H|T]) ->
+    case lists:all(fun(X) -> X =/= H end, T) of
+        true -> unique(T);
+        false -> false
+    end.
 
 process_args([], Acc, TargetNode) ->
     {lists:reverse(Acc), TargetNode};
@@ -170,3 +190,83 @@ consult(Cont, Str, Acc) ->
         {more, Cont1} ->
             consult(Cont1, eof, Acc)
     end.
+
+
+%%
+%% Validation functions for checking the app.config
+%%
+validate([Terms]) ->
+
+    Results = [ValidateFun(Terms) || ValidateFun <- get_validation_funs()],
+    Failures = [Res || Res <- Results, Res /= true],
+    case Failures of
+        [] ->
+            ok;
+        _ ->
+            {error, Failures}
+    end.
+
+%% Some initial and basic checks for the app.config file
+get_validation_funs() ->
+    [fun handoffport_exists/1,
+     fun pbc_port_exists/1,
+     fun have_unique_ports/1].
+
+
+handoffport_exists(Terms) ->
+    case get_env(Terms, riak_core, handoff_port) of
+        undefined ->
+            {error, "required handoff_port is not defined"};
+        _ ->
+            true
+    end.
+
+
+pbc_port_exists(Terms) ->
+    case get_env(Terms, riak_api, pb_port) of
+        undefined ->
+            {warning, "pb_port undefined, protobuffs interface not enabled"};
+        _ ->
+            true
+    end.
+
+
+%% Check if any set ports have the same value
+have_unique_ports(Terms) ->
+    HandoffPort = get_env(Terms, riak_core, handoff_port),
+    PBCPort = get_env(Terms, riak_api, pb_port),
+    HTTP = get_env(Terms, riak_core, http),
+    HTTPS = get_env(Terms, riak_core, https),
+
+    Ports = [get_setting_if_exists(PortSetting) ||
+                PortSetting <- [HandoffPort, PBCPort, HTTP, HTTPS]],
+
+    % Remove empty lists so unique doesn't match on a empty lists
+    SetPorts = lists:filter(fun(P) -> P /= [] end, Ports),
+
+    case unique(SetPorts) of
+        true -> true;
+        false -> {error, "Port settings are not all unique"}
+    end.
+
+
+get_setting_if_exists(undefined) -> [];
+get_setting_if_exists({ok, [{_, Setting}]}) -> [Setting];
+get_setting_if_exists({ok, Setting}) -> [Setting].
+
+
+get_env(List, Section, Setting) ->
+    case [{X,Y} || {X,Y} <- List, X =:= Section] of
+        [{Section, Settings}] ->
+            case [{X,Y} || {X,Y} <- Settings, X =:= Setting] of
+                [{Setting, Val}] -> {ok, Val};
+                _ -> undefined
+            end;
+        _ -> undefined
+    end.
+
+
+print_issue({warning, Warning}) ->
+    io:format(standard_error, "Warning in app.config: ~s~n", [Warning]);
+print_issue({error, Error}) ->
+    io:format(standard_error, "Error in app.config: ~s~n", [Error]).
