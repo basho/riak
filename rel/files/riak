@@ -113,7 +113,7 @@ case "$1" in
         fi
         # Sanity check the app.config file
         RES=`$NODETOOL_LITE chkconfig $RUNNER_ETC_DIR/app.config`
-        if [ "$RES" != "ok" ]; then
+        if [ $? != 0 ]; then
             echo "Error reading $RUNNER_ETC_DIR/app.config"
             echo $RES
             exit 1
@@ -212,7 +212,7 @@ case "$1" in
     attach)
         if [ "$2" = "-f" ]; then
           echo "Forcing connection..."
-        else  
+        else
           # Make sure a node is running
           RES=`ping_node`
           ES=$?
@@ -234,7 +234,7 @@ case "$1" in
         fi
         # Sanity check the app.config file
         RES=`$NODETOOL_LITE chkconfig $RUNNER_ETC_DIR/app.config`
-        if [ "$RES" != "ok" ]; then
+        if [ $? != 0 ]; then
             echo "Error reading $RUNNER_ETC_DIR/app.config"
             echo $RES
             exit 1
@@ -265,7 +265,7 @@ case "$1" in
         ;;
     chkconfig)
         RES=`$NODETOOL_LITE chkconfig $RUNNER_ETC_DIR/app.config`
-        if [ "$RES" != "ok" ]; then
+        if [ $? != 0 ]; then
             echo "Error reading $RUNNER_ETC_DIR/app.config"
             echo $RES
             exit 1
