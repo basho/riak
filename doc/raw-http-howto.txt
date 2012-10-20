@@ -93,7 +93,7 @@ To delete a document, simply issue a DELETE request:
 
 You'll find that further GETs of that URL return status code 404.
 
-For each of the key-level, document requests, you may also specify the
+For each of the key-level document requests, you may also specify the
 query parameters 'r', 'w', 'dw', and 'rw', to tune the R (read), W
 (write), DW (durable write), and RW (read-write, for delete) value for
 that request.  For instance:
