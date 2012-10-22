@@ -42,15 +42,15 @@ SCRIPTNAME=/etc/init.d/$NAME
 #
 do_start()
 {
-	# Return
-	#   0 if daemon has been started
-	#   1 if daemon was already running
-	#   2 if daemon could not be started
+        # Return
+        #   0 if daemon has been started
+        #   1 if daemon was already running
+        #   2 if daemon could not be started
 
-	RETVAL=`$DAEMON ping`
-	[ "$RETVAL" = "pong" ] && return 1
-	
-	su - riak -c "$DAEMON $DAEMON_ARGS" || return 2
+        RETVAL=`$DAEMON ping`
+        [ "$RETVAL" = "pong" ] && return 1
+
+        su - riak -c "$DAEMON $DAEMON_ARGS" || return 2
 }
 
 #
@@ -58,26 +58,26 @@ do_start()
 #
 do_stop()
 {
-	# Try to stop via "riak stop" first
-	RETVAL=`su - riak -c "$DAEMON ping"`
-	[ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON stop"
-	sleep 2
-	RETVAL=`pidof $ERTS_PATH/beam.smp`
-	[ "$RETVAL" = "" ] && return 0
-	#
-	# It didn't exit nicely, be mean.
-	#
-	# Return
-	#   0 if daemon has been stopped
-	#   1 if daemon was already stopped
-	#   2 if daemon could not be stopped
-	#   other if a failure occurred
-	start-stop-daemon --stop \
-		--quiet \
-		--retry=TERM/30/KILL/5 \
-		--user riak \
-		--exec $ERTS_PATH/beam.smp
-	return $?
+        # Try to stop via "riak stop" first
+        RETVAL=`su - riak -c "$DAEMON ping"`
+        [ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON stop"
+        sleep 2
+        RETVAL=`pidof $ERTS_PATH/beam.smp`
+        [ "$RETVAL" = "" ] && return 0
+        #
+        # It didn't exit nicely, be mean.
+        #
+        # Return
+        #   0 if daemon has been stopped
+        #   1 if daemon was already stopped
+        #   2 if daemon could not be stopped
+        #   other if a failure occurred
+        start-stop-daemon --stop \
+                --quiet \
+                --retry=TERM/30/KILL/5 \
+                --user riak \
+                --exec $ERTS_PATH/beam.smp
+        return $?
 }
 
 #
@@ -100,55 +100,55 @@ do_status() {
 
 case "$1" in
   start)
-	[ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
-	do_start
-	case "$?" in
-		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-	esac
-	;;
+        [ "$VERBOSE" != no ] && log_daemon_msg "Starting $DESC" "$NAME"
+        do_start
+        case "$?" in
+                0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+                2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
   stop)
-	[ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
-	do_stop
-	case "$?" in
-		0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
-		2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
-	esac
-	;;
+        [ "$VERBOSE" != no ] && log_daemon_msg "Stopping $DESC" "$NAME"
+        do_stop
+        case "$?" in
+                0|1) [ "$VERBOSE" != no ] && log_end_msg 0 ;;
+                2) [ "$VERBOSE" != no ] && log_end_msg 1 ;;
+        esac
+        ;;
   ping)
-	# See if the VM is alive
-	$DAEMON ping || exit $?
-	;;
+        # See if the VM is alive
+        $DAEMON ping || exit $?
+        ;;
   reload|force-reload)
-	log_daemon_msg "Reloading $DESC" "$NAME"
-	do_reload
-	log_end_msg $?
-	;;
+        log_daemon_msg "Reloading $DESC" "$NAME"
+        do_reload
+        log_end_msg $?
+        ;;
   restart)
-	log_daemon_msg "Restarting $DESC" "$NAME"
-	do_stop
-	case "$?" in
-	  0|1)
-		do_start
-		case "$?" in
-			0) log_end_msg 0 ;;
-			1) log_end_msg 1 ;; # Old process is still running
-			*) log_end_msg 1 ;; # Failed to start
-		esac
-		;;
-	  *)
-	  	# Failed to stop
-		log_end_msg 1
-		;;
-	esac
-	;;
+        log_daemon_msg "Restarting $DESC" "$NAME"
+        do_stop
+        case "$?" in
+          0|1)
+                do_start
+                case "$?" in
+                        0) log_end_msg 0 ;;
+                        1) log_end_msg 1 ;; # Old process is still running
+                        *) log_end_msg 1 ;; # Failed to start
+                esac
+                ;;
+          *)
+                # Failed to stop
+                log_end_msg 1
+                ;;
+        esac
+        ;;
   status)
-        do_status
-	;;
+        do_status && exit 0 || exit $?
+        ;;
   *)
-	echo "Usage: $SCRIPTNAME {start|stop|ping|restart|force-reload}" >&2
-	exit 3
-	;;
+        echo "Usage: $SCRIPTNAME {start|stop|ping|restart|force-reload}" >&2
+        exit 3
+        ;;
 esac
 
 :
