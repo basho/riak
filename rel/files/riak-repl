@@ -235,7 +235,7 @@ case "$1" in
             $NODETOOL rpc riak_repl_console $ACTION $1
         fi
         ;;
-    sinks|clusters)
+    connections|clusters)
         ACTION=$1
         shift
         # Make sure the local node is running
@@ -250,7 +250,7 @@ case "$1" in
         fi
         $NODETOOL rpc riak_repl_console $ACTION
         ;;
-    add-sink|del-sink)
+    connect|disconnect)
         ACTION=$1
         CMD=`echo $ACTION | sed 's/-/_/'`
         shift
@@ -319,10 +319,9 @@ case "$1" in
         echo "                   pause-fullsync | resume-fullsync | add-nat-listener |"
         echo "       Repl2 ----------------------------------------------------------------"
         echo "                   clustername [<localname>] |"
-        echo "                   clusters |"
-        echo "                   add-sink {<remote-ip:remote-port> | <remote-ip> <remote-port>} |"
-        echo "                   del-sink {<remote-ip:remote-port> | <remote-ip> <remote-port> | clustername} |"
-        echo "                   sinks |"
+        echo "                   connect {<remote-ip:remote-port> | <remote-ip> <remote-port>} |"
+        echo "                   disconnect {<remote-ip:remote-port> | <remote-ip> <remote-port> | clustername} |"
+        echo "                   connections |"
         echo "                   realtime enable <remotename> |"
         echo "                   realtime disable <remotename> |"
         echo "                   realtime start [<remotename>] |"
