@@ -333,7 +333,7 @@ case "$1" in
         echo "                   start-fullsync | cancel-fullsync |"
         echo "                   pause-fullsync | resume-fullsync | add-nat-listener |"
         echo "       Repl2 ----------------------------------------------------------------"
-        echo "                   stats [{<remote-ip:remote-port> | <protocol-id>}] |"
+        echo "                   clusterstats [{<remote-ip:remote-port> | <protocol-id>}] |"
         echo "                              protocol-id = cluster_mgr | rt_repl | fs_repl"
         echo "                   clustername [<localname>] |"
         echo "                   connect {<remote-ip:remote-port> | <remote-ip> <remote-port>} |"
