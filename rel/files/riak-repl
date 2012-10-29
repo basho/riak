@@ -216,6 +216,21 @@ case "$1" in
 #
 # Repl2 Commands
 #
+    clusterstats)
+        ACTION=$1
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+        if [ $# -lt 1 ]; then
+            $NODETOOL rpc riak_repl_console $ACTION
+        else
+            $NODETOOL rpc riak_repl_console $ACTION $1
+        fi
+        ;;
     clustername)
         ACTION=$1
         shift
@@ -318,6 +333,8 @@ case "$1" in
         echo "                   start-fullsync | cancel-fullsync |"
         echo "                   pause-fullsync | resume-fullsync | add-nat-listener |"
         echo "       Repl2 ----------------------------------------------------------------"
+        echo "                   stats [{<remote-ip:remote-port> | <protocol-id>}] |"
+        echo "                              protocol-id = cluster_mgr | rt_repl | fs_repl"
         echo "                   clustername [<localname>] |"
         echo "                   connect {<remote-ip:remote-port> | <remote-ip> <remote-port>} |"
         echo "                   disconnect {<remote-ip:remote-port> | <remote-ip> <remote-port> | clustername} |"
