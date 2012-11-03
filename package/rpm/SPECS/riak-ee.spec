@@ -56,6 +56,8 @@ cat > rel/vars.config <<EOF
 %%
 {web_ip,            "127.0.0.1"}.
 {web_port,          8098}.
+{cluster_mgr_ip,    "127.0.0.1"}.
+{cluster_mgr_port,  9080}.
 {handoff_port,      8099}.
 {pb_ip,             "127.0.0.1"}.
 {pb_port,           8087}.
@@ -72,6 +74,14 @@ cat > rel/vars.config <<EOF
 %% riak_search
 {merge_index_data_root,  "%{platform_data_dir}/merge_index"}.
 
+%% lager
+{lager_handlers, "[ \
+                           {lager_file_backend, [ \
+                               {\"{{platform_log_dir}}/error.log\", error, 10485760, \"$D0\", 5}, \
+                               {\"{{platform_log_dir}}/console.log\", info, 10485760, \"$D0\", 5} \
+                           ]} \
+                       ]"}.
+                       
 %% Javascript VMs
 {map_js_vms,   8}.
 {reduce_js_vms, 6}.
