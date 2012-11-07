@@ -276,7 +276,7 @@ case "$1" in
             exit 1
         fi
         if [ $# -lt 1 ]; then
-            echo "Usage: $SCRIPT $ACTION {<ipaddr> <portnum> | <ipaddr:portnum> | <clustername>}"
+            echo "Usage: $SCRIPT $ACTION {<ipaddr:portnum> | <clustername>}"
             exit 1
         fi
         if [ $# -lt 2 ]; then
@@ -336,8 +336,8 @@ case "$1" in
         echo "                   clusterstats [{<remote-ip:remote-port> | <protocol-id>}] |"
         echo "                              protocol-id = cluster_mgr | rt_repl | fs_repl"
         echo "                   clustername [<localname>] |"
-        echo "                   connect {<remote-ip:remote-port> | <remote-ip> <remote-port>} |"
-        echo "                   disconnect {<remote-ip:remote-port> | <remote-ip> <remote-port> | clustername} |"
+        echo "                   connect <remote-ip:remote-port> |"
+        echo "                   disconnect {<remote-ip:remote-port> | clustername} |"
         echo "                   connections |"
         echo "                   realtime enable <remotename> |"
         echo "                   realtime disable <remotename> |"
