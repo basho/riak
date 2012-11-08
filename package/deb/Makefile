@@ -1,4 +1,4 @@
-BUILDPATH	= debuild/$(APP)-$(PKG_VERSION)
+BUILDPATH	= debuild/$(REPO)-$(PKG_VERSION)
 
 build:  $(BUILDPATH)/debian \
 	debuild/$(APP)_$(PKG_VERSION).orig.tar.gz
