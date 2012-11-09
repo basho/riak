@@ -287,6 +287,17 @@ case "$1" in
             $NODETOOL rpc riak_repl_console $CMD $1 $2
         fi
         ;;
+  modes)
+        CMD=$1
+        shift
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        $NODETOOL rpc riak_repl_console $CMD $@
+        ;;
     realtime|fullsync)
         ACTION=$1
         shift
@@ -336,6 +347,8 @@ case "$1" in
         echo "                   clusterstats [{<remote-ip:remote-port> | <protocol-id>}] |"
         echo "                              protocol-id = cluster_mgr | rt_repl | fs_repl"
         echo "                   clustername [<localname>] |"
+        echo "                   modes [<modelist>]"
+        echo "                       modelist is one or both of mode_repl12, mode_repl13 separated by spaces"
         echo "                   connect {<remote-ip:remote-port> | <remote-ip> <remote-port>} |"
         echo "                   disconnect {<remote-ip:remote-port> | <remote-ip> <remote-port> | clustername} |"
         echo "                   connections |"
