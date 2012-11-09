@@ -276,7 +276,14 @@ case "$1" in
             exit 1
         fi
         if [ $# -lt 1 ]; then
-            echo "Usage: $SCRIPT $ACTION {<ipaddr> <portnum> | <ipaddr:portnum> | <clustername>}"
+            case $ACTION in
+                connect)
+                    echo "Usage: $SCRIPT $ACTION  <host:port>"
+                    ;;
+                disconnect)
+                    echo "Usage: $SCRIPT $ACTION {<host:port> | <clustername>}"
+                    ;;
+            esac
             exit 1
         fi
         if [ $# -lt 2 ]; then
@@ -308,10 +315,10 @@ case "$1" in
             exit 1
         fi
         if [ $# -lt 1 ]; then
-            echo "Usage: $SCRIPT $ACTION enable <remotename> |"
-            echo "                       disable <remotename> |"
-            echo "                       start [<remotename>] |"
-            echo "                       stop [<remotename>]"
+            echo "Usage: $SCRIPT $ACTION enable <clustername> |"
+            echo "                       disable <clustername> |"
+            echo "                       start [<clustername>] |"
+            echo "                       stop [<clustername>]"
             exit 1
         fi
         SUB_CMD=$1
@@ -319,7 +326,7 @@ case "$1" in
         case $SUB_CMD in
             enable|disable)
                 if [ $# -lt 1 ]; then
-                    echo "Usage: $SCRIPT $ACTION {enable|disable} <remotename>"
+                    echo "Usage: $SCRIPT $ACTION {enable|disable} <clustername>"
                     exit 1
                 fi
                 $NODETOOL rpc riak_repl_console $ACTION $SUB_CMD $1
@@ -333,8 +340,8 @@ case "$1" in
                 fi
                 ;;
             *)
-                echo "Usage: $SCRIPT $ACTION realtime start [<remotename>] |"
-                echo "                       realtime stop [<remotename>]"
+                echo "Usage: $SCRIPT $ACTION realtime start [<clustername>] |"
+                echo "                       realtime stop [<clustername>]"
                 exit 1
                 ;;
         esac
@@ -344,22 +351,22 @@ case "$1" in
         echo "                   start-fullsync | cancel-fullsync |"
         echo "                   pause-fullsync | resume-fullsync | add-nat-listener |"
         echo "       Repl2 ----------------------------------------------------------------"
-        echo "                   clusterstats [{<remote-ip:remote-port> | <protocol-id>}] |"
+        echo "                   clusterstats [{<ip:-port> | <protocol-id>}] |"
         echo "                              protocol-id = cluster_mgr | rt_repl | fs_repl"
         echo "                   clustername [<localname>] |"
         echo "                   modes [<modelist>]"
         echo "                       modelist is one or both of mode_repl12, mode_repl13 separated by spaces"
-        echo "                   connect {<remote-ip:remote-port> | <remote-ip> <remote-port>} |"
-        echo "                   disconnect {<remote-ip:remote-port> | <remote-ip> <remote-port> | clustername} |"
+        echo "                   connect <host:port> |"
+        echo "                   disconnect {<host:port> | clustername} |"
         echo "                   connections |"
-        echo "                   realtime enable <remotename> |"
-        echo "                   realtime disable <remotename> |"
-        echo "                   realtime start [<remotename>] |"
-        echo "                   realtime stop [<remotename>] |"
-        echo "                   fullsync enable <remotename> |"
-        echo "                   fullsync disable <remotename> |"
-        echo "                   fullsync start [<remotename>] |"
-        echo "                   fullsync stop [<remotename>]"
+        echo "                   realtime enable <clustername> |"
+        echo "                   realtime disable <clustername> |"
+        echo "                   realtime start [<clustername>] |"
+        echo "                   realtime stop [<clustername>] |"
+        echo "                   fullsync enable <clustername> |"
+        echo "                   fullsync disable <clustername> |"
+        echo "                   fullsync start [<clustername>] |"
+        echo "                   fullsync stop [<clustername>]"
         exit 1
         ;;
 esac
