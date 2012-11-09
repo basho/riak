@@ -52,7 +52,7 @@ relclean:
 ##  devrel - Make a dev build for 1..$DEVNODES
 ##  stagedevrel Make a stagedev build for 1..$DEVNODES
 ##
-##  Example, make a 68 node devrel cluster 
+##  Example, make a 68 node devrel cluster
 ##    make stagedevrel DEVNODES=68
 
 .PHONY : stagedevrel devrel
@@ -60,7 +60,7 @@ DEVNODES=6
 $(eval stagedevrel : $(foreach n,$(shell seq 1 $(DEVNODES)),dev$(n)))
 $(eval devrel : $(foreach n,$(shell seq 1 $(DEVNODES)),dev$(n)))
 
-dev% :
+dev% : all
 	mkdir -p dev
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
 	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
