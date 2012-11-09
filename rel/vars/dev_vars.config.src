@@ -13,7 +13,7 @@
 %%
 {web_ip,            "127.0.0.1"}.
 {cluster_mgr_ip,   "127.0.0.1"}.
-{cluster_mgr_port,  9088}.
+{cluster_mgr_port,  @CM_PORT@}.
 {web_port,          @WEBPORT@}.
 {handoff_port,      @HANDOFFPORT@}.
 {pb_ip,             "127.0.0.1"}.
