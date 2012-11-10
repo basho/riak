@@ -12,10 +12,10 @@
 %% etc/app.config
 %%
 {web_ip,            "127.0.0.1"}.
-{web_port,          8092}.
-{handoff_port,      8102}.
+{web_port,          @WEBPORT@}.
+{handoff_port,      @HANDOFFPORT@}.
 {pb_ip,             "127.0.0.1"}.
-{pb_port,           8082}.
+{pb_port,           @PBPORT@}.
 {ring_state_dir,    "{{platform_data_dir}}/ring"}.
 {bitcask_data_root, "{{platform_data_dir}}/bitcask"}.
 {leveldb_data_root, "{{platform_data_dir}}/leveldb"}.
@@ -41,7 +41,7 @@
 %%
 %% etc/vm.args
 %%
-{node,         "dev2@127.0.0.1"}.
+{node,         "@NODE@"}.
 {crash_dump,   "{{platform_log_dir}}/erl_crash.dump"}.
 
 %%
