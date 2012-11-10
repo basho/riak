@@ -54,7 +54,7 @@ relclean:
 ##    make stagedevrel DEVNODES=68
 
 .PHONY : stagedevrel devrel
-DEVNODES=6
+DEVNODES=4
 
 $(eval stagedevrel : $(foreach n,$(shell seq 1 $(DEVNODES)),dev$(n)))
 $(eval devrel : $(foreach n,$(shell seq 1 $(DEVNODES)),dev$(n)))
