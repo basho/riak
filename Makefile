@@ -57,7 +57,7 @@ relclean:
 
 .PHONY : stagedevrel devrel
 DEVNODES=6
-$(eval stagedevrel : $(foreach n,$(shell seq 1 $(DEVNODES)),dev$(n)))
+$(eval stagedevrel : $(foreach n,$(shell seq 1 $(DEVNODES)),stagedev$(n)))
 $(eval devrel : $(foreach n,$(shell seq 1 $(DEVNODES)),dev$(n)))
 
 dev% : all
@@ -66,7 +66,7 @@ dev% : all
 	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
 
 stagedev% : dev%
-	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) dev/$^/lib;))
+	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) dev/$^/lib;)
 
 devclean: clean
 	rm -rf dev
