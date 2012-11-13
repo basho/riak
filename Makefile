@@ -27,8 +27,8 @@ testclean:
 test: deps compile testclean
 	@$(foreach dep, \
             $(wildcard deps/*), \
-                ./rebar eunit apps=$(notdir $(dep)) \
-                    || echo "Eunit: $(notdir $(dep)) FAILED" >> $(TEST_LOG_FILE);)
+               (cd $(dep) && ../../rebar eunit deps_dir=.. skip_deps=true)  \
+               || echo "Eunit: $(notdir $(dep)) FAILED" >> $(TEST_LOG_FILE);)
 	./rebar eunit skip_deps=true
 	@if test -s $(TEST_LOG_FILE) ; then \
              cat $(TEST_LOG_FILE) && \
