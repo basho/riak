@@ -213,10 +213,160 @@ case "$1" in
         fi
         $NODETOOL rpc riak_repl_console resume_fullsync
         ;;
+#
+# Repl2 Commands
+#
+    clusterstats)
+        ACTION=$1
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        shift
+        if [ $# -lt 1 ]; then
+            $NODETOOL rpc riak_repl_console $ACTION
+        else
+            $NODETOOL rpc riak_repl_console $ACTION $1
+        fi
+        ;;
+    clustername)
+        ACTION=$1
+        shift
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        if [ $# -gt 1 ]; then
+            echo "Usage: $SCRIPT $ACTION [<clustername>]"
+            exit 1
+        fi
+        if [ $# -lt 1 ]; then
+            $NODETOOL rpc riak_repl_console $ACTION
+        else
+            $NODETOOL rpc riak_repl_console $ACTION $1
+        fi
+        ;;
+    connections|clusters)
+        ACTION=$1
+        shift
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        if [ $# -gt 0 ]; then
+            echo "Usage: $SCRIPT $ACTION"
+            exit 1
+        fi
+        $NODETOOL rpc riak_repl_console $ACTION
+        ;;
+    connect|disconnect)
+        ACTION=$1
+        CMD=`echo $ACTION | sed 's/-/_/'`
+        shift
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        if [ $# -lt 1 ]; then
+            case $ACTION in
+                connect)
+                    echo "Usage: $SCRIPT $ACTION  <host:port>"
+                    ;;
+                disconnect)
+                    echo "Usage: $SCRIPT $ACTION {<host:port> | <clustername>}"
+                    ;;
+            esac
+            exit 1
+        fi
+        if [ $# -lt 2 ]; then
+            # by clustername or ip:port
+            $NODETOOL rpc riak_repl_console $CMD $1
+        else
+            # by IP/Port
+            $NODETOOL rpc riak_repl_console $CMD $1 $2
+        fi
+        ;;
+  modes)
+        CMD=$1
+        shift
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        $NODETOOL rpc riak_repl_console $CMD $@
+        ;;
+    realtime|fullsync)
+        ACTION=$1
+        shift
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        if [ $# -lt 1 ]; then
+            echo "Usage: $SCRIPT $ACTION enable <clustername> |"
+            echo "                       disable <clustername> |"
+            echo "                       start [<clustername>] |"
+            echo "                       stop [<clustername>]"
+            exit 1
+        fi
+        SUB_CMD=$1
+        shift
+        case $SUB_CMD in
+            enable|disable)
+                if [ $# -lt 1 ]; then
+                    echo "Usage: $SCRIPT $ACTION {enable|disable} <clustername>"
+                    exit 1
+                fi
+                $NODETOOL rpc riak_repl_console $ACTION $SUB_CMD $1
+                ;;
+            start|stop)
+                if [ $# -lt 1 ]; then
+                    $NODETOOL rpc riak_repl_console $ACTION $SUB_CMD
+                    exit 1
+                else
+                    $NODETOOL rpc riak_repl_console $ACTION $SUB_CMD $1
+                fi
+                ;;
+            *)
+                echo "Usage: $SCRIPT $ACTION realtime start [<clustername>] |"
+                echo "                       realtime stop [<clustername>]"
+                exit 1
+                ;;
+        esac
+        ;;
     *)
         echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | status |"
         echo "                   start-fullsync | cancel-fullsync |"
-        echo "                   pause-fullsync | resume-fullsync | add-nat-listener }"
+        echo "                   pause-fullsync | resume-fullsync | add-nat-listener |"
+        echo "       Repl2 ----------------------------------------------------------------"
+        echo "                   clusterstats [{<ip:-port> | <protocol-id>}] |"
+        echo "                              protocol-id = cluster_mgr | rt_repl | fs_repl"
+        echo "                   clustername [<localname>] |"
+        echo "                   modes [<modelist>]"
+        echo "                       modelist is one or both of mode_repl12, mode_repl13 separated by spaces"
+        echo "                   connect <host:port> |"
+        echo "                   disconnect {<host:port> | clustername} |"
+        echo "                   connections |"
+        echo "                   realtime enable <clustername> |"
+        echo "                   realtime disable <clustername> |"
+        echo "                   realtime start [<clustername>] |"
+        echo "                   realtime stop [<clustername>] |"
+        echo "                   fullsync enable <clustername> |"
+        echo "                   fullsync disable <clustername> |"
+        echo "                   fullsync start [<clustername>] |"
+        echo "                   fullsync stop [<clustername>]"
         exit 1
         ;;
 esac
