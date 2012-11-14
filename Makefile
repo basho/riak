@@ -79,7 +79,6 @@ stage : rel
 ##
 docs:
 	./rebar skip_deps=true doc
-	@cp -R apps/luke/doc doc/luke
 	@cp -R apps/riak_core/doc doc/riak_core
 	@cp -R apps/riak_kv/doc doc/riak_kv
 
