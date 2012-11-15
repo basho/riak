@@ -1,4 +1,4 @@
-#! /bin/bash
+#! /bin/sh
 #
 # gen_dev dev4 vars.src vars
 #
