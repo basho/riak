@@ -54,10 +54,13 @@ relclean:
 ##    make stagedevrel DEVNODES=68
 
 .PHONY : stagedevrel devrel
-DEVNODES=4
+DEVNODES ?= 4
 
-$(eval stagedevrel : $(foreach n,$(shell seq 1 $(DEVNODES)),stagedev$(n)))
-$(eval devrel : $(foreach n,$(shell seq 1 $(DEVNODES)),dev$(n)))
+# 'seq' is not available on all *BSD, so using an alternate in awk
+SEQ = $(shell awk 'BEGIN { for (i = 1; i < '$(DEVNODES)'; i++) printf("%i ", i); print i ;exit(0);}')
+
+$(eval stagedevrel : $(foreach n,$(SEQ),stagedev$(n)))
+$(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
 dev% : all
 	mkdir -p dev
