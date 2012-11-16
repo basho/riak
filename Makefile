@@ -16,6 +16,9 @@ clean: testclean
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
+generate:
+	./rebar generate
+
 
 TEST_LOG_FILE := eunit.log
 testclean:
@@ -35,12 +38,27 @@ test: deps compile testclean
 
 ##
 ## Release targets
-##
-rel: deps
-	./rebar compile generate
+## 
+rel: deps compile generate riaknostic-rel
 
 relclean:
 	rm -rf rel/riak
+
+##
+## Riaknostic targets
+##
+riaknostic: deps
+	$(MAKE) -C deps/riaknostic -f Makefile
+
+riaknostic-rel: riaknostic
+	rm -rf rel/riak/lib/riaknostic && \
+	mkdir -p rel/riak/lib/riaknostic && \
+	cp -f deps/riaknostic/riaknostic rel/riak/lib/riaknostic/
+
+riaknostic-%: riaknostic
+	rm -rf dev/$*/lib/riaknostic && \
+	mkdir -p dev/$*/lib/riaknostic && \
+	cp -f deps/riaknostic/riaknostic dev/$*/lib/riaknostic/
 
 ##
 ## Developer targets
@@ -65,16 +83,17 @@ $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 dev% : all
 	mkdir -p dev
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
-	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
+	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config) && \
+    $(MAKE) riaknostic-$@
 
 stagedev% : dev%
-	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) dev/$^/lib;)
+	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$^/lib;)
 
 devclean: clean
 	rm -rf dev
 
 stage : rel
-	$(foreach dep,$(wildcard deps/*), rm -rf rel/riak/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) rel/riak/lib;)
+	$(foreach dep,$(wildcard deps/*), rm -rf rel/riak/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) rel/riak/lib;)
 
 ##
 ## Doc targets
@@ -213,8 +232,7 @@ ballclean:
 
 ##
 ## Packaging targets reside in package directory
-##
-
+#
 # Strip off repo name for packaging
 PKG_VERSION = $(shell echo $(DISTNAME) | sed -e 's/^$(REPO)-//')
 
