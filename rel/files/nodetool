@@ -65,8 +65,6 @@ main(Args) ->
             io:format("pong\n");
         ["stop"] ->
             io:format("~p\n", [rpc:call(TargetNode, init, stop, [], 60000)]);
-        ["restart"] ->
-            io:format("~p\n", [rpc:call(TargetNode, init, restart, [], 60000)]);
         ["reboot"] ->
             io:format("~p\n", [rpc:call(TargetNode, init, reboot, [], 60000)]);
         ["rpc", Module, Function | RpcArgs] ->
