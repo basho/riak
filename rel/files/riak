@@ -182,15 +182,6 @@ case "$1" in
         done
         ;;
 
-    restart)
-        ## Restart the VM without exiting the process
-        $NODETOOL restart
-        ES=$?
-        if [ "$ES" -ne 0 ]; then
-            exit $ES
-        fi
-        ;;
-
     reboot)
         ## Restart the VM completely (uses heart to restart it)
         $NODETOOL reboot
