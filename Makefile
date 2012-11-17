@@ -18,6 +18,9 @@ clean: testclean
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
+generate:
+	./rebar generate
+
 
 TEST_LOG_FILE := eunit.log
 testclean:
@@ -38,11 +41,22 @@ test: deps compile testclean
 ##
 ## Release targets
 ##
-rel: deps
-	./rebar compile generate
+rel: deps compile generate riaknostic-rel
 
 relclean:
 	rm -rf rel/riak
+
+##
+## Riaknostic targets
+##
+riaknostic: deps
+	$(MAKE) -C deps/riaknostic -f Makefile
+
+riaknostic-rel: riaknostic
+	rm -rf rel/riak/lib/riaknostic
+	mkdir -p rel/riak/lib/riaknostic
+	cp -f deps/riaknostic/riaknostic rel/riak/lib/riaknostic/
+
 
 ##
 ## Developer targets
@@ -57,25 +71,28 @@ relclean:
 
 .PHONY : stagedevrel devrel
 DEVNODES ?= 6
+
 # 'seq' is not available on all *BSD, so using an alternate in awk
 SEQ = $(shell awk 'BEGIN { for (i = 1; i < '$(DEVNODES)'; i++) printf("%i ", i); print i ;exit(0);}')
 
 $(eval stagedevrel : $(foreach n,$(SEQ),stagedev$(n)))
 $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
-dev% : all
+dev% : all riaknostic
 	mkdir -p dev
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
 	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
+	mkdir -p dev/$@/lib/riaknostic
+	cp -f deps/riaknostic/riaknostic dev/$@/lib/riaknostic/
 
 stagedev% : dev%
-	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) dev/$^/lib;)
+	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$^/lib;)
 
 devclean: clean
 	rm -rf dev
 
 stage : rel
-	$(foreach dep,$(wildcard deps/*), rm -rf rel/riak/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) rel/riak/lib;)
+	$(foreach dep,$(wildcard deps/*), rm -rf rel/riak/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) rel/riak/lib;)
 
 ##
 ## Doc targets
