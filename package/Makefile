@@ -36,7 +36,8 @@ endif # solaris
 
 ifeq ($(OS),Darwin)          # OSX
 OSNAME		= OSX
-ARCH		= $(shell uname -m)
+ARCH            = $(shell file `which erlc` | grep -c x86_64 2> /dev/null | awk \
+                   '{if ($$1 == "0") {print "i386"} else {print "x86_64"}}')
 PKGERDIR	= osx
 BUILDDIR	= osxbuild
 endif
