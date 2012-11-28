@@ -370,7 +370,22 @@ case "$1" in
                 exit 1
               fi
               $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
-            ;;
+              ;;
+            max_fssink_node)
+              if [ "$ACTION" != "fullsync" ]; then
+                echo "max_fssink_node is only available for fullsync"
+                exit 1
+              fi
+              NEWVAL=$1
+              shift
+              # Make sure the local node is running
+              RES=`$NODETOOL ping`
+              if [ "$RES" != "pong" ]; then
+                echo "Node is not running!"
+                exit 1
+              fi
+              $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
+              ;;
             *)
                 echo "Usage: $SCRIPT $ACTION realtime start [<clustername>] |"
                 echo "                       realtime stop [<clustername>]"
@@ -399,8 +414,9 @@ case "$1" in
         echo "                   fullsync disable <clustername> |"
         echo "                   fullsync start [<clustername>] |"
         echo "                   fullsync stop [<clustername>] |"
-        echo "                   fullsync max_fssource_node [<value>]"
-        echo "                   fullsync max_fssource_cluster [<value>]"
+        echo "                   fullsync max_fssource_node [<value>] |"
+        echo "                   fullsync max_fssource_cluster [<value>] |"
+        echo "                   fullsync max_fssink_node [<value]"
         exit 1
         ;;
 esac
