@@ -319,6 +319,8 @@ case "$1" in
             echo "                       disable <clustername> |"
             echo "                       start [<clustername>] |"
             echo "                       stop [<clustername>]"
+            echo "                       max_fssource_node [<value>] (fullsync only)"
+            echo "                       max_fssource_cluster [<value>] (fullsync only)"
             exit 1
         fi
         SUB_CMD=$1
@@ -339,6 +341,36 @@ case "$1" in
                     $NODETOOL rpc riak_repl_console $ACTION $SUB_CMD $1
                 fi
                 ;;
+            max_fssource_node)
+              if [ "$ACTION" != "fullsync" ]; then
+                echo "max_fssource_node is only available for fullsync"
+                exit 1
+              fi
+              NEWVAL=$1
+              shift
+              # Make sure the local node is running
+              RES=`$NODETOOL ping`
+              if [ "$RES" != "pong" ]; then
+                echo "Node is not running!"
+                exit 1
+              fi
+              $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
+              ;;
+            max_fssource_cluster)
+              if [ "$ACTION" != "fullsync" ]; then
+                echo "max_fssource_cluster is only available for fullsync"
+                exit 1
+              fi
+              NEWVAL=$1
+              shift
+              # Make sure the local node is running
+              RES=`$NODETOOL ping`
+              if [ "$RES" != "pong" ]; then
+                echo "Node is not running!"
+                exit 1
+              fi
+              $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
+            ;;
             *)
                 echo "Usage: $SCRIPT $ACTION realtime start [<clustername>] |"
                 echo "                       realtime stop [<clustername>]"
@@ -366,7 +398,9 @@ case "$1" in
         echo "                   fullsync enable <clustername> |"
         echo "                   fullsync disable <clustername> |"
         echo "                   fullsync start [<clustername>] |"
-        echo "                   fullsync stop [<clustername>]"
+        echo "                   fullsync stop [<clustername>] |"
+        echo "                   fullsync max_fssource_node [<value>]"
+        echo "                   fullsync max_fssource_cluster [<value>]"
         exit 1
         ;;
 esac
