@@ -318,9 +318,10 @@ case "$1" in
             echo "Usage: $SCRIPT $ACTION enable <clustername> |"
             echo "                       disable <clustername> |"
             echo "                       start [<clustername>] |"
-            echo "                       stop [<clustername>]"
-            echo "                       max_fssource_node [<value>] (fullsync only)"
-            echo "                       max_fssource_cluster [<value>] (fullsync only)"
+            echo "                       stop [<clustername>] |"
+            echo "                       max_fssource_node [<value>] | (fullsync only)"
+            echo "                       max_fssource_cluster [<value>] | (fullsync only)"
+            echo "                       max_fssink_node [<value>] (fullsync only)"
             exit 1
         fi
         SUB_CMD=$1
