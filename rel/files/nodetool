@@ -59,6 +59,8 @@ main(Args) ->
     end,
 
     case RestArgs of
+        ["getpid"] ->
+            io:format("~p\n", [list_to_integer(rpc:call(TargetNode, os, getpid, []))]);
         ["ping"] ->
             %% If we got this far, the node already responsed to a ping, so just dump
             %% a "pong"
@@ -101,7 +103,7 @@ main(Args) ->
             end;
         Other ->
             io:format("Other: ~p\n", [Other]),
-            io:format("Usage: nodetool {ping|stop|restart|reboot|chkconfig}\n")
+            io:format("Usage: nodetool {chkconfig|getpid|ping|stop|restart|reboot|rpc|rpc_infinity|rpcterms}\n")
     end,
     net_kernel:stop().
 
