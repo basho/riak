@@ -93,9 +93,30 @@ ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
 NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
 NODETOOL_LITE="$ERTS_PATH/escript $ERTS_PATH/nodetool"
 
+# Common functions
+
+# Ping node without allowing nodetool to take stdin
 ping_node() {
     $NODETOOL ping < /dev/null
 }
+
+# Set the PID global variable, return 1 on error
+get_pid() {
+    PID=`$NODETOOL getpid < /dev/null`
+    ES=$?
+    if [ "$ES" -ne 0 ]; then
+        echo "Node is not running!"
+        return 1
+    fi
+
+    # don't allow empty or init pid's
+    if [ -z $PID ] || [ "$PID" -le 1 ]; then
+        return 1
+    fi
+
+    return 0
+}
+
 
 # Scrape out SSL distribution config info from vm.args into $SSL_DIST_CONFIG
 rm -f $SSL_DIST_CONFIG
@@ -158,24 +179,22 @@ case "$1" in
                 # some reason.
                 COMMAND_MODE=unix2003
         esac
-        # Wait for the node to completely stop...
-        case $UNAME_S in
-            Linux|Darwin|FreeBSD|DragonFly|NetBSD|OpenBSD)
-                # PID COMMAND
-                PID=`ps ax -o pid= -o command=|\
-                    grep "$RUNNER_BASE_DIR/.*/[b]eam"|awk '{print $1}'`
-                ;;
-            SunOS)
-                # PID COMMAND
-                PID=`/usr/bin/ps -ef -o pid= -o args=|\
-                    grep "$RUNNER_BASE_DIR/.*/[b]eam"|awk '{print $1}'`
-                ;;
-        esac
+
+        # Get the PID from nodetool
+        get_pid
+        GPR=$?
+        if [ "$GPR" -ne 0 ] || [ -z $PID ]; then
+            exit $GPR
+        fi
+
+        # Tell nodetool to initiate a stop
         $NODETOOL stop
         ES=$?
         if [ "$ES" -ne 0 ]; then
             exit $ES
         fi
+
+        # Wait for the node to completely stop...
         while `kill -s 0 $PID 2>/dev/null`;
         do
             sleep 1
@@ -279,8 +298,17 @@ case "$1" in
     version)
         echo $RIAK_VERSION
         ;;
+    getpid)
+        # Get the PID from nodetool
+        get_pid
+        ES=$?
+        if [ "$ES" -ne 0 ] || [ -z $PID ]; then
+            exit $ES
+        fi
+        echo $PID
+        ;;
     *)
-        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig|escript|version}"
+        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig|escript|version|getpid}"
         exit 1
         ;;
 esac
