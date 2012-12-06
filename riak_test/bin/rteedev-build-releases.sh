@@ -87,7 +87,14 @@ build()
     RUN="env PATH=$ERLROOT/bin:$ERLROOT/lib/erlang/bin:$PATH \
              C_INCLUDE_PATH=$ERLROOT/usr/include \
              LD_LIBRARY_PATH=$ERLROOT/usr/lib"
+
     $RUN make all devrel > /dev/null 2>&1
+
+    for d in {1..6}; do
+      mkdir -p ./dev/dev$d/data/snmp/agent/db
+      touch ./dev/dev$d/data/snmp/agent/db/snmpa_local_db1
+    done
+
     cd ..
     echo " - $SRCDIR built."
 }
