@@ -13,17 +13,17 @@ if [ `uname -s` = 'SunOS' -a "${POSIX_SHELL}" != "true" ]; then
 fi
 unset POSIX_SHELL # clear it so if we invoke other scripts, they run as ksh as well
 
-RUNNER_SCRIPT_DIR={{runner_script_dir}}
+RUNNER_SCRIPT_DIR=$(cd ${0%/*} && pwd)
 RUNNER_SCRIPT=${0##*/}
 
-RUNNER_BASE_DIR={{runner_base_dir}}
-RUNNER_ETC_DIR={{runner_etc_dir}}
-RUNNER_LIB_DIR={{platform_lib_dir}}
-RUNNER_LOG_DIR={{runner_log_dir}}
+RUNNER_BASE_DIR=${RUNNER_SCRIPT_DIR%/*}
+RUNNER_ETC_DIR=$RUNNER_BASE_DIR/etc
+RUNNER_LIB_DIR=./lib
+RUNNER_LOG_DIR=$RUNNER_BASE_DIR/log
 # Note the trailing slash on $PIPE_DIR/
-PIPE_DIR={{pipe_dir}}
-RUNNER_USER={{runner_user}}
-PLATFORM_DATA_DIR={{platform_data_dir}}
+PIPE_DIR=/tmp/$RUNNER_BASE_DIR/
+RUNNER_USER=
+PLATFORM_DATA_DIR=./data
 SSL_DIST_CONFIG=$PLATFORM_DATA_DIR/ssl_distribution.args_file
 RIAK_VERSION="git"
 
@@ -228,7 +228,7 @@ case "$1" in
         fi
         ;;
 
-    attach_direct)
+    attach-direct)
         if [ "$2" = "-f" ]; then
           echo "Forcing connection..."
         else  
@@ -255,7 +255,7 @@ case "$1" in
         fi
 
         shift 
-        NAME=`echo $NAME_ARG | sed 's/-s*name[ \t]+//g'`
+        NAME=`echo $NAME_ARG | sed 's/-s*name[ \t][ \t]*//g'`
         exec $ERTS_PATH/erl -name c_$$_$NAME -hidden -remsh $NAME $COOKIE_ARG
         ;;
 
