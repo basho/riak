@@ -329,7 +329,7 @@ case "$1" in
         echo $PID
         ;;
     *)
-        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach-direct|chkconfig|escript|version|getpid}"
+        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|attach-direct|chkconfig|escript|version|getpid}"
         exit 1
         ;;
 esac
