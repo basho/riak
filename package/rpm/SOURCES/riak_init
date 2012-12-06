@@ -93,7 +93,7 @@ case "$1" in
         reload
         ;;
   status)
-        status
+        status && exit 0 || exit $?
         ;;
   ping)
         su - riak -c "$DAEMON ping" || exit $?
