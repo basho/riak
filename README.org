@@ -9,9 +9,7 @@ Welcome to Riak.
   using Riak.  For more information, browse the following files:
  
     - README:  this file
-    - TODO:    a list of improvements planned for Riak
     - LICENSE: the license under which Riak is released
-    - apps/    the source tree for Riak and all its dependencies
     - doc/
         - admin.org: Riak Administration Guide
         - architecture.txt: details about the underlying design of Riak
