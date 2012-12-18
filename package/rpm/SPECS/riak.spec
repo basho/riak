@@ -61,7 +61,6 @@ cat > rel/vars.config <<EOF
 {leveldb_data_root, "%{platform_data_dir}/leveldb"}.
 {sasl_error_log,    "%{platform_log_dir}/sasl-error.log"}.
 {sasl_log_dir,      "%{platform_log_dir}/sasl"}.
-{mapred_queue_dir,  "%{platform_data_dir}/mr_queue"}.
 
 %% riak_search
 {merge_index_data_root,  "%{platform_data_dir}/merge_index"}.
