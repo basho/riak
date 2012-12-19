@@ -1,17 +1,17 @@
 diff --git a/rel/files/riak b/rel/files/riak
-index 3ffd6e1..0da76c1 100755
+index f493ffa..2dbffcc 100755
 --- a/rel/files/riak
 +++ b/rel/files/riak
 @@ -37,7 +37,7 @@ if ([ "$RUNNER_USER" ] && [ "x$WHOAMI" != "x$RUNNER_USER" ]); then
          exit 1
      fi
-     echo "Attempting to restart script through sudo -H -u $RUNNER_USER"
+     echo "Attempting to restart script through sudo -H -u $RUNNER_USER" >&2
 -    exec sudo -H -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 +    exec sudo -H -u $RUNNER_USER $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
  fi
  
  # Warn the user if ulimit -n is less than 1024
-@@ -105,6 +105,21 @@ sed -n '/Begin SSL distribution items/,/End SSL distribution items/p' \
+@@ -126,6 +126,21 @@ sed -n '/Begin SSL distribution items/,/End SSL distribution items/p' \
  # Check the first argument for instructions
  case "$1" in
      start)
@@ -33,7 +33,7 @@ index 3ffd6e1..0da76c1 100755
          # Make sure there is not already a node running
          RES=`ping_node`
          if [ "$RES" = "pong" ]; then
-@@ -151,6 +166,12 @@ case "$1" in
+@@ -172,6 +187,12 @@ case "$1" in
          ;;
  
      stop)
@@ -46,16 +46,7 @@ index 3ffd6e1..0da76c1 100755
          UNAME_S=`uname -s`
          case $UNAME_S in
              Darwin)
-@@ -212,7 +233,7 @@ case "$1" in
-     attach)
-         if [ "$2" = "-f" ]; then
-           echo "Forcing connection..."
--        else  
-+        else
-           # Make sure a node is running
-           RES=`ping_node`
-           ES=$?
-@@ -227,6 +248,14 @@ case "$1" in
+@@ -246,6 +267,14 @@ case "$1" in
          ;;
  
      console)
@@ -71,20 +62,20 @@ index 3ffd6e1..0da76c1 100755
          if [ "$RES" = "pong" ]; then
              echo "Node is already running - use '$SCRIPT attach' instead"
 diff --git a/rel/files/riak-admin b/rel/files/riak-admin
-index 4711bde..fee8b61 100755
+index 0c3500d..35964f5 100755
 --- a/rel/files/riak-admin
 +++ b/rel/files/riak-admin
 @@ -30,7 +30,7 @@ if ([ "$RUNNER_USER" ] && [ "x$WHOAMI" != "x$RUNNER_USER" ]); then
          exit 1
      fi
-     echo "Attempting to restart script through sudo -H -u $RUNNER_USER"
+     echo "Attempting to restart script through sudo -H -u $RUNNER_USER" >&2
 -    exec sudo -H -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 +    exec sudo -H -u $RUNNER_USER $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
  fi
  
  # Make sure CWD is set to runner base dir
 diff --git a/rel/files/riak-repl b/rel/files/riak-repl
-index 711e426..11539e2 100755
+index 792d699..c4dc2ac 100755
 --- a/rel/files/riak-repl
 +++ b/rel/files/riak-repl
 @@ -29,7 +29,7 @@ if ([ "$RUNNER_USER" ] && [ "x$WHOAMI" != "x$RUNNER_USER" ]); then
@@ -97,13 +88,13 @@ index 711e426..11539e2 100755
  
  # Make sure CWD is set to runner base dir
 diff --git a/rel/files/search-cmd b/rel/files/search-cmd
-index d80fdde..167e246 100755
+index a82af01..d9798f4 100755
 --- a/rel/files/search-cmd
 +++ b/rel/files/search-cmd
 @@ -25,7 +25,7 @@ if [ "$RUNNER_USER" -a "x$LOGNAME" != "x$RUNNER_USER" ]; then
          exit 1
      fi
-     echo "Attempting to restart script through sudo -H -u $RUNNER_USER"
+     echo "Attempting to restart script through sudo -H -u $RUNNER_USER" >&2
 -    exec sudo -H -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 +    exec sudo -H -u $RUNNER_USER $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
  fi
