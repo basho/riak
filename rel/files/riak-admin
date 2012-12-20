@@ -378,6 +378,17 @@ case "$1" in
         $NODETOOL rpc riak_core_console ring_status $@
         ;;
 
+    aae[_-]status)
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT $1"
+            exit 1
+        fi
+        shift
+
+        ensure_node_running
+        $NODETOOL rpc riak_kv_console aae_status $@
+        ;;
+
     cluster[_-]info)
         if [ $# -lt 2 ]; then
             echo "Usage: $SCRIPT $1 <output_file> ['local' | <node> ['local' | <node>] [...]]"
@@ -598,7 +609,7 @@ case "$1" in
         echo "                    reip | js-reload | erl-reload | wait-for-service | "
         echo "                    ringready | transfers | force-remove | down | "
         echo "                    cluster-info | member-status | ring-status | vnode-status |"
-        echo "                    diag | status | transfer-limit | "
+        echo "                    aae-status | diag | status | transfer-limit | "
         echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] }"
         exit 1
         ;;
