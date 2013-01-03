@@ -36,6 +36,12 @@ test: deps compile testclean
              exit `wc -l < $(TEST_LOG_FILE)`; \
         fi
 
+# A helper to setup a new yokozuna project
+yz-setup: deps compile
+	rm -rf deps/riak_kv
+	git clone git://github.com/basho/riak_kv.git deps/riak_kv
+	(cd deps/riak_kv && git checkout rz-yokozuna-3)
+
 ##
 ## Release targets
 ##
