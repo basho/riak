@@ -242,7 +242,15 @@ case "$1" in
         fi
 
         shift
-        exec $ERTS_PATH/to_erl $PIPE_DIR
+        RES=`$NODETOOL rpcterms os cmd "\"echo \\$RIAK_STARTING_MODE\"." < /dev/null`
+        if [[ "$RES" =~ "daemontools" ]]; then
+            UUID=`uuidgen`
+            REMSH_NODE=`echo $NAME_ARG | sed "s/-name \([^\@]*\)/riak-attach-"$UUID"/1"`
+            echo "-name $REMSH_NODE"
+            exec $ERTS_PATH/erl -name $REMSH_NODE $COOKIE_ARG
+        else  
+            exec $ERTS_PATH/to_erl $PIPE_DIR
+        fi
         ;;
 
     console)
@@ -266,6 +274,7 @@ case "$1" in
         CMD="$BINDIR/erlexec -boot $RUNNER_BASE_DIR/releases/$APP_VSN/$SCRIPT \
             -embedded -config $RUNNER_ETC_DIR/app.config \
             -pa $RUNNER_LIB_DIR/basho-patches \
+            $RCFLAGS  \
             -args_file $RUNNER_ETC_DIR/vm.args -- ${1+"$@"}"
         export EMU
         export ROOTDIR
@@ -281,6 +290,10 @@ case "$1" in
 
         # Start the VM
         exec $CMD
+        ;;
+    dt_start)
+        export RCFLAGS="-noinput -noshell -env RIAK_STARTING_MODE daemontools "
+        exec $RUNNER_SCRIPT_DIR/$SCRIPT console
         ;;
     chkconfig)
         RES=`$NODETOOL_LITE chkconfig $RUNNER_ETC_DIR/app.config`
@@ -308,7 +321,7 @@ case "$1" in
         echo $PID
         ;;
     *)
-        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig|escript|version|getpid}"
+        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|dt_start|chkconfig|escript|version|getpid}"
         exit 1
         ;;
 esac
