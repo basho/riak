@@ -1,4 +1,14 @@
-REPO 		?= riak
+REPO            ?= riak
+PKG_NAME        ?= riak
+PKG_REVISION    ?= $(shell git describe --tags)
+PKG_VERSION     ?= $(shell git describe --tags | sed -e 's/^$(PKG_NAME)-//' | tr - .)
+PKG_ID           = $(PKG_NAME)-$(PKG_VERSION)
+PKG_BUILD        = 1
+BASE_DIR         = $(shell pwd)
+ERLANG_BIN       = $(shell dirname $(shell which erl))
+REBAR           ?= $(BASE_DIR)/rebar
+OVERLAY_VARS    ?=
+
 
 .PHONY: rel stagedevrel deps
 
@@ -17,7 +27,7 @@ distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
 generate:
-	./rebar generate
+	./rebar generate $(OVERLAY_VARS)
 
 
 TEST_LOG_FILE := eunit.log
@@ -150,13 +160,9 @@ cleanplt:
 #                                 Hash of commit:    g1170096
 REPO_TAG 	:= $(shell git describe --tags)
 
-# Split off repo name
-# Changes to 1.0.3 or 1.1.0pre1-27-g1170096 from example above
-REVISION 	?= $(shell echo $(REPO_TAG) | sed -e 's/^$(REPO)-//')
-
 # Primary version identifier, strip off commmit information
 # Changes to 1.0.3 or 1.1.0pre1 from example above
-MAJOR_VERSION	?= $(shell echo $(REVISION) | sed -e 's/\([0-9.]*\)-.*/\1/')
+MAJOR_VERSION	?= $(shell echo $(PKG_VERSION) | sed -e 's/\([0-9.]*\)-.*/\1/')
 
 
 ##
@@ -185,13 +191,13 @@ get_dist_deps = mkdir distdir && \
 
 
 # Name resulting directory & tar file based on current status of the git tag
-# If it is a tagged release (REVISION == MAJOR_VERSION), use the toplevel
+# If it is a tagged release (PKG_VERSION == MAJOR_VERSION), use the toplevel
 #   tag as the package name, otherwise generate a unique hash of all the
 #   dependencies revisions to make the package name unique.
 #   This enables the toplevel repository package to change names
 #   when underlying dependencies change.
 NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/null | cut -c 1-8)
-ifeq ($(REVISION), $(MAJOR_VERSION))
+ifeq ($(PKG_VERSION), $(MAJOR_VERSION))
 DISTNAME := $(REPO_TAG)
 else
 DISTNAME = $(REPO)-$(MAJOR_VERSION)-$(NAME_HASH)
@@ -226,19 +232,30 @@ dist $(DISTNAME).tar.gz: distdir/$(DISTNAME)
 ballclean:
 	rm -rf $(DISTNAME).tar.gz distdir
 
-
 ##
-## Packaging targets reside in package directory
-#
-# Strip off repo name for packaging
-PKG_VERSION = $(shell echo $(DISTNAME) | sed -e 's/^$(REPO)-//')
+## Packaging targets
+##
+.PHONY: package
+export PKG_NAME PKG_VERSION PKG_ID PKG_BUILD BASE_DIR ERLANG_BIN REBAR OVERLAY_VARS RELEASE
 
+package.src: deps
+	mkdir -p package
+	rm -rf package/$(PKG_ID)
+	git archive --format=tar --prefix=$(PKG_ID)/ $(PKG_REVISION)| (cd package && tar -xf -)
+	$(MAKE) -C package/$(PKG_ID) deps
+	for dep in package/$(PKG_ID)/deps/*; do \
+             echo "Processing dep: $${dep}"; \
+             mkdir -p $${dep}/priv; \
+             git --git-dir=$${dep}/.git describe --tags >$${dep}/priv/vsn.git; \
+        done
+	find package/$(PKG_ID) -depth -name ".git" -exec rm -rf {} \;
+	tar -C package -czf package/$(PKG_ID).tar.gz $(PKG_ID)
 
-package: dist
-	$(MAKE) -C package package
+dist: package.src
+	cp package/$(PKG_ID).tar.gz .
+
+package: package.src
+	$(MAKE) -C package -f $(PKG_ID)/deps/node_package/Makefile
 
 pkgclean: distclean
-	$(MAKE) -C package pkgclean
-
-.PHONY: package
-export PKG_VERSION REPO DISTNAME
+	rm -rf package
