@@ -105,7 +105,7 @@ templates: $(BUILD_STAGE_DIR)
            $(PKGERDIR)/+INSTALL $(PKGERDIR)/+BUILD_INFO \
 	   $(PKGERDIR)/+DISPLAY $(BUILD_STAGE_DIR)
 	mkdir -p $(PSMF_DIR)
-	cp $(PKGERDIR)/manifest.xml $(PSMF_DIR)
+	cp $(PKGERDIR)/manifest*.xml $(PSMF_DIR)
 	mkdir -p $(ESMF_DIR)
 	sed -e "s/%ERTS_PATH%/${ERTS_PATH}/" < \
 		$(PKGERDIR)/riak-epmd > $(ESMF_DIR)/riak-epmd
