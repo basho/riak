@@ -1,6 +1,13 @@
 BUILD_RIAK_PATH := $(BUILDDIR)/$(REPO)-$(PKG_VERSION)
 BUILD_STAGE_DIR := $(BUILDDIR)/$(APP)
 
+# SmartOS changed pkgsrc versions which majorly changed
+# the layout of the filesystem.  SmartOS 1.6 uses a
+# different SMF manifest file than newer versions
+SMF_MANIFEST = $(shell head -1 /etc/pkgsrc_version | \
+                 grep -c 2011Q4 2> /dev/null | awk \
+                 '{if ($$1 == "1") {print "manifest.xml"} else {print "manifest18.xml"}}')
+
 # Where we install things (based on vars.config)
 # /opt/local based dirs
 PMAN_DIR         := $(BUILD_STAGE_DIR)/man
@@ -107,7 +114,7 @@ templates: $(BUILD_STAGE_DIR)
            $(PKGERDIR)/+INSTALL $(PKGERDIR)/+BUILD_INFO \
 	   $(PKGERDIR)/+DISPLAY $(BUILD_STAGE_DIR)
 	mkdir -p $(PSMF_DIR)
-	cp $(PKGERDIR)/manifest.xml $(PSMF_DIR)
+	cp $(PKGERDIR)/$(SMF_MANIFEST) $(PSMF_DIR)/manifest.xml
 	mkdir -p $(ESMF_DIR)
 	sed -e "s/%ERTS_PATH%/${ERTS_PATH}/" < \
 		$(PKGERDIR)/riak-epmd > $(ESMF_DIR)/riak-epmd
