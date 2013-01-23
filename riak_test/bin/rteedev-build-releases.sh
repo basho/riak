@@ -34,6 +34,10 @@ checkbuild()
         else
             if [ ! -x kerl ]; then
                 echo "   - Fetching kerl."
+                if [ ! `which curl` ]; then
+                    echo "You need 'curl' to be able to run this script, exiting"
+                    exit 1
+                fi
                 curl -O https://raw.github.com/spawngrid/kerl/master/kerl > /dev/null 2>&1; chmod a+x kerl
             fi
         fi
@@ -69,7 +73,7 @@ build()
 
     if [ -n "$DOWNLOAD" ]; then
         echo " - Fetching $DOWNLOAD"
-        s3cmd get $DOWNLOAD
+        wget -q -c $DOWNLOAD
 
         TARBALL=`basename $DOWNLOAD`
         echo " - Expanding $TARBALL"
@@ -99,7 +103,7 @@ build()
     echo " - $SRCDIR built."
 }
 
-build "riak_ee-1.1.4" $R14B04 s3://builds.basho.com/riak_ee/1.1/1.1.4/riak_ee-1.1.4.tar.gz
+build "riak_ee-1.1.4" $R14B04 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/5fp9e4/1.1.4/riak_ee-1.1.4.tar.gz
 echo
-build "riak_ee-1.2.1" $R15B01 s3://builds.basho.com/riak_ee/1.2/1.2.1/riak_ee-1.2.1.tar.gz
+build "riak_ee-1.2.1" $R15B01 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/627f21/1.2.1/riak_ee-1.2.1.tar.gz
 echo
