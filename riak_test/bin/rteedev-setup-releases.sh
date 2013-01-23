@@ -5,8 +5,8 @@
 # that contains devrels for prior Riak EE releases. Easy way to create this
 # is to use the rteedev-build-releases.sh script
 
-: ${RTEE_DEST_DIR:="/tmp/rtee"}
-
+: ${RTEE_DEST_DIR:="$HOME/rt/riak_ee"}
+mkdir -p $RTEE_DEST_DIR
 echo "Setting up releases from $(pwd):"
 echo " - Creating $RTEE_DEST_DIR"
 
