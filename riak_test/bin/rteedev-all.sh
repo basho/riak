@@ -18,7 +18,7 @@ echo "================== riak_test Omnibus Installer =================="
 echo
 echo "This is an omnibus script that builds all the necessary versions "
 echo "of Erlang and Riak EE (including the latest from Github) for running"
-echo "riak_test and installs them into /tmp/rtee.                        "
+echo "riak_test and installs them into $HOME/rt/riak_ee.   "
 echo
 echo -n "Are you sure you want to continue? [Y|n] "
 read continue
