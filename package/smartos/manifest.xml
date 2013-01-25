@@ -20,7 +20,7 @@
         <envvar name="LOGNAME" value="riak" />
         <envvar name="PATH" value="/usr/bin:/bin:/opt/local/bin:/opt/local/sbin" />
         <envvar name="LD_PRELOAD_32" value="/lib/libumem.so.1" />
-        <envvar name="LD_PRELOAD_64" value="/lib/64/libumem.so.1:/opt/local/lib/amd64/libgcc_s.so.1"/>
+        <envvar name="LD_PRELOAD_64" value="/lib/64/libumem.so.1:/opt/local/lib/amd64/libgcc_s.so.1:/opt/local/lib/amd64/libstdc++.so.6"/>
         <envvar name="UMEM_OPTIONS" value="allocator=best" />
       </method_environment>
     </method_context>
