@@ -40,11 +40,11 @@ if ([ "$RUNNER_USER" ] && [ "x$WHOAMI" != "x$RUNNER_USER" ]); then
     exec sudo -H -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 fi
 
-# Warn the user if ulimit -n is less than 1024
+# Warn the user if ulimit -n is less than 4096
 ULIMIT_F=`ulimit -n`
-if [ "$ULIMIT_F" -lt 1024 ]; then
+if [ "$ULIMIT_F" -lt 4096 ]; then
     echo "!!!!"
-    echo "!!!! WARNING: ulimit -n is ${ULIMIT_F}; 1024 is the recommended minimum."
+    echo "!!!! WARNING: ulimit -n is ${ULIMIT_F}; 4096 is the recommended minimum."
     echo "!!!!"
 fi
 
