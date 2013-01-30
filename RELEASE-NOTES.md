@@ -1,4 +1,6 @@
-## Riak 1.3.0 Release Notes **Work in progress until final release**
+__Work in progress until final release__
+
+## Riak 1.3.0 Release Notes
 
 ### New Features or Major Improvements for Riak
 
