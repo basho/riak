@@ -118,6 +118,33 @@ To encourage its use, we have now included Riaknostic in the Riak packages.  Pri
 
 Packages are now available for SmartOS machines based on 1.8 datasets as well as 1.6.
 
+#### Health Check 
+
+New in Riak 1.3. Riak Core now includes a health check subsystem that actively monitors each node for specific conditions and disables/enables services based on those conditions.
+
+To enable/disable all health checks a new setting has been added to the `riak_core` section of `app.config`:
+
+    %% Health Checks
+    %% If disabled, health checks registered by an application will
+    %% be ignored. NOTE: this option cannot be changed at runtime.
+    %% To re-enable, the setting must be changed and the node restarted.
+    {enable_health_checks, true},
+
+Riak registers a health check with Riak Core to monitor the message queue lengths of KV vnodes. To configure the kv health check a new setting has been added to the `riak_kv` section of `app.config`:
+
+    %% This option configures the riak_kv health check that monitors
+    %% message queue lengths of riak_kv vnodes. The value is a 2-tuple,
+    %% {EnableThreshold, DisableThreshold}. If a riak_kv_vnode's message
+    %% queue length reaches DisableThreshold the riak_kv service is disabled
+    %% on this node. The service will not be re-enabled until the message queue
+    %% length drops below EnableThreshold.
+    {vnode_mailbox_limit, {1, 5000}}
+
+Note: the kv health check does not apply to Riak Search or Riak Pipe vnodes.
+
+#### Reset Bucket Properties
+
+The HTTP interface now supports resetting bucket properties to their default values. Bucket properties are stored in Riak's ring structure that is gossiped around the cluster. Resetting bucket properties for buckets that are no longer used or that are using the default properties can reduce the amount of gossiped data.
 
 ### Installation Notes
 
