@@ -10,7 +10,7 @@ index f493ffa..2dbffcc 100755
 +    exec sudo -H -u $RUNNER_USER $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
  fi
  
- # Warn the user if ulimit -n is less than 1024
+ # Warn the user if ulimit -n is less than 4096 
 @@ -126,6 +126,21 @@ sed -n '/Begin SSL distribution items/,/End SSL distribution items/p' \
  # Check the first argument for instructions
  case "$1" in
