@@ -156,14 +156,13 @@ error: Failed dependencies:
     /usr/bin/expect is needed by riak-1.3.0rc1-1.x86_64
 ```
 
-You can fix this issue by installing `expect` with yum and then try your riak install again:
+You can fix this issue by installing the Riak RPM with `yum` which will resolve any dependencies automatically:
 
 ```
-$ sudo yum -y install expect
-<snip>
-$ sudo rpm -ivh riak-1.3.0rc1-1.<snip>
+$ sudo yum -y install riak-1.3.0rc1-1.el5.x86_64.rpm
 Preparing...                ########################################### [100%]
-   1:riak                   ########################################### [100%]
+   1:expect                 ########################################### [100%]
+   2:riak                   ########################################### [100%]
 ```
 
 ### Issues / PR's Resolved
