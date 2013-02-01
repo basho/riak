@@ -146,6 +146,18 @@ Note: the kv health check does not apply to Riak Search or Riak Pipe vnodes.
 
 The HTTP interface now supports resetting bucket properties to their default values. Bucket properties are stored in Riak's ring structure that is gossiped around the cluster. Resetting bucket properties for buckets that are no longer used or that are using the default properties can reduce the amount of gossiped data.
 
+#### Support for logging to syslog
+
+Riak 1.3 now includes support for logging to syslog. To enable it, you can add something like this to the 'handlers' section of riak's app.config, under lager:
+
+```
+{lager_syslog_backend, ["riak", daemon, info]}
+```
+
+Which would log any messages at info or above to the daemon facility with the identity set to 'riak'. For more information see the lager_syslog documentation:
+
+https://github.com/basho/lager_syslog
+
 ### Installation Notes
 
 For RHEL/Centos/Fedora users, the RPM tools have added a dependency on `expect`, so if you see a message like this:
