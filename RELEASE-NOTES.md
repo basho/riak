@@ -118,7 +118,7 @@ To encourage its use, we have now included Riaknostic in the Riak packages.  Pri
 
 Packages are now available for SmartOS machines based on 1.8 datasets as well as 1.6.
 
-#### Health Check 
+#### Health Check
 
 New in Riak 1.3. Riak Core now includes a health check subsystem that actively monitors each node for specific conditions and disables/enables services based on those conditions.
 
@@ -310,6 +310,7 @@ Preparing...                ########################################### [100%]
 * riak_kv/458: [Make index_hashtree process exit when related vnode exits](https://github.com/basho/riak_kv/issues/458)
 * riak_kv/459: [Fix health check code to handle dead pids](https://github.com/basho/riak_kv/issues/459)
 * riak_kv/460: [Fix AAE exchange bug for the N=1 case](https://github.com/basho/riak_kv/issues/460)
+* riak_kv/476: [Take node liveness into account during contant hash choice for reduce phase](https://github.com/basho/riak_kv/issues/476) - Thanks Alexander Gunin
 * riak_pb/15: [Maven build](https://github.com/basho/riak_pb/issues/15)
 * riak_pb/18: [Add proto_cmd to MANIFEST.in](https://github.com/basho/riak_pb/issues/18)
 * riak_pb/19: [Add OSGi Manifest headers to riak-pb jar file](https://github.com/basho/riak_pb/issues/19)
