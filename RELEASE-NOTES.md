@@ -118,7 +118,7 @@ To encourage its use, we have now included Riaknostic in the Riak packages.  Pri
 
 Packages are now available for SmartOS machines based on 1.8 datasets as well as 1.6.
 
-#### Health Check 
+#### Health Check
 
 New in Riak 1.3. Riak Core now includes a health check subsystem that actively monitors each node for specific conditions and disables/enables services based on those conditions.
 
@@ -146,6 +146,18 @@ Note: the kv health check does not apply to Riak Search or Riak Pipe vnodes.
 
 The HTTP interface now supports resetting bucket properties to their default values. Bucket properties are stored in Riak's ring structure that is gossiped around the cluster. Resetting bucket properties for buckets that are no longer used or that are using the default properties can reduce the amount of gossiped data.
 
+#### Support for logging to syslog
+
+Riak 1.3 now includes support for logging to syslog. To enable it, you can add something like this to the 'handlers' section of riak's app.config, under lager:
+
+```
+{lager_syslog_backend, ["riak", daemon, info]}
+```
+
+Which would log any messages at info or above to the daemon facility with the identity set to 'riak'. For more information see the lager_syslog documentation:
+
+https://github.com/basho/lager_syslog
+
 ### Installation Notes
 
 For RHEL/Centos/Fedora users, the RPM tools have added a dependency on `expect`, so if you see a message like this:
@@ -168,6 +180,7 @@ Preparing...                ########################################### [100%]
 ### Issues / PR's Resolved
 
 * riak: `ulimit -n` warning message bumped from 1024 to 4096
+* riak/192: [Permissions not checked on $PIPE_DIR in riak script](https://github.com/basho/riak/issues/192)
 * riak/266: [Add libstdc++ library to LD_PRELOAD path to find proper symbols in SmartOS](https://github.com/basho/riak/issues/266)
 * riak/261: [Add 'riak-admin aae_status', plus add AAE options to app.config](https://github.com/basho/riak/issues/261)
 * riak/259: [remove legacy-mapred-only configs](https://github.com/basho/riak/issues/259)
@@ -191,6 +204,7 @@ Preparing...                ########################################### [100%]
 * cluster_info/11: [Remove Luke usage](https://github.com/basho/cluster_info/issues/11)
 * cluster_info/8: [update rebar to 2.0.0](https://github.com/basho/cluster_info/issues/8)
 * ebloom/8: [update rebar to 2.0.0](https://github.com/basho/ebloom/issues/8)
+* leveldb/71: [convert LRUCache from LRU to simple fifo](https://github.com/basho/leveldb/pull/71)
 * eleveldb/37: [raise bits per key from 10 to 16.  reduces false positive rate.](https://github.com/basho/eleveldb/issues/37)
 * eleveldb/38: [updated to rebar 2.0.0](https://github.com/basho/eleveldb/issues/38)
 * eleveldb/39: [Export iterator/3 so users can iterate over just keys](https://github.com/basho/eleveldb/issues/39)
@@ -298,6 +312,8 @@ Preparing...                ########################################### [100%]
 * riak_kv/458: [Make index_hashtree process exit when related vnode exits](https://github.com/basho/riak_kv/issues/458)
 * riak_kv/459: [Fix health check code to handle dead pids](https://github.com/basho/riak_kv/issues/459)
 * riak_kv/460: [Fix AAE exchange bug for the N=1 case](https://github.com/basho/riak_kv/issues/460)
+* riak_kv/476: [Take node liveness into account during contant hash choice for reduce phase](https://github.com/basho/riak_kv/issues/476) - Thanks Gunin Alexander
+* riak_kv/478: [Improve interaction between AAE and K/V deletion](https://github.com/basho/riak_kv/pull/478)
 * riak_pb/15: [Maven build](https://github.com/basho/riak_pb/issues/15)
 * riak_pb/18: [Add proto_cmd to MANIFEST.in](https://github.com/basho/riak_pb/issues/18)
 * riak_pb/19: [Add OSGi Manifest headers to riak-pb jar file](https://github.com/basho/riak_pb/issues/19)
