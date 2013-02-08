@@ -23,25 +23,11 @@ cd $RUNNER_BASE_DIR
 # Identify the script name
 SCRIPT=`basename $0`
 
-usage() {
-    echo "Usage $SCRIPT { set-schema | clear-schema | clear-schema-cache | "
-    echo "                    search | search-doc | explain | index | delete | solr | "
-    echo "                    install | uninstall | test }"
-}
-
-
-if [ "$1" = "search-cmd" ]; then
-    shift
-    # Make sure the local node IS running
-    RES=`$NODETOOL ping`
-    if [ "$RES" != "pong" ]; then
-        echo "Node is not running!"
-        exit 1
-    fi
-    $NODETOOL rpc_infinity riak_search_cmd command $ORIGINAL_DIR "$@"
-else 
-    # print the toplevel usage
-    usage
+# Make sure the local node IS running
+RES=`$NODETOOL ping`
+if [ "$RES" != "pong" ]; then
+    echo "Node is not running!"
     exit 1
 fi
+$NODETOOL rpc_infinity riak_search_cmd command $ORIGINAL_DIR "$@"
 
