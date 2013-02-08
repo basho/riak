@@ -1,3 +1,47 @@
 #!/bin/sh
+# -*- tab-width:4;indent-tabs-mode:nil -*-
+# ex: ts=4 sw=4 et
 
-exec "{{runner_script_dir}}/riak" search-cmd "$@"
+# installed by node_package (github.com/basho/node_package)
+
+# Pull environment for this install
+. "{{runner_base_dir}}/lib/env.sh"
+
+# Make sure the user running this script is the owner and/or su to that user
+check_user $@
+ES=$?
+if [ "$ES" -ne 0 ]; then
+    exit $ES
+fi
+
+# Keep track of where script was invoked
+ORIGINAL_DIR=$(pwd)
+
+# Make sure CWD is set to runner run dir
+cd $RUNNER_BASE_DIR
+
+# Identify the script name
+SCRIPT=`basename $0`
+
+usage() {
+    echo "Usage $SCRIPT { set-schema | clear-schema | clear-schema-cache | "
+    echo "                    search | search-doc | explain | index | delete | solr | "
+    echo "                    install | uninstall | test }"
+}
+
+
+if [ "$1" = "search-cmd" ]; then
+    shift
+    # Make sure the local node IS running
+    RES=`$NODETOOL ping`
+    if [ "$RES" != "pong" ]; then
+        echo "Node is not running!"
+        exit 1
+    fi
+    $NODETOOL rpc_infinity riak_search_cmd command $ORIGINAL_DIR "$@"
+else 
+    # print the toplevel usage
+    usage
+    exit 1
+fi
+
