@@ -36,6 +36,11 @@ strategies, and more, please visit our wiki at http://wiki.basho.com/.
   2. Start the Riak server
   3. Connect a client and store/fetch data
 
+** JDK required to build Riak Enterprise
+
+   Riak Enterprise exposes monitoring data via JMX. To compile JMX,
+   JDK must be installed before building Riak Enterprise. 
+
 ** Building Riak
 
    Assuming you have a working Erlang (R14B02 or later) installation,
