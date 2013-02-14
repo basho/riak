@@ -186,6 +186,7 @@ Preparing...                ########################################### [100%]
 * riak/259: [remove legacy-mapred-only configs](https://github.com/basho/riak/issues/259)
 * riak/253: [Properly exit on `/etc/init.d/riak status` command](https://github.com/basho/riak/issues/253)
 * riak/251: [`riak stop` does not behave properly on BSD systems](https://github.com/basho/riak/issues/251)
+* riak/274: [Riak fails to start on a single CPU machine](https://github.com/basho/riak/issues/274)
 * riak: [Set riak_sysmon's gc_ms_limit default value to zero](https://github.com/basho/riak/commit/065a2abf2ee3bbcd8da0fcf885f1fc8cd8f6327d)
 * basho_stats/2: [update rebar to 2.0.0](https://github.com/basho/basho_stats/issues/2)
 * bitcask/42: [Disable merges on startup to prevent high disk io with heavy requests](https://github.com/basho/bitcask/issues/42)
