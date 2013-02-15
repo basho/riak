@@ -98,7 +98,7 @@ Riak Pipe brought inter-stage backpressure to Riak KV's MapReduce system. Howeve
 
 * [Allow gen_nb_server to support IPv6 addresses - riak_core #249](https://github.com/basho/riak_core/pull/249)
 
-Riak Handoff and Protocol Buffers interfaces can now listen on IPv6 addresses (HTTP has always supported IPv6). You may specify the address using the short-hand string form, e.g. `"::1"` (for localhost), or as the 8-byte address in a tuple, e.g. `{0,0,0,0,0,0,0,1}` (for localhost). IPv4 addresses may also be specified in either form (except the latter will be 4 bytes). *Note: This does not affect Riak node names. Refer to the `inet_dist_*` settings in the [Erlang documentation](http://www.erlang.org/documentation/doc-5.9.1/lib/kernel-2.15.1/doc/html/kernel_app.html) to enable IPv6 support for cluster membership.*
+Riak Handoff and Protocol Buffers interfaces can now listen on IPv6 addresses (HTTP has always supported IPv6). You may specify the address using the short-hand string form, e.g. `"::1"` (for localhost), or as the 16-byte address in a tuple of 8 numbers, e.g. `{0,0,0,0,0,0,0,1}` (for localhost). IPv4 addresses may also be specified in either form (except the latter will be 4 bytes, tuple of 4 numbers). *Note: This does not affect Riak node names. Refer to the `inet_dist_*` settings in the [Erlang documentation](http://www.erlang.org/documentation/doc-5.9.1/lib/kernel-2.15.1/doc/html/kernel_app.html) to enable IPv6 support for cluster membership.*
 
 #### Luke Removal
 
