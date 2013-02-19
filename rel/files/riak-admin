@@ -136,6 +136,15 @@ cluster_admin()
             ensure_node_running
             $NODETOOL rpc riak_core_console stage_force_replace "$2" "$3"
             ;;
+        resize-ring)
+            if [ $# -ne 2 ]; then
+                echo "Usage: $SCRIPT cluster resize-ring <new-ring-size>"
+                echo "       $SCRIPT cluster resize-ring abort"
+                exit 1
+            fi
+            ensure_node_running
+            $NODETOOL rpc riak_core_console stage_resize_ring "$2"
+            ;;
         plan)
             ensure_node_running
             $NODETOOL rpc riak_core_console print_staged
