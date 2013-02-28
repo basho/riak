@@ -602,7 +602,7 @@ case "$1" in
         fi
         ensure_node_running
         shift
-        $NODETOOL rpc riak_core_console transfer_limit "$@"
+        $NODETOOL rpc riak_kv_console transfer_limit "$@"
         ;;
     *)
         echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
