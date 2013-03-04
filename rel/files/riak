@@ -40,14 +40,6 @@ if ([ "$RUNNER_USER" ] && [ "x$WHOAMI" != "x$RUNNER_USER" ]); then
     exec sudo -H -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
 fi
 
-# Warn the user if ulimit -n is less than 4096
-ULIMIT_F=`ulimit -n`
-if [ "$ULIMIT_F" -lt 4096 ]; then
-    echo "!!!!"
-    echo "!!!! WARNING: ulimit -n is ${ULIMIT_F}; 4096 is the recommended minimum."
-    echo "!!!!"
-fi
-
 # Make sure CWD is set to runner base dir
 cd $RUNNER_BASE_DIR
 
@@ -139,6 +131,17 @@ case "$1" in
             echo $RES
             exit 1
         fi
+
+        # Warn the user if ulimit -n is less than 4096
+        ULIMIT_F=`ulimit -n`
+        if [ "$ULIMIT_F" -lt 4096 ]; then
+            echo "!!!!"
+            echo "!!!! WARNING: shell ulimit -n is ${ULIMIT_F}; 4096 is the recommended minimum."
+            echo "!!!! riak user or erlang ulimit may differ, please check"
+            echo "!!!! console.log for more detailed file limit information."
+            echo "!!!!"
+        fi
+
         HEART_COMMAND="$RUNNER_SCRIPT_DIR/$SCRIPT start"
         export HEART_COMMAND
         mkdir -p $PIPE_DIR
