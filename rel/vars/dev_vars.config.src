@@ -58,3 +58,6 @@
 {runner_user,        ""}.
 {runner_wait_process, "riak_core_node_watcher"}.
 
+{yz_dir, "{{platform_data_dir}}/yz"}.
+{yz_solr_port, @YZSOLRPORT@}.
+{yz_solr_jmx_port, @YZSOLRJMXPORT@}.
