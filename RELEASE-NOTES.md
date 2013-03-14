@@ -1,5 +1,3 @@
-__Work in progress until final release__
-
 ## Riak 1.3.0 Release Notes
 
 ### New Features or Major Improvements for Riak
@@ -98,7 +96,7 @@ Riak Pipe brought inter-stage backpressure to Riak KV's MapReduce system. Howeve
 
 * [Allow gen_nb_server to support IPv6 addresses - riak_core #249](https://github.com/basho/riak_core/pull/249)
 
-Riak Handoff and Protocol Buffers interfaces can now listen on IPv6 addresses (HTTP has always supported IPv6). You may specify the address using the short-hand string form, e.g. `"::1"` (for localhost), or as the 8-byte address in a tuple, e.g. `{0,0,0,0,0,0,0,1}` (for localhost). IPv4 addresses may also be specified in either form (except the latter will be 4 bytes). *Note: This does not affect Riak node names. Refer to the `inet_dist_*` settings in the [Erlang documentation](http://www.erlang.org/documentation/doc-5.9.1/lib/kernel-2.15.1/doc/html/kernel_app.html) to enable IPv6 support for cluster membership.*
+Riak Handoff and Protocol Buffers interfaces can now listen on IPv6 addresses (HTTP has always supported IPv6). You may specify the address using the short-hand string form, e.g. `"::1"` (for localhost), or as the 16-byte address in a tuple of 8 numbers, e.g. `{0,0,0,0,0,0,0,1}` (for localhost). IPv4 addresses may also be specified in either form (except the latter will be 4 bytes, tuple of 4 numbers). *Note: This does not affect Riak node names. Refer to the `inet_dist_*` settings in the [Erlang documentation](http://www.erlang.org/documentation/doc-5.9.1/lib/kernel-2.15.1/doc/html/kernel_app.html) to enable IPv6 support for cluster membership.*
 
 #### Luke Removal
 
@@ -186,6 +184,7 @@ Preparing...                ########################################### [100%]
 * riak/259: [remove legacy-mapred-only configs](https://github.com/basho/riak/issues/259)
 * riak/253: [Properly exit on `/etc/init.d/riak status` command](https://github.com/basho/riak/issues/253)
 * riak/251: [`riak stop` does not behave properly on BSD systems](https://github.com/basho/riak/issues/251)
+* riak/274: [Riak fails to start on a single CPU machine](https://github.com/basho/riak/issues/274)
 * riak: [Set riak_sysmon's gc_ms_limit default value to zero](https://github.com/basho/riak/commit/065a2abf2ee3bbcd8da0fcf885f1fc8cd8f6327d)
 * basho_stats/2: [update rebar to 2.0.0](https://github.com/basho/basho_stats/issues/2)
 * bitcask/42: [Disable merges on startup to prevent high disk io with heavy requests](https://github.com/basho/bitcask/issues/42)
@@ -201,6 +200,8 @@ Preparing...                ########################################### [100%]
 * bitcask/66: [Fix log spam introduced by branch 'gh62-badrecord-mstate'](https://github.com/basho/bitcask/issues/66)
 * bitcask/67: [Add bitcask:is_empty_estimate](https://github.com/basho/bitcask/issues/67)
 * bitcask/70: [Clear all Dialyzer warnings](https://github.com/basho/bitcask/issues/70)
+* bitcask/76: [Make Bitcask I/O mode configurable: Erlang vs NIF](https://github.com/basho/bitcask/pull/76)
+* bitcask/77: [Change default Bitcask I/O mode to Erlang](https://github.com/basho/bitcask/pull/77)
 * cluster_info/11: [Remove Luke usage](https://github.com/basho/cluster_info/issues/11)
 * cluster_info/8: [update rebar to 2.0.0](https://github.com/basho/cluster_info/issues/8)
 * ebloom/8: [update rebar to 2.0.0](https://github.com/basho/ebloom/issues/8)
@@ -249,6 +250,7 @@ Preparing...                ########################################### [100%]
 * riak_control/42: [Add new Riak Control theme.](https://github.com/basho/riak_control/issues/42)
 * riak_control/44: [Do not require secure only cookie.](https://github.com/basho/riak_control/issues/44)
 * riak_control/48: [Move formatting functions to riak_control_formatting.](https://github.com/basho/riak_control/issues/48)
+* riak_control/53: [style.css file missing from some packages](https://github.com/basho/riak_control/pull/53)
 * riak_core/137: [Change node to use claim_v1 when in legacy mode](https://github.com/basho/riak_core/issues/137)
 * riak_core/188: [Eunit cleanups](https://github.com/basho/riak_core/issues/188)
 * riak_core/195: [Change write_ringfile to create a temporary ring file, check and rename.](https://github.com/basho/riak_core/issues/195)
@@ -314,6 +316,9 @@ Preparing...                ########################################### [100%]
 * riak_kv/460: [Fix AAE exchange bug for the N=1 case](https://github.com/basho/riak_kv/issues/460)
 * riak_kv/476: [Take node liveness into account during contant hash choice for reduce phase](https://github.com/basho/riak_kv/issues/476) - Thanks Gunin Alexander
 * riak_kv/478: [Improve interaction between AAE and K/V deletion](https://github.com/basho/riak_kv/pull/478)
+* riak_kv/482: [Randomize the LevelDB write_buffer_size used for AAE](https://github.com/basho/riak_kv/pull/482)
+* riak_kv/483: [Improve AAE backpressure on K/V vnode write-path](https://github.com/basho/riak_kv/pull/483)
+* riak_kv/486: [Make AAE default to 'off' when not configured](https://github.com/basho/riak_kv/pull/486)
 * riak_pb/15: [Maven build](https://github.com/basho/riak_pb/issues/15)
 * riak_pb/18: [Add proto_cmd to MANIFEST.in](https://github.com/basho/riak_pb/issues/18)
 * riak_pb/19: [Add OSGi Manifest headers to riak-pb jar file](https://github.com/basho/riak_pb/issues/19)
