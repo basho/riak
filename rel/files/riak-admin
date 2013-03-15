@@ -604,12 +604,22 @@ case "$1" in
         shift
         $NODETOOL rpc riak_core_console transfer_limit "$@"
         ;;
+    reformat[_-]indexes)
+        if [ $# -gt 3 ]; then
+            echo "Usage: $SCRIPT $1"
+            echo "       $SCRIPT $1 --downgrade"
+            echo "       $SCRIPT $1 <concurrency> [--downgrade]"
+        fi
+        ensure_node_running
+        shift
+        $NODETOOL rpc riak_kv_console reformat_indexes "$@"
+        ;;
     *)
         echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
         echo "                    reip | js-reload | erl-reload | wait-for-service | "
         echo "                    ringready | transfers | force-remove | down | "
         echo "                    cluster-info | member-status | ring-status | vnode-status |"
-        echo "                    aae-status | diag | status | transfer-limit | "
+        echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
         echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] }"
         exit 1
         ;;
