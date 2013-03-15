@@ -228,9 +228,9 @@ handoffport_exists(Terms) ->
 
 
 pbc_port_exists(Terms) ->
-    case get_env(Terms, riak_api, pb_port) of
-        undefined ->
-            {warning, "pb_port undefined, protobuffs interface not enabled"};
+    case {get_env(Terms, riak_api, pb_port), get_env(Terms, riak_api, pb)} of
+        {undefined, undefined} ->
+            {warning, "pb settings undefined, protobuffs interface not enabled"};
         _ ->
             true
     end.
