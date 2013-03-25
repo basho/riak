@@ -294,6 +294,7 @@ case "$1" in
             $NODETOOL rpc riak_repl_console $CMD $1 $2
         fi
         ;;
+
   modes)
         CMD=$1
         shift
@@ -394,6 +395,34 @@ case "$1" in
                 ;;
         esac
         ;;
+
+    proxy_get)
+        ACTION=$1
+        shift
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        if [ $# -lt 1 ]; then
+            echo "Usage: $SCRIPT $ACTION enable <clustername> |"
+            echo "                       disable <clustername> |"
+            exit 1
+        fi
+        SUB_CMD=$1
+        shift
+        case $SUB_CMD in
+            enable|disable)
+                if [ $# -lt 1 ]; then
+                    echo "Usage: $SCRIPT $ACTION {enable|disable} <clustername>"
+                    exit 1
+                fi
+                $NODETOOL rpc riak_repl_console $ACTION $SUB_CMD $1
+                ;;
+        esac
+        ;;
+
     *)
 
 
@@ -507,6 +536,12 @@ Advanced mode MDC replication:
              Start or stop fullsync replication to a named sink cluster.
              Fullsync repliction for a cluster must first be enabled before
              it is started.
+
+      proxy_get enable <clustername>
+      proxy_get disable <clustername>
+
+             Allow a connected sink cluster to request Riak CS blocks in
+             realtime from *this* source cluster.
 
       clusterstats [{<ip:-port> | <protocol-id>}]
              protocol-id = cluster_mgr | rt_repl | fs_repl
