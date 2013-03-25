@@ -4,6 +4,16 @@
 
 ### Issues / PR's Resolved
 
+* riak_kv/505: [Fix bug where stats endpoints were calculating _all_ riak_kv stats](https://github.com/basho/riak_kv/issues/505)  
+  NOTE: this fix introduces a slight change to the stats caching strategy in riak. Formerly stats were cached for TTL seconds
+  and the cache's freshness checked when a request to a stats endpoint was serviced. If the cache was stale the stats would be
+  calculated on demand. From 1.3.1 forward all stats requests are served from the cache. A background process calculates stats
+  and refreshes the cache at an interval. This smooths the access latency for stats. A new stat  `{riak_kv_stat_ts, timestamp()}`
+  is added to the returned stats that indicates the time the stats were calculated.
+* riak_kv/508: [If a `folsom_metrics_histogram_ets` owned table dies, kv_stat cannot recreate it](https://github.com/basho/riak_kv/issues/508)  
+  NOTE: introduces the stat value `unavailable` for any stat that cannot be calculated due to an error. Previously a call to a stats endpoint
+  would simply fail, with this fix, failed stats are `unavailable` and all others returned uneffected.
+
 ## Riak 1.3.0 Release Notes
 
 ### New Features or Major Improvements for Riak
