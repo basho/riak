@@ -1,3 +1,24 @@
+## Riak 1.3.1 Release Notes
+
+### New Features or Major Improvements for Riak
+
+### Issues / PR's Resolved
+
+* riak_repl/203: [Uninstall the repl ring event handler on shutdown](https://github.com/basho/riak_repl/issues/203)
+* riak_repl/207: [Fix bogus call to MODULE:stop in riak_repl_keylist_server.erl](https://github.com/basho/riak_repl/issues/207)
+* riak_repl/221: [Add calls to increment stats client/server_connect_errors](https://github.com/basho/riak_repl/issues/221)
+* riak_api/26: [Fix stat names so delete of stats on restart works](https://github.com/basho/riak_api/issues/26)
+* riak_core/281: [Porting parallel vnode init fix to 1.3 + revert switch](https://github.com/basho/riak_core/issues/281)
+* riak_core/288: [Failure to calculate a stats value should be temporary so warn only](https://github.com/basho/riak_core/issues/288)
+* riak_pipe/70: [Fix stat names so delete of stats on restart works](https://github.com/basho/riak_pipe/issues/70)
+* riak_kv/485: [Fix PR/PW](https://github.com/basho/riak_kv/issues/485)
+* riak_kv/499: [Big integer 2i indexes sometimes sort incorrectly](https://github.com/basho/riak_kv/issues/499)
+* riak_kv/511: [riak_kv 1.3.1 using parallel vnode init](https://github.com/basho/riak_kv/issues/511)
+* riak_kv/514: [Change AAE to use incremental crypto:sha calculations](https://github.com/basho/riak_kv/issues/514)
+* riak_kv/516: [support for handling legacy sext encoding of 2i keys](https://github.com/basho/riak_kv/issues/516)
+* riak_kv/517: [Since stats now get repaired when an update fails, log as `warning`](https://github.com/basho/riak_kv/issues/517)
+* riak_snmp/5: [add SNMP traps for get/put FSM stats](https://github.com/basho/riak_snmp/issues/5)
+
 ## Riak 1.3.0 Release Notes
 
 ### New Features or Major Improvements for Riak
