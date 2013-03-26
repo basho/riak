@@ -301,7 +301,7 @@ replication to use the full capacity of the network and cluster while increasing
 
 ```
  riak-repl modes [<modelist>]
-        where "modelist" is one or bolth of mode_repl12, mode_repl13 separated by spaces.
+        where "modelist" is one or both of mode_repl12, mode_repl13 separated by spaces.
 
 ```
 
