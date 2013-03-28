@@ -17,6 +17,7 @@
 * riak_kv/514: [Change AAE to use incremental crypto:sha calculations](https://github.com/basho/riak_kv/issues/514)
 * riak_kv/516: [support for handling legacy sext encoding of 2i keys](https://github.com/basho/riak_kv/issues/516)
 * riak_kv/517: [Since stats now get repaired when an update fails, log as `warning`](https://github.com/basho/riak_kv/issues/517)
+* riak_kv/522: [Spell badarg correctly](https://github.com/basho/riak_kv/pull/522)
 * riak_snmp/5: [add SNMP traps for get/put FSM stats](https://github.com/basho/riak_snmp/issues/5)
 
 ## Riak 1.3.0 Release Notes
