@@ -2,6 +2,60 @@
 
 ### New Features or Major Improvements for Riak
 
+#### 2i Big Integer Encoding
+
+For all Riak versions prior to 1.3.1, 2i range queries involving 
+integers greater than or equal to 2147483647 (0x7fffffff) could return 
+missing results. The cause was identified to be an issue with the encoding library sext [1], 
+which Riak uses for indexes stored in eleveldb.  Sext serializes Erlang terms 
+to a binary while preserving sort order. For these large integers, this was not the case.
+Since the 2i implementation relies on this property, some range queries were
+affected.
+
+The issue in sext was patched [2] and is included in Riak 1.3.1. New installations of 
+Riak 1.3.1 will immediately take advantage of the change.
+However, the fix introduces an incompatibly in the encoding of big integers. 
+Integer indexes containing values greater than or equal to 2147483647 
+already written to disk with Riak 1.3 and below will need to be rewritten, 
+so that range queries over them will return the correct results. 
+
+Riak 1.3.1 includes a utility, as part of
+`riak-admin`, that will perform the reformatting of these indexes
+while the node is online. After the affected indexes have been
+reformatted on all nodes, range queries will begin returning the
+correct results for previously written data. The utility should be run
+against any riak cluster using 2i after upgrading the entire cluster
+to 1.3.1, regardless of whether or not large integer index values are
+used. It will report how many indexes were affected (rewritten). Unaffected 
+indexes are not modified and new writes will be written in the correct format.
+
+To reformat indexes on a Riak node run: 
+
+```
+riak-admin reformat-indexes [<concurrency>]
+```
+
+The concurrency option controls how many partitions are reformatted concurrenctly. 
+If not provided it defaults to 2. Output will be printed to logs once the reformatting has
+completed (or if it errors). *If the reformatting operation errors, it should be re-executed.*
+The operation will only attempt to reformat keys that were not fixed on the previous run.
+
+If downgrading back to Riak 1.3 from Riak 1.3.1, indexes will need to be reformatted 
+back to the old encoding in order for the downgraded node to run correctly. The `--downgrade`
+flag can be passed to `riak-admin reformat-indexes` to perform this operation:
+
+```
+riak-admin reformat-indexes [<concurrency>] --downgrade
+```
+
+Similarly, concurrency is optional and defaults to 2.
+
+[1] https://github.com/uwiger/sext
+
+[2] https://github.com/uwiger/sext/commit/ff10beb7a791f04ad439d2c1c566251901dd6bdc
+
+
+
 ### Issues / PR's Resolved
 
 * riak_kv/505: [Fix bug where stats endpoints were calculating _all_ riak_kv stats](https://github.com/basho/riak_kv/issues/505)  
@@ -13,6 +67,19 @@
 * riak_kv/508: [If a `folsom_metrics_histogram_ets` owned table dies, kv_stat cannot recreate it](https://github.com/basho/riak_kv/issues/508)  
   NOTE: introduces the stat value `unavailable` for any stat that cannot be calculated due to an error. Previously a call to a stats endpoint
   would simply fail, with this fix, failed stats are `unavailable` and all others returned uneffected.
+
+* riak_api/26: [Fix stat names so delete of stats on restart works](https://github.com/basho/riak_api/issues/26)
+* riak_core/281: [Porting parallel vnode init fix to 1.3 + revert switch](https://github.com/basho/riak_core/issues/281)
+* riak_core/288: [Failure to calculate a stats value should be temporary so warn only](https://github.com/basho/riak_core/issues/288)
+* riak_pipe/70: [Fix stat names so delete of stats on restart works](https://github.com/basho/riak_pipe/issues/70)
+* riak_kv/485: [Fix PR/PW](https://github.com/basho/riak_kv/issues/485)
+* riak_kv/499: [Big integer 2i indexes sometimes sort incorrectly](https://github.com/basho/riak_kv/issues/499)
+* riak_kv/511: [riak_kv 1.3.1 using parallel vnode init](https://github.com/basho/riak_kv/issues/511)
+* riak_kv/514: [Change AAE to use incremental crypto:sha calculations](https://github.com/basho/riak_kv/issues/514)
+* riak_kv/516: [support for handling legacy sext encoding of 2i keys](https://github.com/basho/riak_kv/issues/516)
+* riak_kv/517: [Since stats now get repaired when an update fails, log as `warning`](https://github.com/basho/riak_kv/issues/517)
+* riak_kv/522: [Spell badarg correctly](https://github.com/basho/riak_kv/pull/522)
+* riak_snmp/5: [add SNMP traps for get/put FSM stats](https://github.com/basho/riak_snmp/issues/5)
 
 ## Riak 1.3.0 Release Notes
 
