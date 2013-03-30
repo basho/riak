@@ -610,6 +610,7 @@ case "$1" in
             echo "       $SCRIPT $1 --downgrade"
             echo "       $SCRIPT $1 <concurrency> [--downgrade]"
             echo "       $SCRIPT $1 <concurrency> <batch size> [--downgrade]"
+            exit 1
         fi
         ensure_node_running
         shift
