@@ -80,6 +80,7 @@ Similarly, concurrency is optional and defaults to 2.
 * riak_kv/517: [Since stats now get repaired when an update fails, log as `warning`](https://github.com/basho/riak_kv/issues/517)
 * riak_kv/522: [Spell badarg correctly](https://github.com/basho/riak_kv/pull/522)
 * riak_snmp/5: [add SNMP traps for get/put FSM stats](https://github.com/basho/riak_snmp/issues/5)
+* riak/302: [Add batch size param to 2i reformat cmd](https://github.com/basho/riak/pull/302)
 
 ## Riak 1.3.0 Release Notes
 
