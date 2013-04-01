@@ -32,23 +32,29 @@ indexes are not modified and new writes will be written in the correct format.
 To reformat indexes on a Riak node run: 
 
 ```
-riak-admin reformat-indexes [<concurrency>]
+riak-admin reformat-indexes [<concurrency>] [<batch size>]
 ```
 
-The concurrency option controls how many partitions are reformatted concurrenctly. 
-If not provided it defaults to 2. Output will be printed to logs once the reformatting has
-completed (or if it errors). *If the reformatting operation errors, it should be re-executed.*
-The operation will only attempt to reformat keys that were not fixed on the previous run.
+The concurrency option controls how many partitions are reformatted concurrently. 
+If not provided it defaults to 2. Batch size controls how many keys are fixed at a time.
+We recommend using the default values. A node *without load* could finish reformatting much
+faster with a higher concurrency value. Lowering the batch could lower the latency 
+of other node operations if the node is under load during the reformatting. 
+We recommend to use the default valuess and tweak only after testing.
+Output will be printed to logs once the reformatting has completed (or if it errors). 
+*If the reformatting operation errors, it should be re-executed.* The operation will 
+only attempt to reformat keys that were not fixed on the previous run.
 
 If downgrading back to Riak 1.3 from Riak 1.3.1, indexes will need to be reformatted 
 back to the old encoding in order for the downgraded node to run correctly. The `--downgrade`
 flag can be passed to `riak-admin reformat-indexes` to perform this operation:
 
 ```
-riak-admin reformat-indexes [<concurrency>] --downgrade
+riak-admin reformat-indexes [<concurrency>] [<batch size>] --downgrade
 ```
 
-Similarly, concurrency is optional and defaults to 2.
+The concurrency and batch size parameters work in exactly the same way as in the
+upgrade case above.
 
 [1] https://github.com/uwiger/sext
 
