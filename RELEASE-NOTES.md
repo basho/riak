@@ -36,11 +36,11 @@ riak-admin reformat-indexes [<concurrency>] [<batch size>]
 ```
 
 The concurrency option controls how many partitions are reformatted concurrently. 
-If not provided it defaults to 2. Batch size controls how many keys are fixed at a time.
-We recommend using the default values. A node *without load* could finish reformatting much
-faster with a higher concurrency value. Lowering the batch could lower the latency 
-of other node operations if the node is under load during the reformatting. 
-We recommend to use the default valuess and tweak only after testing.
+If not provided it defaults to 2. Batch size controls how many keys are fixed at a time
+and it defaults to 100. A node *without load* could finish reformatting much faster 
+with a higher concurrency value. Lowering the batch could lower the latency of other 
+node operations if the node is under load during the reformatting. We recommend 
+to use the default valuess and tweak only after testing.
 Output will be printed to logs once the reformatting has completed (or if it errors). 
 *If the reformatting operation errors, it should be re-executed.* The operation will 
 only attempt to reformat keys that were not fixed on the previous run.
