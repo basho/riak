@@ -404,6 +404,7 @@ Usage: $SCRIPT <command>
 Default mode MDC replication:
 
    Connection setup:
+
       add-listener <nodename> <listen_ip> <port>
 
             Adds a listener (source) for default mode
@@ -457,34 +458,25 @@ Default mode MDC replication:
 ===============================================================================
 Advanced mode MDC replication:
 
-   clusterstats [{<ip:-port> | <protocol-id>}]
-             protocol-id = cluster_mgr | rt_repl | fs_repl
+   Connection setup:
 
-             Displays current cluster stats using an optional ip:port as well as
-             an optional protocol.
-
-   clustername [<localname>]
+      clustername [<localname>]
 
              Without a parameter, returns the current name of the cluster.
              With a parameter, names the current cluster.
 
-   modes [<modelist>]
-
-             modelist is one or both of mode_repl12, mode_repl13 separated by
-             spaces. Changes the behavior of the realtime replication bucket hooks.
-
-   connect <host:port>
+      connect <host:port>
 
              Establish communications between clusters using the host:port of
              the remote cluster_mgr value. Connection information will be
              persisted across Riak restarts.
 
-   disconnect {<host:port> | clustername}
+      disconnect {<host:port> | clustername}
 
              Disconnect from a remote cluster using either host:port of the
              remote cluster_mgr, or the name of the remote cluster.
 
-   connections
+      connections
 
              Display a list of connections between source and sink clusters.
 
@@ -515,6 +507,17 @@ Advanced mode MDC replication:
              Start or stop fullsync replication to a named sink cluster.
              Fullsync repliction for a cluster must first be enabled before
              it is started.
+
+      clusterstats [{<ip:-port> | <protocol-id>}]
+             protocol-id = cluster_mgr | rt_repl | fs_repl
+
+             Displays current cluster stats using an optional ip:port as well as
+             an optional protocol.
+
+      modes [<modelist>]
+
+             modelist is one or both of mode_repl12, mode_repl13 separated by
+             spaces. Changes the behavior of the realtime replication bucket hooks.
 
    Performance Tuning:
 
