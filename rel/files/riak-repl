@@ -395,29 +395,149 @@ case "$1" in
         esac
         ;;
     *)
-        echo "Usage: $SCRIPT { add-listener | del-listener | add-site | del-site | status |"
-        echo "                   start-fullsync | cancel-fullsync |"
-        echo "                   pause-fullsync | resume-fullsync | add-nat-listener |"
-        echo "       Repl2 ----------------------------------------------------------------"
-        echo "                   clusterstats [{<ip:-port> | <protocol-id>}] |"
-        echo "                              protocol-id = cluster_mgr | rt_repl | fs_repl"
-        echo "                   clustername [<localname>] |"
-        echo "                   modes [<modelist>]"
-        echo "                       modelist is one or both of mode_repl12, mode_repl13 separated by spaces"
-        echo "                   connect <host:port> |"
-        echo "                   disconnect {<host:port> | clustername} |"
-        echo "                   connections |"
-        echo "                   realtime enable <clustername> |"
-        echo "                   realtime disable <clustername> |"
-        echo "                   realtime start [<clustername>] |"
-        echo "                   realtime stop [<clustername>] |"
-        echo "                   fullsync enable <clustername> |"
-        echo "                   fullsync disable <clustername> |"
-        echo "                   fullsync start [<clustername>] |"
-        echo "                   fullsync stop [<clustername>] |"
-        echo "                   fullsync max_fssource_node [<value>] |"
-        echo "                   fullsync max_fssource_cluster [<value>] |"
-        echo "                   fullsync max_fssink_node [<value]"
-        exit 1
-        ;;
+
+
+ echo "\
+Usage: $SCRIPT <command>
+
+===============================================================================
+Default mode MDC replication:
+
+   Connection setup:
+      add-listener <nodename> <listen_ip> <port>
+
+            Adds a listener (source) for default mode
+            replication.
+
+      add-nat-listener <nodename> <listen_ip> <port> <public_ip> <public_port>
+
+            Adds a listener (source)capable of listening 
+            on both an internal listen_ip:port as well as an
+            external public_ip:port.
+
+      del-listener <nodename> <listen_ip> <port>
+
+            Deletes an established listener or nat-listener
+            on nodename and listener_ip:port.
+
+      add-site <ipaddr> <portnum> <sitename>
+
+            Adds a named replication site at ipaddr:portnum.
+
+      del-site <sitename>
+
+            Deletes a named replication site.
+
+   Operations:
+
+      status
+
+            Displays replication status and statistics.
+
+      start-fullsync
+
+            Start fullsync replication between a listener
+            (source) and a site (sink).
+
+      cancel-fullsync
+
+            Cancels a running fullsync replication process.
+            The next fullsync will start over from scratch.
+
+      pause-fullsync
+
+            Pauses a running fullsync replication process.
+            Once resumed, continue fullsync where the process was
+            paused.
+
+      resume-fullsync
+
+            Continue fullsync if it was previously paused.
+
+===============================================================================
+Advanced mode MDC replication:
+
+   clusterstats [{<ip:-port> | <protocol-id>}]
+             protocol-id = cluster_mgr | rt_repl | fs_repl
+
+             Displays current cluster stats using an optional ip:port as well as
+             an optional protocol.
+
+   clustername [<localname>]
+
+             Without a parameter, returns the current name of the cluster.
+             With a parameter, names the current cluster.
+
+   modes [<modelist>]
+
+             modelist is one or both of mode_repl12, mode_repl13 separated by
+             spaces. Changes the behavior of the realtime replication bucket hooks.
+
+   connect <host:port>
+
+             Establish communications between clusters using the host:port of
+             the remote cluster_mgr value. Connection information will be
+             persisted across Riak restarts.
+
+   disconnect {<host:port> | clustername}
+
+             Disconnect from a remote cluster using either host:port of the
+             remote cluster_mgr, or the name of the remote cluster.
+
+   connections
+
+             Display a list of connections between source and sink clusters.
+
+
+   Operations:
+
+      realtime enable <clustername>
+      realtime disable <clustername>
+
+             Enable or disable realtime replication to a named sink cluster.
+
+
+      realtime start <clustername>
+      realtime stop <clustername>
+
+             Start or stop realtime replication to a named sink cluster.
+             Realtime repliction for a cluster must first be enabled before
+             it is started.
+
+      fullsync enable <clustername>
+      fullsync disable <clustername>
+
+             Enable or disable fullsync replication to a named sink cluster.
+
+      fullsync start <clustername>
+      fullsync stop <clustername>
+
+             Start or stop fullsync replication to a named sink cluster.
+             Fullsync repliction for a cluster must first be enabled before
+             it is started.
+
+   Performance Tuning:
+
+      fullsync max_fssource_node [<value>]
+
+             Limits the number of fullsync workers that will be running on
+             each individual node in a source cluster. If the value is
+             omitted, the current max_fxsource_node value is displayed.
+
+
+      fullsync max_fssource_cluster [<value>]
+
+             The hard limit of fullsync workers that will be running on the
+             source side of a cluster across all nodes on that cluster for a
+             fullsync to a sink cluster. If the value is omitted, the current
+             max_fssource_cluster value is displayed.
+
+      fullsync max_fssink_node [<value]
+
+             Limits the number of fullsync workers allowed to run on each
+             individual node in a sink cluster. If the value is omitted, the
+             current max_fssink_node value is displayed.
+"
+exit 1
+;;
 esac
