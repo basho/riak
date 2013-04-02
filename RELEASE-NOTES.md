@@ -4,20 +4,20 @@
 
 #### 2i Big Integer Encoding
 
-For all Riak versions prior to 1.3.1, 2i range queries involving 
-integers greater than or equal to 2147483647 (0x7fffffff) could return 
-missing results. The cause was identified to be an issue with the encoding library sext [1], 
-which Riak uses for indexes stored in eleveldb.  Sext serializes Erlang terms 
+For all Riak versions prior to 1.3.1, 2i range queries involving
+integers greater than or equal to 2147483647 (0x7fffffff) could return
+missing results. The cause was identified to be an issue with the encoding library sext [1],
+which Riak uses for indexes stored in eleveldb.  Sext serializes Erlang terms
 to a binary while preserving sort order. For these large integers, this was not the case.
 Since the 2i implementation relies on this property, some range queries were
 affected.
 
-The issue in sext was patched [2] and is included in Riak 1.3.1. New installations of 
+The issue in sext was patched [2] and is included in Riak 1.3.1. New installations of
 Riak 1.3.1 will immediately take advantage of the change.
-However, the fix introduces an incompatibly in the encoding of big integers. 
-Integer indexes containing values greater than or equal to 2147483647 
-already written to disk with Riak 1.3 and below will need to be rewritten, 
-so that range queries over them will return the correct results. 
+However, the fix introduces an incompatibly in the encoding of big integers.
+Integer indexes containing values greater than or equal to 2147483647
+already written to disk with Riak 1.3 and below will need to be rewritten,
+so that range queries over them will return the correct results.
 
 Riak 1.3.1 includes a utility, as part of
 `riak-admin`, that will perform the reformatting of these indexes
@@ -26,26 +26,26 @@ reformatted on all nodes, range queries will begin returning the
 correct results for previously written data. The utility should be run
 against any riak cluster using 2i after upgrading the entire cluster
 to 1.3.1, regardless of whether or not large integer index values are
-used. It will report how many indexes were affected (rewritten). Unaffected 
+used. It will report how many indexes were affected (rewritten). Unaffected
 indexes are not modified and new writes will be written in the correct format.
 
-To reformat indexes on a Riak node run: 
+To reformat indexes on a Riak node run:
 
 ```
 riak-admin reformat-indexes [<concurrency>] [<batch size>]
 ```
 
-The concurrency option controls how many partitions are reformatted concurrently. 
+The concurrency option controls how many partitions are reformatted concurrently.
 If not provided it defaults to 2. Batch size controls how many keys are fixed at a time
-and it defaults to 100. A node *without load* could finish reformatting much faster 
-with a higher concurrency value. Lowering the batch could lower the latency of other 
-node operations if the node is under load during the reformatting. We recommend 
+and it defaults to 100. A node *without load* could finish reformatting much faster
+with a higher concurrency value. Lowering the batch could lower the latency of other
+node operations if the node is under load during the reformatting. We recommend
 to use the default valuess and tweak only after testing.
-Output will be printed to logs once the reformatting has completed (or if it errors). 
-*If the reformatting operation errors, it should be re-executed.* The operation will 
+Output will be printed to logs once the reformatting has completed (or if it errors).
+*If the reformatting operation errors, it should be re-executed.* The operation will
 only attempt to reformat keys that were not fixed on the previous run.
 
-If downgrading back to Riak 1.3 from Riak 1.3.1, indexes will need to be reformatted 
+If downgrading back to Riak 1.3 from Riak 1.3.1, indexes will need to be reformatted
 back to the old encoding in order for the downgraded node to run correctly. The `--downgrade`
 flag can be passed to `riak-admin reformat-indexes` to perform this operation:
 
@@ -64,13 +64,13 @@ upgrade case above.
 
 ### Issues / PR's Resolved
 
-* riak_kv/505: [Fix bug where stats endpoints were calculating _all_ riak_kv stats](https://github.com/basho/riak_kv/issues/505)  
+* riak_kv/505: [Fix bug where stats endpoints were calculating _all_ riak_kv stats](https://github.com/basho/riak_kv/issues/505)
   NOTE: this fix introduces a slight change to the stats caching strategy in riak. Formerly stats were cached for TTL seconds
   and the cache's freshness checked when a request to a stats endpoint was serviced. If the cache was stale the stats would be
   calculated on demand. From 1.3.1 forward all stats requests are served from the cache. A background process calculates stats
   and refreshes the cache at an interval. This smooths the access latency for stats. A new stat  `{riak_kv_stat_ts, timestamp()}`
   is added to the returned stats that indicates the time the stats were calculated.
-* riak_kv/508: [If a `folsom_metrics_histogram_ets` owned table dies, kv_stat cannot recreate it](https://github.com/basho/riak_kv/issues/508)  
+* riak_kv/508: [If a `folsom_metrics_histogram_ets` owned table dies, kv_stat cannot recreate it](https://github.com/basho/riak_kv/issues/508)
   NOTE: introduces the stat value `unavailable` for any stat that cannot be calculated due to an error. Previously a call to a stats endpoint
   would simply fail, with this fix, failed stats are `unavailable` and all others returned uneffected.
 
