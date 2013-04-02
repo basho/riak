@@ -241,7 +241,7 @@ case "$1" in
             exit 1
         fi
         if [ $# -gt 1 ]; then
-            echo "Usage: $SCRIPT $ACTION [<clustername>]"
+            echo "Usage: $SCRIPT $ACTION [clustername]"
             exit 1
         fi
         if [ $# -lt 1 ]; then
@@ -388,8 +388,8 @@ case "$1" in
               $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
               ;;
             *)
-                echo "Usage: $SCRIPT $ACTION realtime start [<clustername>] |"
-                echo "                       realtime stop [<clustername>]"
+                echo "Usage: $SCRIPT $ACTION realtime start [clustername] |"
+                echo "                       realtime stop [clustername]"
                 exit 1
                 ;;
         esac
@@ -460,7 +460,7 @@ Advanced mode MDC replication:
 
    Connection setup:
 
-      clustername [<localname>]
+      clustername [localname]
 
              Without a parameter, returns the current name of the cluster.
              With a parameter, names the current cluster.
@@ -521,21 +521,21 @@ Advanced mode MDC replication:
 
    Performance Tuning:
 
-      fullsync max_fssource_node [<value>]
+      fullsync max_fssource_node [value]
 
              Limits the number of fullsync workers that will be running on
              each individual node in a source cluster. If the value is
              omitted, the current max_fxsource_node value is displayed.
 
 
-      fullsync max_fssource_cluster [<value>]
+      fullsync max_fssource_cluster [value]
 
              The hard limit of fullsync workers that will be running on the
              source side of a cluster across all nodes on that cluster for a
              fullsync to a sink cluster. If the value is omitted, the current
              max_fssource_cluster value is displayed.
 
-      fullsync max_fssink_node [<value]
+      fullsync max_fssink_node [value]
 
              Limits the number of fullsync workers allowed to run on each
              individual node in a sink cluster. If the value is omitted, the
