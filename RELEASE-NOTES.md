@@ -87,7 +87,6 @@ in the pull request linked below.
 * riak_kv/508: [If a `folsom_metrics_histogram_ets` owned table dies, kv_stat cannot recreate it](https://github.com/basho/riak_kv/issues/508)
   NOTE: introduces the stat value `unavailable` for any stat that cannot be calculated due to an error. Previously a call to a stats endpoint
   would simply fail, with this fix, failed stats are `unavailable` and all others returned uneffected.
-
 * riak_api/26: [Fix stat names so delete of stats on restart works](https://github.com/basho/riak_api/issues/26)
 * riak_core/281: [Porting parallel vnode init fix to 1.3 + revert switch](https://github.com/basho/riak_core/issues/281)
 * riak_core/288: [Failure to calculate a stats value should be temporary so warn only](https://github.com/basho/riak_core/issues/288)
@@ -99,7 +98,6 @@ in the pull request linked below.
 * riak_kv/516: [support for handling legacy sext encoding of 2i keys](https://github.com/basho/riak_kv/issues/516)
 * riak_kv/517: [Since stats now get repaired when an update fails, log as `warning`](https://github.com/basho/riak_kv/issues/517)
 * riak_kv/522: [Spell badarg correctly](https://github.com/basho/riak_kv/pull/522)
-* riak_snmp/5: [add SNMP traps for get/put FSM stats](https://github.com/basho/riak_snmp/issues/5)
 * riak/302: [Add batch size param to 2i reformat cmd](https://github.com/basho/riak/pull/302)
 * bitcask/86: [Fix race with deleting stale input files from merge](https://github.com/basho/bitcask/pull/86)
 
