@@ -1,3 +1,131 @@
+## Riak 1.3.1 Release Notes
+
+### New Features or Major Improvements for Riak
+
+#### 2i Big Integer Encoding
+
+For all Riak versions prior to 1.3.1, 2i range queries involving
+integers greater than or equal to 2147483647 (0x7fffffff) could return
+missing results. The cause was identified to be an issue with the
+encoding library sext [1], which Riak uses for indexes stored in
+eleveldb.  Sext serializes Erlang terms to a binary while preserving
+sort order. For these large integers, this was not the case.  Since
+the 2i implementation relies on this property, some range queries were
+affected.
+
+The issue in sext was patched [2] and is included in Riak 1.3.1. New
+installations of Riak 1.3.1 will immediately take advantage of the
+change.  However, the fix introduces an incompatibly in the encoding
+of big integers.  Integer indexes containing values greater than or
+equal to 2147483647 already written to disk with Riak 1.3 and below
+will need to be rewritten, so that range queries over them will return
+the correct results.
+
+Riak 1.3.1 includes a utility, as part of
+`riak-admin`, that will perform the reformatting of these indexes
+while the node is online. After the affected indexes have been
+reformatted on all nodes, range queries will begin returning the
+correct results for previously written data. The utility should be run
+against any riak cluster using 2i after upgrading the entire cluster
+to 1.3.1, regardless of whether or not large integer index values are
+used. It will report how many indexes were affected (rewritten). Unaffected
+indexes are not modified and new writes will be written in the correct format.
+
+To reformat indexes on a Riak node run:
+
+```
+riak-admin reformat-indexes [<concurrency>] [<batch size>]
+```
+
+The concurrency option controls how many partitions are reformatted
+concurrently.  If not provided it defaults to 2. Batch size controls
+how many keys are fixed at a time and it defaults to 100. A node
+*without load* could finish reformatting much faster with a higher
+concurrency value. Lowering the batch could lower the latency of other
+node operations if the node is under load during the reformatting. We
+recommend to use the default valuess and tweak only after testing.
+Output will be printed to logs once the reformatting has completed (or
+if it errors).  *If the reformatting operation errors, it should be
+re-executed.* The operation will only attempt to reformat keys that
+were not fixed on the previous run.
+
+If downgrading back to Riak 1.3 from Riak 1.3.1, indexes will need to
+be reformatted back to the old encoding in order for the downgraded
+node to run correctly. The `--downgrade` flag can be passed to
+`riak-admin reformat-indexes` to perform this operation:
+
+```
+riak-admin reformat-indexes [<concurrency>] [<batch size>] --downgrade
+```
+
+The concurrency and batch size parameters work in exactly the same way as in the
+upgrade case above.
+
+[1] https://github.com/uwiger/sext
+
+[2] https://github.com/uwiger/sext/commit/ff10beb7a791f04ad439d2c1c566251901dd6bdc
+
+#### Fix behaviour of PR/PW
+
+For Riak releases prior to 1.3.1 the get and put options PR and PW
+only checked that the requested number of primaries were online when
+the request was handled.  It did not check which vnodes actually
+responded. So with a PW of 2 you could easily write to one primary,
+one fallback, fail the second primary write and return success.
+
+As of Riak 1.3.1, PR and PW will also wait until the required number
+of primaries have responded before returning the result of the
+operation. This means that if PR + PW > N and both requests succeed,
+you'll be guaranteed to have read the previous value you've written
+(barring other intervening writes and irretrievably lost replicas).
+
+Note however, that writes with PW that fail may easily have done a
+partial write. This change is purely about strengthening the
+constraints you can impose on read/write success. See more information
+in the pull request linked below.
+
+#### Riak SNMP additions
+
+In 1.3.1 we added trap definitions to the Riak MIB. When stats are
+polled, we compare the get and put FSM stats against their thresholds
+configured in app.config or set via application:set_env/3 and emit
+SNMP traps when appropriate. Thresholds objects are read-only but can
+be read via external SNMP tools.
+
+### Issues / PR's Resolved
+
+* riak_kv/505: [Fix bug where stats endpoints were calculating _all_ riak_kv stats](https://github.com/basho/riak_kv/issues/505)
+  NOTE: this fix introduces a slight change to the stats caching strategy in riak. Formerly stats were cached for TTL seconds
+  and the cache's freshness checked when a request to a stats endpoint was serviced. If the cache was stale the stats would be
+  calculated on demand. From 1.3.1 forward all stats requests are served from the cache. A background process calculates stats
+  and refreshes the cache at an interval. This smooths the access latency for stats. A new stat  `{riak_kv_stat_ts, timestamp()}`
+  is added to the returned stats that indicates the time the stats were calculated.
+* riak_kv/508: [If a `folsom_metrics_histogram_ets` owned table dies, kv_stat cannot recreate it](https://github.com/basho/riak_kv/issues/508)
+  NOTE: introduces the stat value `unavailable` for any stat that cannot be calculated due to an error. Previously a call to a stats endpoint
+  would simply fail, with this fix, failed stats are `unavailable` and all others returned
+* riak_repl/203: [Uninstall the repl ring event handler on shutdown](https://github.com/basho/riak_repl/issues/203)
+* riak_repl/207: [Fix bogus call to MODULE:stop in riak_repl_keylist_server.erl](https://github.com/basho/riak_repl/issues/207)
+* riak_repl/221: [Add calls to increment stats client/server_connect_errors](https://github.com/basho/riak_repl/issues/221)
+* riak_repl/225: [Fixes Error when upgrading a cluster from 1.2.5 to 1.3](https://github.com/basho/riak_repl/pull/225)
+* riak_repl/227: [Fix to the cluster manager losing it's leader](https://github.com/basho/riak_repl/pull/227)
+* riak_api/26: [Fix stat names so delete of stats on restart works](https://github.com/basho/riak_api/issues/26)
+* riak_core/281: [Porting parallel vnode init fix to 1.3 + revert switch](https://github.com/basho/riak_core/issues/281)
+* riak_core/288: [Failure to calculate a stats value should be temporary so warn only](https://github.com/basho/riak_core/issues/288)
+* riak_pipe/70: [Fix stat names so delete of stats on restart works](https://github.com/basho/riak_pipe/issues/70)
+* riak_kv/485: [Fix PR/PW](https://github.com/basho/riak_kv/issues/485)
+* riak_kv/499: [Big integer 2i indexes sometimes sort incorrectly](https://github.com/basho/riak_kv/issues/499)
+* riak_kv/511: [riak_kv 1.3.1 using parallel vnode init](https://github.com/basho/riak_kv/issues/511)
+* riak_kv/514: [Change AAE to use incremental crypto:sha calculations](https://github.com/basho/riak_kv/issues/514)
+* riak_kv/516: [support for handling legacy sext encoding of 2i keys](https://github.com/basho/riak_kv/issues/516)
+* riak_kv/517: [Since stats now get repaired when an update fails, log as `warning`](https://github.com/basho/riak_kv/issues/517)
+* riak_kv/522: [Spell badarg correctly](https://github.com/basho/riak_kv/pull/522)
+* riak_kv/523: [Fix perf problems and bug in 2i reformat](https://github.com/basho/riak_kv/pull/523)
+* riak_kv/525: [move querying of fixed index status to seperate backend function](https://github.com/basho/riak_kv/pull/525)
+* riak_snmp/5: [add SNMP traps for get/put FSM stats](https://github.com/basho/riak_snmp/issues/5)
+* riak_snmp/6: [Add support for new 'unavailable' atom from stats. Set gauge to zero.](https://github.com/basho/riak_snmp/pull/6)
+* riak/302: [Add batch size param to 2i reformat cmd](https://github.com/basho/riak/pull/302)
+* bitcask/86: [Fix race with deleting stale input files from merge](https://github.com/basho/bitcask/pull/86)
+
 ## Riak 1.3.0 Release Notes
 
 ### New Features or Major Improvements for Riak
@@ -280,7 +408,7 @@ replication to use the full capacity of the network and cluster while increasing
 
 ```
  riak-repl modes [<modelist>]
-        where "modelist" is one or bolth of mode_repl12, mode_repl13 separated by spaces.
+        where "modelist" is one or both of mode_repl12, mode_repl13 separated by spaces.
 
 ```
 
