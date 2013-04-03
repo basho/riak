@@ -6,18 +6,20 @@
 
 For all Riak versions prior to 1.3.1, 2i range queries involving
 integers greater than or equal to 2147483647 (0x7fffffff) could return
-missing results. The cause was identified to be an issue with the encoding library sext [1],
-which Riak uses for indexes stored in eleveldb.  Sext serializes Erlang terms
-to a binary while preserving sort order. For these large integers, this was not the case.
-Since the 2i implementation relies on this property, some range queries were
+missing results. The cause was identified to be an issue with the
+encoding library sext [1], which Riak uses for indexes stored in
+eleveldb.  Sext serializes Erlang terms to a binary while preserving
+sort order. For these large integers, this was not the case.  Since
+the 2i implementation relies on this property, some range queries were
 affected.
 
-The issue in sext was patched [2] and is included in Riak 1.3.1. New installations of
-Riak 1.3.1 will immediately take advantage of the change.
-However, the fix introduces an incompatibly in the encoding of big integers.
-Integer indexes containing values greater than or equal to 2147483647
-already written to disk with Riak 1.3 and below will need to be rewritten,
-so that range queries over them will return the correct results.
+The issue in sext was patched [2] and is included in Riak 1.3.1. New
+installations of Riak 1.3.1 will immediately take advantage of the
+change.  However, the fix introduces an incompatibly in the encoding
+of big integers.  Integer indexes containing values greater than or
+equal to 2147483647 already written to disk with Riak 1.3 and below
+will need to be rewritten, so that range queries over them will return
+the correct results.
 
 Riak 1.3.1 includes a utility, as part of
 `riak-admin`, that will perform the reformatting of these indexes
@@ -35,19 +37,22 @@ To reformat indexes on a Riak node run:
 riak-admin reformat-indexes [<concurrency>] [<batch size>]
 ```
 
-The concurrency option controls how many partitions are reformatted concurrently.
-If not provided it defaults to 2. Batch size controls how many keys are fixed at a time
-and it defaults to 100. A node *without load* could finish reformatting much faster
-with a higher concurrency value. Lowering the batch could lower the latency of other
-node operations if the node is under load during the reformatting. We recommend
-to use the default valuess and tweak only after testing.
-Output will be printed to logs once the reformatting has completed (or if it errors).
-*If the reformatting operation errors, it should be re-executed.* The operation will
-only attempt to reformat keys that were not fixed on the previous run.
+The concurrency option controls how many partitions are reformatted
+concurrently.  If not provided it defaults to 2. Batch size controls
+how many keys are fixed at a time and it defaults to 100. A node
+*without load* could finish reformatting much faster with a higher
+concurrency value. Lowering the batch could lower the latency of other
+node operations if the node is under load during the reformatting. We
+recommend to use the default valuess and tweak only after testing.
+Output will be printed to logs once the reformatting has completed (or
+if it errors).  *If the reformatting operation errors, it should be
+re-executed.* The operation will only attempt to reformat keys that
+were not fixed on the previous run.
 
-If downgrading back to Riak 1.3 from Riak 1.3.1, indexes will need to be reformatted
-back to the old encoding in order for the downgraded node to run correctly. The `--downgrade`
-flag can be passed to `riak-admin reformat-indexes` to perform this operation:
+If downgrading back to Riak 1.3 from Riak 1.3.1, indexes will need to
+be reformatted back to the old encoding in order for the downgraded
+node to run correctly. The `--downgrade` flag can be passed to
+`riak-admin reformat-indexes` to perform this operation:
 
 ```
 riak-admin reformat-indexes [<concurrency>] [<batch size>] --downgrade
@@ -98,6 +103,8 @@ in the pull request linked below.
 * riak_kv/516: [support for handling legacy sext encoding of 2i keys](https://github.com/basho/riak_kv/issues/516)
 * riak_kv/517: [Since stats now get repaired when an update fails, log as `warning`](https://github.com/basho/riak_kv/issues/517)
 * riak_kv/522: [Spell badarg correctly](https://github.com/basho/riak_kv/pull/522)
+* riak_kv/523: [Fix perf problems and bug in 2i reformat](https://github.com/basho/riak_kv/pull/523)
+* riak_kv/525: [move querying of fixed index status to seperate backend function](https://github.com/basho/riak_kv/pull/525)
 * riak/302: [Add batch size param to 2i reformat cmd](https://github.com/basho/riak/pull/302)
 * bitcask/86: [Fix race with deleting stale input files from merge](https://github.com/basho/bitcask/pull/86)
 
