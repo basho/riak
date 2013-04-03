@@ -60,7 +60,13 @@ upgrade case above.
 
 [2] https://github.com/uwiger/sext/commit/ff10beb7a791f04ad439d2c1c566251901dd6bdc
 
+#### Riak SNMP additions
 
+In 1.3.1 we added trap definitions to the Riak MIB. When stats are
+polled, we compare the get and put FSM stats against their thresholds
+configured in app.config or set via application:set_env/3 and emit
+SNMP traps when appropriate. Thresholds objects are read-only but can
+be read via external SNMP tools.
 
 ### Issues / PR's Resolved
 
