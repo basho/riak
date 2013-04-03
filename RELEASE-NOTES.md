@@ -65,6 +65,13 @@ upgrade case above.
 
 [2] https://github.com/uwiger/sext/commit/ff10beb7a791f04ad439d2c1c566251901dd6bdc
 
+#### Improved bitcask startup time
+
+We fixed a problem that was preventing vnodes from starting concurrently. Installations
+using the bitcask backend should see a substantial improvement in startup times if
+multiple cores are available.  We have observed improvements in the vicinity of an order
+of magnitude (~10X) on some of our own clusters.
+
 #### Fix behaviour of PR/PW
 
 For Riak releases prior to 1.3.1 the get and put options PR and PW only
