@@ -101,6 +101,7 @@ in the pull request linked below.
 * riak_kv/522: [Spell badarg correctly](https://github.com/basho/riak_kv/pull/522)
 * riak_snmp/5: [add SNMP traps for get/put FSM stats](https://github.com/basho/riak_snmp/issues/5)
 * riak/302: [Add batch size param to 2i reformat cmd](https://github.com/basho/riak/pull/302)
+* bitcask/86: [Fix race with deleting stale input files from merge](https://github.com/basho/bitcask/pull/86)
 
 ## Riak 1.3.0 Release Notes
 
