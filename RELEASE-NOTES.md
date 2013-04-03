@@ -60,7 +60,21 @@ upgrade case above.
 
 [2] https://github.com/uwiger/sext/commit/ff10beb7a791f04ad439d2c1c566251901dd6bdc
 
+#### Fix behaviour of PR/PW
 
+For Riak releases prior to 1.3.1 the get and put options PR and PW only
+checked that the requested number of primaries were online when the request was handled.
+It did not check which vnodes actually responded. So with a PW of 2 you could easily write
+to one primary, one fallback, fail the second primary write and return success.
+
+As of Riak 1.3.1, PR and PW will also wait until the required number of primaries have responded
+before returning the result of the operation. This means that if PR + PW > N and both requests
+succeed, you'll be guaranteed to have read the previous value you've written (barring other
+intervening writes and irretrievably lost replicas).
+
+Note however, that writes with PW that fail may easily have done a partial write. This change is
+purely about strengthening the constraints you can impose on read/write success. See more information
+in the pull request linked below.
 
 ### Issues / PR's Resolved
 
