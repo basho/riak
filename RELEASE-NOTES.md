@@ -117,6 +117,8 @@ be read via external SNMP tools.
 * riak_kv/516: [support for handling legacy sext encoding of 2i keys](https://github.com/basho/riak_kv/issues/516)
 * riak_kv/517: [Since stats now get repaired when an update fails, log as `warning`](https://github.com/basho/riak_kv/issues/517)
 * riak_kv/522: [Spell badarg correctly](https://github.com/basho/riak_kv/pull/522)
+* riak_kv/523: [Fix perf problems and bug in 2i reformat](https://github.com/basho/riak_kv/pull/523)
+* riak_kv/525: [move querying of fixed index status to seperate backend function](https://github.com/basho/riak_kv/pull/525)
 * riak_snmp/5: [add SNMP traps for get/put FSM stats](https://github.com/basho/riak_snmp/issues/5)
 * riak_snmp/6: [Add support for new 'unavailable' atom from stats. Set gauge to zero.](https://github.com/basho/riak_snmp/pull/6)
 * riak/302: [Add batch size param to 2i reformat cmd](https://github.com/basho/riak/pull/302)
