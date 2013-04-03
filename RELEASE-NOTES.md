@@ -106,6 +106,8 @@ be read via external SNMP tools.
 * riak_repl/203: [Uninstall the repl ring event handler on shutdown](https://github.com/basho/riak_repl/issues/203)
 * riak_repl/207: [Fix bogus call to MODULE:stop in riak_repl_keylist_server.erl](https://github.com/basho/riak_repl/issues/207)
 * riak_repl/221: [Add calls to increment stats client/server_connect_errors](https://github.com/basho/riak_repl/issues/221)
+* riak_repl/225: [Fixes Error when upgrading a cluster from 1.2.5 to 1.3](https://github.com/basho/riak_repl/pull/225)
+* riak_repl/227: [Fix to the cluster manager losing it's leader](https://github.com/basho/riak_repl/pull/227)
 * riak_api/26: [Fix stat names so delete of stats on restart works](https://github.com/basho/riak_api/issues/26)
 * riak_core/281: [Porting parallel vnode init fix to 1.3 + revert switch](https://github.com/basho/riak_core/issues/281)
 * riak_core/288: [Failure to calculate a stats value should be temporary so warn only](https://github.com/basho/riak_core/issues/288)
