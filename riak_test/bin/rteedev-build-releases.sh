@@ -107,3 +107,5 @@ build "riak_ee-1.1.4" $R14B04 http://s3.amazonaws.com/private.downloads.basho.co
 echo
 build "riak_ee-1.2.1" $R15B01 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/627f21/1.2.1/riak_ee-1.2.1.tar.gz
 echo
+build "riak_ee-1.3.1" $R15B01 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/f23iaj/1.3.1/riak_ee-1.3.1.tar.gz
+echo
