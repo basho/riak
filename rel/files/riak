@@ -237,7 +237,7 @@ case "$1" in
         fi
         ;;
 
-    attach)
+    attach-direct)
         if [ "$2" = "-f" ]; then
           echo "Forcing connection..."
         else
@@ -253,6 +253,21 @@ case "$1" in
         shift
         exec $ERTS_PATH/to_erl $PIPE_DIR
         ;;
+
+    attach)
+        # Make sure a node is running
+        RES=`ping_node`
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            echo "Node is not running!"
+            exit $ES
+        fi
+
+        shift 
+        NAME=`echo $NAME_ARG | sed 's/-s*name[ \t][ \t]*//g'`
+        exec $ERTS_PATH/erl -name c_$$_$NAME -hidden -remsh $NAME $COOKIE_ARG
+        ;;
+
 
     console)
         RES=`ping_node`
@@ -317,7 +332,7 @@ case "$1" in
         echo $PID
         ;;
     *)
-        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|chkconfig|escript|version|getpid}"
+        echo "Usage: $SCRIPT {start|stop|restart|reboot|ping|console|attach|attach-direct|chkconfig|escript|version|getpid}"
         exit 1
         ;;
 esac
