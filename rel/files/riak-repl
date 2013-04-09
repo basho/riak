@@ -331,20 +331,20 @@ case "$1" in
     nat-map)
         ACTION=$1
         shift
-        SUB_CMD=$1
-        shift
         # Make sure the local node is running
         RES=`$NODETOOL ping`
         if [ "$RES" != "pong" ]; then
             echo "Node is not running!"
             exit 1
         fi
-        if [ $# -gt 2 ]; then
+        if [ $# -lt 1 -o $# -gt 3 ]; then
             echo "Usage: $SCRIPT $ACTION show |"
             echo "                       add <externalip>[:port] <internalip> |"
             echo "                       del <externalip>[:port] <internalip>"
             exit 1
         fi
+        SUB_CMD=$1
+        shift
         case $SUB_CMD in
             show)
                 if [ $# -ne 0 ]; then
