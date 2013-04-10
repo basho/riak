@@ -1,5 +1,8 @@
 #!/usr/bin/env bash
 
+# just bail out if things go south
+set -e
+
 : ${RTEE_DEST_DIR:="$HOME/rt/riak_ee"}
 
 echo "Making $(pwd) the current release:"
