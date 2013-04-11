@@ -263,7 +263,7 @@ case "$1" in
             exit $ES
         fi
 
-        shift 
+        shift
         NAME=`echo $NAME_ARG | sed 's/-s*name[ \t][ \t]*//g'`
         exec $ERTS_PATH/erl -name c_$$_$NAME -hidden -remsh $NAME $COOKIE_ARG
         ;;
