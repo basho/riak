@@ -288,7 +288,7 @@ case "$1" in
         EMU=beam
         PROGNAME=`echo $0 | sed 's/.*\///'`
         CMD="$BINDIR/erlexec -boot $RUNNER_BASE_DIR/releases/$APP_VSN/$SCRIPT \
-            -embedded -config $RUNNER_ETC_DIR/app.config \
+            -config $RUNNER_ETC_DIR/app.config \
             -pa $RUNNER_LIB_DIR/basho-patches \
             -args_file $RUNNER_ETC_DIR/vm.args -- ${1+"$@"}"
         export EMU
