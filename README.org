@@ -290,10 +290,10 @@ strategies, and more, please visit our docs at http://docs.basho.com/.
   - Basho engineers will review your pull-request, suggest changes,
     and merge it when it's ready.
 
-** How to Report a Bug
+** How to Report a Bug or Contribute Code
 
-  - The Basho Bug Tracker: [[https://issues.basho.com]]
-  - Read More at: [[http://wiki.basho.com/How-to-Report-a-Bug.html]]
+  - Please open a [[new issue][https://github.com/basho/riak/issues]] against this repository to report bugs, issues, or to submit a pull request.
+  - You can read the [[full guidelines][http://docs.basho.com/riak/latest/references/appendices/community/How-to-Report-a-Bug/]] on the Riak Docs. 
 
 ** Testing
   To make sure your patch works, be sure to run the test suite in each
