@@ -24,7 +24,8 @@ RUNNER_LOG_DIR={{runner_log_dir}}
 PIPE_DIR={{pipe_dir}}
 RUNNER_USER={{runner_user}}
 PLATFORM_DATA_DIR={{platform_data_dir}}
-SSL_DIST_CONFIG=$PLATFORM_DATA_DIR/ssl_distribution.args_file
+SSL_DIST_CONFIG=$PLATFORM_ETC_DIR/ssl_distribution.args
+SSL_DIST_CONFIG_OLD=$PLATFORM_DATA_DIR/ssl_distribution.args_file
 RIAK_VERSION="git"
 
 WHOAMI=$(whoami)
@@ -110,10 +111,21 @@ get_pid() {
 }
 
 
-# Scrape out SSL distribution config info from vm.args into $SSL_DIST_CONFIG
-rm -f $SSL_DIST_CONFIG
-sed -n '/Begin SSL distribution items/,/End SSL distribution items/p' \
-    $RUNNER_ETC_DIR/vm.args > $SSL_DIST_CONFIG
+# If the old sed-generated SSL distribution file still exists and has
+# active settings in it, warn and exit. Otherwise, delete the old
+# file.
+if [ -f $SSL_DIST_CONFIG_OLD ]; then
+    grep -s "^\s*\-" $SSL_DIST_CONFIG_OLD > /dev/null;
+    if [ "$?" = "0" ]; then
+        echo "!!!!"
+        echo "!!!! This node uses SSL for intra-cluster communication. Please copy the settings from"
+        echo "!!!! $SSL_DIST_CONFIG_OLD into $SSL_DIST_CONFIG, remove $SSL_DIST_CONFIG_OLD and restart."
+        echo "!!!!"
+        exit 1
+    else
+        rm -f $SSL_DIST_CONFIG_OLD
+    fi
+fi
 
 # Check the first argument for instructions
 case "$1" in
@@ -290,7 +302,8 @@ case "$1" in
         CMD="$BINDIR/erlexec -boot $RUNNER_BASE_DIR/releases/$APP_VSN/$SCRIPT \
             -config $RUNNER_ETC_DIR/app.config \
             -pa $RUNNER_LIB_DIR/basho-patches \
-            -args_file $RUNNER_ETC_DIR/vm.args -- ${1+"$@"}"
+            -args_file $RUNNER_ETC_DIR/vm.args \
+            -args_file $SSL_DIST_CONFIG -- ${1+"$@"}"
         export EMU
         export ROOTDIR
         export BINDIR

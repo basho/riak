@@ -1,5 +1,5 @@
 #!/usr/bin/env escript
-%%! -args_file {{platform_data_dir}}/ssl_distribution.args_file
+%%! -args_file {{platform_etc_dir}}/ssl_distribution.args
 %% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
 %% ex: ft=erlang ts=4 sw=4 et
 %% -------------------------------------------------------------------
