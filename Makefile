@@ -23,6 +23,7 @@ clean: testclean
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
+
 generate:
 	./rebar generate $(OVERLAY_VARS)
 
@@ -231,7 +232,7 @@ dist $(PKG_ID).tar.gz: distdir/$(PKG_ID)
 	cd distdir && \
 	tar czf ../$(PKG_ID).tar.gz $(PKG_ID)
 
-ballclean:
+pkgclean ballclean:
 	rm -rf $(PKG_ID).tar.gz distdir
 
 ##
@@ -239,10 +240,8 @@ ballclean:
 ##
 
 package: dist
-	$(MAKE) -C distdir -f $(PKG_ID)/deps/node_package/Makefile
-
-pkgclean: distclean
-	rm -rf distdir/$(PKG_ID)
+	ln -s distdir package
+	$(MAKE) -C package -f $(PKG_ID)/deps/node_package/Makefile
 
 .PHONY: package
 export PKG_VERSION PKG_ID PKG_BUILD BASE_DIR ERLANG_BIN REBAR OVERLAY_VARS RELEASE
