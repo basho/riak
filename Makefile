@@ -158,6 +158,10 @@ cleanplt:
 #                                 Hash of commit:    g1170096
 REPO_TAG 	:= $(shell git describe --tags)
 
+# Split off repo name
+# Changes to 1.0.3 or 1.1.0pre1-27-g1170096 from example above
+PKG_VERSION = $(shell echo $(REPO_TAG) | sed -e 's/^$(REPO)-//')
+
 # Primary version identifier, strip off commmit information
 # Changes to 1.0.3 or 1.1.0pre1 from example above
 MAJOR_VERSION	?= $(shell echo $(PKG_VERSION) | sed -e 's/\([0-9.]*\)-.*/\1/')
@@ -233,7 +237,6 @@ ballclean:
 ##
 ## Packaging targets
 ##
-PKG_VERSION = $(shell echo $(PKG_ID) | sed -e 's/^$(REPO)-//')
 
 package: dist
 	$(MAKE) -C distdir -f $(PKG_ID)/deps/node_package/Makefile
