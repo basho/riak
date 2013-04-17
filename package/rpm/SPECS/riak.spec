@@ -162,7 +162,7 @@ fi
 
 %post
 # Fixup perms for SELinux
-find %{platform_base_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
+selinuxenabled && find %{platform_base_dir} -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 
 %files
 %defattr(-,root,root)
