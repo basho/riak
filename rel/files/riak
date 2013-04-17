@@ -24,7 +24,7 @@ RUNNER_LOG_DIR={{runner_log_dir}}
 PIPE_DIR={{pipe_dir}}
 RUNNER_USER={{runner_user}}
 PLATFORM_DATA_DIR={{platform_data_dir}}
-SSL_DIST_CONFIG=$PLATFORM_ETC_DIR/ssl_distribution.args
+SSL_DIST_CONFIG=$RUNNER_ETC_DIR/ssl_distribution.args
 SSL_DIST_CONFIG_OLD=$PLATFORM_DATA_DIR/ssl_distribution.args_file
 RIAK_VERSION="git"
 

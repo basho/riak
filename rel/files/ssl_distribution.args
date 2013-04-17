@@ -2,6 +2,6 @@
 ## un-comment the three lines below and make certain that the paths
 ## point to correct PEM data files.
 
-## -proto_dist inet_ssl
+## -proto_dist inet_tls
 ## -ssl_dist_opt client_certfile "{{platform_etc_dir}}/erlclient.pem"
 ## -ssl_dist_opt server_certfile "{{platform_etc_dir}}/erlserver.pem"
