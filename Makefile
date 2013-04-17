@@ -196,9 +196,9 @@ get_dist_deps = mkdir distdir && \
 #   when underlying dependencies change.
 NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/null | cut -c 1-8)
 ifeq ($(PKG_VERSION), $(MAJOR_VERSION))
-DISTNAME := $(REPO_TAG)
+PKG_ID := $(REPO_TAG)
 else
-DISTNAME = $(REPO)-$(MAJOR_VERSION)-$(NAME_HASH)
+PKG_ID = $(REPO)-$(MAJOR_VERSION)-$(NAME_HASH)
 endif
 
 # To ensure a clean build, copy the CLONEDIR at a specific tag to a new directory
@@ -206,41 +206,40 @@ endif
 # The vsn.git file is required by rebar to be able to build from the resulting
 #  tar file
 build_clean_dir = cd distdir/$(CLONEDIR) && \
-                  $(call archive_git,$(DISTNAME),..) && \
-                  cp $(MANIFEST_FILE) ../$(DISTNAME)/ && \
-                  mkdir ../$(DISTNAME)/deps && \
+                  $(call archive_git,$(PKG_ID),..) && \
+                  cp $(MANIFEST_FILE) ../$(PKG_ID)/ && \
+                  mkdir ../$(PKG_ID)/deps && \
                   for dep in deps/*; do \
                       cd $${dep} && \
-                      $(call archive_git,$${dep},../../../$(DISTNAME)) && \
-                      mkdir -p ../../../$(DISTNAME)/$${dep}/priv && \
-                      printf "`git describe --long --tags 2>/dev/null || git rev-parse HEAD`" > ../../../$(DISTNAME)/$${dep}/priv/vsn.git && \
+                      $(call archive_git,$${dep},../../../$(PKG_ID)) && \
+                      mkdir -p ../../../$(PKG_ID)/$${dep}/priv && \
+                      printf "`git describe --long --tags 2>/dev/null || git rev-parse HEAD`" > ../../../$(PKG_ID)/$${dep}/priv/vsn.git && \
                       cd ../..; done
 
 
 distdir/$(CLONEDIR)/$(MANIFEST_FILE):
 	$(if $(REPO_TAG), $(call get_dist_deps), $(error "You can't generate a release tarball from a non-tagged revision. Run 'git checkout <tag>', then 'make dist'"))
 
-distdir/$(DISTNAME): distdir/$(CLONEDIR)/$(MANIFEST_FILE)
+distdir/$(PKG_ID): distdir/$(CLONEDIR)/$(MANIFEST_FILE)
 	$(call build_clean_dir)
 
-dist $(DISTNAME).tar.gz: distdir/$(DISTNAME)
+dist $(PKG_ID).tar.gz: distdir/$(PKG_ID)
 	cd distdir && \
-	tar czf ../$(DISTNAME).tar.gz $(DISTNAME)
+	tar czf ../$(PKG_ID).tar.gz $(PKG_ID)
 
 ballclean:
-	rm -rf $(DISTNAME).tar.gz distdir
+	rm -rf $(PKG_ID).tar.gz distdir
 
 ##
 ## Packaging targets
 ##
-PKG_VERSION = $(shell echo $(DISTNAME) | sed -e 's/^$(REPO)-//')
-PKG_ID = $(DISTNAME)
+PKG_VERSION = $(shell echo $(PKG_ID) | sed -e 's/^$(REPO)-//')
 
 package: dist
 	$(MAKE) -C distdir -f $(PKG_ID)/deps/node_package/Makefile
 
 pkgclean: distclean
-	rm -rf distdir/$(DISTNAME)
+	rm -rf distdir/$(PKG_ID)
 
 .PHONY: package
 export PKG_VERSION PKG_ID PKG_BUILD BASE_DIR ERLANG_BIN REBAR OVERLAY_VARS RELEASE
