@@ -28,7 +28,8 @@ usage() {
     echo "                    reip | js-reload | erl-reload | wait-for-service | "
     echo "                    ringready | transfers | force-remove | down | "
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
-    echo "                    aae-status | diag | status | transfer-limit }"
+    echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
+    echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] }"
 }
 
 cluster_admin()
@@ -137,11 +138,7 @@ case "$1" in
         fi
 
         # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        node_up_check
 
         $NODETOOL rpc riak_kv_console join "$3"
         ;;
@@ -160,11 +157,7 @@ case "$1" in
         fi
 
         # Make sure the local node is running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        node_up_check
 
         $NODETOOL rpc riak_kv_console leave
         ;;
@@ -193,11 +186,8 @@ case "$1" in
             exit 1
         fi
 
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console remove "$3"
         ;;
@@ -207,14 +197,11 @@ case "$1" in
             echo "Usage: $SCRIPT down <node>"
             exit 1
         fi
-
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
-
         shift
+
+        # Make sure the local node is running
+        node_up_check
+
         $NODETOOL rpc riak_kv_console down $@
         ;;
 
@@ -223,14 +210,10 @@ case "$1" in
             echo "Usage: $SCRIPT status"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console status $@
         ;;
@@ -240,14 +223,10 @@ case "$1" in
             echo "Usage: $SCRIPT $1"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console vnode_status $@
         ;;
@@ -257,14 +236,10 @@ case "$1" in
             echo "Usage: $SCRIPT ringready"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console ringready $@
         ;;
@@ -274,14 +249,10 @@ case "$1" in
             echo "Usage: $SCRIPT transfers"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console transfers $@
         ;;
@@ -291,14 +262,10 @@ case "$1" in
             echo "Usage: $SCRIPT $1"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_core_console member_status $@
         ;;
@@ -308,14 +275,10 @@ case "$1" in
             echo "Usage: $SCRIPT $1"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_core_console ring_status $@
         ;;
@@ -327,7 +290,9 @@ case "$1" in
         fi
         shift
 
+        # Make sure the local node is running
         node_up_check
+
         $NODETOOL rpc riak_kv_console aae_status $@
         ;;
 
@@ -336,14 +301,10 @@ case "$1" in
             echo "Usage: $SCRIPT $1 <output_file> ['local' | <node> ['local' | <node>] [...]]"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc_infinity riak_kv_console cluster_info $@
         ;;
@@ -384,23 +345,19 @@ case "$1" in
 
     js[_-]reload)
         # Reload all Javascript VMs
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
 
         shift #optional names come after 'js_reload'
+
+        # Make sure the local node is running
+        node_up_check
+
         $NODETOOL rpc riak_kv_js_manager reload $@
         ;;
 
     erl[_-]reload)
         # Reload user Erlang code
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console reload_code
         ;;
@@ -412,12 +369,10 @@ case "$1" in
             echo "Usage $SCRIPT $ACTION <old_nodename> <new_nodename>"
             exit 1
         fi
-        # Make sure the local node IS not running
-        RES=`$NODETOOL ping`
-        if [ "$RES" = "pong" ]; then
-            echo "Node must be down to re-ip."
-            exit 1
-        fi
+
+        # Make sure the local node is running
+        node_up_check
+
         OLDNODE=$1
         NEWNODE=$2
         $ERTS_PATH/erl -noshell \
@@ -466,11 +421,7 @@ case "$1" in
 
     test)
         # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        node_up_check
 
         shift
 
@@ -515,11 +466,8 @@ case "$1" in
         ;;
     top)
         # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        node_up_check
+
         shift
 
         MYPID=$$
@@ -546,9 +494,20 @@ case "$1" in
         shift
         $NODETOOL rpc riak_core_console transfer_limit "$@"
         ;;
+    reformat[_-]indexes)
+        if [ $# -gt 4 ]; then
+            echo "Usage: $SCRIPT $1"
+            echo "       $SCRIPT $1 --downgrade"
+            echo "       $SCRIPT $1 <concurrency> [--downgrade]"
+            echo "       $SCRIPT $1 <concurrency> <batch size> [--downgrade]"
+            exit 1
+        fi
+        node_up_check
+        shift
+        $NODETOOL rpc riak_kv_console reformat_indexes "$@"
+        ;;
     *)
         usage
         exit 1
         ;;
 esac
-

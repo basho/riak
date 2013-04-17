@@ -1,8 +1,5 @@
 REPO            ?= riak
-PKG_NAME        ?= riak
 PKG_REVISION    ?= $(shell git describe --tags)
-PKG_VERSION     ?= $(shell git describe --tags | sed -e 's/^$(PKG_NAME)-//' | tr - .)
-PKG_ID           = $(PKG_NAME)-$(PKG_VERSION)
 PKG_BUILD        = 1
 BASE_DIR         = $(shell pwd)
 ERLANG_BIN       = $(shell dirname $(shell which erl))
@@ -78,7 +75,7 @@ riaknostic-rel: riaknostic
 ##    make stagedevrel DEVNODES=68
 
 .PHONY : stagedevrel devrel
-DEVNODES ?= 4
+DEVNODES ?= 5
 
 # 'seq' is not available on all *BSD, so using an alternate in awk
 SEQ = $(shell awk 'BEGIN { for (i = 1; i < '$(DEVNODES)'; i++) printf("%i ", i); print i ;exit(0);}')
@@ -90,6 +87,7 @@ dev% : all riaknostic
 	mkdir -p dev
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
 	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
+	rm -rf dev/$@/lib/riaknostic
 	mkdir -p dev/$@/lib/riaknostic
 	cp -f deps/riaknostic/riaknostic dev/$@/lib/riaknostic/
 
@@ -235,27 +233,14 @@ ballclean:
 ##
 ## Packaging targets
 ##
-.PHONY: package
-export PKG_NAME PKG_VERSION PKG_ID PKG_BUILD BASE_DIR ERLANG_BIN REBAR OVERLAY_VARS RELEASE
+PKG_VERSION = $(shell echo $(DISTNAME) | sed -e 's/^$(REPO)-//')
+PKG_ID = $(DISTNAME)
 
-package.src: deps
-	mkdir -p package
-	rm -rf package/$(PKG_ID)
-	git archive --format=tar --prefix=$(PKG_ID)/ $(PKG_REVISION)| (cd package && tar -xf -)
-	$(MAKE) -C package/$(PKG_ID) deps
-	for dep in package/$(PKG_ID)/deps/*; do \
-             echo "Processing dep: $${dep}"; \
-             mkdir -p $${dep}/priv; \
-             git --git-dir=$${dep}/.git describe --tags >$${dep}/priv/vsn.git; \
-        done
-	find package/$(PKG_ID) -depth -name ".git" -exec rm -rf {} \;
-	tar -C package -czf package/$(PKG_ID).tar.gz $(PKG_ID)
-
-dist: package.src
-	cp package/$(PKG_ID).tar.gz .
-
-package: package.src
-	$(MAKE) -C package -f $(PKG_ID)/deps/node_package/Makefile
+package: dist
+	$(MAKE) -C distdir -f $(PKG_ID)/deps/node_package/Makefile
 
 pkgclean: distclean
-	rm -rf package
+	rm -rf distdir/$(DISTNAME)
+
+.PHONY: package
+export PKG_VERSION PKG_ID PKG_BUILD BASE_DIR ERLANG_BIN REBAR OVERLAY_VARS RELEASE

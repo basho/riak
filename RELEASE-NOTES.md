@@ -1,217 +1,475 @@
-# Riak 1.2.1 Release Notes
+## Riak 1.3.1 Release Notes
 
-## Bugs Fixed
+### New Features or Major Improvements for Riak
 
-* [LevelDB - Restrict number of input files to a compaction.](https://github.com/basho/leveldb/pull/40)
-* [riak_pipe - Avoid race to code:load_file by using code:ensure_loaded instead](https://github.com/basho/riak_pipe/pull/51)
-* [riak - Beams in basho-patches don't take precedence over existing code](https://github.com/basho/riak/issues/126)
-* [merge_index - Fix iterator API (Thanks to Arnaud Wetzel)](https://github.com/basho/merge_index/pull/24)
-* [riak_core - Restart vnode worker pool in case of crash](https://github.com/basho/riak_core/pull/212)
-* [riak_kv - Resolve 2I timeout error from case clause](https://github.com/basho/riak_kv/pull/379)
-* [riak_kv - Add retry on eleveldb lock errors during open for up to 1 minute.](https://github.com/basho/riak_kv/pull/395)
-* [bitcask - Adds "grace period" to stop just-written files from expiring](https://github.com/basho/bitcask/pull/54)
-* [erlang_js - ejsLog() kills the erlang vm in a reduce](https://github.com/basho/riak/issues/209)
-* [bitcask - Validate hint files generated after merge](https://github.com/basho/bitcask/pull/59)
-* [riak_core - Remove publish_capabilities race condition](https://github.com/basho/riak_core/pull/230)
+#### 2i Big Integer Encoding
 
-# Riak 1.2 Release Notes
+For all Riak versions prior to 1.3.1, 2i range queries involving
+integers greater than or equal to 2147483647 (0x7fffffff) could return
+missing results. The cause was identified to be an issue with the
+encoding library sext [1], which Riak uses for indexes stored in
+eleveldb.  Sext serializes Erlang terms to a binary while preserving
+sort order. For these large integers, this was not the case.  Since
+the 2i implementation relies on this property, some range queries were
+affected.
 
-## Features and Improvements for Riak
+The issue in sext was patched [2] and is included in Riak 1.3.1. New
+installations of Riak 1.3.1 will immediately take advantage of the
+change.  However, the fix introduces an incompatibly in the encoding
+of big integers.  Integer indexes containing values greater than or
+equal to 2147483647 already written to disk with Riak 1.3 and below
+will need to be rewritten, so that range queries over them will return
+the correct results.
 
-* Aggregation of non-streamed MapReduce results was
-  improved. Previous versions used an O(n^2) process, where n is
-  the number of outputs for a phase. The aggregation in Riak 1.2 is
-  O(n). (riak_kv#331,333, riak-erlang-client#58,59).
+Riak 1.3.1 includes a utility, as part of
+`riak-admin`, that will perform the reformatting of these indexes
+while the node is online. After the affected indexes have been
+reformatted on all nodes, range queries will begin returning the
+correct results for previously written data. The utility should be run
+against any riak cluster using 2i after upgrading the entire cluster
+to 1.3.1, regardless of whether or not large integer index values are
+used. It will report how many indexes were affected (rewritten). Unaffected
+indexes are not modified and new writes will be written in the correct format.
 
-* Timeouts of MapReduce jobs now produce less error log spam. The
-  safe-to-ignore-but-confusing `{sink_died, normal}` messages have
-  been removed. (riak_pipe#45)
+To reformat indexes on a Riak node run:
 
-* The `riak-admin transfers` command now reports the
-  [status of active transfers] [xfer_status].  This gives more insight
-  into what transfers are occurring, their type, their running time,
-  and the rate at which data is being transferred.  Calling this
-  command will no longer stall handoff.
-
-* The memory storage backend for Riak KV now supports secondary indexes and has a "test" mode that lets developers quickly clear all local storage (useful in the context of an external test suite).
-
-### Protocol Buffers Enhancements
-
-* The design of the Protocol Buffers on the server-side has been significantly refactored, allowing sub-applications other than Riak KV to supply services to clients.
-* Secondary indexes can be natively queried from Protocol Buffers clients, They no longer need to emulate them with MapReduce.
-* Riak Search indexes can be natively queried from Protocol Buffers clients. They no longer need to emulate them with MapReduce.
-
-### Stats improvements
-
-* Riak now uses the open source [Folsom](https://github.com/boundary/folsom) library for stats
-* Riak_search now has stats
-* Getting stats from riak_kv should no longer timeout under very heavy load as there is no longer a gen_server
-process for stats.
-* Stats can still be retrieved as before, with the addition that one can now attach to a node and
-query stats directly through folsom. Use `folsom_metrics:get_metrics()` to see a list of available stats.
-* Configurable sample types for histogram metrics in riak_kv and riak_search. Defaults to a one minute sliding window, with random uniform reservoir size of 1028 readings per second. This means that the following statistics *may* show slightly different results from pre1.2 nodes as there may be fewer readings than the total number or events.
-    * riak_kv_node_get_fsm_siblings
-    * riak_kv_node_get_fsm_time,
-    * riak_kv_node_put_fsm_time
-    * riak_kv_node_get_fsm_objsize
-* You can configure the sample type by adding
-    `{stat_sample_type, {slide, Window::int()}}` or `{stat_sample_type, {slide_uniform, {Window::int(), Size::int()}}}` to your `app.config` under the section for riak_kv and/or riak_search. Further you may change the sample type for a named stat only, like this `{{riak_kv, node_get_fsm_time}, {slide_uniform, {60, 10000}}}`
-
-### Packaging Improvements
-
-* A binary package for FreeBSD 9 is now provided
-* A binary package for SmartOS is now provided
-* Ubuntu packages for 10.04 (Lucid), 11.04 (Natty), and 12.04 (Precise) are now provided as separate packages
-* See "Bugs Fixed" for packaging related bug fixes
-
-### Leveldb tuning
-* Bloom filter code from google added.  This greatly reduces the search time for keys that do not exist.
-* File sizes increased 10x or more.  This reduces the amount of disk activity, increasing performance.
-
-### Capability Negotiation
-
-* Riak nodes now negotiate with each other to determine supported operating modes,
-  allowing clusters containing mixed-versions of Riak to work properly without special
-  configuration.
-
-* This simplifies rolling upgrades. In the past, users needed to disable new features
-  during the rolling upgrade, and then enable them after all nodes were upgraded. This
-  is now handled automatically by Riak.
-
-* This change replaces several existing configuration parameters, with the old settings
-  being ignored entirely in Riak 1.2. The following values are the ones that are no longer
-  used in Riak 1.2, along with the new behavior:
-  * `riak_core/legacy_vnode_routing`: Uses the newer vnode routing layer (introduced in Riak 1.1) when supported; otherwise, defaults to the legacy routing protocol.
-  * `riak_kv/legacy_keylisting`: Uses coverage based keylisting (introduced in Riak 1.0) when supported; otherwise,
-    defaults to the legacy keylisting behavior.
-  * `riak_kv/listkeys_backpressure`: Enables listkeys backpressure (introduced in Riak 1.1) when supported.
-  * `riak_kv/mapred_2i_pipe`: Use parallel secondary-index input to map/reduce jobs (introduced in Riak 1.1) when supported.
-  * `riak_kv/mapred_system`: Use `riak_pipe` for map/reduce (introduced in Riak 1.0) when supported; otherwise, default to legacy `luke` system.
-
-* To override capability negotiation (which is discouraged), there is now a per-component override setting
-  that can be set in `app.config`. For example, the following could be added to the `riak_kv` section of
-  `app.config` to alter negotiation of the `listkeys_backpressure` and `mapred_system` settings:
-
-```erlang
-%% Override listkeys_backpressure setting to always be set to 'false'.
-%%
-%% Override mapred_system setting to use 'legacy' if all nodes in the cluster
-%% support 'legacy', otherwise use the built-in default setting.
-[{override_capability,
-  [{listkeys_backpressure, [{use, false}]},
-   {mapred_system,         [{prefer, legacy}]}]
-}]
+```
+riak-admin reformat-indexes [<concurrency>] [<batch size>]
 ```
 
-### Overhauled Cluster Adminstration
+The concurrency option controls how many partitions are reformatted
+concurrently.  If not provided it defaults to 2. Batch size controls
+how many keys are fixed at a time and it defaults to 100. A node
+*without load* could finish reformatting much faster with a higher
+concurrency value. Lowering the batch could lower the latency of other
+node operations if the node is under load during the reformatting. We
+recommend to use the default valuess and tweak only after testing.
+Output will be printed to logs once the reformatting has completed (or
+if it errors).  *If the reformatting operation errors, it should be
+re-executed.* The operation will only attempt to reformat keys that
+were not fixed on the previous run.
 
-* Riak now provides a multi-phase approach to cluster administration
-  that allows changes to be staged and reviewed before being committed.
+If downgrading back to Riak 1.3 from Riak 1.3.1, indexes will need to
+be reformatted back to the old encoding in order for the downgraded
+node to run correctly. The `--downgrade` flag can be passed to
+`riak-admin reformat-indexes` to perform this operation:
 
-* This change allows multiple changes to be grouped together, such as
-  adding multiple nodes at once, or adding some nodes while removing
-  others.
-
-* This new approach also provides details about how a set of staged
-  changes will impact the cluster, listing the future ring ownership
-  as well as the number of transfers necessary to implement the planned
-  changes.
-
-* This new approach is currently implemented only by `riak-admin`, and
-  is not yet part of Riak Control. The older `riak-admin` commands such
-  as `join, leave, force-remove` have been deprecated, although they can
-  still be used by appending `-f`, eg. `riak-admin join -f`.
-
-* The new cluster admin interface is accessed through `riak-admin cluster`:
-
-```text
-Usage: riak-admin cluster <command>
-
-The following commands stage changes to cluster membership. These commands
-do not take effect immediately. After staging a set of changes, the staged
-plan must be committed to take effect:
-
-   join <node>                    Join node to the cluster containing <node>
-   leave                          Have this node leave the cluster and shutdown
-   leave <node>                   Have <node> leave the cluster and shutdown
-
-   force-remove <node>            Remove <node> from the cluster without
-                                  first handing off data. Designed for
-                                  crashed, unrecoverable nodes
-
-   replace <node1> <node2>        Have <node1> transfer all data to <node2>,
-                                  and then leave the cluster and shutdown
-
-   force-replace <node1> <node2>  Reassign all partitions owned by <node1> to
-                                  <node2> without first handing off data, and
-                                  remove <node1> from the cluster.
-
-Staging commands:
-   plan                           Display the staged changes to the cluster
-   commit                         Commit the staged changes
-   clear                          Clear the staged changes
+```
+riak-admin reformat-indexes [<concurrency>] [<batch size>] --downgrade
 ```
 
-## Enhancements
+The concurrency and batch size parameters work in exactly the same way as in the
+upgrade case above.
 
-* [Search - micro-optimization](https://github.com/basho/riak_search/pull/101)
-* [Search - add repair cmd](https://github.com/basho/riak_search/pull/107)
+[1] https://github.com/uwiger/sext
 
-## Known Issues
+[2] https://github.com/uwiger/sext/commit/ff10beb7a791f04ad439d2c1c566251901dd6bdc
 
-* The Protocol Buffers interface when returning `RpbErrorResp` responses to the client will set the `errcode` field to `0`, whereas before it was `1` or unset. Only client libraries that previously attempted to apply meaning to the `errcode` field will be affected. Improvement of the error responses from Protocol Buffers is planned for the next major release.
-* Some spurious messages may be sent to the log after a Pipe-based MapReduce job sent via PBC has been shutdown. This does not affect normal operations. [basho/riak_kv#366](https://github.com/basho/riak_kv/issues/366)
-* The SmartOS packages were tested against 1.5.x and 1.6.x datasets from Joyent.  The newest datasets of SmartOS 1.7.x have not been tested and are not supported currently.
-* Secondary index queries against a heavily loaded cluster may hit an improperly-handled internal timeout and result in error responses. This affects both HTTP and Protocol Buffers interfaces and has existed since Riak 1.0. [basho/riak_kv#379](https://github.com/basho/riak_kv/pull/379)
-* MapReduce queries may print messages in the log of the form, `[error] Module <module name> must be purged before loading`, due to a race in the code that ensures a module is loaded before it is used. This message may be safely ignored. It can be silenced by attaching to the Riak console and evaluating `code:purge(<module name>).`.
-* Some users may experience a performance regression in 2I compared to 1.0 and 1.1. The problem manifests as higher latencies for range and equality queries. A preliminary investigation suggests the change of the Erlang VM from R14B04 to R15B01 is partially responsible, but there may be other factors.
+#### Improved bitcask startup time
 
-## Bugs Fixed
+We fixed a problem that was preventing vnodes from starting concurrently. Installations
+using the bitcask backend should see a substantial improvement in startup times if
+multiple cores are available.  We have observed improvements in the vicinity of an order
+of magnitude (~10X) on some of our own clusters.
 
-* [Add CSRF protection to Riak Control resources](https://github.com/basho/riak_control/pull/28).
-* Riak Control now returns the proper [content-types](https://github.com/basho/riak_control/pull/18) and [doctype](https://github.com/basho/riak_control/pull/16).
-* [Updates to Riak Control to resolve issues when viewing
-  Control on iOS devices and over connections with high latency.](https://github.com/basho/riak_control/pull/21)
-* [Riak Control now reports pre-1.1 nodes in a mixed version cluster as incompatible instead of unreachable.] (https://github.com/basho/riak_control/pull/24)
-* [Allow commented out -name lines in `vm.args`](https://github.com/basho/riak/issues/175)
-* [Riak RPM package needs dep on `sudo`](https://github.com/basho/riak/issues/163)
-* [Change ownership of `/etc/riak` for RPM packages](https://github.com/basho/riak/issues/165)
-* [`/var/run/riak` is not recreated on demand at startup](https://github.com/basho/riak/issues/130)
-* [Ensure `ring_creation_size` setting is in all packaged app.config files](https://github.com/basho/riak/issues/139)
-* [Move the `pipe_dir` on fedora/centos to the `/tmp/riak` directory](https://github.com/basho/riak/issues/150)
-* [Remove bashisms from shell scripts which use /bin/sh](https://github.com/basho/riak/issues/141)
-* Stalls:  2i and leveldb each had scenarios where data operations would stall 7 to 120 seconds.
-* "block_size" parameter within app.config for leveldb was ignored.  This parameter is now properly passed to leveldb.
-* [Search - clear schema cache on update](https://github.com/basho/riak_search/pull/110)
-* [Search - remove solr supervisor](https://github.com/basho/riak_search/pull/113)
-* [Search - honor the '?' wildcard](https://github.com/basho/riak_search/pull/114)
-* [Search - flatten 'MaxScore'](https://github.com/basho/riak_search/pull/119)
-* [riak_api - Add riak_core as application dep to riak_api.app](https://github.com/basho/riak_api/issues/6)
-* [riak_api - Register riak_api_stat mod with riak_core at start up](https://github.com/basho/riak_api/issues/7)
-* [Add eleveldb:close - Fixes MANIFEST file missing bug](https://github.com/basho/eleveldb/pull/33)
-* [riak_kv - Call eleveldb:close before destroy](https://github.com/basho/riak_kv/pull/368)
-* [riak_control - Resolve base64 cookie truncation race condition.
-](https://github.com/basho/riak_control/pull/30)
-* [Fix FreeBSD package permissions on sbin](https://github.com/basho/riak/pull/183)
-* [Create SmartOS SMF service for epmd](https://github.com/basho/riak/pull/187)
-* [riak_core - Restructure supervision tree so that folsom is an included app](https://github.com/basho/riak_core/pull/217)
-* [riak_core - Ring mgr crash creates confused cluster](https://github.com/basho/riak_core/issues/166)
-* [riak_core - Make the ring manager responsible for loading the ring](https://github.com/basho/riak_core/pull/214)
-* [riak_core - Fix capability system race condition](https://github.com/basho/riak_core/pull/216)
-* [riak_kv - Changed semantics of backend:drop - backend must close all handles](https://github.com/basho/riak_kv/pull/373)
-* [riak_kv - Call eleveldb:close on vnode stop for eleveldb backend](https://github.com/basho/riak_kv/pull/372)
-* [leveldb - Make ref count increase atomic operation under read lock](https://github.com/basho/leveldb/pull/36)
-* [leveldb - Change LRUCache destructor so it does NOT look like a bad reference](https://github.com/basho/leveldb/pull/38)
-* [riak_control - Patch handoff status to work with status_v2](https://github.com/basho/riak_control/pull/34)
-* [riak_core - Ensure legacy nodes are probed when new capabilities registered](https://github.com/basho/riak_core/pull/219)
-* [riak - `riak attach` fails on some versions of SmartOS](https://github.com/basho/riak/issues/198)
+#### Fix behaviour of PR/PW
 
+For Riak releases prior to 1.3.1 the get and put options PR and PW only
+checked that the requested number of primaries were online when the request was handled.
+It did not check which vnodes actually responded. So with a PW of 2 you could easily write
+to one primary, one fallback, fail the second primary write and return success.
 
+As of Riak 1.3.1, PR and PW will also wait until the required number of primaries have responded
+before returning the result of the operation. This means that if PR + PW > N and both requests
+succeed, you'll be guaranteed to have read the previous value you've written (barring other
+intervening writes and irretrievably lost replicas).
 
+Note however, that writes with PW that fail may easily have done a partial write. This change is
+purely about strengthening the constraints you can impose on read/write success. See more information
+in the pull request linked below.
 
-## Notes
+### Issues / PR's Resolved
 
-* The Luke application, and with it the "legacy" MapReduce system should be considered deprecated.  All systems should be configured to use Riak Pipe as their MapReduce system (the default since 1.0).  The Luke application may be removed as soon as the next release.
-* The Innostore storage backend is deprecated and will not be supported in the 1.2 release.
+* riak_kv/505: [Fix bug where stats endpoints were calculating _all_ riak_kv stats](https://github.com/basho/riak_kv/issues/505)
+  NOTE: this fix introduces a slight change to the stats caching strategy in riak. Formerly stats were cached for TTL seconds
+  and the cache's freshness checked when a request to a stats endpoint was serviced. If the cache was stale the stats would be
+  calculated on demand. From 1.3.1 forward all stats requests are served from the cache. A background process calculates stats
+  and refreshes the cache at an interval. This smooths the access latency for stats. A new stat  `{riak_kv_stat_ts, timestamp()}`
+  is added to the returned stats that indicates the time the stats were calculated.
+* riak_kv/508: [If a `folsom_metrics_histogram_ets` owned table dies, kv_stat cannot recreate it](https://github.com/basho/riak_kv/issues/508)
+  NOTE: introduces the stat value `unavailable` for any stat that cannot be calculated due to an error. Previously a call to a stats endpoint
+  would simply fail, with this fix, failed stats are `unavailable` and all others returned uneffected.
+* riak_api/26: [Fix stat names so delete of stats on restart works](https://github.com/basho/riak_api/issues/26)
+* riak_core/281: [Porting parallel vnode init fix to 1.3 + revert switch](https://github.com/basho/riak_core/issues/281)
+* riak_core/288: [Failure to calculate a stats value should be temporary so warn only](https://github.com/basho/riak_core/issues/288)
+* riak_pipe/70: [Fix stat names so delete of stats on restart works](https://github.com/basho/riak_pipe/issues/70)
+* riak_kv/485: [Fix PR/PW](https://github.com/basho/riak_kv/issues/485)
+* riak_kv/499: [Big integer 2i indexes sometimes sort incorrectly](https://github.com/basho/riak_kv/issues/499)
+* riak_kv/511: [riak_kv 1.3.1 using parallel vnode init](https://github.com/basho/riak_kv/issues/511)
+* riak_kv/514: [Change AAE to use incremental crypto:sha calculations](https://github.com/basho/riak_kv/issues/514)
+* riak_kv/516: [support for handling legacy sext encoding of 2i keys](https://github.com/basho/riak_kv/issues/516)
+* riak_kv/517: [Since stats now get repaired when an update fails, log as `warning`](https://github.com/basho/riak_kv/issues/517)
+* riak_kv/522: [Spell badarg correctly](https://github.com/basho/riak_kv/pull/522)
+* riak_kv/523: [Fix perf problems and bug in 2i reformat](https://github.com/basho/riak_kv/pull/523)
+* riak_kv/525: [move querying of fixed index status to seperate backend function](https://github.com/basho/riak_kv/pull/525)
+* riak/302: [Add batch size param to 2i reformat cmd](https://github.com/basho/riak/pull/302)
+* bitcask/86: [Fix race with deleting stale input files from merge](https://github.com/basho/bitcask/pull/86)
 
-[xfer_status]: http://basho.com/blog/technical/2012/06/25/Riak-Admin-Transfers-in-1-2-Release/
+## Riak 1.3.0 Release Notes
+
+### New Features or Major Improvements for Riak
+
+#### Active Anti-Entropy
+New in Riak 1.3. Riak now includes an active anti-entropy (AAE) subsystem that works to verify and repair data cross an entire Riak cluster. The AAE system periodically exchanges information between data replicas in order to determine missing or divergent data.  When bad replicas are detected, AAE triggers read repair to correct the situation. AAE is entirely automatic, and provides an additional layer of protection against various data loss scenarios (eg. disk failure, restoring from an outdated backup, bit rot, etc).
+
+AAE is implemented using hash tree exchange, which ensures that the information exchanged between data replicas is proportional to the amount of divergent data rather than the total amount of data stored in Riak. When all data is in sync (the common case), exchanges are fast and have extremely low overhead. For this reason, AAE is able to perform multiple exchanges a minute with negligible impact on a cluster.
+
+AAE hash trees are persistent entities stored in LevelDB instances separate from normal Riak K/V data. When first starting a fresh Riak 1.3 cluster (or upgrading from an older release), Riak will generate the hash tree information by traversing over each partition's data. By default, Riak will build one hash tree per hour per node. If the traversal over a partition's data takes more than an hour, then Riak may trigger a second tree build. However, by default at most two tree builds can occur at once.
+
+Once a hash tree is built, it is kept up-to-date in real-time as writes are sent to Riak. However, trees are periodically expired and rebuilt to protect against potential divergence between the K/V data and its corresponding hash tree. Rebuilding trees also protects against silent data corruption (eg. bit rot). By default, trees are expired and rebuilt once a week.
+
+All of the above settings (and more) can be configured in `app.config`. The AAE settings are in the `riak_kv` section, and have comments documenting the different options.
+
+To provide insight into AAE, Riak provides the `riak-admin aae-status` command. The AAE status output is broken into three parts: Exchanges, Entropy Trees, and Keys Repaired.
+
+```
+================================== Exchanges ==================================
+Index                                              Last (ago)    All (ago)
+-------------------------------------------------------------------------------
+0                                                  3.8 min       4.1 min
+91343852333181432387730302044767688728495783936    3.3 min       7.8 min
+182687704666362864775460604089535377456991567872   2.8 min       8.3 min
+274031556999544297163190906134303066185487351808   2.3 min       6.3 min
+365375409332725729550921208179070754913983135744   1.8 min       5.5 min
+<snip>
+```
+
+The Exchanges section shows information about AAE exchanges for each K/V partition.  The `Last` column lists when the most recent exchange between a partition and one of its sibling replicas was performed. The `All` column shows how long it has been since a partition exchanged with all of its sibling replicas. In essence, the `All` column sets the upperbound on how out-of-date an individual partition can be. Specifically, a partition can not have any missing or divergent data older that the value shown in `All`, unless all replicas for that data are invalid.
+
+```
+================================ Entropy Trees ================================
+Index                                              Built (ago)
+-------------------------------------------------------------------------------
+0                                                  22.1 min
+91343852333181432387730302044767688728495783936    22.6 min
+182687704666362864775460604089535377456991567872   22.3 min
+274031556999544297163190906134303066185487351808   22.9 min
+365375409332725729550921208179070754913983135744   22.3 min
+<snip>
+```
+
+The Entropy Trees section shows when the hash trees for a given partition were created. A hash tree must be built before a partition can participate in an exchange. As mentioned above, trees are built once and expired (by default) once a week.
+
+```
+================================ Keys Repaired ================================
+Index                                                Last      Mean      Max
+-------------------------------------------------------------------------------
+0                                                     0         0         0
+91343852333181432387730302044767688728495783936       87        21        87
+182687704666362864775460604089535377456991567872      0         0         0
+274031556999544297163190906134303066185487351808      0         0         0
+365375409332725729550921208179070754913983135744      0         0         0
+<snip>
+```
+
+The Keys Repaired section presents information about repairs triggered by AAE, including keys repaired in the most recent exchange, and the mean and max across all exchanges.
+
+Note: All AAE status information is in-memory and is reset across a node restart. Only tree build times are persistent (since trees themselves are persistent).
+
+Final notes about AAE:
+
+1. Trees must be built before exchange can occur. Since trees are built once an hour by default, it will take up to `ring_size / number_of_nodes` hours before all trees are built after first starting or upgrading to 1.3, and therefore that amount of time until AAE is fully protecting all data.
+
+2. Tree building typically uses 100% of a CPU when possible but should have minimal impact on Riak performance. When using Bitcask for K/V data, tree building may increase the latency for `list_keys`, `list_buckets`, and Riak EE's fullsync replication strategy. Once trees are built, these issues go away (until trees are expired/rebuilt a week later).
+
+3. AAE may occasionally repair a small number of keys (typically 1 or 2) even in a healthy cluster without divergent or missing data. This occurs when AAE is performing an exchange at the same time incoming writes are occurring to the same nodes. For example, a write may reach node A while being concurrently in-flight to node B, yet AAE happens to run at just the right moment to see the write on A but not B, and force a repair. Since AAE just triggers reads (to trigger read repair) this behavior is entirely safe.
+
+4. AAE is a feature of Riak K/V and does not protect Riak Search data.
+
+#### MapReduce Sink Backpressure
+
+* [RiakKV - MapReduce Sink Backpressure](https://github.com/basho/riak_kv/pull/429), supported by [RiakPipe - Sink Type FSM](https://github.com/basho/riak_pipe/pull/59)
+
+Riak Pipe brought inter-stage backpressure to Riak KV's MapReduce system. However, prior to Riak 1.3, that backpressure did not extend to the sink. It was assumed that the Protocol Buffers or HTTP endpoint could handle the full output rate of the pipe. With Riak 1.3, backpressure has been extended to the sink so that those endpoint processes no longer become overwhelmed. This backpressure is tunable via a soft cap on the size of the sink's buffer, and a period at which a worker should check that cap. These can be configured at the Riak console by setting application environment variables, or in the riak_kv section of app.config (defaults shown):
+
+    {riak_kv,
+     ...
+     %% Soft cap on the MapReduce sink's buffer,
+     %% expressed as a positive integer number of messages
+     %% (one message is used per MapReduce result)
+     {mrc_sink_buffer, 1000},
+
+     %% Period at which a MapReduce worker must check
+     %% the sink's buffer cap, expressed as an integer
+     %% number of messages to send before waiting on
+     %% an clear-to-send acknowledgement
+     %%   0 = wait for acknowledgement of each message
+     %%   1 = wait every other message
+     %%   'infinity' = never wait for acknowledgements
+     {mrc_sink_sync_period, 10}
+    }.
+
+#### Additional IPv6 support
+
+* [Allow gen_nb_server to support IPv6 addresses - riak_core #249](https://github.com/basho/riak_core/pull/249)
+
+Riak Handoff and Protocol Buffers interfaces can now listen on IPv6 addresses (HTTP has always supported IPv6). You may specify the address using the short-hand string form, e.g. `"::1"` (for localhost), or as the 16-byte address in a tuple of 8 numbers, e.g. `{0,0,0,0,0,0,0,1}` (for localhost). IPv4 addresses may also be specified in either form (except the latter will be 4 bytes, tuple of 4 numbers). *Note: This does not affect Riak node names. Refer to the `inet_dist_*` settings in the [Erlang documentation](http://www.erlang.org/documentation/doc-5.9.1/lib/kernel-2.15.1/doc/html/kernel_app.html) to enable IPv6 support for cluster membership.*
+
+#### Luke Removal
+
+* [Remove Luke Usage](https://github.com/basho/riak_kv/pull/433)
+
+The luke application was deprecated in the release of Riak 1.2. This release removes it, and all code using it.
+
+#### `riak getpid` Added
+
+A bug existed in how we used `riak stop` (listed below in Bugs Fixed) that justified a refactoring of how we got our own PID of Riak.  While fixing the bug, it was thought getpid might be useful to system admins out there who don't want to rely on outside scripts to find the PID of Riak.  `riak getpid` does what you expect, returns the PID of a running Riak or exits with 1 on failure.  It is a small feature, but might save some time with `ps`, `grep`, and `awk`.
+
+#### Riaknostic Included by Default
+
+To encourage its use, we have now included Riaknostic in the Riak packages.  Prior to 1.3, the user needed to download riaknostic separately, but now `riak-admin diag` will work out of the box.
+
+#### Support added for SmartOS 1.8
+
+Packages are now available for SmartOS machines based on 1.8 datasets as well as 1.6.
+
+#### Health Check
+
+New in Riak 1.3. Riak Core now includes a health check subsystem that actively monitors each node for specific conditions and disables/enables services based on those conditions.
+
+To enable/disable all health checks a new setting has been added to the `riak_core` section of `app.config`:
+
+    %% Health Checks
+    %% If disabled, health checks registered by an application will
+    %% be ignored. NOTE: this option cannot be changed at runtime.
+    %% To re-enable, the setting must be changed and the node restarted.
+    {enable_health_checks, true},
+
+Riak registers a health check with Riak Core to monitor the message queue lengths of KV vnodes. To configure the kv health check a new setting has been added to the `riak_kv` section of `app.config`:
+
+    %% This option configures the riak_kv health check that monitors
+    %% message queue lengths of riak_kv vnodes. The value is a 2-tuple,
+    %% {EnableThreshold, DisableThreshold}. If a riak_kv_vnode's message
+    %% queue length reaches DisableThreshold the riak_kv service is disabled
+    %% on this node. The service will not be re-enabled until the message queue
+    %% length drops below EnableThreshold.
+    {vnode_mailbox_limit, {1, 5000}}
+
+Note: the kv health check does not apply to Riak Search or Riak Pipe vnodes.
+
+#### Reset Bucket Properties
+
+The HTTP interface now supports resetting bucket properties to their default values. Bucket properties are stored in Riak's ring structure that is gossiped around the cluster. Resetting bucket properties for buckets that are no longer used or that are using the default properties can reduce the amount of gossiped data.
+
+#### Support for logging to syslog
+
+Riak 1.3 now includes support for logging to syslog. To enable it, you can add something like this to the 'handlers' section of riak's app.config, under lager:
+
+```
+{lager_syslog_backend, ["riak", daemon, info]}
+```
+
+Which would log any messages at info or above to the daemon facility with the identity set to 'riak'. For more information see the lager_syslog documentation:
+
+https://github.com/basho/lager_syslog
+
+### Installation Notes
+
+For RHEL/Centos/Fedora users, the RPM tools have added a dependency on `expect`, so if you see a message like this:
+
+```
+$ sudo rpm -i riak-1.3.0rc1-1.el5.x86_64.rpm
+error: Failed dependencies:
+    /usr/bin/expect is needed by riak-1.3.0rc1-1.x86_64
+```
+
+You can fix this issue by installing the Riak RPM with `yum` which will resolve any dependencies automatically:
+
+```
+$ sudo yum -y install riak-1.3.0rc1-1.el5.x86_64.rpm
+Preparing...                ########################################### [100%]
+   1:expect                 ########################################### [100%]
+   2:riak                   ########################################### [100%]
+```
+
+### Issues / PR's Resolved
+
+* riak: `ulimit -n` warning message bumped from 1024 to 4096
+* riak/192: [Permissions not checked on $PIPE_DIR in riak script](https://github.com/basho/riak/issues/192)
+* riak/266: [Add libstdc++ library to LD_PRELOAD path to find proper symbols in SmartOS](https://github.com/basho/riak/issues/266)
+* riak/261: [Add 'riak-admin aae_status', plus add AAE options to app.config](https://github.com/basho/riak/issues/261)
+* riak/259: [remove legacy-mapred-only configs](https://github.com/basho/riak/issues/259)
+* riak/253: [Properly exit on `/etc/init.d/riak status` command](https://github.com/basho/riak/issues/253)
+* riak/251: [`riak stop` does not behave properly on BSD systems](https://github.com/basho/riak/issues/251)
+* riak/274: [Riak fails to start on a single CPU machine](https://github.com/basho/riak/issues/274)
+* riak: [Set riak_sysmon's gc_ms_limit default value to zero](https://github.com/basho/riak/commit/065a2abf2ee3bbcd8da0fcf885f1fc8cd8f6327d)
+* basho_stats/2: [update rebar to 2.0.0](https://github.com/basho/basho_stats/issues/2)
+* bitcask/42: [Disable merges on startup to prevent high disk io with heavy requests](https://github.com/basho/bitcask/issues/42)
+* bitcask/45: [remove arbitrary 120-char limit on log_needs_merge messages](https://github.com/basho/bitcask/issues/45)
+* bitcask/46: [Support rebar binary in system](https://github.com/basho/bitcask/issues/46)
+* bitcask/49: [update rebar to 2.0.0](https://github.com/basho/bitcask/issues/49)
+* bitcask/54: [Adds "grace period" to stop just-written files from expiring.](https://github.com/basho/bitcask/issues/54)
+* bitcask/55: [Change erlang:now() -> os:timestamp() when it is safe](https://github.com/basho/bitcask/issues/55)
+* bitcask/56: [remove -author attributes from source](https://github.com/basho/bitcask/issues/56)
+* bitcask/58: [merge process should write CRC to hintfiles](https://github.com/basho/bitcask/issues/58)
+* bitcask/59: [Dss timeshift crc](https://github.com/basho/bitcask/issues/59)
+* bitcask/65: [Iterator API](https://github.com/basho/bitcask/issues/65)
+* bitcask/66: [Fix log spam introduced by branch 'gh62-badrecord-mstate'](https://github.com/basho/bitcask/issues/66)
+* bitcask/67: [Add bitcask:is_empty_estimate](https://github.com/basho/bitcask/issues/67)
+* bitcask/70: [Clear all Dialyzer warnings](https://github.com/basho/bitcask/issues/70)
+* bitcask/76: [Make Bitcask I/O mode configurable: Erlang vs NIF](https://github.com/basho/bitcask/pull/76)
+* bitcask/77: [Change default Bitcask I/O mode to Erlang](https://github.com/basho/bitcask/pull/77)
+* cluster_info/11: [Remove Luke usage](https://github.com/basho/cluster_info/issues/11)
+* cluster_info/8: [update rebar to 2.0.0](https://github.com/basho/cluster_info/issues/8)
+* ebloom/8: [update rebar to 2.0.0](https://github.com/basho/ebloom/issues/8)
+* leveldb/71: [convert LRUCache from LRU to simple fifo](https://github.com/basho/leveldb/pull/71)
+* eleveldb/37: [raise bits per key from 10 to 16.  reduces false positive rate.](https://github.com/basho/eleveldb/issues/37)
+* eleveldb/38: [updated to rebar 2.0.0](https://github.com/basho/eleveldb/issues/38)
+* eleveldb/39: [Export iterator/3 so users can iterate over just keys](https://github.com/basho/eleveldb/issues/39)
+* eleveldb/40: [make bloom2 the default bloom filter](https://github.com/basho/eleveldb/issues/40)
+* eleveldb/42: [Add Erlang VM reduction count 'bumps' to all NIF calls](https://github.com/basho/eleveldb/issues/42)
+* eleveldb/44: [Mv thread direct](https://github.com/basho/eleveldb/issues/44)
+* eleveldb/45: [Jfw return value rodeo](https://github.com/basho/eleveldb/issues/45)
+* eleveldb/48: [Jdb mv iterate5](https://github.com/basho/eleveldb/issues/48)
+* eleveldb/49: [Mv unordered close](https://github.com/basho/eleveldb/issues/49)
+* eleveldb/50: [Address race condition between queue asking for help and a single worker...](https://github.com/basho/eleveldb/issues/50)
+* erlang_js/29: [update rebar to 2.0](https://github.com/basho/erlang_js/issues/29)
+* erlang_js/30: [Dss fix ejslog](https://github.com/basho/erlang_js/issues/30)
+* lager/53: [adding css for edocs; also adding edoc pointer to README](https://github.com/basho/lager/issues/53)
+* lager/56: [Add support for a custom log truncation size compile time flag](https://github.com/basho/lager/issues/56)
+* lager/67: [Added CRs to the LFs in lager_console_backend](https://github.com/basho/lager/issues/67)
+* lager/68: [Direct the console logger output to user](https://github.com/basho/lager/issues/68)
+* lager/69: [update rebar to 2.0.0](https://github.com/basho/lager/issues/69)
+* lager/70: [Added lager:start() to the README](https://github.com/basho/lager/issues/70)
+* lager/76: [Add informtion about loggly backend](https://github.com/basho/lager/issues/76)
+* lager/77: [Use quickcheck to test for formatting equivalenve with io_lib](https://github.com/basho/lager/issues/77)
+* lager_syslog/6: [Lager 2.0 support](https://github.com/basho/lager_syslog/issues/6)
+* lager_syslog/7: [Use git:// rather than https:// so hosts don't need curl](https://github.com/basho/lager_syslog/issues/7)
+* lager_syslog/8: [convert_level(?EMERGENCY) -> emergency. ](https://github.com/basho/lager_syslog/issues/8)
+* merge_index/22: [update rebar to 2.0.0](https://github.com/basho/merge_index/issues/22)
+* merge_index/25: [Change erlang:now() -> os:timestamp() when it is safe](https://github.com/basho/merge_index/issues/25)
+* mochiweb/4: [erlang:now() -> os:timestamp](https://github.com/basho/mochiweb/issues/4)
+* erlang_protobuffs/26: [Issue 25](https://github.com/basho/erlang_protobuffs/issues/26)
+* erlang_protobuffs/34: [Fixed defaults for decodes to handle camelCase feilds.](https://github.com/basho/erlang_protobuffs/issues/34)
+* erlang_protobuffs/36: [Fixed warnings about unused functions and variables](https://github.com/basho/erlang_protobuffs/issues/36)
+* erlang_protobuffs/38: [Performance improvements](https://github.com/basho/erlang_protobuffs/issues/38)
+* riak_api/10: [Add deregistration of services](https://github.com/basho/riak_api/issues/10)
+* riak_api/12: [Restore stat mod registration](https://github.com/basho/riak_api/issues/12)
+* riak_api/14: [Allow multiple replies to be sent in the middle of a streaming operation.](https://github.com/basho/riak_api/issues/14)
+* riak_api/17: [Use riak_api_pb_sup active children count for pb active stat](https://github.com/basho/riak_api/issues/17)
+* riak_api/18: [Use folsom's `gauge` type to store the function needed to pbcconnects ](https://github.com/basho/riak_api/issues/18)
+* riak_api/19: [Performance improvements](https://github.com/basho/riak_api/issues/19)
+* riak_control/26: [Typo fix (no such function - gen_server:cast/3)](https://github.com/basho/riak_control/issues/26)
+* riak_control/27: [Re-export admin_ring:node_ring_details/2 back](https://github.com/basho/riak_control/issues/27)
+* riak_control/37: [Convert to Ember.js.](https://github.com/basho/riak_control/issues/37)
+* riak_control/38: [update rebar to 2.0.0](https://github.com/basho/riak_control/issues/38)
+* riak_control/40: [Deprecate unused resources.](https://github.com/basho/riak_control/issues/40)
+* riak_control/42: [Add new Riak Control theme.](https://github.com/basho/riak_control/issues/42)
+* riak_control/44: [Do not require secure only cookie.](https://github.com/basho/riak_control/issues/44)
+* riak_control/48: [Move formatting functions to riak_control_formatting.](https://github.com/basho/riak_control/issues/48)
+* riak_control/53: [style.css file missing from some packages](https://github.com/basho/riak_control/pull/53)
+* riak_core/137: [Change node to use claim_v1 when in legacy mode](https://github.com/basho/riak_core/issues/137)
+* riak_core/188: [Eunit cleanups](https://github.com/basho/riak_core/issues/188)
+* riak_core/195: [Change write_ringfile to create a temporary ring file, check and rename.](https://github.com/basho/riak_core/issues/195)
+* riak_core/220: [update rebar to 2.0.0](https://github.com/basho/riak_core/issues/220)
+* riak_core/223: [Change ticks from timer to more efficient erlang:send_after](https://github.com/basho/riak_core/issues/223)
+* riak_core/224: [erlang:now() -> os:timestamp() in all the places it is safe](https://github.com/basho/riak_core/issues/224)
+* riak_core/225: [remove -author attributes from source](https://github.com/basho/riak_core/issues/225)
+* riak_core/230: [Remove publish_capabilities race](https://github.com/basho/riak_core/issues/230)
+* riak_core/232: [Address high memory use by riak_core_sysmon_handler](https://github.com/basho/riak_core/issues/232)
+* riak_core/235: [No open source license specified](https://github.com/basho/riak_core/issues/235)
+* riak_core/236: [adding license file, closes #235](https://github.com/basho/riak_core/issues/236)
+* riak_core/240: [health check system](https://github.com/basho/riak_core/issues/240)
+* riak_core/246: [Vnode shutdown message severity should be info](https://github.com/basho/riak_core/issues/246)
+* riak_core/249: [Allow gen_nb_server to use IPv6 addresses.](https://github.com/basho/riak_core/issues/249)
+* riak_core/250: [Make vnode check for existing handoff before starting another](https://github.com/basho/riak_core/issues/250)
+* riak_core/251: [rewriting revised readme in .md and removing .org version.](https://github.com/basho/riak_core/issues/251)
+* riak_core/254: [Export path and stat_name types from riak_core_stat_q](https://github.com/basho/riak_core/issues/254)
+* riak_core/255: [upgrade legacy ring only if needed](https://github.com/basho/riak_core/issues/255)
+* riak_core/257: [Enable riak_core apps to provide a health_check callback](https://github.com/basho/riak_core/issues/257)
+* riak_core/259: [Adjust riak_core_sup child order for cleaner shutdown](https://github.com/basho/riak_core/issues/259)
+* riak_core/261: [Fix bug in riak_core_format:human_time + add test](https://github.com/basho/riak_core/issues/261)
+* riak_core/262: [Add ability to selectively disable incoming/outgoing handoff](https://github.com/basho/riak_core/issues/262)
+* riak_core/264: [Make vnode terminate backend for any exit reason](https://github.com/basho/riak_core/issues/264)
+* riak_core/265: [Fix bug in riak_core_util:rpc_every_member_ann](https://github.com/basho/riak_core/issues/265)
+* riak_core/268: [Fix riak_core_wm_urlmap](https://github.com/basho/riak_core/issues/268)
+* riak_kv/290: [timeout/forward_preflist MapReduce error.](https://github.com/basho/riak_kv/issues/290)
+* riak_kv/408: ["fitting was gone before startup" errors.](https://github.com/basho/riak_kv/pull/408)
+* riak_kv/354: [Add PB service deregistration on stop.](https://github.com/basho/riak_kv/issues/354)
+* riak_kv/360: [Fix eunit failures](https://github.com/basho/riak_kv/issues/360)
+* riak_kv/366: [Spurious #pipe_log messages in logs as "Unrecognized message"](https://github.com/basho/riak_kv/issues/366)
+* riak_kv/367: [riak 1.2rc1 - memory backend issue with 2i & $key/$bucket](https://github.com/basho/riak_kv/issues/367)
+* riak_kv/379: [Resolve 2I timeout error from case clause](https://github.com/basho/riak_kv/issues/379)
+* riak_kv/380: [Improper match on w_val_unsatisfied error in HTTP](https://github.com/basho/riak_kv/issues/380)
+* riak_kv/382: [Use regular logging on Travis for now so we can actually read the output](https://github.com/basho/riak_kv/issues/382)
+* riak_kv/390: [erlang:now() -> os:timestamp() in all the places it is safe](https://github.com/basho/riak_kv/issues/390)
+* riak_kv/395: [Add retry on eleveldb lock errors during open for up to 1 minute.](https://github.com/basho/riak_kv/issues/395)
+* riak_kv/399: [2I backpressure](https://github.com/basho/riak_kv/issues/399)
+* riak_kv/401: [Quick fix to prevent mapred_test from hanging](https://github.com/basho/riak_kv/issues/401)
+* riak_kv/404: [Spawn remote vnodes using start_link rather than start.](https://github.com/basho/riak_kv/issues/404)
+* riak_kv/405: [Randoming kv_put forwardee node](https://github.com/basho/riak_kv/issues/405)
+* riak_kv/406: [Make riak_client work on non-riak nodes after get/put FSM startup change](https://github.com/basho/riak_kv/issues/406)
+* riak_kv/415: [Fix stats for r15b02](https://github.com/basho/riak_kv/issues/415)
+* riak_kv/419: [add knob to disable referer check](https://github.com/basho/riak_kv/issues/419)
+* riak_kv/423: [Riak KV vnodes can block in certain scenarios when using Bitcask](https://github.com/basho/riak_kv/issues/423)
+* riak_kv/424: [Change riak_kv_bitcask_backend to use bitcask:is_empty_estimate](https://github.com/basho/riak_kv/issues/424)
+* riak_kv/426: [Since "Try again" is not relevant to a self-join, make that error explicit](https://github.com/basho/riak_kv/issues/426)
+* riak_kv/429: [Apply backpressure from the MR sink](https://github.com/basho/riak_kv/issues/429)
+* riak_kv/433: [Remove Luke usage](https://github.com/basho/riak_kv/issues/433)
+* riak_kv/435: [remove the unused 'mget' command from riak_kv_vnode](https://github.com/basho/riak_kv/issues/435)
+* riak_kv/438: [get put stats -> 1.2-perf](https://github.com/basho/riak_kv/issues/438)
+* riak_kv/439: [Fixing Dialyzer Complaints Near MapReduce Code](https://github.com/basho/riak_kv/issues/439)
+* riak_kv/440: [Re-instate code from #415 that was lost in later changes](https://github.com/basho/riak_kv/issues/440)
+* riak_kv/442: [Merge 1.2-perf into master](https://github.com/basho/riak_kv/issues/442)
+* riak_kv/447: [Add basic health check to Riak KV](https://github.com/basho/riak_kv/issues/447)
+* riak_kv/449: [Update stats in process](https://github.com/basho/riak_kv/issues/449)
+* riak_kv/451: [Change AAE hashtree to buffer and batch write to LevelDB](https://github.com/basho/riak_kv/issues/451)
+* riak_kv/453: [Avoid a badarg in crypto:rand_uniform when N=1](https://github.com/basho/riak_kv/issues/453)
+* riak_kv/454: [Try to make KV shutdown cleaner](https://github.com/basho/riak_kv/issues/454)
+* riak_kv/456: [Add AAE status subsystem + finalize AAE for Riak 1.3 release](https://github.com/basho/riak_kv/issues/456)
+* riak_kv/457: [Correct usage of capabilities API in riak_kv_pb_object.](https://github.com/basho/riak_kv/issues/457)
+* riak_kv/458: [Make index_hashtree process exit when related vnode exits](https://github.com/basho/riak_kv/issues/458)
+* riak_kv/459: [Fix health check code to handle dead pids](https://github.com/basho/riak_kv/issues/459)
+* riak_kv/460: [Fix AAE exchange bug for the N=1 case](https://github.com/basho/riak_kv/issues/460)
+* riak_kv/476: [Take node liveness into account during contant hash choice for reduce phase](https://github.com/basho/riak_kv/issues/476) - Thanks Gunin Alexander
+* riak_kv/478: [Improve interaction between AAE and K/V deletion](https://github.com/basho/riak_kv/pull/478)
+* riak_kv/482: [Randomize the LevelDB write_buffer_size used for AAE](https://github.com/basho/riak_kv/pull/482)
+* riak_kv/483: [Improve AAE backpressure on K/V vnode write-path](https://github.com/basho/riak_kv/pull/483)
+* riak_kv/486: [Make AAE default to 'off' when not configured](https://github.com/basho/riak_kv/pull/486)
+* riak_pb/15: [Maven build](https://github.com/basho/riak_pb/issues/15)
+* riak_pb/18: [Add proto_cmd to MANIFEST.in](https://github.com/basho/riak_pb/issues/18)
+* riak_pb/19: [Add OSGi Manifest headers to riak-pb jar file](https://github.com/basho/riak_pb/issues/19)
+* riak_pb/25: [Java POM changes for OSGI](https://github.com/basho/riak_pb/issues/25)
+* riak_pb/26: [Fix bug with protobuffs encoding tests](https://github.com/basho/riak_pb/issues/26)
+* riak_pb/27: [Add protobuf to install_requires.](https://github.com/basho/riak_pb/issues/27)
+* riak_pb/29: [Pin python package version and bump it.](https://github.com/basho/riak_pb/issues/29)
+* riak_pipe/52: [update to rebar 2.0.0](https://github.com/basho/riak_pipe/issues/52)
+* riak_pipe/53: [erlang:now() -> os:timestamp()](https://github.com/basho/riak_pipe/issues/53)
+* riak_pipe/59: ["Sink type" that can provide backpressure](https://github.com/basho/riak_pipe/issues/59)
+* riak_pipe/61: [Clean up some dialyzer warnings](https://github.com/basho/riak_pipe/issues/61)
+* riak_pipe/65: [Quickchecking riak_pipe_fitting](https://github.com/basho/riak_pipe/issues/65)
+* riak_search/116: [Add PB service deregistration on stop.](https://github.com/basho/riak_search/issues/116)
+* riak_search/127: [update rebar to 2.0.0](https://github.com/basho/riak_search/issues/127)
+* riak_search/128: [Fix mis-reporting of fl=ID + sort field on PBC.](https://github.com/basho/riak_search/issues/128)
+* riak_search/129: [erlang:now() -> os:timestamp() when it is safe](https://github.com/basho/riak_search/issues/129)
+* riak_search/133: [Remove Luke usage](https://github.com/basho/riak_search/issues/133)
+* riak_sysmon/7: [update rebar to 2.0.0](https://github.com/basho/riak_sysmon/issues/7)
+* riaknostic/39: [Added some reassuring output.](https://github.com/basho/riaknostic/issues/39)
+* riaknostic/41: [added a first pass at machine-readable output](https://github.com/basho/riaknostic/issues/41)
+* riaknostic/50: [Export command](https://github.com/basho/riaknostic/issues/50)
+* riaknostic/51: [Pevm sysctl checks](https://github.com/basho/riaknostic/issues/51)
+* riaknostic/52: [Update README.md](https://github.com/basho/riaknostic/issues/52)
+* webmachine/101: [pass method,scheme,http vsn into rewrite](https://github.com/basho/webmachine/issues/101)
+* webmachine/102: [Update demo app: rebar deps, ensure inets is running, improve README](https://github.com/basho/webmachine/issues/102)
+* webmachine/106: [Store the dispatch_list in ETS, not application:set_env](https://github.com/basho/webmachine/issues/106)
+* webmachine/113: [Fix setup/teardown for etag EQC test](https://github.com/basho/webmachine/issues/113)
+* webmachine/56: [Strip whitespace from content-type (and others) parsed by webmachine_uti...](https://github.com/basho/webmachine/issues/56)
+* webmachine/65: [swap - to _ for app name.](https://github.com/basho/webmachine/issues/65)
+* webmachine/73: [Fix for trailing CRLF ](https://github.com/basho/webmachine/issues/73)
+* webmachine/75: [Exposed get_routes() to the public.](https://github.com/basho/webmachine/issues/75)
+* webmachine/77: [Incorrect accept header in some blackberry devices.](https://github.com/basho/webmachine/issues/77)
+* webmachine/81: [remove code:clash call](https://github.com/basho/webmachine/issues/81)
+* webmachine/83: [update rebar to 2.0.0](https://github.com/basho/webmachine/issues/83)
+* webmachine/86: [Bump WMVSN to 1.9.2.](https://github.com/basho/webmachine/issues/86)
+* webmachine/93: [change parameterized modules to regular modules](https://github.com/basho/webmachine/issues/93)
+* webmachine/97: [Header Rewriting](https://github.com/basho/webmachine/issues/97)
