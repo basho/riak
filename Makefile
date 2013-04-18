@@ -228,9 +228,8 @@ distdir/$(CLONEDIR)/$(MANIFEST_FILE):
 distdir/$(PKG_ID): distdir/$(CLONEDIR)/$(MANIFEST_FILE)
 	$(call build_clean_dir)
 
-dist $(PKG_ID).tar.gz: distdir/$(PKG_ID)
-	cd distdir && \
-	tar czf ../$(PKG_ID).tar.gz $(PKG_ID)
+dist distdir/$(PKG_ID).tar.gz: distdir/$(PKG_ID)
+	tar -C distdir -czf distdir/$(PKG_ID).tar.gz $(PKG_ID)
 
 ballclean:
 	rm -rf $(PKG_ID).tar.gz distdir
@@ -246,7 +245,7 @@ pkgclean: ballclean
 # which differs from $REVISION that is repo-<commitcount>-<commitsha>
 PKG_VERSION = $(shell echo $(PKG_ID) | sed -e 's/^$(REPO)-//')
 
-package: dist
+package: distdir/$(PKG_ID).tar.gz
 	ln -s distdir package
 	$(MAKE) -C package -f $(PKG_ID)/deps/node_package/Makefile
 
