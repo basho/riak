@@ -232,8 +232,11 @@ dist $(PKG_ID).tar.gz: distdir/$(PKG_ID)
 	cd distdir && \
 	tar czf ../$(PKG_ID).tar.gz $(PKG_ID)
 
-pkgclean ballclean:
+ballclean:
 	rm -rf $(PKG_ID).tar.gz distdir
+
+pkgclean: ballclean
+	rm -rf package
 
 ##
 ## Packaging targets
