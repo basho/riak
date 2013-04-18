@@ -161,11 +161,11 @@ REPO_TAG 	:= $(shell git describe --tags)
 
 # Split off repo name
 # Changes to 1.0.3 or 1.1.0pre1-27-g1170096 from example above
-PKG_VERSION = $(shell echo $(REPO_TAG) | sed -e 's/^$(REPO)-//')
+REVISION = $(shell echo $(REPO_TAG) | sed -e 's/^$(REPO)-//')
 
 # Primary version identifier, strip off commmit information
 # Changes to 1.0.3 or 1.1.0pre1 from example above
-MAJOR_VERSION	?= $(shell echo $(PKG_VERSION) | sed -e 's/\([0-9.]*\)-.*/\1/')
+MAJOR_VERSION	?= $(shell echo $(REVISION) | sed -e 's/\([0-9.]*\)-.*/\1/')
 
 
 ##
@@ -200,7 +200,7 @@ get_dist_deps = mkdir distdir && \
 #   This enables the toplevel repository package to change names
 #   when underlying dependencies change.
 NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/null | cut -c 1-8)
-ifeq ($(PKG_VERSION), $(MAJOR_VERSION))
+ifeq ($(REVISION), $(MAJOR_VERSION))
 PKG_ID := $(REPO_TAG)
 else
 PKG_ID = $(REPO)-$(MAJOR_VERSION)-$(NAME_HASH)
@@ -241,6 +241,10 @@ pkgclean: ballclean
 ##
 ## Packaging targets
 ##
+
+# Yes another variable, this one is repo-<generatedhash
+# which differs from $REVISION that is repo-<commitcount>-<commitsha>
+PKG_VERSION = $(shell echo $(PKG_ID) | sed -e 's/^$(REPO)-//')
 
 package: dist
 	ln -s distdir package
