@@ -228,8 +228,11 @@ distdir/$(CLONEDIR)/$(MANIFEST_FILE):
 distdir/$(PKG_ID): distdir/$(CLONEDIR)/$(MANIFEST_FILE)
 	$(call build_clean_dir)
 
-dist distdir/$(PKG_ID).tar.gz: distdir/$(PKG_ID)
+distdir/$(PKG_ID).tar.gz: distdir/$(PKG_ID)
 	tar -C distdir -czf distdir/$(PKG_ID).tar.gz $(PKG_ID)
+
+dist: distdir/$(PKG_ID).tar.gz
+	ln -sf distdir/$(PKG_ID).tar.gz $(PKG_ID).tar.gz
 
 ballclean:
 	rm -rf $(PKG_ID).tar.gz distdir
