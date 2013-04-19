@@ -1,4 +1,0 @@
-riak (1.0.0-1) stable; urgency=low
-
-  * Initial 1.0.0 release. See RELEASE-NOTES for changes
- -- Jared Morrow <jared@basho.com>  Mon, 19 Sep 2011 21:09:51 -0700
