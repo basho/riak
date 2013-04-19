@@ -24,10 +24,5 @@ cd $RUNNER_BASE_DIR
 SCRIPT=`basename $0`
 
 # Make sure the local node IS running
-RES=`$NODETOOL ping`
-if [ "$RES" != "pong" ]; then
-    echo "Node is not running!"
-    exit 1
-fi
+node_up_check
 $NODETOOL rpc_infinity riak_search_cmd command $ORIGINAL_DIR "$@"
-
