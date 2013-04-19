@@ -1,92 +1,35 @@
 #!/bin/sh
+# -*- tab-width:4;indent-tabs-mode:nil -*-
+# ex: ts=4 sw=4 et
 
-# /bin/sh on Solaris is not a POSIX compatible shell, but /usr/bin/ksh is.
-if [ `uname -s` = 'SunOS' -a "${POSIX_SHELL}" != "true" ]; then
-    POSIX_SHELL="true"
-    export POSIX_SHELL
-    # To support 'whoami' add /usr/ucb to path
-    PATH=/usr/ucb:$PATH
-    export PATH
-    exec /usr/bin/ksh $0 "$@"
-fi
-unset POSIX_SHELL # clear it so if we invoke other scripts, they run as ksh as well
+# installed by node_package (github.com/basho/node_package)
 
-RUNNER_SCRIPT_DIR={{runner_script_dir}}
-RUNNER_SCRIPT=${0##*/}
+# Pull environment for this install
+. "{{runner_base_dir}}/lib/env.sh"
 
-RUNNER_BASE_DIR={{runner_base_dir}}
-RUNNER_ETC_DIR={{runner_etc_dir}}
-RUNNER_LIB_DIR={{platform_lib_dir}}
-RUNNER_LOG_DIR={{runner_log_dir}}
-RUNNER_USER={{runner_user}}
-
-WHOAMI=$(whoami)
-
-# Make sure this script is running as the appropriate user
-if ([ "$RUNNER_USER" ] && [ "x$WHOAMI" != "x$RUNNER_USER" ]); then
-    type sudo > /dev/null 2>&1
-    if [ $? -ne 0 ]; then
-        echo "sudo doesn't appear to be installed and your EUID isn't $RUNNER_USER" 1>&2
-        exit 1
-    fi
-    echo "Attempting to restart script through sudo -H -u $RUNNER_USER" >&2
-    exec sudo -H -u $RUNNER_USER -i $RUNNER_SCRIPT_DIR/$RUNNER_SCRIPT $@
+# Make sure the user running this script is the owner and/or su to that user
+check_user $@
+ES=$?
+if [ "$ES" -ne 0 ]; then
+    exit $ES
 fi
 
-# Make sure CWD is set to runner base dir
+# Keep track of where script was invoked
+ORIGINAL_DIR=$(pwd)
+
+# Make sure CWD is set to runner run dir
 cd $RUNNER_BASE_DIR
-
-# Extract the target node name from node.args
-NAME_ARG=`egrep "^ *-s?name" $RUNNER_ETC_DIR/vm.args`
-if [ -z "$NAME_ARG" ]; then
-    echo "vm.args needs to have either -name or -sname parameter."
-    exit 1
-fi
-
-# Learn how to specify node name for connection from remote nodes
-echo "$NAME_ARG" | grep '^-sname' > /dev/null 2>&1
-if [ "X$?" = "X0" ]; then
-    NAME_PARAM="-sname"
-    NAME_HOST=""
-else
-    NAME_PARAM="-name"
-    echo "$NAME_ARG" | grep '@.*' > /dev/null 2>&1
-    if [ "X$?" = "X0" ]; then
-        NAME_HOST=`echo "${NAME_ARG}" | sed -e 's/.*\(@.*\)$/\1/'`
-    else
-        NAME_HOST=""
-    fi
-fi
-
-# Extract the target cookie
-COOKIE_ARG=`grep '\-setcookie' $RUNNER_ETC_DIR/vm.args`
-if [ -z "$COOKIE_ARG" ]; then
-    echo "vm.args needs to have a -setcookie parameter."
-    exit 1
-fi
 
 # Identify the script name
 SCRIPT=`basename $0`
 
-# Parse out release and erts info
-START_ERL=`cat $RUNNER_BASE_DIR/releases/start_erl.data`
-ERTS_VSN=${START_ERL% *}
-APP_VSN=${START_ERL#* }
-
-# Add ERTS bin dir to our path
-ERTS_PATH=$RUNNER_BASE_DIR/erts-$ERTS_VSN/bin
-
-# Setup command to control the node
-NODETOOL="$ERTS_PATH/escript $ERTS_PATH/nodetool $NAME_ARG $COOKIE_ARG"
-
-ensure_node_running()
-{
-    # Make sure the local node IS running
-    RES=`$NODETOOL ping`
-    if [ "$RES" != "pong" ]; then
-        echo "Node is not running!"
-        exit 1
-    fi
+usage() {
+    echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
+    echo "                    reip | js-reload | erl-reload | wait-for-service | "
+    echo "                    ringready | transfers | force-remove | down | "
+    echo "                    cluster-info | member-status | ring-status | vnode-status |"
+    echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
+    echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] }"
 }
 
 cluster_admin()
@@ -97,15 +40,15 @@ cluster_admin()
                 echo "Usage: $SCRIPT cluster join <node>"
                 exit 1
             fi
-            ensure_node_running
+            node_up_check
             $NODETOOL rpc riak_kv_console staged_join "$2"
             ;;
         leave)
             if [ $# -eq 1 ]; then
-                ensure_node_running
+                node_up_check
                 $NODETOOL rpc riak_core_console stage_leave
             elif [ $# -eq 2 ]; then
-                ensure_node_running
+                node_up_check
                 $NODETOOL rpc riak_core_console stage_leave "$2"
             else
                 echo "Usage: $SCRIPT cluster leave [<node>]"
@@ -117,7 +60,7 @@ cluster_admin()
                 echo "Usage: $SCRIPT cluster force-remove <node>"
                 exit 1
             fi
-            ensure_node_running
+            node_up_check
             $NODETOOL rpc riak_core_console stage_remove "$2"
             ;;
         replace)
@@ -125,7 +68,7 @@ cluster_admin()
                 echo "Usage: $SCRIPT cluster replace <node1> <node2>"
                 exit 1
             fi
-            ensure_node_running
+            node_up_check
             $NODETOOL rpc riak_core_console stage_replace "$2" "$3"
             ;;
         force-replace)
@@ -133,19 +76,19 @@ cluster_admin()
                 echo "Usage: $SCRIPT cluster force-replace <node1> <node2>"
                 exit 1
             fi
-            ensure_node_running
+            node_up_check
             $NODETOOL rpc riak_core_console stage_force_replace "$2" "$3"
             ;;
         plan)
-            ensure_node_running
+            node_up_check
             $NODETOOL rpc riak_core_console print_staged
             ;;
         commit)
-            ensure_node_running
+            node_up_check
             $NODETOOL rpc riak_core_console commit_staged
             ;;
         clear)
-            ensure_node_running
+            node_up_check
             $NODETOOL rpc riak_core_console clear_staged
             ;;
         *)
@@ -195,11 +138,7 @@ case "$1" in
         fi
 
         # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        node_up_check
 
         $NODETOOL rpc riak_kv_console join "$3"
         ;;
@@ -218,11 +157,7 @@ case "$1" in
         fi
 
         # Make sure the local node is running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        node_up_check
 
         $NODETOOL rpc riak_kv_console leave
         ;;
@@ -251,11 +186,8 @@ case "$1" in
             exit 1
         fi
 
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console remove "$3"
         ;;
@@ -265,14 +197,11 @@ case "$1" in
             echo "Usage: $SCRIPT down <node>"
             exit 1
         fi
-
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
-
         shift
+
+        # Make sure the local node is running
+        node_up_check
+
         $NODETOOL rpc riak_kv_console down $@
         ;;
 
@@ -281,14 +210,10 @@ case "$1" in
             echo "Usage: $SCRIPT status"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console status $@
         ;;
@@ -298,14 +223,10 @@ case "$1" in
             echo "Usage: $SCRIPT $1"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console vnode_status $@
         ;;
@@ -315,14 +236,10 @@ case "$1" in
             echo "Usage: $SCRIPT ringready"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console ringready $@
         ;;
@@ -332,14 +249,10 @@ case "$1" in
             echo "Usage: $SCRIPT transfers"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console transfers $@
         ;;
@@ -349,14 +262,10 @@ case "$1" in
             echo "Usage: $SCRIPT $1"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_core_console member_status $@
         ;;
@@ -366,14 +275,10 @@ case "$1" in
             echo "Usage: $SCRIPT $1"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_core_console ring_status $@
         ;;
@@ -385,7 +290,9 @@ case "$1" in
         fi
         shift
 
-        ensure_node_running
+        # Make sure the local node is running
+        node_up_check
+
         $NODETOOL rpc riak_kv_console aae_status $@
         ;;
 
@@ -394,14 +301,10 @@ case "$1" in
             echo "Usage: $SCRIPT $1 <output_file> ['local' | <node> ['local' | <node>] [...]]"
             exit 1
         fi
-
-        # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
         shift
+
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc_infinity riak_kv_console cluster_info $@
         ;;
@@ -442,23 +345,19 @@ case "$1" in
 
     js[_-]reload)
         # Reload all Javascript VMs
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
 
         shift #optional names come after 'js_reload'
+
+        # Make sure the local node is running
+        node_up_check
+
         $NODETOOL rpc riak_kv_js_manager reload $@
         ;;
 
     erl[_-]reload)
         # Reload user Erlang code
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        # Make sure the local node is running
+        node_up_check
 
         $NODETOOL rpc riak_kv_console reload_code
         ;;
@@ -470,12 +369,10 @@ case "$1" in
             echo "Usage $SCRIPT $ACTION <old_nodename> <new_nodename>"
             exit 1
         fi
-        # Make sure the local node IS not running
-        RES=`$NODETOOL ping`
-        if [ "$RES" = "pong" ]; then
-            echo "Node must be down to re-ip."
-            exit 1
-        fi
+
+        # Make sure the local node is running
+        node_up_check
+
         OLDNODE=$1
         NEWNODE=$2
         $ERTS_PATH/erl -noshell \
@@ -499,8 +396,8 @@ case "$1" in
         FILENAME=$3
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
-                       -pa $RUNNER_LIB_DIR/basho-patches \
-                       -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
+                    -pa $RUNNER_LIB_DIR/basho-patches \
+                    -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
 
     backup)
@@ -518,17 +415,13 @@ case "$1" in
         TYPE=$4
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
-                       -pa $RUNNER_LIB_DIR/basho-patches \
-                       -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
+                    -pa $RUNNER_LIB_DIR/basho-patches \
+                    -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
         ;;
 
     test)
         # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        node_up_check
 
         shift
 
@@ -536,11 +429,11 @@ case "$1" in
         NODE_NAME=${NAME_ARG#* }
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_test$NAME_HOST $COOKIE_ARG \
-                       -pa $RUNNER_LIB_DIR/basho-patches \
-                       -eval "case catch(riak:client_test(\"$NODE_NAME\")) of \
-                               ok -> init:stop();                             \
-                               _  -> init:stop(1)                             \
-                              end."
+                    -pa $RUNNER_LIB_DIR/basho-patches \
+                    -eval "case catch(riak:client_test(\"$NODE_NAME\")) of \
+                            ok -> init:stop();                             \
+                            _  -> init:stop(1)                             \
+                            end."
 
         ;;
     diag)
@@ -573,11 +466,8 @@ case "$1" in
         ;;
     top)
         # Make sure the local node IS running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        node_up_check
+
         shift
 
         MYPID=$$
@@ -600,7 +490,7 @@ case "$1" in
             echo "       $SCRIPT $1 <node> <limit>"
             exit
         fi
-        ensure_node_running
+        node_up_check
         shift
         $NODETOOL rpc riak_core_console transfer_limit "$@"
         ;;
@@ -612,17 +502,12 @@ case "$1" in
             echo "       $SCRIPT $1 <concurrency> <batch size> [--downgrade]"
             exit 1
         fi
-        ensure_node_running
+        node_up_check
         shift
         $NODETOOL rpc riak_kv_console reformat_indexes "$@"
         ;;
     *)
-        echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
-        echo "                    reip | js-reload | erl-reload | wait-for-service | "
-        echo "                    ringready | transfers | force-remove | down | "
-        echo "                    cluster-info | member-status | ring-status | vnode-status |"
-        echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
-        echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] }"
+        usage
         exit 1
         ;;
 esac
