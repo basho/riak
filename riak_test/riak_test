@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 
 ERL_LIBS="deps"
+ERL_MAX_PORTS=10000
 
 escript deps/riak_test/ebin/riak_test.beam $@
