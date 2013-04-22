@@ -6,3 +6,4 @@ ebin/
 .DS_Store
 riak_test/deps/*
 riak_test/log/*
+erl_crash.dump

@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+
+ERL_LIBS="deps"
+
+escript deps/riak_test/ebin/riak_test.beam $@
