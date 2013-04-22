@@ -3,3 +3,6 @@ rel/riak
 rel/vars/dev*_vars.config
 dev/
 ebin/
+.DS_Store
+riak_test/deps/*
+riak_test/log/*

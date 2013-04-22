@@ -1,0 +1,3 @@
+{application, rt, [
+    {vsn, "1"}
+]}.
