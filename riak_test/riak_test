@@ -1,4 +1,4 @@
-#!/usr/bin/env bash
+#!/bin/sh
 
 ERL_LIBS="deps"
 ERL_MAX_PORTS=10000

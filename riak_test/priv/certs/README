@@ -1,0 +1,12 @@
+
+2 directories, 'cacert.org' and 'selfsigned'. Each contains several keys and, in the 'ca' folder, is the CA certificate(s) used to sign them.
+
+'selfsigned' has 4 keys, 'site1' and 'site2' are signed by an intermediate CA which was signed by the root CA, 'site3' and 'site4' were signed directly by the root CA.
+
+The certificate common names are as follows:
+ * site1.basho.com
+ * site2.basho.com
+ * site3.basho.com
+ * site4.basho.com
+ * ny.cataclysm-software.net
+ * ca.catacylsm-software.net

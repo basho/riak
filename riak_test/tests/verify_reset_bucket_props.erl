@@ -29,25 +29,38 @@ confirm() ->
     %% we will be using two of the nodes to perform an
     %% update and then a reset (one on each node) of a bucket's properties.
     %% All nodes are checked to make sure the reset is affected on them
-    [Node1, Node2, _Node3] = Nodes = rt:build_cluster(3),
+    [Node1, Node2, Node3] = Nodes = rt:build_cluster(3),
 
     DefaultProps = get_current_bucket_props(Nodes, ?BUCKET),
 
-    Updates = [{n_val, 1}],
-    lager:info("Setting bucket properties ~p for bucket ~p on node ~p", 
-               [?BUCKET, Updates, Node1]),
-    rpc:call(Node1, riak_core_bucket, set_bucket, [?BUCKET, Updates]),    
-    rt:wait_until_ring_converged(Nodes),
-
-    UpdatedProps = get_current_bucket_props(Nodes, ?BUCKET),
-    ?assertNotEqual(DefaultProps, UpdatedProps),
-    
-    lager:info("Resetting bucket properties for bucket ~p on node ~p", 
+    update_props(DefaultProps, Node1, Nodes),
+    lager:info("Resetting bucket properties for bucket ~p on node ~p via rpc", 
                [?BUCKET, Node2]),
     rpc:call(Node2, riak_core_bucket, reset_bucket, [?BUCKET]),
     rt:wait_until_ring_converged(Nodes),
     
+    [check_props_reset(Node, ?BUCKET, DefaultProps) || Node <- Nodes],
+
+
+    update_props(DefaultProps, Node1, Nodes),
+    C = rt:pbc(Node3),
+    lager:info("Resetting bucket properties for bucket ~p on node ~p via pbc", 
+               [?BUCKET, Node3]),
+    ok = riakc_pb_socket:reset_bucket(C, ?BUCKET),
+    rt:wait_until_ring_converged(Nodes),
+    
     [check_props_reset(Node, ?BUCKET, DefaultProps) || Node <- Nodes].
+
+update_props(DefaultProps, Node, Nodes) -> 
+    Updates = [{n_val, 1}],
+    lager:info("Setting bucket properties ~p for bucket ~p on node ~p", 
+               [?BUCKET, Updates, Node]),
+    rpc:call(Node, riak_core_bucket, set_bucket, [?BUCKET, Updates]),    
+    rt:wait_until_ring_converged(Nodes),
+
+    UpdatedProps = get_current_bucket_props(Nodes, ?BUCKET),
+    ?assertNotEqual(DefaultProps, UpdatedProps).
+   
 
 %% fetch bucket properties via rpc 
 %% from a node or a list of nodes (one node is chosen at random)
