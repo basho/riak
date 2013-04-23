@@ -4,13 +4,15 @@
 -include_lib("eunit/include/eunit.hrl").
 
 %% Change when a new release comes out.
--define(JAVA_FAT_BE_URL, rt:config(java.fat_be_url)).
--define(JAVA_TESTS_URL, rt:config(java.tests_url)).
+-define(JAVA_FAT_BE_URL, rt_config:get(java.fat_be_url)).
+-define(JAVA_TESTS_URL, rt_config:get(java.tests_url)).
 
 -prereq("java").
 -prereq("curl").
 
 confirm() ->
+    
+    lager:info("+P ~p", [erlang:system_info(process_limit)]),
     prereqs(),
     Nodes = rt:deploy_nodes(1),
     [Node1] = Nodes,
@@ -28,8 +30,8 @@ confirm() ->
 
 prereqs() ->
     %% Does you have the java client available?
-    rt:download(?JAVA_FAT_BE_URL),
-    rt:download(?JAVA_TESTS_URL),
+    rt_local:download(?JAVA_FAT_BE_URL),
+    rt_local:download(?JAVA_TESTS_URL),
     ok.
 
 java_unit_tests(HTTP_Host, HTTP_Port, _PB_Host, PB_Port) ->
@@ -39,11 +41,11 @@ java_unit_tests(HTTP_Host, HTTP_Port, _PB_Host, PB_Port) ->
     Cmd = io_lib:format(
         "java -Dcom.basho.riak.host=~s -Dcom.basho.riak.http.port=~p -Dcom.basho.riak.pbc.port=~p -cp ~s:~s org.junit.runner.JUnitCore com.basho.riak.client.AllTests",
         [HTTP_Host, HTTP_Port, PB_Port, 
-        rt:config(rt_scratch_dir) ++ "/" ++ rt:url_to_filename(?JAVA_FAT_BE_URL), 
-        rt:config(rt_scratch_dir) ++ "/" ++ rt:url_to_filename(?JAVA_TESTS_URL)]),
+        rt_config:get(rt_scratch_dir) ++ "/" ++ rt_local:url_to_filename(?JAVA_FAT_BE_URL), 
+        rt_config:get(rt_scratch_dir) ++ "/" ++ rt_local:url_to_filename(?JAVA_TESTS_URL)]),
     lager:info("Cmd: ~s", [Cmd]),
 
-    {ExitCode, JavaLog} = rt:stream_cmd(Cmd, [{cd, rt:config(rt_scratch_dir)}]),
+    {ExitCode, JavaLog} = rt_local:stream_cmd(Cmd, [{cd, rt_config:get(rt_scratch_dir)}]),
     ?assertEqual(0, ExitCode),
     lager:info(JavaLog),
     ?assertNot(rt:str(JavaLog, "FAILURES!!!")),

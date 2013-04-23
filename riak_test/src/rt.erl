@@ -29,9 +29,9 @@
 -export([
          admin/2,
          assert_nodes_agree_about_ownership/1,
-         assert_which/1,
          async_start/1,
          attach/2,
+         brutal_kill/1,
          build_cluster/1,
          build_cluster/2,
          build_cluster/3,
@@ -43,35 +43,25 @@
          clean_data_dir/2,
          cmd/1,
          cmd/2,
-         config/1,
-         config/2,
-         config_or_os_env/1,
-         config_or_os_env/2,
          connection_info/1,
          console/2,
          deploy_nodes/1,
          deploy_nodes/2,
          down/2,
-         download/1,
          enable_search_hook/2,
          get_deps/0,
          get_node_logs/0,
-         get_os_env/1,
-         get_os_env/2,
          get_ring/1,
          get_version/0,
          heal/1,
-         home_dir/0,
          http_url/1,
          httpc/1,
          httpc_read/3,
          httpc_write/4,
-         install_on_absence/2,
          is_mixed_cluster/1,
          is_pingable/1,
          join/2,
          leave/1,
-         load_config/1,
          load_modules_on_nodes/2,
          log_to_nodes/2,
          log_to_nodes/3,
@@ -89,7 +79,6 @@
          riak/2,
          rpc_get_env/2,
          set_backend/1,
-         set_config/2,
          setup_harness/2,
          slow_upgrade/3,
          spawn_cmd/1,
@@ -101,8 +90,6 @@
          stop/1,
          stop_and_wait/1,
          str/2,
-         stream_cmd/1,
-         stream_cmd/2,
          systest_read/2,
          systest_read/3,
          systest_read/5,
@@ -112,7 +99,6 @@
          teardown/0,
          update_app_config/2,
          upgrade/2,
-         url_to_filename/1,
          versions/0,
          wait_for_cluster_service/2,
          wait_for_cmd/1,
@@ -134,17 +120,10 @@
          wait_until_status_ready/1,
          wait_until_transfers_complete/1,
          wait_until_unpingable/1,
-         whats_up/0,
-         which/1,
-         brutal_kill/1
+         whats_up/0
         ]).
 
--define(HARNESS, (rt:config(rt_harness))).
-
-%% @doc Return the home directory of the riak_test script.
--spec home_dir() -> file:filename().
-home_dir() ->
-    filename:dirname(filename:absname(escript:script_name())).
+-define(HARNESS, (rt_config:get(rt_harness))).
 
 %% @doc gets riak deps from the appropriate harness
 -spec get_deps() -> list().
@@ -157,66 +136,6 @@ str(String, Substr) ->
         0 -> false;
         _ -> true
     end.
-
-%% @doc Get the value of an OS Environment variable. The arity 1 version of
-%%      this function will fail the test if it is undefined.
-get_os_env(Var) ->
-    case get_os_env(Var, undefined) of
-        undefined ->
-            lager:error("ENV['~s'] is not defined", [Var]),
-            ?assert(false);
-        Value -> Value
-    end.
-
-%% @doc Get the value of an OS Evironment variable. The arity 2 version of
-%%      this function will return the Default if the OS var is undefined.
-get_os_env(Var, Default) ->
-    case os:getenv(Var) of
-        false -> Default;
-        Value -> Value
-    end.
-
-%% @doc Wrap 'which' to give a good output if something is not installed
-which(Command) ->
-    lager:info("Checking for presence of ~s", [Command]),
-    Cmd = lists:flatten(io_lib:format("which ~s; echo $?", [Command])),
-    case rt:str(os:cmd(Cmd), "0") of
-        false ->
-            lager:warning("`~s` is not installed", [Command]),
-            false;
-        true ->
-            true
-    end.
-
-download(Url) ->
-    lager:info("Downloading ~s", [Url]),
-    Filename = url_to_filename(Url),
-    case filelib:is_file(filename:join(rt:config(rt_scratch_dir), Filename))  of
-        true ->
-            lager:info("Got it ~p", [Filename]),
-            ok;
-        _ ->
-            lager:info("Getting it ~p", [Filename]),
-            rt:stream_cmd("curl  -O -L " ++ Url, [{cd, rt:config(rt_scratch_dir)}])
-    end.
-
-url_to_filename(Url) ->
-    lists:last(string:tokens(Url, "/")).
-%% @doc like rt:which, but asserts on failure
-assert_which(Command) ->
-    ?assert(rt:which(Command)).
-
-%% @doc checks if Command is installed and runs InstallCommand if not
-%% ex:  rt:install_on_absence("bundler", "gem install bundler --no-rdoc --no-ri"),
-install_on_absence(Command, InstallCommand) ->
-    case rt:which(Command) of
-        false ->
-            lager:info("Attempting to install `~s` with command `~s`", [Command, InstallCommand]),
-            ?assertCmd(InstallCommand);
-        _True ->
-            ok
-    end.
-
 
 %% @doc Rewrite the given node's app.config file, overriding the varialbes
 %%      in the existing app.config with those in `Config'.
@@ -423,46 +342,6 @@ cmd(Cmd) ->
 cmd(Cmd, Opts) ->
     ?HARNESS:cmd(Cmd, Opts).
 
-%% @doc pretty much the same as os:cmd/1 but it will stream the output to lager.
-%%      If you're running a long running command, it will dump the output
-%%      once per second, as to not create the impression that nothing is happening.
--spec stream_cmd(string()) -> {integer(), string()}.
-stream_cmd(Cmd) ->
-    Port = open_port({spawn, binary_to_list(iolist_to_binary(Cmd))}, [stream, stderr_to_stdout, exit_status]),
-    stream_cmd_loop(Port, "", "", now()).
-
-%% @doc same as rt:stream_cmd/1, but with options, like open_port/2
--spec stream_cmd(string(), string()) -> {integer(), string()}.
-stream_cmd(Cmd, Opts) ->
-    Port = open_port({spawn, binary_to_list(iolist_to_binary(Cmd))}, [stream, stderr_to_stdout, exit_status] ++ Opts),
-    stream_cmd_loop(Port, "", "", now()).
-
-stream_cmd_loop(Port, Buffer, NewLineBuffer, Time={_MegaSecs, Secs, _MicroSecs}) ->
-    receive
-        {Port, {data, Data}} ->
-            {_, Now, _} = now(),
-            NewNewLineBuffer = case Now > Secs of
-                true ->
-                    lager:info(NewLineBuffer),
-                    "";
-                _ ->
-                    NewLineBuffer
-            end,
-            case rt:str(Data, "\n") of
-                true ->
-                    lager:info(NewNewLineBuffer),
-                    Tokens = string:tokens(Data, "\n"),
-                    [ lager:info(Token) || Token <- Tokens ],
-                    stream_cmd_loop(Port, Buffer ++ NewNewLineBuffer ++ Data, "", Time);
-                _ ->
-                    stream_cmd_loop(Port, Buffer, NewNewLineBuffer ++ Data, now())
-            end;
-        {Port, {exit_status, Status}} ->
-            catch port_close(Port),
-            {Status, Buffer}
-    after rt:config(rt_max_wait_time) ->
-            {-1, Buffer}
-    end.
 %%%===================================================================
 %%% Remote code management
 %%%===================================================================
@@ -490,7 +369,7 @@ is_pingable(Node) ->
 
 is_mixed_cluster(Nodes) when is_list(Nodes) ->
     %% If the nodes are bad, we don't care what version they are
-    {Versions, _BadNodes} = rpc:multicall(Nodes, init, script_id, [], rt:config(rt_max_wait_time)),
+    {Versions, _BadNodes} = rpc:multicall(Nodes, init, script_id, [], rt_config:get(rt_max_wait_time)),
     length(lists:usort(Versions)) > 1;
 is_mixed_cluster(Node) ->
     Nodes = rpc:call(Node, erlang, nodes, []),
@@ -523,8 +402,8 @@ wait_until(Node, Fun) ->
     wait_until(Node, Fun, fun(_N) -> fail end).
 
 wait_until(Node, Fun, TimeoutFun) ->
-    MaxTime = rt:config(rt_max_wait_time),
-    Delay = rt:config(rt_retry_delay),
+    MaxTime = rt_config:get(rt_max_wait_time),
+    Delay = rt_config:get(rt_retry_delay),
     Retry = MaxTime div Delay,
     wait_until(Node, Fun, Retry, Delay, TimeoutFun).
 
@@ -692,7 +571,7 @@ wait_until_unpingable(Node) ->
     %% Hard coding a 6 minute timeout on this wait only. This function is called to see that
     %% riak has stopped. Riak stop should only take about 5 minutes before its timeouts kill
     %% the process. This wait should at least wait that long.
-    Delay = rt:config(rt_retry_delay),
+    Delay = rt_config:get(rt_retry_delay),
     Retry = 360000 div Delay,
     ?assertEqual(ok, wait_until(Node, F, Retry, Delay, TimeoutFun)),
     ok.
@@ -710,7 +589,7 @@ wait_until_registered(Node, Name) ->
                 lager:info("The server with the namee ~p on ~p is not coming up.", [Name, Node]),
                 fail
         end,
-    Delay = rt:config(rt_retry_delay),
+    Delay = rt_config:get(rt_retry_delay),
     Retry = 360000 div Delay,
     ?assertEqual(ok, wait_until(Node, F, Retry, Delay, TimeoutFun)),
     ok.
@@ -1113,110 +992,6 @@ pmap(F, L) ->
 %% @private
 setup_harness(Test, Args) ->
     ?HARNESS:setup_harness(Test, Args).
-
-%% @private
-load_config(undefined) ->
-    load_dot_config("default");
-load_config(ConfigName) ->
-    case load_config_file(ConfigName) of
-        ok -> ok;
-        {error, enoent} -> load_dot_config(ConfigName)
-    end.
-
-%% @private
-load_dot_config(ConfigName) ->
-    case file:consult(filename:join([os:getenv("HOME"), ".riak_test.config"])) of
-        {ok, Terms} ->
-            %% First, set up the defaults
-            case proplists:get_value(default, Terms) of
-                undefined -> meh; %% No defaults set, move on.
-                Default -> [set_config(Key, Value) || {Key, Value} <- Default]
-            end,
-            %% Now, overlay the specific project
-            Config = proplists:get_value(list_to_atom(ConfigName), Terms),
-            [set_config(Key, Value) || {Key, Value} <- Config],
-            ok;
-        {error, Reason} ->
-            erlang:error("Failed to parse config file", ["~/.riak_test.config", Reason])
- end.
-
-%% @private
-load_config_file(File) ->
-    case file:read_file_info(File) of
-        {ok, _} ->
-            io:format("*********************************************************************************~n"),
-            io:format("WARNING! Use of config files is now deprecated, use ~~/.riak_test.config instead.~n"),
-            io:format("*********************************************************************************~n"),
-            io:format("Please acknowledge that you're aware that this functionality will be gone soon.~n"),
-            Input = io:get_chars("[y/N] ", 1),
-            case Input of
-                "y" -> ok;
-                "Y" -> ok;
-                _ -> exit(1)
-            end;
-        _ -> meh
-    end,
-    case file:consult(File) of
-        {ok, Terms} ->
-            [set_config(Key, Value) || {Key, Value} <- Terms],
-            ok;
-        {error, enoent} ->
-            {error, enoent};
-        {error, Reason} ->
-            erlang:error("Failed to parse config file", [File, Reason])
-    end.
-
-%% @private
-set_config(Key, Value) ->
-    ok = application:set_env(riak_test, Key, Value).
-
-%% @private
-config(Key) ->
-    case kvc:path(Key, application:get_all_env(riak_test)) of
-        [] -> erlang:error("Missing configuration key", [Key]);
-        Value -> Value
-    end.
-
-%% @private
-config(Key, Default) ->
-    case kvc:path(Key, application:get_all_env(riak_test)) of
-        [] -> Default;
-        Value -> Value
-    end.
-
--spec config_or_os_env(atom()) -> term().
-config_or_os_env(Config) ->
-    OSEnvVar = to_upper(atom_to_list(Config)),
-    case {get_os_env(OSEnvVar, undefined), config(Config, undefined)} of
-        {undefined, undefined} ->
-            MSG = io_lib:format("Neither riak_test.~p nor ENV['~p'] are defined", [Config, OSEnvVar]),
-            erlang:error(binary_to_list(iolist_to_binary(MSG)));
-        {undefined, V} ->
-            lager:info("Found riak_test.~s: ~s", [Config, V]),
-            V;
-        {V, _} ->
-            lager:info("Found ENV[~s]: ~s", [OSEnvVar, V]),
-            rt:set_config(Config, V),
-            V
-    end.
-
--spec config_or_os_env(atom(), term()) -> term().
-config_or_os_env(Config, Default) ->
-    OSEnvVar = to_upper(atom_to_list(Config)),
-    case {get_os_env(OSEnvVar, undefined), config(Config, undefined)} of
-        {undefined, undefined} -> Default;
-        {undefined, V} ->
-            lager:info("Found riak_test.~s: ~s", [Config, V]),
-            V;
-        {V, _} ->
-            lager:info("Found ENV[~s]: ~s", [OSEnvVar, V]),
-            rt:set_config(Config, V),
-            V
-    end.
-
-to_upper(S) -> lists:map(fun char_to_upper/1, S).
-char_to_upper(C) when C >= $a, C =< $z -> C bxor $\s;
-char_to_upper(C) -> C.
 
 %% @doc Downloads any extant log files from the harness's running
 %%   nodes.

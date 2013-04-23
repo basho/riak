@@ -5,7 +5,7 @@
 
 %% @todo set this to 1.5.2 or greater, once that's released
 -define(PYTHON_CLIENT_TAG, "1.5-stable").
--define(PYTHON_CHECKOUT, filename:join([rt:config(rt_scratch_dir), "riak-python-client"])).
+-define(PYTHON_CHECKOUT, filename:join([rt_config:get(rt_scratch_dir), "riak-python-client"])).
 -define(PYTHON_GIT_URL, "git://github.com/basho/riak-python-client.git").
 
 %% Need python, yo
@@ -28,7 +28,7 @@ confirm() ->
     lager:info("Enabling search hook on 'searchbucket'"),
     rt:enable_search_hook(Node, <<"searchbucket">>),
 
-    {ExitCode, PythonLog} = rt:stream_cmd("bin/python setup.py develop test",
+    {ExitCode, PythonLog} = rt_local:stream_cmd("bin/python setup.py develop test",
                                           [{cd, ?PYTHON_CHECKOUT},
                                            {env,[{"RIAK_TEST_PB_HOST", PB_Host},
                                                  {"RIAK_TEST_PB_PORT", integer_to_list(PB_Port)},
@@ -61,15 +61,15 @@ prereqs() ->
     %% Checkout the project and a specific tag.
     lager:info("[PREREQ] Cloning riak-python-client from ~s", [?PYTHON_GIT_URL]),
     Cmd = io_lib:format("git clone ~s ~s", [?PYTHON_GIT_URL, ?PYTHON_CHECKOUT]),
-    rt:stream_cmd(Cmd),
+    rt_local:stream_cmd(Cmd),
 
     lager:info("[PREREQ] Resetting python client to tag '~s'", [?PYTHON_CLIENT_TAG]),
     %% @todo below is how to reset to a tag, use that when 1.5.2 is available
     %%TagCmd = io_lib:format("git reset --hard ~s", [?PYTHON_CLIENT_TAG]),
-    rt:stream_cmd("git reset --hard", [{cd, ?PYTHON_CHECKOUT}]),
+    rt_local:stream_cmd("git reset --hard", [{cd, ?PYTHON_CHECKOUT}]),
     TagCmd = io_lib:format("git checkout -b ~s", [?PYTHON_CLIENT_TAG]),
-    rt:stream_cmd(TagCmd, [{cd, ?PYTHON_CHECKOUT}]),
+    rt_local:stream_cmd(TagCmd, [{cd, ?PYTHON_CHECKOUT}]),
 
     lager:info("[PREREQ] Installing an isolated environment with virtualenv in ~s", [?PYTHON_CHECKOUT]),
-    rt:stream_cmd("virtualenv --clear --no-site-packages .", [{cd, ?PYTHON_CHECKOUT}]),
+    rt_local:stream_cmd("virtualenv --clear --no-site-packages .", [{cd, ?PYTHON_CHECKOUT}]),
     ok.

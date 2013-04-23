@@ -11,8 +11,8 @@ confirm() ->
     TestHash = erlang:md5(term_to_binary(os:timestamp())),
     TestBucket = <<TestHash/binary, "-systest_a">>,
 
-    NumNodes = rt:config(num_nodes, 6),
-    ClusterASize = rt:config(cluster_a_size, 4),
+    NumNodes = rt_config:get(num_nodes, 6),
+    ClusterASize = rt_config:get(cluster_a_size, 4),
     lager:info("Deploy ~p nodes", [NumNodes]),
     Conf = [
             {riak_repl,

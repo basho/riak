@@ -34,7 +34,7 @@ confirm() ->
     [Node0 | _RestNodes] = Nodes = rt:build_cluster(3, Config),
     rt:wait_until_ring_converged(Nodes),
 
-    Path = rt:config(rt_scratch_dir),
+    Path = rt_config:get(rt_scratch_dir),
     lager:info("Creating scratch dir if necessary at ~s", [Path]),
     ?assertMatch({0, _}, rt:cmd("mkdir -p " ++ Path)),
     SearchRepoDir = filename:join(Path, "riak_search"),

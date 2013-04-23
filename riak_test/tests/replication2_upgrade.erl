@@ -11,9 +11,9 @@ confirm() ->
     lager:info("Doing rolling replication upgrade test from ~p to ~p",
         [FromVersion, "current"]),
 
-    NumNodes = rt:config(num_nodes, 6),
+    NumNodes = rt_config:get(num_nodes, 6),
 
-    UpgradeOrder = rt:config(repl_upgrade_order, "forwards"),
+    UpgradeOrder = rt_config:get(repl_upgrade_order, "forwards"),
 
     lager:info("Deploy ~p nodes", [NumNodes]),
     Conf = [
@@ -51,7 +51,7 @@ confirm() ->
             erlang:exit()
     end,
 
-    ClusterASize = rt:config(cluster_a_size, 3),
+    ClusterASize = rt_config:get(cluster_a_size, 3),
     {ANodes, BNodes} = lists:split(ClusterASize, Nodes),
     lager:info("ANodes: ~p", [ANodes]),
     lager:info("BNodes: ~p", [BNodes]),

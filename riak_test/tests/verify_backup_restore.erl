@@ -72,7 +72,7 @@ confirm() ->
     verify_searches(PbcPid, Searches, 1),
     [?assertEqual([], read_some(Node, [{last, ?NUM_KEYS}])) || Node <- Nodes],
 
-    BackupFile = filename:join([rt:config(rt_scratch_dir), "TestBackup.bak"]),
+    BackupFile = filename:join([rt_config:get(rt_scratch_dir), "TestBackup.bak"]),
     case filelib:is_regular(BackupFile) of
         true ->
             lager:info("Deleting current backup file at ~p", [BackupFile]),

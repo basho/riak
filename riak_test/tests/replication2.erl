@@ -11,8 +11,8 @@
              wait_until_no_pending_changes/1]).
 
 confirm() ->
-    NumNodes = rt:config(num_nodes, 6),
-    ClusterASize = rt:config(cluster_a_size, 3),
+    NumNodes = rt_config:get(num_nodes, 6),
+    ClusterASize = rt_config:get(cluster_a_size, 3),
 
     lager:info("Deploy ~p nodes", [NumNodes]),
     Conf = [
