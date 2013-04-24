@@ -17,13 +17,7 @@ confirm() ->
              ]}
     ],
 
-    %% XXX for some reason, codew:priv_dir returns riak_test/riak_test/priv,
-    %% which is wrong, so fix it.
-    PrivDir = re:replace(code:priv_dir(riak_test), "riak_test(/riak_test)*",
-        "riak_test", [{return, list}]),
-
-    ?assert(filelib:is_dir(PrivDir)),
-
+    PrivDir = rt:priv_dir(),
 
     lager:info("priv dir: ~p -> ~p", [code:priv_dir(riak_test), PrivDir]),
 

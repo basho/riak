@@ -75,6 +75,7 @@
          pbc_put_dir/3,
          pbc_put_file/4,
          pmap/2,
+         priv_dir/0,
          remove/2,
          riak/2,
          rpc_get_env/2,
@@ -124,6 +125,27 @@
         ]).
 
 -define(HARNESS, (rt_config:get(rt_harness))).
+
+priv_dir() ->
+    LocalPrivDir = "./priv",
+    %% XXX for some reason, codew:priv_dir returns riak_test/riak_test/priv,
+    %% which is wrong, so fix it.
+    DepPrivDir = re:replace(code:priv_dir(riak_test), "riak_test(/riak_test)*",
+        "riak_test", [{return, list}]),
+    PrivDir = case {filelib:is_dir(LocalPrivDir), filelib:is_dir(DepPrivDir)} of
+        {true, _} ->
+            lager:debug("Local ./priv detected, using that..."),
+            LocalPrivDir;
+        {false, true} ->
+            lager:debug("riak_test dependency priv_dir detected, using that..."),
+            DepPrivDir;
+        _ ->
+            ?assertEqual({true, bad_priv_dir}, {false, bad_priv_dir})
+    end,
+    
+    lager:info("priv dir: ~p -> ~p", [code:priv_dir(riak_test), PrivDir]),
+    ?assert(filelib:is_dir(PrivDir)),
+    PrivDir.
 
 %% @doc gets riak deps from the appropriate harness
 -spec get_deps() -> list().
