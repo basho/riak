@@ -1,5 +1,7 @@
 .PHONY: deps
 
+all: clean deps compile
+
 deps:
 	../rebar get-deps
 
