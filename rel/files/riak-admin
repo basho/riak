@@ -341,7 +341,7 @@ case "$1" in
         fi
         shift
 
-        $NODETOOL rpc riak_kv_console transfers $@
+        $NODETOOL rpc riak_core_console transfers $@
         ;;
 
     member[_-]status)
