@@ -254,7 +254,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_kv_console transfers $@
+        $NODETOOL rpc riak_core_console transfers $@
         ;;
 
     member[_-]status)
