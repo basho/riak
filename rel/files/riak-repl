@@ -405,7 +405,7 @@ case "$1" in
             echo "Node is not running!"
             exit 1
         fi
-        if [ $# -lt 1 ]; then
+        if [ $# -ne 2 ]; then
             echo "Usage: $SCRIPT $ACTION enable <clustername> |"
             echo "                       disable <clustername> |"
             exit 1
