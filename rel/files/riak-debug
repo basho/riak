@@ -198,6 +198,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
         echoerr "Required file app_epath.sh not found. Expected here:"
         echoerr "$epath_file" 
         echoerr "See 'riak-debug -h' and manpage for help."
+        exit 1
     fi
     . "$epath_file"
 
@@ -208,6 +209,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
             echoerr "Riak base directory should be an absolute path."
             echoerr "$riak_base_dir" 
             echoerr "See 'riak-debug -h' and manpage for help."
+            exit 1
         fi
     fi
 
@@ -217,6 +219,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
             echoerr "Riak bin directory should be an absolute path."
             echoerr "$riak_bin_dir" 
             echoerr "See 'riak-debug -h' and manpage for help."
+            exit 1
         fi
     fi
 
@@ -226,6 +229,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
             echoerr "Riak etc directory should be an absolute path."
             echoerr "$riak_etc_dir" 
             echoerr "See 'riak-debug -h' and manpage for help."
+            exit 1
         fi
     fi
 fi
