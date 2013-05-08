@@ -69,6 +69,8 @@ dump () {
     else
         printf 'E' 1>&2
     fi
+
+    return $retval
 }
 
 usage () {
