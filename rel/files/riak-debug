@@ -535,15 +535,17 @@ fi
 ###
 
 if [ 1 -eq $get_cfgs ]; then
-    mkdir_or_die "${start_dir}"/"${debug_dir}"/config
-    cp -R "$riak_etc_dir"/* "${start_dir}"/"${debug_dir}"/config
-    if [ 0 -ne $? ]; then
-        echoerr "Error copying riak configuration. Aborting."
-        echoerr "cp -R ${riak_etc_dir}/* ${start_dir}/${debug_dir}/config"
-        exit 1
+    mkdir_or_die "${start_dir}"/"${debug_dir}"/config/.info
+    cd "${start_dir}"/"${debug_dir}"/config
+
+    # Use dump to execute the copy. This will provide a progress dot and
+    # capture any error messages.
+    dump cp_cfg cp -R "$riak_etc_dir"/* .
+
+    # If the copy succeeded, then the output will be empty and it is unneeded.
+    if [ 0 -eq $? ]; then
+        rm -f cp_cfg
     fi
-    # Give some kind of indication of progress for this section
-    printf '.' 1>&2
 fi
 
 ###
