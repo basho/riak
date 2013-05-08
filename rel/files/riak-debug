@@ -241,7 +241,7 @@ fi
 
 start_dir="$TMPDIR"
 
-if [ -z $start_dir ]; then
+if [ -z "$start_dir" ]; then
     start_dir=/tmp
 fi
 
