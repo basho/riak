@@ -98,6 +98,7 @@ exit
 
 # These paths may be overridden with environment variables.
 riak_base_dir={{runner_base_dir}}
+riak_bin_dir={{runner_script_dir}}
 riak_etc_dir={{runner_etc_dir}}
 
 get_cfgs=0
@@ -206,6 +207,15 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
         if [ "/" != "`echo "$riak_base_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
             echoerr "Riak base directory should be an absolute path."
             echoerr "$riak_base_dir" 
+            echoerr "See 'riak-debug -h' and manpage for help."
+        fi
+    fi
+
+    if [ -n "$RIAK_BIN_DIR" ]; then
+        riak_bin_dir="$RIAK_BIN_DIR"
+        if [ "/" != "`echo "$riak_bin_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
+            echoerr "Riak bin directory should be an absolute path."
+            echoerr "$riak_bin_dir" 
             echoerr "See 'riak-debug -h' and manpage for help."
         fi
     fi
@@ -345,14 +355,14 @@ if [ 1 -eq $get_riakcmds ]; then
     # commands on Riak<=1.2.0 and should not be executed in a loop against all
     # nodes in a cluster.
 
-    dump riak_ping riak ping
-    dump riak_version riak version
-    dump riak_member_status riak-admin member-status
-    dump riak_ring_status riak-admin ring-status
-    dump riak_status riak-admin status
-    dump riak_transfers riak-admin transfers
-    dump riak_diag riak-admin diag
-    dump riak_repl_status riak-repl status
+    dump riak_ping "$riak_bin_dir"/riak ping
+    dump riak_version "$riak_bin_dir"/riak version
+    dump riak_member_status "$riak_bin_dir"/riak-admin member-status
+    dump riak_ring_status "$riak_bin_dir"/riak-admin ring-status
+    dump riak_status "$riak_bin_dir"/riak-admin status
+    dump riak_transfers "$riak_bin_dir"/riak-admin transfers
+    dump riak_diag "$riak_bin_dir"/riak-admin diag
+    dump riak_repl_status "$riak_bin_dir"/riak-repl status
 
     # Get the latest ring file
     mkdir_or_die "${start_dir}"/"${debug_dir}"/ring/.info
@@ -380,7 +390,7 @@ fi
 if [ 1 -eq $get_extracmds ]; then
     mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/.info
     cd "${start_dir}"/"${debug_dir}"/commands
-    dump riak_vnode_status riak-admin vnode-status
+    dump riak_vnode_status "$riak_bin_dir"/riak-admin vnode-status
 fi
 
 ###
