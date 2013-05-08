@@ -383,10 +383,22 @@ if [ 1 -eq $get_riakcmds ]; then
     fi
 
     ring_file="`ls -t "$ring_dir"/riak_core_ring* | head -1`"
-    cp "$ring_file" .
+
+    # Use dump to execute the copy. This will provide a progress dot and
+    # capture any error messages.
+    dump cp_ring cp "$ring_file" .
+
+    # If the copy succeeded, then the output will be empty and it is unneeded.
+    if [ 0 -eq $? ]; then
+        rm -f cp_ring
+    fi
 
     # Take a listing of the ring directory for reference
     dump ls_ring_dir ls -lhR $ring_dir
+
+    # Take a du listing of the ring directory for size checking.
+    # This info is included in the ls, but parsing ls is not recommended.
+    dump du_ring_dir du "$ring_dir"/riak_core_ring*
 fi
 
 ###
