@@ -1,4 +1,6 @@
 REPO            ?= riak_ee
+# packagers need hyphens not underscores
+APP              = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
 PKG_REVISION    ?= $(shell git describe --tags)
 PKG_BUILD        = 1
 BASE_DIR         = $(shell pwd)
@@ -160,7 +162,8 @@ cleanplt:
 #                                 Last tag:          riak-1.1.0pre1
 #                                 Commits since tag: 27
 #                                 Hash of commit:    g1170096
-REPO_TAG 	:= $(shell git describe --tags)
+REPO_TAG       := $(shell git describe --tags)
+APP_TAG        = $(shell echo "$(REPO_TAG)" | sed -e 's/_/-/g')
 
 # Split off repo name
 # Changes to 1.0.3 or 1.1.0pre1-27-g1170096 from example above
@@ -168,7 +171,7 @@ REVISION = $(shell echo $(REPO_TAG) | sed -e 's/^$(REPO)-//')
 
 # Primary version identifier, strip off commmit information
 # Changes to 1.0.3 or 1.1.0pre1 from example above
-MAJOR_VERSION	?= $(shell echo $(REVISION) | sed -e 's/\([0-9.]*\)-.*/\1/')
+MAJOR_VERSION ?= $(shell echo $(REVISION) | sed -e 's/\([0-9.]*\)-.*/\1/')
 
 
 ##
@@ -204,9 +207,9 @@ get_dist_deps = mkdir distdir && \
 #   when underlying dependencies change.
 NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/null | cut -c 1-8)
 ifeq ($(REVISION), $(MAJOR_VERSION))
-PKG_ID := $(REPO_TAG)
+PKG_ID := $(APP_TAG)
 else
-PKG_ID = $(REPO)-$(MAJOR_VERSION)-$(NAME_HASH)
+PKG_ID = $(APP)-$(MAJOR_VERSION)-$(NAME_HASH)
 endif
 
 # To ensure a clean build, copy the CLONEDIR at a specific tag to a new directory
@@ -249,7 +252,7 @@ pkgclean: ballclean
 
 # Yes another variable, this one is repo-<generatedhash
 # which differs from $REVISION that is repo-<commitcount>-<commitsha>
-PKG_VERSION = $(shell echo $(PKG_ID) | sed -e 's/^$(REPO)-//')
+PKG_VERSION = $(shell echo $(PKG_ID) | sed -e 's/^$(APP)-//')
 
 package: distdir/$(PKG_ID).tar.gz
 	ln -s distdir package
