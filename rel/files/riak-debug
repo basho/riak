@@ -329,6 +329,9 @@ if [ 1 -eq $get_syscmds ]; then
     if [ -f /proc/diskstats ]; then
         # Linux iostat
         dump iostat_linux iostat -mx 1 5
+    elif [ -d /proc ]; then
+        # No diskstats, but proc, probably Solaris or SmartOS
+        dump iostat_smartos iostat -xnz 1 5
     else
         # BSD style iostat
         dump iostat_bsd iostat -dIw 1 -c 5
@@ -376,7 +379,7 @@ if [ 1 -eq $get_riakcmds ]; then
 
     # Make a flat, easily searchable version of the app.config settings
     riak_epaths=`make_app_epaths "${riak_etc_dir}/app.config"`
-    ring_dir="`epath 'riak_core ring_state_dir' "$riak_epaths" | cut -d '"' -f 2`"
+    ring_dir="`epath 'riak_core ring_state_dir' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
     if [ '.' = `echo "$ring_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
         # relative path. prepend base dir
         ring_dir="$riak_base_dir"/"$ring_dir"
@@ -422,7 +425,7 @@ if [ 1 -eq $get_logs ]; then
     # if not already made, make a flat, searchable version of the app.config
     [ -z "$riak_epaths" ] && riak_epaths=`make_app_epaths "${riak_etc_dir}/app.config"`
 
-    log_dir="`epath 'riak_core platform_log_dir' "$riak_epaths" | cut -d '"' -f 2`"
+    log_dir="`epath 'riak_core platform_log_dir' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
     if [ '.' = `echo "$log_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
         # relative path. prepend base dir
         log_dir="$riak_base_dir"/"$log_dir"
@@ -441,7 +444,7 @@ if [ 1 -eq $get_logs ]; then
             cd "$log_dir"
             find . -type f -name '*log*' -exec sh -c '
                 mkdir -p "$0/${1%/*}";
-                cp -p "$1" "$0/$1"
+                cp "$1" "$0/$1"
                 ' "${start_dir}"/"${debug_dir}"/logs/platform_log_dir {} \;
         fi
     fi
@@ -449,7 +452,7 @@ if [ 1 -eq $get_logs ]; then
     # Lager info and error files
     for lager_level in info error; do
         lager_path="`epath 'lager handlers lager_file_backend' "$riak_epaths" \
-                             | grep $lager_level | cut -d '"' -f 2`"
+                             | grep $lager_level | sed -e 's/^"//' -e 's/".*$//'`"
 
         # Get lager logs if they weren't in platform_log_dir
         if [ -n "$lager_path" ]; then
@@ -472,7 +475,7 @@ if [ 1 -eq $get_logs ]; then
     # Get leveldb logs
     backend=`epath 'riak_kv storage_backend' "$riak_epaths"`
     if [ 'riak_kv_eleveldb_backend' = "$backend" ]; then
-        leveldb_dir="`epath 'eleveldb data_root' "$riak_epaths" | cut -d '"' -f 2`"
+        leveldb_dir="`epath 'eleveldb data_root' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
 
         if [ '.' = `echo "$leveldb_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
             # relative path. prepend base dir
@@ -491,7 +494,7 @@ if [ 1 -eq $get_logs ]; then
         cd "$leveldb_dir"
         find . -type f -name 'LOG' -exec sh -c '
             mkdir -p "$0/${1%/*}";
-            cp -p "$1" "$0/$1"
+            cp "$1" "$0/$1"
             ' "${start_dir}"/"${debug_dir}"/logs/leveldb {} \;
 
     elif [ 'riak_kv_multi_backend' = "$backend" ] ||
@@ -505,7 +508,7 @@ if [ 1 -eq $get_logs ]; then
             fi
 
             dr="`epath "riak_kv multi_backend $b riak_kv_eleveldb_backend data_root" "$riak_epaths" |
-                cut -d '"' -f 2`"
+                sed -e 's/^"//' -e 's/".*$//'`"
 
             if [ '.' = `echo "$dr" | awk 'BEGIN {FS=""} {print $1}'` ]; then
                 # relative path. prepend base dir
@@ -524,7 +527,7 @@ if [ 1 -eq $get_logs ]; then
             cd "$dr"
             find . -type f -name 'LOG' -exec sh -c '
                 mkdir -p "$0/${1%/*}";
-                cp -p "$1" "$0/$1"
+                cp "$1" "$0/$1"
                 ' "${start_dir}"/"${debug_dir}"/logs/leveldb-${b} {} \;
         done
     fi
