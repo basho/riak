@@ -70,11 +70,10 @@ reload() {
     return $RETVAL
 }
 
-status() {
-    RETVAL=`su - riak -c "$DAEMON ping"`
-    [ "$RETVAL" = "pong" ] && echo $"$NAME is running..." && return 0
-    echo $"$NAME is stopped"
-    return 3
+
+do_status() {
+        $DAEMON ping && echo $"$NAME is running" && return 0
+        echo $"$NAME is stopped" && return 2
 }
 
 # See how we were called.
