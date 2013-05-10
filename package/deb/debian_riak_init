@@ -9,14 +9,10 @@
 # Description:       Basho Technologies's Riak distributed key value store
 ### END INIT INFO
 
-# Original Author: Vladimir Osintsev <osintsev@gmail.com>
-# Modified for Ubuntu by: Matt Heitzenroder <mheitzenroder@gmail.com>
-# Modified for Riak by: Grant Schofield <grant@basho.com>
-
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
 DESC="a distributed key value store"
 NAME=riak
-ERTS_PATH=/usr/lib/riak/erts-5.7.5/bin
+ERTS_PATH=/usr/lib/riak/erts-5.9.1/bin
 DAEMON=/usr/sbin/$NAME
 RUNNER_LOG_DIR=/var/log/$NAME
 RUNNER_USR_DIR=/usr
@@ -25,10 +21,6 @@ DAEMON_BASEDIR=/var/lib/$NAME
 DAEMON_SHAREDIR=/usr/share/$NAME
 DAEMON_ARGS='start'
 SCRIPTNAME=/etc/init.d/$NAME
-
-
-# Exit if the package is not installed
-#[ -x "$RUNNER_USR_DIR/sbin/$NAME" ] || exit 0
 
 # Read configuration variable file if it is present
 [ -r /etc/default/$NAME ] && . /etc/default/$NAME
@@ -62,7 +54,7 @@ do_stop()
         RETVAL=`su - riak -c "$DAEMON ping"`
         [ "$RETVAL" = "pong" ] && su - riak -c "$DAEMON stop"
         sleep 2
-        RETVAL=`pidof $ERTS_PATH/beam.smp`
+        RETVAL=`pidof $ERTS_PATH/run_erl`
         [ "$RETVAL" = "" ] && return 0
         #
         # It didn't exit nicely, be mean.
@@ -76,7 +68,7 @@ do_stop()
                 --quiet \
                 --retry=TERM/30/KILL/5 \
                 --user riak \
-                --exec $ERTS_PATH/beam.smp
+                --exec $ERTS_PATH/run_erl
         return $?
 }
 
@@ -90,12 +82,8 @@ do_reload() {
 
 
 do_status() {
-
-    RETVAL=`su - riak -c "$DAEMON ping"`
-    [ "$RETVAL" = "pong" ] && echo $"$NAME is running..." && return 0
-    echo $"$NAME is stopped"
-    return 3
-
+        $DAEMON ping && echo $"$NAME is running" && return 0
+        echo $"$NAME is stopped" && return 2
 }
 
 case "$1" in
