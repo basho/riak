@@ -295,6 +295,9 @@ if [ 1 -eq $get_syscmds ]; then
     dump dmesg dmesg
     dump mount mount
     dump sysctl sysctl -a
+    dump rpm rpm -qa
+    dump dpkg dpkg -l
+    dump pkg_info pkg_info
     dump ifconfig ifconfig -a
     dump netstat_i netstat -i
     dump netstat_an netstat -an
