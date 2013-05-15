@@ -51,12 +51,12 @@ the value's key belongs, then sends the "put" request to that vnode,
 as well as the vnodes responsible for the next N-1 partitions in the
 ring, where N is a bucket-configurable parameter that describes how
 many copies of the value to store.  The put request may also specify
-that at least W (=< N) of those vnodes reply with success, and that DW
-(=< W) reply with success only after durably storing the value.
+that at least W (<= N) of those vnodes reply with success, and that DW
+(<= W) reply with success only after durably storing the value.
 
 A fetch, or "get", request operates similarly, sending requests to the
 vnode that "claims" the partition in which the key resides, as well as
-to the next N-1 partitions.  The request also specifies R (=< N), the
+to the next N-1 partitions.  The request also specifies R (<= N), the
 number of vnodes that must reply before a response is returned.
 
 The riak node startup are defined by the riak_core_sup and riak_kv_sup
@@ -94,7 +94,7 @@ of Leslie Lamport.[3]
 
 When a value is stored in Riak, it is tagged with a vclock,
 establishing its initial version.  For each update, the vclock is
-extended in such a way that Riak can later compare to versions of the
+extended in such a way that Riak can later compare two versions of the
 object and determine:
 
  1. Whether one object is a direct descendant of the other.
