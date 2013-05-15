@@ -306,12 +306,10 @@ case "$1" in
     proxy_get)
         ACTION=$1
         shift
+
         # Make sure the local node is running
-        RES=`$NODETOOL ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        node_up_check
+
         if [ $# -ne 2 ]; then
             echo "Usage: $SCRIPT $ACTION enable <clustername> |"
             echo "                       disable <clustername> |"
