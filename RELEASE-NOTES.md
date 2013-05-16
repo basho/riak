@@ -1,3 +1,12 @@
+## Riak 1.3.2 Release Notes
+
+### New Features or Major Improvements for Riak
+
+### Issues / PR's Resolved
+
+
+
+
 ## Riak 1.3.1 Release Notes
 
 ### New Features or Major Improvements for Riak
