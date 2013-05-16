@@ -274,9 +274,9 @@ strategies, and more, please visit our docs at http://docs.basho.com/.
     
     
      
-* Contributing to Riak
-  Basho encourages contributions to Riak from the community. Here's
-  how to get started.
+* Contributing to Riak and Reporting Bugs
+
+  Basho encourages contributions to Riak from the community. Here's how to get started.
 
   - Fork the appropriate sub-projects that are affected by your
     change. Fork this repository if your changes are for release
@@ -284,16 +284,12 @@ strategies, and more, please visit our docs at http://docs.basho.com/.
   - Make your changes and run the test suite. (see below)
   - Commit your changes and push them to your fork.
   - Open pull-requests for the appropriate projects.
-    - If a Bugzilla issue exists that is related to your change, modify
-      the issue, giving a link to the pull-request(s).  Be sure to mention
-      the Bugzilla issue number in your pull-requests.
   - Basho engineers will review your pull-request, suggest changes,
-    and merge it when it's ready.
+    and merge it when it's ready and/or offer feedback. 
 
-** How to Report a Bug
+To report a bug or issue, please open a [[https://github.com/basho/riak/issues][new issue]] against this repository. 
 
-  - The Basho Bug Tracker: [[https://issues.basho.com]]
-  - Read More at: [[http://wiki.basho.com/How-to-Report-a-Bug.html]]
+You can read the [[http://docs.basho.com/riak/latest/references/appendices/community/How-to-Report-a-Bug/][full guidelines for bug reporting and code contributions]] on the Riak Docs. 
 
 ** Testing
   To make sure your patch works, be sure to run the test suite in each
