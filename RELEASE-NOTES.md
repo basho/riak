@@ -2,9 +2,27 @@
 
 ### New Features or Major Improvements for Riak
 
+#### MDC Replication
+
+* Added send and recv sum kpbs stats for rt and fs
+  * https://github.com/basho/riak_repl/pull/274
+  * also https://github.com/basho/riak_repl/pull/268
+  * new stats: fullsync_send_kpbs, fullsync_recv_kbps,
+    realtime_send_kbps, and realtime_recv_kbps are at the top level of
+    both console and web json stats. Fullsync stats are only useful
+    while a fullsync is in progress; due to the connect/disconnect
+    nature of fullsync, it will vary widely.
+
+
+
 ### Issues / PR's Resolved
 
-
+* riak_repl/273: [riak_core_tcp_mon: Handle node/up down correctly](https://github.com/basho/riak_repl/pull/273)
+* riak_repl/272: [cluster manager can't reconnect after disconnect](https://github.com/basho/riak_repl/pull/272)
+* riak_repl/271: [Keep bad IPs out of ring.](https://github.com/basho/riak_repl/pull/271)
+* riak_repl/270: [Add default registration functions to cluster manager supervisor](https://github.com/basho/riak_repl/pull/270)
+* riak_repl/277: [Accurately calculate rtq object size](https://github.com/basho/riak_repl/pull/277)
+* riak_repl/269: [Add heartbeat to the realtime replication protocol on 1.3](https://github.com/basho/riak_repl/pull/269)
 
 
 ## Riak 1.3.1 Release Notes
