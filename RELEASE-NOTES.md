@@ -17,6 +17,7 @@
 
 ### Issues / PR's Resolved
 
+* riak_repl/281: [Fix RTQ EQC test to model trimming correctly](https://github.com/basho/riak_repl/pull/281)
 * riak_repl/273: [riak_core_tcp_mon: Handle node/up down correctly](https://github.com/basho/riak_repl/pull/273)
 * riak_repl/272: [cluster manager can't reconnect after disconnect](https://github.com/basho/riak_repl/pull/272)
 * riak_repl/271: [Keep bad IPs out of ring.](https://github.com/basho/riak_repl/pull/271)
