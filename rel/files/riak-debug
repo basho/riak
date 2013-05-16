@@ -1,0 +1,602 @@
+#!/bin/sh
+
+## -------------------------------------------------------------------
+##
+## riak-debug: Gather info from a node for troubleshooting.
+##
+## Copyright (c) 2013 Basho Technologies, Inc.  All Rights Reserved.
+##
+## This file is provided to you under the Apache License,
+## Version 2.0 (the "License"); you may not use this file
+## except in compliance with the License.  You may obtain
+## a copy of the License at
+##
+##   http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing,
+## software distributed under the License is distributed on an
+## "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+## KIND, either express or implied.  See the License for the
+## specific language governing permissions and limitations
+## under the License.
+##
+## -------------------------------------------------------------------
+
+# If you start to think "We should execute some Erlang in here", then go work
+# on Riaknostic, which is called with `riak-admin diag` below.
+
+###
+### Function declarations
+###
+
+echoerr () { echo "$@" 1>&2; }
+
+mkdir_or_die () {
+    # If the dir already exists, just return
+    [ -d "$1" ] && return
+
+    mkdir -p "$1"
+    if [ 0 -ne $? ]; then
+        echoerr "Error creating riak-debug directories. Aborting."
+        echoerr "$1"
+        exit 1
+    fi
+}
+
+dump () {
+    # first argument is the filename to hold the command output
+    out=$1
+    shift
+
+    # next argument is the base command to execute. skip dump if not available.
+    [ -z "`command -v $1`" ] && return
+
+    # execute the rest of the arguments as the command
+    $* >> "$out" 2>&1
+
+    # grab the return value
+    retval=$?
+
+    # put the command and the retval in the .info/$out file to aid automation.
+    # note: this will miss some escaping for, e.g., find, but it's not critical.
+    # get command that was run with `head -1 .info/$out`
+    # get return value from command with `tail -1 .info/$out`
+    echo "$*" > .info/"$out"
+    echo $retval >> .info/"$out"
+
+    if [ 0 -eq $retval ]; then
+        printf '.' 1>&2
+    else
+        printf 'E' 1>&2
+    fi
+
+    return $retval
+}
+
+usage () {
+cat << 'EOF'
+riak-debug: Gather info from a node for troubleshooting. See 'man riak-debug'.
+
+Usage: riak-debug [-c] [-l] [-r] [-s] [-e] [FILENAME | -]
+
+-c, --cfgs      Gather Riak configuration information.
+-l, --logs      Gather Riak logs.
+-r, --riakcmds  Gather Riak information and command output.
+-s, --syscmds   Gather general system commands.
+-e, --extracmds Gather extra command output. These commands are too intense to
+                run on all nodes in a cluster but appropriate for a single node.
+FILENAME        Output filename for the tar.gz archive. Use - to specify stdout.
+
+Defaults: Get configs, logs, riak commands, and system commands.
+          Output in current directory to NODE_NAME-riak-debug.tar.gz or
+          HOSTNAME-riak-debug.tar.gz if NODE_NAME cannot be found.
+EOF
+exit
+}
+
+###
+### Set up variables
+###
+
+# These paths may be overridden with environment variables.
+RUNNER_BASE_DIR={{runner_base_dir}}
+riak_base_dir={{runner_base_dir}}
+riak_bin_dir={{runner_script_dir}}
+riak_etc_dir={{runner_etc_dir}}
+
+get_cfgs=0
+get_logs=0
+get_riakcmds=0
+get_syscmds=0
+get_extracmds=0
+
+###
+### Parse options
+###
+
+while [ -n "$1" ]; do
+    case "$1" in
+        -h|--help)
+            usage
+            ;;
+        -c|--cfgs)
+            get_cfgs=1
+            ;;
+        -l|--logs)
+            get_logs=1
+            ;;
+        -r|--riakcmds)
+            get_riakcmds=1
+            ;;
+        -s|--syscmds)
+            get_syscmds=1
+            ;;
+        -e|--extracmds)
+            get_extracmds=1
+            ;;
+        -)
+            # If truly specifying stdout as the output file, it should be last
+            if [ $# -gt 1 ]; then
+                echoerr "Trailing options following filename $1. Aborting."
+                echoerr "See 'riak-debug -h' and manpage for help."
+                exit 1
+            fi
+
+            outfile="-"
+            ;;
+        *)
+            # Shouldn't get here until the last option, the output filename.
+            if [ '-' = "$outfile" ]; then
+                echoerr "Filename $1 given but stdout, -, already specified."
+                echoerr "Aborting. See 'riak-debug -h' and manpage for help."
+                exit 1
+            fi
+
+            # The filename shouldn't start with a '-'. The single character '-'
+            # is handled as a special case above.
+            if [ '-' =  `echo "$1" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+                echoerr "Unrecognized option $1. Aborting"
+                echoerr "See 'riak-debug -h' and manpage for help."
+                exit 1
+            fi
+
+            if [ $# -gt 1 ]; then
+                echoerr "Trailing options following filename $1. Aborting."
+                echoerr "See 'riak-debug -h' and manpage for help." 
+                exit 1
+            fi
+            
+            outfile="$1"
+            ;;
+    esac
+    shift
+done
+
+###
+### Finish setting up variables and overrides
+###
+
+if [ 0 -eq $(( $get_cfgs + $get_logs + $get_riakcmds + $get_syscmds + $get_extracmds )) ]; then
+    # Nothing specific was requested, so get everything except extracmds
+    get_cfgs=1
+    get_logs=1
+    get_riakcmds=1
+    get_syscmds=1
+    get_extracmds=0
+fi
+
+if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
+    # Information specific to Riak requested. Need app_epath.sh and must have
+    # valid base and etc paths defined.
+
+    # app_epath.sh provides make_app_epaths and epath functions.
+    # Allow overriding with APP_EPATH
+    if [ -n "$APP_EPATH" ]; then
+        epath_file="$APP_EPATH"
+    else
+        epath_file="${riak_base_dir}/lib/app_epath.sh"
+    fi
+
+    if [ ! -f "$epath_file" ]; then
+        echoerr "Required file app_epath.sh not found. Expected here:"
+        echoerr "$epath_file" 
+        echoerr "See 'riak-debug -h' and manpage for help."
+        exit 1
+    fi
+    . "$epath_file"
+
+    # Allow overriding riak_base_dir and riak_etc_dir from the environment
+    if [ -n "$RIAK_BASE_DIR" ]; then
+        riak_base_dir="$RIAK_BASE_DIR"
+        if [ "/" != "`echo "$riak_base_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
+            echoerr "Riak base directory should be an absolute path."
+            echoerr "$riak_base_dir" 
+            echoerr "See 'riak-debug -h' and manpage for help."
+            exit 1
+        fi
+    fi
+
+    if [ -n "$RIAK_BIN_DIR" ]; then
+        riak_bin_dir="$RIAK_BIN_DIR"
+        if [ "/" != "`echo "$riak_bin_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
+            echoerr "Riak bin directory should be an absolute path."
+            echoerr "$riak_bin_dir" 
+            echoerr "See 'riak-debug -h' and manpage for help."
+            exit 1
+        fi
+    fi
+
+    if [ -n "$RIAK_ETC_DIR" ]; then
+        riak_etc_dir="$RIAK_ETC_DIR"
+        if [ "/" != "`echo "$riak_etc_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
+            echoerr "Riak etc directory should be an absolute path."
+            echoerr "$riak_etc_dir" 
+            echoerr "See 'riak-debug -h' and manpage for help."
+            exit 1
+        fi
+    fi
+fi
+
+if [ -f "${riak_etc_dir}"/vm.args ]; then
+    node_name="`egrep '^\-s?name' "${riak_etc_dir}"/vm.args 2>/dev/null | cut -d ' ' -f 2`"
+fi
+
+if [ -z "$node_name" ]; then
+    # Couldn't figure out node name. Fallback to hostname.
+    node_name="`hostname`"
+fi
+
+start_dir="$TMPDIR"
+
+if [ -z "$start_dir" ]; then
+    start_dir=/tmp
+fi
+
+# Strip any trailing slash from TMPDIR
+start_dir="`echo $start_dir | sed 's#/$##'`"
+
+debug_dir="${node_name}-riak-debug"
+
+if [ -d "${start_dir}"/"${debug_dir}" ]; then
+    echoerr "Temporary directory already exists. Aborting."
+    echoerr "${start_dir}"/"${debug_dir}" 
+    exit 1
+fi
+
+if [ -z "$outfile" ]; then
+    # If output file not specified, output to the default
+    outfile="`pwd`"/"${debug_dir}".tar.gz
+fi
+
+if [ '-' != "$outfile" ] && [ -f "$outfile" ]; then
+    echoerr "Output file already exists. Aborting."
+    echoerr "$outfile" 
+    exit 1
+fi
+
+###
+### Gather system commands
+###
+
+if [ 1 -eq $get_syscmds ]; then
+    mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/.info
+    cd "${start_dir}"/"${debug_dir}"/commands
+
+    # System info
+    dump date date
+    dump w w
+    dump last last
+    dump hostname hostname
+    dump uname uname -a
+    dump lsb_release lsb_release
+    dump ps ps aux
+    dump vmstat vmstat
+    dump free free -m
+    dump df df
+    dump df_i df -i
+    dump dmesg dmesg
+    dump mount mount
+    dump sysctl sysctl -a
+    dump rpm rpm -qa
+    dump dpkg dpkg -l
+    dump pkg_info pkg_info
+    dump sestatus sestatus -v
+    dump ifconfig ifconfig -a
+    dump netstat_i netstat -i
+    dump netstat_an netstat -an
+    dump netstat_rn netstat -rn
+    dump pfctl_rules pfctl -s rules
+    dump pfctl_nat pfctl -s nat
+
+    # If swapctl exists, prefer it over swapon
+    if [ -n "`command -v swapctl`" ]; then
+        dump swapctl swapctl -s
+    else
+        dump swapon swapon -s
+    fi
+
+    # Running iptables commands if the module is not loaded can automatically
+    # load them. This is rarely desired and can even cause connectivity
+    # problems if, e.g., nf_conntrack gets autoloaded and autoenabled.
+    if [ -n "`command -v lsmod`" ]; then
+        if [ -n "`lsmod 2>/dev/null | awk '{print $1}' | grep iptable_filter`" ]; then
+            dump iptables_rules iptables -n -L
+        else
+            dump iptables_rules echo "iptables module not loaded"
+        fi
+
+        if [ -n "`lsmod 2>/dev/null | awk '{print $1}' | grep nf_conntrack`" ]; then
+            dump iptables_nat iptables -t nat -n -L
+        else
+            dump iptables_nat echo "nf_conntrack module not loaded"
+        fi
+    fi
+
+    if [ -f /proc/diskstats ]; then
+        # Linux iostat
+        dump iostat_linux iostat -mx 1 5
+    elif [ -d /proc ]; then
+        # No diskstats, but proc, probably Solaris or SmartOS
+        dump iostat_smartos iostat -xnz 1 5
+    else
+        # BSD style iostat
+        dump iostat_bsd iostat -dIw 1 -c 5
+    fi
+
+    # Dump files
+    [ -f /etc/release ] && dump release cat /etc/release
+    [ -f /etc/redhat-release ] && dump redhat_release cat /etc/redhat-release
+    [ -f /etc/debian_version ] && dump debian_version cat /etc/debian_version
+    [ -f /etc/security/limits.conf ] && dump limits.conf cat /etc/security/limits.conf
+    [ -f /var/log/messages ] && dump messages cat /var/log/messages
+    [ -f /var/log/syslog ] && dump messages cat /var/log/syslog
+    [ -f /proc/diskstats ] && dump diskstats cat /proc/diskstats
+    [ -f /proc/cpuinfo ] && dump cpuinfo cat /proc/cpuinfo
+    [ -f /proc/meminfo ] && dump meminfo cat /proc/meminfo
+
+    # Dump directories and finds
+    [ -d /dev/disk/by-id ] && dump disk_by_id ls -l /dev/disk/by-id
+    [ -d /sys/block ] && dump schedulers find /sys/block/ -type l -print -exec cat {}/queue/scheduler \;
+    [ -d /proc/net/bonding ] && dump bonding find /proc/net/bonding/ -type f -print -exec cat {} \;
+    [ -d /sys/class/net ] && dump rx_crc_errors find /sys/class/net/ -type l -print -exec cat {}/statistics/rx_crc_errors \;
+
+    # A bit more complicated, but let's get all of limits.d if it's there
+    if [ -d /etc/security/limits.d ]; then
+        # check to ensure there is at least something to get
+        if [ -n "`find /etc/security/limits.d -maxdepth 1 -name '*.conf' -print -quit`" ]; then
+            mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/limits.d
+
+            # Mirror the directory, only copying files that match the pattern
+            cd /etc/security/limits.d
+            find . -type f -name '*.conf' -exec sh -c '
+                mkdir -p "$0/${1%/*}";
+                cp "$1" "$0/$1"
+                ' "${start_dir}"/"${debug_dir}"/commands/limits.d {} \;
+        fi
+    fi
+fi
+
+###
+### Gather Riak commands and info
+###
+
+if [ 1 -eq $get_riakcmds ]; then
+    mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/.info
+    cd "${start_dir}"/"${debug_dir}"/commands
+
+    # Note that 'riak-admin status' and 'riak-admin transfers' are heavy
+    # commands on Riak<=1.2.0 and should not be executed in a loop against all
+    # nodes in a cluster.
+
+    dump riak_ping "$riak_bin_dir"/riak ping
+    dump riak_version "$riak_bin_dir"/riak version
+    dump riak_member_status "$riak_bin_dir"/riak-admin member-status
+    dump riak_ring_status "$riak_bin_dir"/riak-admin ring-status
+    dump riak_status "$riak_bin_dir"/riak-admin status
+    dump riak_transfers "$riak_bin_dir"/riak-admin transfers
+    dump riak_diag "$riak_bin_dir"/riak-admin diag
+    dump riak_repl_status "$riak_bin_dir"/riak-repl status
+
+    # Get the latest ring file
+    mkdir_or_die "${start_dir}"/"${debug_dir}"/ring/.info
+    cd "${start_dir}"/"${debug_dir}"/ring
+
+    # Make a flat, easily searchable version of the app.config settings
+    riak_epaths=`make_app_epaths "${riak_etc_dir}/app.config"`
+    ring_dir="`epath 'riak_core ring_state_dir' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
+    if [ '.' = `echo "$ring_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+        # relative path. prepend base dir
+        ring_dir="$riak_base_dir"/"$ring_dir"
+    fi
+
+    ring_file="`ls -t "$ring_dir"/riak_core_ring* | head -1`"
+
+    # Use dump to execute the copy. This will provide a progress dot and
+    # capture any error messages.
+    dump cp_ring cp "$ring_file" .
+
+    # If the copy succeeded, then the output will be empty and it is unneeded.
+    if [ 0 -eq $? ]; then
+        rm -f cp_ring
+    fi
+
+    # Take a listing of the ring directory for reference
+    dump ls_ring_dir ls -lhR $ring_dir
+
+    # Take a du listing of the ring directory for size checking.
+    # This info is included in the ls, but parsing ls is not recommended.
+    dump du_ring_dir du "$ring_dir"/riak_core_ring*
+fi
+
+###
+### Gather extra commands
+###
+
+if [ 1 -eq $get_extracmds ]; then
+    mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/.info
+    cd "${start_dir}"/"${debug_dir}"/commands
+    dump riak_vnode_status "$riak_bin_dir"/riak-admin vnode-status
+fi
+
+###
+### Gather Riak logs
+###
+
+if [ 1 -eq $get_logs ]; then
+    mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/.info
+    cd "${start_dir}"/"${debug_dir}"/logs
+
+    # if not already made, make a flat, searchable version of the app.config
+    [ -z "$riak_epaths" ] && riak_epaths=`make_app_epaths "${riak_etc_dir}/app.config"`
+
+    log_dir="`epath 'riak_core platform_log_dir' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
+    if [ '.' = `echo "$log_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+        # relative path. prepend base dir
+        log_dir="$riak_base_dir"/"$log_dir"
+    fi
+
+    # grab a listing of the log directory to show if there are crash dumps
+    dump ls_log_dir ls -lhR $log_dir
+
+    # Get any logs in the platform_log_dir
+    if [ -d "${log_dir}" ]; then
+        # check to ensure there is at least something to get
+        if [ -n "`find "${log_dir}" -maxdepth 1 -name '*log*' -print -quit`" ]; then
+            mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/platform_log_dir
+
+            # Mirror the directory, only copying files that match the pattern
+            cd "$log_dir"
+            find . -type f -name '*log*' -exec sh -c '
+                mkdir -p "$0/${1%/*}";
+                cp "$1" "$0/$1"
+                ' "${start_dir}"/"${debug_dir}"/logs/platform_log_dir {} \;
+        fi
+    fi
+
+    # Lager info and error files
+    for lager_level in info error; do
+        lager_path="`epath 'lager handlers lager_file_backend' "$riak_epaths" \
+                             | grep $lager_level | sed -e 's/^"//' -e 's/".*$//'`"
+
+        # Get lager logs if they weren't in platform_log_dir
+        if [ -n "$lager_path" ]; then
+            if [ '.' = `echo "$lager_path" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+                # relative path. prepend base dir
+                lager_path="$riak_base_dir"/"$lager_path"
+            fi
+
+            lager_file="`echo $lager_path | awk -F/ '{print $NF}'`"
+            lager_dir="`echo $lager_path | awk -F/$lager_file '{print $1}'`"
+            if [ "$log_dir" != "$lager_dir" ]; then
+                if [ -n "`find "${lager_dir}" -maxdepth 1 -name "${lager_file}*" -print -quit`" ]; then
+                    mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/lager_${lager_level}
+                    cp "${lager_path}"* "${start_dir}"/"${debug_dir}"/logs/lager_${lager_level}
+                fi
+            fi
+        fi
+    done
+
+    # Get leveldb logs
+    backend=`epath 'riak_kv storage_backend' "$riak_epaths"`
+    if [ 'riak_kv_eleveldb_backend' = "$backend" ]; then
+        leveldb_dir="`epath 'eleveldb data_root' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
+
+        if [ '.' = `echo "$leveldb_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+            # relative path. prepend base dir
+            leveldb_dir="$riak_base_dir"/"$leveldb_dir"
+        fi
+
+        if [ ! -d "$leveldb_dir" ]; then
+            echoerr "Unable to locate LevelDB data directory. Aborting."
+            echoerr "Using eleveldb data_root: $leveldb_dir"
+            exit 1
+        fi
+
+        mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/leveldb
+
+        # Mirror the directory, only copying files that match the pattern
+        cd "$leveldb_dir"
+        find . -type f -name 'LOG' -exec sh -c '
+            mkdir -p "$0/${1%/*}";
+            cp "$1" "$0/$1"
+            ' "${start_dir}"/"${debug_dir}"/logs/leveldb {} \;
+
+    elif [ 'riak_kv_multi_backend' = "$backend" ] ||
+         [ 'riak_cs_kv_multi_backend' = "$backend" ] ; then
+        # Get leveldb logs for any leveldb multi-backends
+        for b in `epath 'riak_kv multi_backend' "$riak_epaths" | cut -d ' ' -f 1 | uniq`; do
+            backend="`epath "riak_kv multi_backend $b" "$riak_epaths" | cut -d ' ' -f 1 | uniq`"
+            if [ 'riak_kv_eleveldb_backend' != "$backend" ]; then
+                # Not leveldb. Keep looping.
+                continue;
+            fi
+
+            dr="`epath "riak_kv multi_backend $b riak_kv_eleveldb_backend data_root" "$riak_epaths" |
+                sed -e 's/^"//' -e 's/".*$//'`"
+
+            if [ '.' = `echo "$dr" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+                # relative path. prepend base dir
+                dr="$riak_base_dir"/"$dr"
+            fi
+
+            if [ ! -d "${dr}" ]; then
+                echoerr "Unable to locate $b LevelDB data directory. Aborting."
+                echoerr "Using riak_kv_eleveldb_backend data_root: $dr"
+                exit 1
+            fi
+
+            mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/leveldb-${b}
+
+            # Mirror the directory, only copying files that match the pattern
+            cd "$dr"
+            find . -type f -name 'LOG' -exec sh -c '
+                mkdir -p "$0/${1%/*}";
+                cp "$1" "$0/$1"
+                ' "${start_dir}"/"${debug_dir}"/logs/leveldb-${b} {} \;
+        done
+    fi
+fi
+
+###
+### Gather Riak configuration
+###
+
+if [ 1 -eq $get_cfgs ]; then
+    mkdir_or_die "${start_dir}"/"${debug_dir}"/config/.info
+    cd "${start_dir}"/"${debug_dir}"/config
+
+    # Use dump to execute the copy. This will provide a progress dot and
+    # capture any error messages.
+    dump cp_cfg cp -R "$riak_etc_dir"/* .
+
+    # If the copy succeeded, then the output will be empty and it is unneeded.
+    if [ 0 -eq $? ]; then
+        rm -f cp_cfg
+    fi
+fi
+
+###
+### Produce the output file
+###
+
+# One last sanity check before transferring or removing anything
+cd "${start_dir}"
+if [ -z "$debug_dir" ] || [ ! -d "$debug_dir" ]; then
+    echoerr "Couldn't find ${start_dir}/${debug_dir}. Aborting"
+    exit 1
+fi
+
+if [ '-' = "$outfile" ]; then
+    # So we don't get a file literally named -
+    tar zcf - "${debug_dir}"
+else
+    tar zcf "$outfile" "${debug_dir}"
+
+    # provide some indication of the output filename
+    printf " $outfile" 1>&2
+fi
+rm -rf "${debug_dir}"
+
+# keep things looking pretty
+echoerr ""
+
