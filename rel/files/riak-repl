@@ -328,6 +328,52 @@ case "$1" in
         esac
         ;;
 
+    nat-map)
+        ACTION=$1
+        shift
+        # Make sure the local node is running
+        RES=`$NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        if [ $# -lt 1 -o $# -gt 3 ]; then
+            echo "Usage: $SCRIPT $ACTION show |"
+            echo "                       add <externalip>[:port] <internalip> |"
+            echo "                       del <externalip>[:port] <internalip>"
+            exit 1
+        fi
+        SUB_CMD=$1
+        shift
+        case $SUB_CMD in
+            show)
+                if [ $# -ne 0 ]; then
+                    echo "Usage: $SCRIPT $ACTION $SUB_CMD"
+                    exit 1
+                fi
+                $NODETOOL rpc riak_repl_console show_nat_map
+                ;;
+            add)
+                if [ $# -ne 2 ]; then
+                    echo "Usage: $SCRIPT $ACTION $SUB_CMD <externalip>[:port] <internalip>"
+                    exit 1
+                fi
+                $NODETOOL rpc riak_repl_console add_nat_map $1 $2
+                ;;
+            del)
+                if [ $# -ne 2 ]; then
+                    echo "Usage: $SCRIPT $ACTION $SUB_CMD <externalip>[:port] <internalip>"
+                    exit 1
+                fi
+                $NODETOOL rpc riak_repl_console del_nat_map $1 $2
+                ;;
+            *)
+                echo "Usage: $SCRIPT $ACTION show |"
+                echo "                       add <externalip>[:port] <internalip> |"
+                echo "                       del <externalip>[:port] <internalip>"
+                exit 1
+        esac
+        ;;
     *)
 
 
@@ -480,6 +526,21 @@ Advanced mode MDC replication:
              Limits the number of fullsync workers allowed to run on each
              individual node in a sink cluster. If the value is omitted, the
              current max_fssink_node value is displayed.
+
+   NAT Configuration:
+
+     nat-map show
+
+            Displays the current NAT mapping table.
+
+     nat-map add <externalip>[:port] <internalip>
+
+            Add a NAT map from the external IP, with an optional port, to
+            an internal IP.
+
+     nat-map del <externalip>[:port] <internalip>
+
+            Delete a specific NAT map entry.
 "
 exit 1
 ;;
