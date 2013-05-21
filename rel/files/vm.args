@@ -17,7 +17,7 @@
 +W w
 
 ## Increase number of concurrent ports/sockets
--env ERL_MAX_PORTS 4096
+-env ERL_MAX_PORTS 64000
 
 ## Tweak GC to run more often 
 -env ERL_FULLSWEEP_AFTER 0
@@ -26,7 +26,7 @@
 -env ERL_CRASH_DUMP {{crash_dump}}
 
 ## Raise the ETS table limit
--env ERL_MAX_ETS_TABLES 8192
+-env ERL_MAX_ETS_TABLES 256000
 
 ## Force the erlang VM to use SMP
 -smp enable
