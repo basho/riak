@@ -233,6 +233,7 @@ case "$1" in
             echo "                       disable <clustername> |"
             echo "                       start [<clustername>] |"
             echo "                       stop [<clustername>] |"
+            echo "                       cascades [ always | never ] | (realtime only)"
             echo "                       max_fssource_node [<value>] | (fullsync only)"
             echo "                       max_fssource_cluster [<value>] | (fullsync only)"
             echo "                       max_fssink_node [<value>] (fullsync only)"
@@ -267,6 +268,20 @@ case "$1" in
               # Make sure the local node is running
               node_up_check
 
+              $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
+              ;;
+            cascades)
+              if [ "$ACTION" != "realtime" ]; then
+                echo "cascades is only available for realtime"
+                exit 1
+              fi
+              NEWVAL=$1
+              shift
+              RES=`$NODETOOL ping`
+              if [ "$RES" != "pong" ]; then
+                echo "Node is not running!"
+                exit 1
+              fi
               $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
               ;;
             max_fssource_cluster)
@@ -506,6 +521,15 @@ Advanced mode MDC replication:
              spaces. Changes the behavior of the realtime replication bucket hooks.
 
    Performance Tuning:
+
+      realtime cascades [ always | never ]
+
+             Enables or disables cascading realtime replication writes to
+             realtime sink clusters. When set to never, no writes are
+             cascaded. When set to always, when this cluster is a sink and
+             receives a realtime write, it will forword that write (cascade)
+             to any started sink clusters as well. If omitted, the current
+             value is displayed.
 
       fullsync max_fssource_node [value]
 
