@@ -31,6 +31,10 @@
 ## Force the erlang VM to use SMP
 -smp enable
 
+## Erlang VM scheduler tuning (Prerequisite: patched VM from Basho as
+## part of the Riak EDS package)
++scl false +zdss 500:500
+
 ## Begin SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
 
 ## To enable SSL encryption of the Erlang intra-cluster communication,
