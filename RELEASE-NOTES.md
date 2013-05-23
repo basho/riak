@@ -1,3 +1,50 @@
+## Riak 1.3.2 Release Notes
+
+### New Features or Major Improvements for Riak
+
+#### Erlang Scheduler Collapse
+
+All Erlang/OTP R15B releases as well as R16B are vulnerable to the
+Erlang computation scheduler threads going asleep too agressively.
+The sleeping periods reduce power consumption and inter-thread
+resource contention.
+
+This release of Riak EDS requires a patch to the Erlang/OTP
+virtual machine to disable scheduler threads from suspending
+indefinitely.  The flags `+scl false +zdss 500:500` must also be
+present in the `vm.args` file.  For the Open Source Riak release,
+the patch (and extra "vm.args" flags) are recommended: the patch
+can be found at https://gist.github.com/slfritchie/5624609.
+
+#### MDC Replication
+
+* Added send and recv sum kpbs stats for rt and fs
+  * https://github.com/basho/riak_repl/pull/274
+  * also https://github.com/basho/riak_repl/pull/268
+  * new stats: fullsync_send_kpbs, fullsync_recv_kbps,
+    realtime_send_kbps, and realtime_recv_kbps are at the top level of
+    both console and web json stats. Fullsync stats are only useful
+    while a fullsync is in progress; due to the connect/disconnect
+    nature of fullsync, it will vary widely.
+
+
+
+### Issues / PR's Resolved
+
+* riak/306: [Wrong ERTS_PATH configuration on ubuntu riak package](https://github.com/basho/riak/issues/306)
+* riak/328: [vm.args: Add commented +scl false and +zdss 500:500](https://github.com/basho/riak/pull/328)
+* riak_repl/281: [Fix RTQ EQC test to model trimming correctly](https://github.com/basho/riak_repl/pull/281)
+* riak_repl/273: [riak_core_tcp_mon: Handle node/up down correctly](https://github.com/basho/riak_repl/pull/273)
+* riak_repl/272: [cluster manager can't reconnect after disconnect](https://github.com/basho/riak_repl/pull/272)
+* riak_repl/271: [Keep bad IPs out of ring.](https://github.com/basho/riak_repl/pull/271)
+* riak_repl/270: [Add default registration functions to cluster manager supervisor](https://github.com/basho/riak_repl/pull/270)
+* riak_repl/277: [Accurately calculate rtq object size](https://github.com/basho/riak_repl/pull/277)
+* riak_repl/269: [Add heartbeat to the realtime replication protocol on 1.3](https://github.com/basho/riak_repl/pull/269)
+* riak_ee/140: [Increase ERL_MAX_PORTS and ERL_MAX_ETS_TABLES](https://github.com/basho/riak_ee/pull/140)
+* riak_ee/141: [vm.args: Add +scl false and +zdss 500:500](https://github.com/basho/riak_ee/pull/141)
+
+
+
 ## Riak 1.3.1 Release Notes
 
 ### New Features or Major Improvements for Riak
