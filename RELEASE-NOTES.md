@@ -24,6 +24,9 @@
 * riak_repl/270: [Add default registration functions to cluster manager supervisor](https://github.com/basho/riak_repl/pull/270)
 * riak_repl/277: [Accurately calculate rtq object size](https://github.com/basho/riak_repl/pull/277)
 * riak_repl/269: [Add heartbeat to the realtime replication protocol on 1.3](https://github.com/basho/riak_repl/pull/269)
+* riak_ee/140: [Increase ERL_MAX_PORTS and ERL_MAX_ETS_TABLES](https://github.com/basho/riak_ee/pull/140)
+* riak_ee/141: [vm.args: Add +scl false and +zdss 500:500](https://github.com/basho/riak_ee/pull/141)
+
 
 
 ## Riak 1.3.1 Release Notes
