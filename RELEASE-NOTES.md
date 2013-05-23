@@ -1,3 +1,27 @@
+## Riak 1.3.2 Release Notes
+
+### New Features or Major Improvements for Riak
+
+#### Erlang Scheduler Collapse
+
+All Erlang/OTP R15B releases as well as R16B are vulnerable to the
+Erlang computation scheduler threads going asleep too agressively.
+The sleeping periods reduce power consumption and inter-thread
+resource contention.
+
+This release of Riak EDS requires a patch to the Erlang/OTP
+virtual machine to disable scheduler threads from suspending
+indefinitely.  The flags `+scl false +zdss 500:500` must also be
+present in the `vm.args` file.  For the Open Source Riak release,
+the patch (and extra "vm.args" flags) are recommended: the patch
+can be found at https://gist.github.com/slfritchie/5624609.
+
+### Issues / PR's Resolved
+
+* riak/306: [Wrong ERTS_PATH configuration on ubuntu riak package](https://github.com/basho/riak/issues/306)
+* riak/328: [vm.args: Add commented +scl false and +zdss 500:500](https://github.com/basho/riak/pull/328)
+
+
 ## Riak 1.3.1 Release Notes
 
 ### New Features or Major Improvements for Riak
