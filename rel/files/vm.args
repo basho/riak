@@ -31,6 +31,9 @@
 ## Force the erlang VM to use SMP
 -smp enable
 
+## Lower ticktime to find downed nodes sooner
+-kernel net_ticktime 10
+
 ## Erlang VM scheduler tuning (Prerequisite: patched VM from Basho as
 ## part of the Riak EDS package)
 +scl false +zdss 500:500
