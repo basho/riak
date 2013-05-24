@@ -48,22 +48,10 @@ test: deps compile testclean
 ##
 ## Release targets
 ##
-rel: deps compile generate riaknostic-rel
+rel: deps compile generate
 
 relclean:
 	rm -rf rel/riak
-
-##
-## Riaknostic targets
-##
-riaknostic: deps
-	$(MAKE) -C deps/riaknostic -f Makefile
-
-riaknostic-rel: riaknostic
-	rm -rf rel/riak/lib/riaknostic
-	mkdir -p rel/riak/lib/riaknostic
-	cp -f deps/riaknostic/riaknostic rel/riak/lib/riaknostic/
-
 
 ##
 ## Developer targets

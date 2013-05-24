@@ -435,32 +435,28 @@ case "$1" in
 
         ;;
     diag)
-        # Riaknostic location
-        RIAKNOSTIC_LOC="$ERTS_PATH/../../lib/riaknostic/riaknostic"
+        case "$2" in
+            --help|-h)
+                echo "Usage: riak-admin diag [-d <level>] [-l] [-h] [--export] [check_name ...]"
+                echo ""
+                echo "-h, --help            Display help/usage dialogue"
+                echo "-d, --level           Minimum message severity level (default: notice)"
+                echo "-l, --list            Describe available diagnostic tasks"
+                echo "--export              Package system info in '$CWD/export.zip'"
+                echo "check_name            A specific check to run"
+                exit 1
+                ;;
+            *)
+                 node_up_check
 
-        # Riaknostic user
-        RIAKNOSTIC_USER=$RUNNER_USER
-        if [ -z $RUNNER_USER ]; then
-            RIAKNOSTIC_USER=$LOGNAME
-        fi
+                # Setup command to run riaknostic
+                RIAKNOSTIC="$NODETOOL rpc riaknostic main \
+                    --etc $RUNNER_ETC_DIR --base $RUNNER_BASE_DIR"
 
-        # Setup command to run riaknostic
-        RIAKNOSTIC="$ERTS_PATH/escript $RIAKNOSTIC_LOC --user $RIAKNOSTIC_USER \
-            --etc $RUNNER_ETC_DIR --base $RUNNER_BASE_DIR"
-
-        # URL for Riaknostic download instructions
-        RIAKNOSTIC_URL="http://riaknostic.basho.com/"
-
-        shift
-
-        if [ -f "$RIAKNOSTIC_LOC" ]; then
-            $RIAKNOSTIC "$@"
-        else
-            echo "Riak diagnostics utility is not present!"
-            echo "Visit $RIAKNOSTIC_URL for instructions."
-            exit 1
-        fi
-
+                shift
+                
+                $RIAKNOSTIC "$@"
+        esac
         ;;
     top)
         # Make sure the local node IS running
