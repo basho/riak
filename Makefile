@@ -48,22 +48,10 @@ test: deps compile testclean
 ##
 ## Release targets
 ##
-rel: deps compile generate riaknostic-rel
+rel: deps compile generate
 
 relclean:
 	rm -rf rel/riak
-
-##
-## Riaknostic targets
-##
-riaknostic: deps
-	$(MAKE) -C deps/riaknostic -f Makefile
-
-riaknostic-rel: riaknostic
-	rm -rf rel/riak/lib/riaknostic
-	mkdir -p rel/riak/lib/riaknostic
-	cp -f deps/riaknostic/riaknostic rel/riak/lib/riaknostic/
-
 
 ##
 ## Developer targets
@@ -85,13 +73,10 @@ SEQ = $(shell awk 'BEGIN { for (i = 1; i < '$(DEVNODES)'; i++) printf("%i ", i);
 $(eval stagedevrel : $(foreach n,$(SEQ),stagedev$(n)))
 $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
-dev% : all riaknostic
+dev% : all
 	mkdir -p dev
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
 	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
-	rm -rf dev/$@/lib/riaknostic
-	mkdir -p dev/$@/lib/riaknostic
-	cp -f deps/riaknostic/riaknostic dev/$@/lib/riaknostic/
 
 stagedev% : dev%
 	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$^/lib;)
