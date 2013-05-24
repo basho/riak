@@ -454,7 +454,7 @@ case "$1" in
                     --etc $RUNNER_ETC_DIR --base $RUNNER_BASE_DIR"
 
                 shift
-                
+
                 $RIAKNOSTIC "$@"
         esac
         ;;
