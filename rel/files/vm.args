@@ -31,6 +31,20 @@
 ## Force the erlang VM to use SMP
 -smp enable
 
+## Lower ticktime to find failed/unresponsive nodes sooner.  Setting
+## this value too low can cause false positive failure detection.
+## The Erlang/OTP default is 60 seconds.
+## See: http://www.erlang.org/doc/man/kernel_app.html#net_ticktime
+-kernel net_ticktime 10
+
+## For nodes with many busy_dist_port events, Basho recommends
+## raising the sender-side network distribution buffer size.
+## 32MB may not be sufficient for some workloads and is a suggested
+## starting point.
+## The Erlang/OTP default is 1024 (1 megabyte).
+## See: http://www.erlang.org/doc/man/erl.html#%2bzdbbl
+##+zdbbl 32768
+
 ## Erlang VM scheduler tuning.
 ## Prerequisite: a patched VM from Basho, or a VM compiled separately
 ## with this patch applied:
