@@ -83,7 +83,7 @@ cluster_admin()
                 echo "       $SCRIPT cluster resize-ring abort"
                 exit 1
             fi
-            ensure_node_running
+            node_up_check
             $NODETOOL rpc riak_core_console stage_resize_ring "$2"
             ;;
         plan)
