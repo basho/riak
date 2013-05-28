@@ -17,7 +17,7 @@
 +W w
 
 ## Increase number of concurrent ports/sockets
--env ERL_MAX_PORTS 4096
+-env ERL_MAX_PORTS 64000
 
 ## Tweak GC to run more often 
 -env ERL_FULLSWEEP_AFTER 0
@@ -26,10 +26,30 @@
 -env ERL_CRASH_DUMP {{crash_dump}}
 
 ## Raise the ETS table limit
--env ERL_MAX_ETS_TABLES 8192
+-env ERL_MAX_ETS_TABLES 256000
 
 ## Force the erlang VM to use SMP
 -smp enable
+
+## Lower ticktime to find failed/unresponsive nodes sooner.  Setting
+## this value too low can cause false positive failure detection.
+## The Erlang/OTP default is 60 seconds.
+## See: http://www.erlang.org/doc/man/kernel_app.html#net_ticktime
+-kernel net_ticktime 10
+
+## For nodes with many busy_dist_port events, Basho recommends
+## raising the sender-side network distribution buffer size.
+## 32MB may not be sufficient for some workloads and is a suggested
+## starting point.
+## The Erlang/OTP default is 1024 (1 megabyte).
+## See: http://www.erlang.org/doc/man/erl.html#%2bzdbbl
+##+zdbbl 32768
+
+## Erlang VM scheduler tuning.
+## Prerequisite: a patched VM from Basho, or a VM compiled separately
+## with this patch applied:
+##     https://gist.github.com/slfritchie/5624609
+##+scl false +zdss 500:500
 
 ## Begin SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
 
