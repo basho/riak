@@ -31,11 +31,15 @@
 ## Force the erlang VM to use SMP
 -smp enable
 
+## Raise the default erlang process limit 
+
++P 256000
+
 ## Erlang VM scheduler tuning.
 ## Prerequisite: a patched VM from Basho, or a VM compiled separately
 ## with this patch applied:
 ##     https://gist.github.com/slfritchie/5624609
-##+scl false +zdss 500:500
+##+scl false +zdss 50:50
 
 ## Begin SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
 
