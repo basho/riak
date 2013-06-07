@@ -39,9 +39,15 @@
 ## See: http://www.erlang.org/doc/man/erl.html#%2bzdbbl
 ##+zdbbl 32768
 
+## Raise the default erlang process limit
++P 256000
+
 ## Erlang VM scheduler tuning (Prerequisite: patched VM from Basho as
 ## part of the Riak EDS package)
-+scl false +zdss 500:500
+## Uncomment this line if you suspect you're running into scheduler 
+## collapse issues.  Note that it can have adverse impacts on CPU usage
+## and latencies when the cluster is heavily loaded.
+##+scl false +zdss 50:50
 
 ## Begin SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
 
