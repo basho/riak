@@ -44,10 +44,7 @@
 
 ## Erlang VM scheduler tuning (Prerequisite: patched VM from Basho as
 ## part of the Riak EDS package)
-## Uncomment this line if you suspect you're running into scheduler 
-## collapse issues.  Note that it can have adverse impacts on CPU usage
-## and latencies when the cluster is heavily loaded.
-##+scl false +zdss 50:50
++sfwi 500
 
 ## Begin SSL distribution items, DO NOT DELETE OR EDIT THIS COMMENT
 
