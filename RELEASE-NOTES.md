@@ -41,6 +41,11 @@ can be found at https://gist.github.com/slfritchie/5624609.
 * riak_kv/558: [Add fsm active and error stats to the blob](https://github.com/basho/riak_kv/issues/558)
 * riak_kv/565: [Fix put_fsm_eqc after local_put_failed change](https://github.com/basho/riak_kv/pull/565)
 
+### Known Issues
+* riak_kv/400 If the node owns fewer than 2 partitions, the following warning will appear in the logs
+  `riak_core_stat_q:log_error:123 Failed to calculate stat {riak_kv,vnode,backend,leveldb,read_block_error} with error:badarg`
+      [Fixed in master](https://github.com/basho/riak_kv/issues/470)
+
 ## Riak 1.3.1 Release Notes
 
 ### New Features or Major Improvements for Riak
