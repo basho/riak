@@ -63,7 +63,10 @@ can be found at https://gist.github.com/slfritchie/5624609.
 * riak_ee/140: [Increase ERL_MAX_PORTS and ERL_MAX_ETS_TABLES](https://github.com/basho/riak_ee/pull/140)
 * riak_ee/141: [vm.args: Add +scl false and +zdss 500:500](https://github.com/basho/riak_ee/pull/141)
 
-
+### Known Issues
+* riak_kv/400 If the node owns fewer than 2 partitions, the following warning will appear in the logs
+  `riak_core_stat_q:log_error:123 Failed to calculate stat {riak_kv,vnode,backend,leveldb,read_block_error} with error:badarg`
+      [Fixed in master](https://github.com/basho/riak_kv/issues/470)
 
 ## Riak 1.3.1 Release Notes
 
