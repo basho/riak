@@ -55,6 +55,7 @@ can be found at https://gist.github.com/slfritchie/5624609.
 * riak_kv/556: [Enable stat updates to use sidejob workers](https://github.com/basho/riak_kv/issues/556)
 * riak_kv/558: [Add fsm active and error stats to the blob](https://github.com/basho/riak_kv/issues/558)
 * riak_kv/565: [Fix put_fsm_eqc after local_put_failed change](https://github.com/basho/riak_kv/pull/565)
+* riak_kv/581: [Wire up sidejob stats to /stats endpoint](https://github.com/basho/riak_kv/pull/581)
 * riak_repl/281: [Fix RTQ EQC test to model trimming correctly](https://github.com/basho/riak_repl/pull/281)
 * riak_repl/273: [riak_core_tcp_mon: Handle node/up down correctly](https://github.com/basho/riak_repl/pull/273)
 * riak_repl/272: [cluster manager can't reconnect after disconnect](https://github.com/basho/riak_repl/pull/272)
