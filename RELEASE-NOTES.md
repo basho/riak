@@ -2,6 +2,18 @@
 
 ### New Features or Major Improvements for Riak
 
+#### eLevelDB Verify Compactions
+
+In Riak 1.2 we added code to have leveldb automatically shunt corrupted blocks to the lost/BLOCKS.bad file during a compaction.  This was to keep the compactions from going into an infinite loop over an issue that A) read repair and AAE could fix behind the scenes and B) took up a bunch of customer support / engineering time to help customers fix manually.
+
+Unfortunately, we did not realize that only one of two corruption tests was actually active during a compaction.  There is a CRC test that applies to all blocks, including file metadata.  Compression logic has a hash test that applies only to compressed data blocks.  The CRC test was not active by default.  Sadly, leveldb makes limited defensive tests beyond the CRC.  A corrupted disk file could readily result in a leveldb / Riak crash ... unless the bad block happened to be detected by the compression hash test.
+
+Google's answer to this problem is the paranoid_checks option, which defaults to false.  Unfortunately setting this to true activates not only the compaction CRC test but also a CRC test of the recovery log.  A CRC failure in the recovery log after a crash is expected, and utilized by the existing code logic to enable automated recovery upon next start up.  paranoid_checks option will actually stop the automatic recovery if set to true.  This second behavior is undesired. 
+
+This branch creates a new option, verify_compactions.  The background CRC test previously controlled by paranoid_checks are now controlled by this new option.  The recovery log CRC checks are still controlled by paranoid_checks.  verify_compactions defaults to true.  paranoid_checks continues to default to false.
+
+**Note:**  CRC calculations are typically expensive.  Riak 1.3 added code to leveldb to utilize Intel hardware CRC on 64bit servers where available.  Riak 1.2 added code to leveldb to create multiple, prioritized compaction threads.  These two prior features work to minimize / hide the impact of the increased CRC workload during background compactions.
+
 #### Erlang Scheduler Collapse
 
 All Erlang/OTP R15B releases as well as R16B are vulnerable to the
