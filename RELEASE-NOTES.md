@@ -10,7 +10,7 @@ Unfortunately, we did not realize that only one of two corruption tests was actu
 
 Google's answer to this problem is the paranoid_checks option, which defaults to false.  Unfortunately setting this to true activates not only the compaction CRC test but also a CRC test of the recovery log.  A CRC failure in the recovery log after a crash is expected, and utilized by the existing code logic to enable automated recovery upon next start up.  paranoid_checks option will actually stop the automatic recovery if set to true.  This second behavior is undesired. 
 
-This branch creates a new option, verify_compactions.  The background CRC test previously controlled by paranoid_checks are now controlled by this new option.  The recovery log CRC checks are still controlled by paranoid_checks.  verify_compactions defaults to true.  paranoid_checks continues to default to false.
+This branch creates a new option, verify_compactions.  The background CRC test previously controlled by paranoid_checks is now controlled by this new option.  The recovery log CRC check is still controlled by paranoid_checks.  verify_compactions defaults to true.  paranoid_checks continues to default to false.
 
 **Note:**  CRC calculations are typically expensive.  Riak 1.3 added code to leveldb to utilize Intel hardware CRC on 64bit servers where available.  Riak 1.2 added code to leveldb to create multiple, prioritized compaction threads.  These two prior features work to minimize / hide the impact of the increased CRC workload during background compactions.
 
