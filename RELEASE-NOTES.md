@@ -41,6 +41,73 @@ can be found at: https://gist.github.com/evanmcc/a599f4c6374338ed672e.
     while a fullsync is in progress; due to the connect/disconnect
     nature of fullsync, it will vary widely.
 
+#### Overload Protection / Work Shedding
+
+As of Riak 1.3.2, Riak now includes built-in overload protection. If a
+Riak node becomes overloaded, Riak will now immediately respond
+`{error, overload}` rather than perpetually enqueuing requests and
+making the situation worse.
+
+Previously, Riak would always enqueue requests. As an overload
+situation became worse, requests would take longer and longer to
+service, eventually getting to the point where requests would
+continually timeout. In extreme scenarios, Riak nodes could become
+unresponsive and ultimately crash.
+
+The new overload protection addresses these issues.
+
+The overload protection is configurable through `app.config`
+settings. The default settings have been tested on clusters of varying
+sizes and request rates and should be sufficient for all users of
+Riak. However, for completeness, the new settings are explained below.
+
+There are two types of overload protection in Riak, each with
+different settings. The first limits the number of in-flight get and
+put operations initiated by a node in a Riak cluster. This is
+configured through the `riak_kv/fsm_limit` setting. The default is
+`50000`. This limit is tracked separately for get and put requests, so
+the default allows up to `100000` in-flight requests in total.
+
+The second type of overload protection limits the message queue size
+for individual vnodes, setting an upper bound on unserviced requests
+on a per-vnode basis. This is configured through the
+`riak_core/vnode_overload_threshold` setting and defaults to `10000`
+messages.
+
+Setting either config setting to `undefined` in `app.config` will
+disable overload protection. This is not recommended. Note: not
+configuring the options at all will use the defaults mentioned above,
+ie. when missing from `app.config`.
+
+The overload protection provides new stats that are exposed over the
+`/stats` endpoint.
+
+The `dropped_vnode_requests_total` stat counts the number of messages
+discarded due to the vnode overload protection.
+
+For the get/put overload protection, there are several new stats. The
+stats related to gets are listed below, there are equivalent versions
+for puts.
+
+The `node_get_fsm_active` and `node_get_fsm_active_60s` stats shows
+how many gets are currently active on the node within the last second
+or last minute respectively. The `node_get_fsm_in_rate` and
+`node_get_fsm_out_rate` track the number of requests initiated and
+completed within the last second. Finally, the
+`node_get_fsm_rejected`, `node_get_fsm_rejected_60s`, and
+`node_get_fsm_rejected_total` track the number of requests discarded
+due to overload in their respective time windows.
+
+#### Health Check Disabled
+
+The health check feature that shipped in Riak 1.3.0 has been disabled
+as of Riak 1.3.2. The new overload protection feature serves a similar
+purpose and is much safer. Specifically, the health check approach was
+able to successfully recover from overload that was caused by slow
+nodes, but not from overload that was caused by incoming workload
+spiking beyond absolute cluster capacity. In fact, in the second case,
+the health check approach (divert overload traffic from one node to
+another) would exacerbate the problem.
 
 
 ### Issues / PR's Resolved
