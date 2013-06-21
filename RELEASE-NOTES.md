@@ -18,6 +18,7 @@ can be found at https://gist.github.com/slfritchie/5624609.
 
 #### MDC Replication
 
+* Added realtime replication heartbeat
 * Added send and recv sum kpbs stats for rt and fs
   * https://github.com/basho/riak_repl/pull/274
   * also https://github.com/basho/riak_repl/pull/268
