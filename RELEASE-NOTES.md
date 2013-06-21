@@ -5,7 +5,7 @@
 #### Erlang Scheduler Collapse
 
 All Erlang/OTP R15B releases as well as R16B are vulnerable to the
-Erlang computation scheduler threads going asleep too agressively.
+Erlang computation scheduler threads going asleep too aggressively.
 The sleeping periods reduce power consumption and inter-thread
 resource contention.
 
