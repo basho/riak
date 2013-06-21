@@ -16,17 +16,18 @@ This branch creates a new option, verify_compactions.  The background CRC test p
 
 #### Erlang Scheduler Collapse
 
-All Erlang/OTP R15B releases as well as R16B are vulnerable to the
+All Erlang/OTP releases prior to R16B01 are vulnerable to the
 Erlang computation scheduler threads going asleep too aggressively.
 The sleeping periods reduce power consumption and inter-thread
 resource contention.
 
 This release of Riak EDS requires a patch to the Erlang/OTP
-virtual machine to disable scheduler threads from suspending
-indefinitely.  The flags `+scl false +zdss 500:500` must also be
-present in the `vm.args` file.  For the Open Source Riak release,
+virtual machine to force sleeping scheduler threads to wake up a 
+regular intervals.  The flag `+sfwi 500` must also be
+present in the `vm.args` file.  This value is in milliseconds and may
+need tuning for your application.  For the Open Source Riak release,
 the patch (and extra "vm.args" flags) are recommended: the patch
-can be found at https://gist.github.com/slfritchie/5624609.
+can be found at: https://gist.github.com/evanmcc/a599f4c6374338ed672e.
 
 #### MDC Replication
 
@@ -46,7 +47,6 @@ can be found at https://gist.github.com/slfritchie/5624609.
 
 * riak/306: [Wrong ERTS_PATH configuration on ubuntu riak package](https://github.com/basho/riak/issues/306)
 * riak/327: [Increase ERL_MAX_PORTS and ERL_MAX_ETS_TABLES](https://github.com/basho/riak/pull/327)
-* riak/328: [vm.args: Add commented +scl false and +zdss 500:500](https://github.com/basho/riak/pull/328)
 * riak/333: [Add health check deprecation note to config](https://github.com/basho/riak/pull/333)
 * riak/336: [Update default configs for 1.3.2](https://github.com/basho/riak/pull/336)
 * bitcask/83: [Improve fold speed for large files filled with small objects.](https://github.com/basho/bitcask/issues/83)
