@@ -509,6 +509,15 @@ case "$1" in
         shift
         $NODETOOL rpc riak_kv_console reformat_indexes "$@"
         ;;
+    downgrade[_-]objects)
+        if [ $# -lt 2 ]; then
+            echo "Usage: $SCRIPT $1 <kill-handoffs> [<concurrency>]"
+            exit
+        fi
+        node_up_check
+        shift
+        $NODETOOL rpc riak_kv_console reformat_objects "$@"
+        ;;
     *)
         usage
         exit 1
