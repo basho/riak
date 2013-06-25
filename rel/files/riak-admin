@@ -24,10 +24,11 @@ SCRIPT=`basename $0`
 usage() {
     echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
     echo "                    reip | js-reload | erl-reload | wait-for-service | "
-    echo "                    ringready | transfers | force-remove | down | "
+    echo "                    ringready | transfers | force-remove | down |"
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
     echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
-    echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] }"
+    echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
+    echo "                    downgrade-objects }"
 }
 
 cluster_admin()
