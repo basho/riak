@@ -396,13 +396,13 @@ case "$1" in
 Usage: $SCRIPT <command>
 
 ===============================================================================
-Default mode MDC replication:
+Version 2 MDC replication:
 
    Connection setup:
 
       add-listener <nodename> <listen_ip> <port>
 
-            Adds a listener (source) for default mode
+            Adds a listener (source) for version 2
             replication.
 
       add-nat-listener <nodename> <listen_ip> <port> <public_ip> <public_port>
@@ -451,7 +451,7 @@ Default mode MDC replication:
             Continue fullsync if it was previously paused.
 
 ===============================================================================
-Advanced mode MDC replication:
+Version 3 MDC replication:
 
    Connection setup:
 
