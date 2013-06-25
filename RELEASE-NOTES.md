@@ -1,3 +1,138 @@
+## Riak 1.3.2 Release Notes
+
+### New Features or Major Improvements for Riak
+
+#### eLevelDB Verify Compactions
+
+In Riak 1.2 we added code to have leveldb automatically shunt corrupted blocks to the lost/BLOCKS.bad file during a compaction.  This was to keep the compactions from going into an infinite loop over an issue that A) read repair and AAE could fix behind the scenes and B) took up a bunch of customer support / engineering time to help customers fix manually.
+
+Unfortunately, we did not realize that only one of two corruption tests was actually active during a compaction.  There is a CRC test that applies to all blocks, including file metadata.  Compression logic has a hash test that applies only to compressed data blocks.  The CRC test was not active by default.  Sadly, leveldb makes limited defensive tests beyond the CRC.  A corrupted disk file could readily result in a leveldb / Riak crash ... unless the bad block happened to be detected by the compression hash test.
+
+Google's answer to this problem is the paranoid_checks option, which defaults to false.  Unfortunately setting this to true activates not only the compaction CRC test but also a CRC test of the recovery log.  A CRC failure in the recovery log after a crash is expected, and utilized by the existing code logic to enable automated recovery upon next start up.  paranoid_checks option will actually stop the automatic recovery if set to true.  This second behavior is undesired.
+
+This branch creates a new option, verify_compactions.  The background CRC test previously controlled by paranoid_checks is now controlled by this new option.  The recovery log CRC check is still controlled by paranoid_checks.  verify_compactions defaults to true.  paranoid_checks continues to default to false.
+
+**Note:**  CRC calculations are typically expensive.  Riak 1.3 added code to leveldb to utilize Intel hardware CRC on 64bit servers where available.  Riak 1.2 added code to leveldb to create multiple, prioritized compaction threads.  These two prior features work to minimize / hide the impact of the increased CRC workload during background compactions.
+
+#### Erlang Scheduler Collapse
+
+All Erlang/OTP releases prior to R16B01 are vulnerable to the
+Erlang computation scheduler threads going asleep too aggressively.
+The sleeping periods reduce power consumption and inter-thread
+resource contention.
+
+This release of Riak EDS requires a patch to the Erlang/OTP
+virtual machine to force sleeping scheduler threads to wake up a
+regular intervals.  The flag `+sfwi 500` must also be
+present in the `vm.args` file.  This value is in milliseconds and may
+need tuning for your application.  For the Open Source Riak release,
+the patch (and extra "vm.args" flags) are recommended: the patch
+can be found at: https://gist.github.com/evanmcc/a599f4c6374338ed672e.
+
+#### Overload Protection / Work Shedding
+
+As of Riak 1.3.2, Riak now includes built-in overload protection. If a
+Riak node becomes overloaded, Riak will now immediately respond
+`{error, overload}` rather than perpetually enqueuing requests and
+making the situation worse.
+
+Previously, Riak would always enqueue requests. As an overload
+situation became worse, requests would take longer and longer to
+service, eventually getting to the point where requests would
+continually timeout. In extreme scenarios, Riak nodes could become
+unresponsive and ultimately crash.
+
+The new overload protection addresses these issues.
+
+The overload protection is configurable through `app.config`
+settings. The default settings have been tested on clusters of varying
+sizes and request rates and should be sufficient for all users of
+Riak. However, for completeness, the new settings are explained below.
+
+There are two types of overload protection in Riak, each with
+different settings. The first limits the number of in-flight get and
+put operations initiated by a node in a Riak cluster. This is
+configured through the `riak_kv/fsm_limit` setting. The default is
+`50000`. This limit is tracked separately for get and put requests, so
+the default allows up to `100000` in-flight requests in total.
+
+The second type of overload protection limits the message queue size
+for individual vnodes, setting an upper bound on unserviced requests
+on a per-vnode basis. This is configured through the
+`riak_core/vnode_overload_threshold` setting and defaults to `10000`
+messages.
+
+Setting either config setting to `undefined` in `app.config` will
+disable overload protection. This is not recommended. Note: not
+configuring the options at all will use the defaults mentioned above,
+ie. when missing from `app.config`.
+
+The overload protection provides new stats that are exposed over the
+`/stats` endpoint.
+
+The `dropped_vnode_requests_total` stat counts the number of messages
+discarded due to the vnode overload protection.
+
+For the get/put overload protection, there are several new stats. The
+stats related to gets are listed below, there are equivalent versions
+for puts.
+
+The `node_get_fsm_active` and `node_get_fsm_active_60s` stats shows
+how many gets are currently active on the node within the last second
+or last minute respectively. The `node_get_fsm_in_rate` and
+`node_get_fsm_out_rate` track the number of requests initiated and
+completed within the last second. Finally, the
+`node_get_fsm_rejected`, `node_get_fsm_rejected_60s`, and
+`node_get_fsm_rejected_total` track the number of requests discarded
+due to overload in their respective time windows.
+
+#### Health Check Disabled
+
+The health check feature that shipped in Riak 1.3.0 has been disabled
+as of Riak 1.3.2. The new overload protection feature serves a similar
+purpose and is much safer. Specifically, the health check approach was
+able to successfully recover from overload that was caused by slow
+nodes, but not from overload that was caused by incoming workload
+spiking beyond absolute cluster capacity. In fact, in the second case,
+the health check approach (divert overload traffic from one node to
+another) would exacerbate the problem.
+
+### Issues / PR's Resolved
+
+* riak/306: [Wrong ERTS_PATH configuration on ubuntu riak package](https://github.com/basho/riak/issues/306)
+* riak/327: [Increase ERL_MAX_PORTS and ERL_MAX_ETS_TABLES](https://github.com/basho/riak/pull/327)
+* riak/333: [Add health check deprecation note to config](https://github.com/basho/riak/pull/333)
+* riak/336: [Update default configs for 1.3.2](https://github.com/basho/riak/pull/336)
+* bitcask/83: [Improve fold speed for large files filled with small objects.](https://github.com/basho/bitcask/issues/83)
+* bitcask/84: [eunit test enhancements.](https://github.com/basho/bitcask/issues/84)
+* bitcask/87: [Change behavior of merge when merging for data expiration](https://github.com/basho/bitcask/issues/87)
+* eleveldb/55: [Export types to avoid opaque type warning in R16.](https://github.com/basho/eleveldb/issues/55)
+* eleveldb/59: [Issue 58:  Address condition where multiple erlang threads could take ownership of ...](https://github.com/basho/eleveldb/issues/59)
+* eleveldb/83: [create new option specifically for compaction CRC test control](https://github.com/basho/leveldb/pull/83)
+* leveldb/72: [allow Get() calls to avoid copies into std::string](https://github.com/basho/leveldb/issues/72)
+* leveldb/83: [create new option specifically for compaction CRC test control](https://github.com/basho/leveldb/pull/83)
+* riak_core/298: [Race in vnode worker pool](https://github.com/basho/riak_core/issues/298)
+* riak_core/299: [Vnode nonblocking reply, First draft (3rd edition), ready for some review](https://github.com/basho/riak_core/issues/299)
+* riak_core/300: [Fix worker pool races](https://github.com/basho/riak_core/issues/300)
+* riak_core/307: [Backport issue 300 to 1.3 branch](https://github.com/basho/riak_core/issues/307)
+* riak_core/314: [Implement vnode overload protection](https://github.com/basho/riak_core/issues/314)
+* riak_core/317: [Backport of #299 to 1.3](https://github.com/basho/riak_core/issues/317)
+* riak_core/338: [Fix crashing stat mod never getting rescheduled](https://github.com/basho/riak_core/pull/338)
+* riak_pipe/73: [PULSE test & fix riak_pipe_fitting](https://github.com/basho/riak_pipe/issues/73)
+* riak_pipe/74: [Backport fix in issue 73 to 1.3 branch](https://github.com/basho/riak_pipe/issues/74)
+* riak_kv/544: [Bound the number of get/put FSMs to prevent overload](https://github.com/basho/riak_kv/issues/544)
+* riak_kv/547: [Changes to support vnode overload protection](https://github.com/basho/riak_kv/issues/547)
+* riak_kv/549: [Deprecate KV health checks](https://github.com/basho/riak_kv/issues/549)
+* riak_kv/556: [Enable stat updates to use sidejob workers](https://github.com/basho/riak_kv/issues/556)
+* riak_kv/558: [Add fsm active and error stats to the blob](https://github.com/basho/riak_kv/issues/558)
+* riak_kv/565: [Fix put_fsm_eqc after local_put_failed change](https://github.com/basho/riak_kv/pull/565)
+* riak_kv/581: [Wire up sidejob stats to /stats endpoint](https://github.com/basho/riak_kv/pull/581)
+
+### Known Issues
+* riak_kv/400 If the node owns fewer than 2 partitions, the following warning will appear in the logs
+  `riak_core_stat_q:log_error:123 Failed to calculate stat {riak_kv,vnode,backend,leveldb,read_block_error} with error:badarg`
+      [Fixed in master](https://github.com/basho/riak_kv/issues/470)
+
 ## Riak 1.3.1 Release Notes
 
 ### New Features or Major Improvements for Riak
