@@ -164,8 +164,22 @@ MAJOR_VERSION ?= $(shell echo $(REVISION) | sed -e 's/\([0-9.]*\)-.*/\1/')
 ## Generates a tarball that includes all the deps sources so no checkouts are necessary
 ##
 
-# Use git archive to copy a repository at a current revision to a new directory
+# Use git archive make a clean copy of a repository at a current
+# revision and copy to a new directory
 archive_git = git archive --format=tar --prefix=$(1)/ HEAD | (cd $(2) && tar xf -)
+
+# Alternative to git archive to remove .git directory, but not any
+# other files outside of the source tree (used for eleveldb which
+# brings in leveldb)
+clean_git = cp -R ../../$(1) $(2)/deps/ && find $(2)/$(1) -name .git -type d | xargs rm -rf
+
+# Determines which function to call.  eleveldb is treated as a special case
+archive = if [ "$(1)" = "deps/eleveldb" ]; then \
+              $(call clean_git,$(1),$(2)); \
+          else \
+              $(call archive_git,$(1),$(2)); \
+          fi
+
 
 # Checkout tag, fetch deps (so we don't have to do it multiple times) and collect
 # the version of all the dependencies into the MANIFEST_FILE
@@ -207,10 +221,11 @@ build_clean_dir = cd distdir/$(CLONEDIR) && \
                   mkdir ../$(PKG_ID)/deps && \
                   for dep in deps/*; do \
                       cd $${dep} && \
-                      $(call archive_git,$${dep},../../../$(PKG_ID)) && \
-                      mkdir -p ../../../$(PKG_ID)/$${dep}/priv && \
-                      printf "`git describe --long --tags 2>/dev/null || git rev-parse HEAD`" > ../../../$(PKG_ID)/$${dep}/priv/vsn.git && \
-                      cd ../..; done
+                           $(call archive,$${dep},../../../$(PKG_ID)) && \
+                           mkdir -p ../../../$(PKG_ID)/$${dep}/priv && \
+                           printf "`git describe --long --tags 2>/dev/null || git rev-parse HEAD`" > ../../../$(PKG_ID)/$${dep}/priv/vsn.git && \
+                           cd ../..; \
+                  done
 
 
 distdir/$(CLONEDIR)/$(MANIFEST_FILE):
