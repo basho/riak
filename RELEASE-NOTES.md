@@ -429,6 +429,7 @@ vnode operations are complete.
 * riak_control/81: [Normalize resource names.](https://github.com/basho/riak_control/issues/81)
 * riak_control/83: [Make join node more explicit.](https://github.com/basho/riak_control/issues/83)
 * riak_control/88: [Provide a default selection.](https://github.com/basho/riak_control/issues/88)
+* riak_control/111: [Prevent badarith when memory is unavailable.](https://github.com/basho/riak_control/pull/111)
 * riak_core/185: [inbound handoffs never cleanup](https://github.com/basho/riak_core/issues/185)
 * riak_core/241: [potential fix for #185](https://github.com/basho/riak_core/issues/241)
 * riak_core/270: [Dialyzer Fixes](https://github.com/basho/riak_core/issues/270)
