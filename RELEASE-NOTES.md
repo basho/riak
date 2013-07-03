@@ -375,6 +375,7 @@ vnode operations are complete.
 * leveldb/79: [filecache tuning2](https://github.com/basho/leveldb/issues/79)
 * leveldb/81: [bloom size limit](https://github.com/basho/leveldb/issues/81)
 * leveldb/84: [level work3, change from 3 overlapped levels to 2](https://github.com/basho/leveldb/issues/84)
+* merge_index/30: [Remove delayed_write option](https://github.com/basho/merge_index/pull/30)
 * mochiweb/7: [Range header fix](https://github.com/basho/mochiweb/issues/7)
 * mochiweb/8: [Remove parameterized modules.](https://github.com/basho/mochiweb/issues/8)
 * node_package/40: [init script returns success even if riak does not start](https://github.com/basho/node_package/issues/40)
