@@ -627,13 +627,40 @@ case "$1" in
         
         case "$2" in
             start)
-                $NODETOOL rpc riak_kv_console indexrepair_start
+                $NODETOOL rpc riak_kv_console indexrepair_start kv
                 ;;
             stop)
-                $NODETOOL rpc riak_kv_console indexrepair_stop
+                $NODETOOL rpc riak_kv_console indexrepair_stop kv
                 ;;
             status)
-                $NODETOOL rpc riak_kv_console indexrepair_status
+                $NODETOOL rpc riak_kv_console indexrepair_status kv
+                ;;
+            *)
+                echo "Usage: $SCRIPT $1 start"
+                echo "       $SCRIPT $1 stop"
+                echo "       $SCRIPT $1 status"
+                exit 1
+                ;;
+        esac
+        ;;
+    search[_-]repair)
+        if [ $# -ne 2 ]; then
+            echo "Usage: $SCRIPT $1 start"
+            echo "       $SCRIPT $1 stop"
+            echo "       $SCRIPT $1 status"
+            exit 1
+        fi
+        ensure_node_running
+        
+        case "$2" in
+            start)
+                $NODETOOL rpc riak_kv_console indexrepair_start search
+                ;;
+            stop)
+                $NODETOOL rpc riak_kv_console indexrepair_stop search
+                ;;
+            status)
+                $NODETOOL rpc riak_kv_console indexrepair_status search
                 ;;
             *)
                 echo "Usage: $SCRIPT $1 start"
@@ -646,9 +673,10 @@ case "$1" in
     *)
         echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
         echo "                    reip | js-reload | erl-reload | wait-for-service | "
-        echo "                    ringready | transfers | force-remove | down | index-repair |"
-        echo "                    cluster-info | member-status | ring-status | vnode-status |"
-        echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
+        echo "                    ringready | transfers | force-remove | down | "
+        echo "                    cluster-info | member-status | ring-status | vnode-status | "
+        echo "                    aae-status | diag | status | transfer-limit | reformat-indexes | "
+        echo "                    index-repair | search-repair | "
         echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] }"
         exit 1
         ;;
