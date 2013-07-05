@@ -130,6 +130,37 @@ Staging commands:
     esac
 }
 
+security_admin()
+{
+    case "$1" in
+        add-user)
+            shift
+            $NODETOOL rpc riak_core_console add_user "$@"
+            ;;
+        add-source)
+            shift
+            $NODETOOL rpc riak_core_console add_source "$@"
+            ;;
+        grant)
+            shift
+            $NODETOOL rpc riak_core_console grant "$@"
+            ;;
+        revoke)
+            shift
+            $NODETOOL rpc riak_core_console revoke "$@"
+            ;;
+        print-users)
+            $NODETOOL rpc riak_core_console print_users
+            ;;
+        print-sources)
+            $NODETOOL rpc riak_core_console print_sources
+            ;;
+        print-grants)
+            $NODETOOL rpc riak_core_console print_grants
+            ;;
+    esac
+}
+
 # Check the first argument for instructions
 case "$1" in
     join)
@@ -518,6 +549,10 @@ case "$1" in
         node_up_check
         shift
         $NODETOOL rpc riak_kv_console reformat_objects "$@"
+        ;;
+    security)
+        shift
+        security_admin "$@"
         ;;
     *)
         usage
