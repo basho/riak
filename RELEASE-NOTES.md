@@ -598,3 +598,15 @@ vnode operations are complete.
 ### leveldb 1.3 to 1.4 conversion
 
 The first execution of 1.4.0 leveldb using a 1.3.x or 1.2.x dataset will initiate an automatic conversion that could pause the startup of each node by 3 to 7 minutes.  The leveldb data in "level #1" is being adjusted such that "level #1" can operate as an overlapped data level instead of as a sorted data level.  The conversion is simply the reduction of the number of files in "level #1" to being less than eight via normal compaction of data from "level #1" into "level #2".  This is a one time conversion.
+
+## Deprecation Warnings
+
+### Ubuntu 11.04 (Natty) EOL
+
+Ubuntu 11.04 Natty Narwhal reached its end-of-life October 2012 and
+recently the public apt updates and security repos were removed.  Due
+to this, Riak will no longer be built against 11.04 going forward.  We
+will consider supporting the latest non-LTS release depending on the
+timing of the next major Riak release.
+
+Ubuntu LTS releases still supported (10.04 and 12.04) are unaffected.
