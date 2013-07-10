@@ -8,12 +8,18 @@ OVERLAY_VARS    ?=
 
 $(if $(ERLANG_BIN),,$(warning "Warning: No Erlang found in your path, this will probably not work"))
 
+VSN := $(shell erl -eval 'io:format("~s~n", [erlang:system_info(otp_release)]), init:stop().' | grep 'R' | sed -e 's,R\(..\)B.*,\1,')
+NEW_HASH := $(shell expr $(VSN) \>= 16)
+ifeq ($(NEW_HASH),1)
+hash := "-Dnew_hash"
+endif
+
 .PHONY: rel stagedevrel deps
 
 all: deps compile
 
 compile:
-	./rebar compile
+	./rebar compile $(hash)
 
 deps:
 	./rebar get-deps
@@ -37,7 +43,7 @@ testclean:
 test: deps compile testclean
 	@$(foreach dep, \
             $(wildcard deps/*), \
-               (cd $(dep) && ../../rebar eunit deps_dir=.. skip_deps=true)  \
+               (cd $(dep) && ../../rebar eunit $(hash) deps_dir=.. skip_deps=true)  \
                || echo "Eunit: $(notdir $(dep)) FAILED" >> $(TEST_LOG_FILE);)
 	./rebar eunit skip_deps=true
 	@if test -s $(TEST_LOG_FILE) ; then \
