@@ -8,6 +8,10 @@ OVERLAY_VARS    ?=
 
 $(if $(ERLANG_BIN),,$(warning "Warning: No Erlang found in your path, this will probably not work"))
 
+# The code below figures out the OTP release and introduces a macro at 
+# build and test time to tell later released to use the new hash
+# functions introduced in R15B02.  Older versions still use the old
+# hash functions.
 VSN := $(shell erl -eval 'io:format("~s~n", [erlang:system_info(otp_release)]), init:stop().' | grep 'R' | sed -e 's,R\(..\)B.*,\1,')
 NEW_HASH := $(shell expr $(VSN) \>= 16)
 ifeq ($(NEW_HASH),1)
