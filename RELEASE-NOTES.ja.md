@@ -300,14 +300,8 @@ Debian Wheezy と SmartOS 13.1 が 1.4 でサポートされます。
 ### Riak EE JMX の拡張 (JMX Enhancements for Riak EE)
 
 Riak EE の JMX Management Extentions は 1.4 リリースでほぼ完全に書き換えられました。
-JMX beam の属性が `/stats` URL と同じになっていることにまず気がつくでしょう。
-つまり属性名(キャメルケースではありません)と利用可能な属性の種類が同一になりました。
-
-The JMX Management Extentions for Riak EE has been almost completely rewritten
-for the 1.4 release. What you'll notice right away is that the attributes in
-the JMX bean are now the same as you'll find on the `/stats` URL. That means
-bolth the attribute names (which are no longer camelcase), and which attributes
-are available.
+JMX bean の属性が `/stats` URL と同じになっていることにまず気がつくでしょう。
+そして、属性名（キャメルケースではありません）と利用可能な属性の種類が同一になりました。
 
 また 2 つの既存設定(enabled と port)と合わせて、次の2つの設定が使えるようになりました。
 
@@ -320,20 +314,6 @@ are available.
 
 Riak EE の JMX の新しい機能を是非お試しください。
 
-In addition to the two existing configuration settings (enabled and port), we've
-added two additional settings:
-
-**sleep_minutes**: If JMX is unable to start after 10 attempts, sleep for this many
-minutes before trying again. For example, if you see in the logs that JMX is not
-able to start due to a port conflict, you can resolve the conflict and JMX
-will restart itself without you needing to take that action.
-This defaults to 10 minutes
-
-**jmx_refresh_seconds**: How often the JMX bean's stats are updated.
-The default is 30 seconds.
-
-We hope you enjoy the new JMX features of Riak EE.
-
 ## テクニカルプレビューの機能 (Technology Preview Features)
 
 ### MDC fullsync レプリケーションの AAE 利用 (MDC Fullsync Replication using Active Anti-Entropy)
@@ -343,30 +323,12 @@ AAE(Active Anti-Entropy) ツリーを利用することで性能が良くなり�
 AAE fullsync は、バケットとキー空間に対し常に更新されているハッシュツリーを
 利用することで、fullsync でのハッシュツリー作成を回避できます。
 AAE fullsync の性能は多くの場合にとても改善し、とくに典型的なケースである、
-多くのオブジェクトに対して小さな差分があるときに顕著です。
-
-In multi-data center replication, a fullsync between clusters can benefit in
-performance by using the recently added Active Anti-Entropy (AAE) trees, instead
-of the default key list strategy. AAE fullsync takes advantage of continuously
-up-to-date hash trees of the bucket and key space to avoid having to generate it
-during the fullsync of each partition. AAE fullsync performance is greatly
-improved in many cases, especially for large numbers of objects with relatively
-few differences between clusters; this is the typical case when realtime replication
-keeps data centers mostly in sync.
+オブジェクトは多いが変更が少ないときに顕著に差がでます。
 
 1.4.0 では fullsync レプリケーションで "aae" ストラテジーを使うことができます。
 しかしデフォルトは "keylist" のままです。AAE fullsync を有効にするには
-`riak_kv` セクションで AAE が有効にしたうえで、 `riak_repl` セクションの
+`riak_kv` セクションで AAE を有効にしたうえで、 `riak_repl` セクションの
 新しい設定 ```fullsync_strategy``` を追加してください。
-
-```{riak_kv, [ {anti_entropy, {on, []}}, ... ]}```
-
-```{riak_repl, [ {fullsync_strategy, aae}, ... ]}```
-
-As of 1.4.0, fullsync replication can use an "aae" strategy, but still defaults to
-the "keylist" strategy. To enable AAE fullsync, make sure that AAE is enabled in your
-riak_kv stanza of the application configuration file, and add the new ```fullsync_strategy```
-to the riak_repl stanza.
 
 ```{riak_kv, [ {anti_entropy, {on, []}}, ... ]}```
 
@@ -375,11 +337,6 @@ to the riak_repl stanza.
 AAE fullsync は AAE entropy manager と連携して動作し、vnode が read-repair や
 handoff を fullsync と同時に実行しないようにします。忙しいパーティッションでは
 fullsync は再スケジュールされ他の vnode オペレーションが完了した後に実行されます。
-
-AAE fullsync coordinates with the AAE entropy manager in Riak to ensure that the
-vnode does not process read-repair or handoff at the same time as a fullsync and
-vice versa. Busy partitions are rescheduled and synchronized as soon as other
-vnode operations are complete.
 
 
 ## Issues / PR's Resolved
