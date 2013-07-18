@@ -1,235 +1,223 @@
-index a68e62d..528bbf3 100644
---- a/erts/doc/src/erl.xml
-+++ b/erts/doc/src/erl.xml
-@@ -1159,6 +1159,28 @@
-             give lower latency and higher throughput at the expense
-             of higher memory usage.</p>
-           </item>
-+          <tag><marker id="+zdss"><c>+zdss usec1:usec2</c></marker></tag>
-+          <item>
-+            <p>Enable the 'disable scheduler sleep' flag and set
-+            the two microsecond sleep constants used during idle periods.</p>
-+            <p>During certain uncommon workloads, it is possible for
-+            Erlang schedulers to go to sleep (for both speed and
-+            energy efficiences)  Use of this flag will disable the
-+            ability of schedulers to go to sleep merely for being idle.</p>
-+            <p>When schedulers are added and removed, e.g., during
-+            virtual machine startup or by using the
-+            <seealso
-+                marker="erlang#system_flag_schedulers_online">erlang:system_flag(schedulers_online)</seealso>
-+            BIF, scheduler sleep periods are mandatory.  This flag
-+            will not interfere with those sleep periods.</p>
-+            <p>The two constants here specify sleep times (in
-+            microseconds) for two places where schedulers would
-+            otherwise sleep.  Smaller values will lower latency during
-+            low-stress time periods but (in trade) will consume more CPU
-+            resources.  Suggested values should be at least 500-2000
-+            microseconds each, though experimentation is required to
-+            find an acceptable CPU time vs. latency trade-off.</p>
-+          </item>
-         </taglist>
-       </item>
-     </taglist>
-diff --git a/erts/doc/src/erlang.xml b/erts/doc/src/erlang.xml
-index 7dc59ea..ee3eefe 100644
---- a/erts/doc/src/erlang.xml
-+++ b/erts/doc/src/erlang.xml
-@@ -5587,6 +5587,13 @@ ok
-               connected via TCP/IP (the normal case) is the socket
-               actually used in communication with the specific node.</p>
-           </item>
-+          <tag><marker id="system_info_do_not_sleep_constants"><c>do_not_sleep_constants</c></marker></tag>
-+          <item>
-+            <p>Returns the values of the two microsecond sleep
-+            constants specified by the <seealso
-+            marker="erts:erl#+zdss">+zdss</seealso> command
-+            line flag to <c>erl</c>.</p>
-+          </item>
-           <tag><c>driver_version</c></tag>
-           <item>
-             <p>Returns a string containing the erlang driver version
-diff --git a/erts/emulator/beam/erl_bif_info.c b/erts/emulator/beam/erl_bif_info.c
-index 54eefe8..e95c2c2 100755
---- a/erts/emulator/beam/erl_bif_info.c
-+++ b/erts/emulator/beam/erl_bif_info.c
-@@ -2567,6 +2567,20 @@ BIF_RETTYPE system_info_1(BIF_ALIST_1)
-   hp = hsz ? HAlloc(BIF_P, hsz) : NULL;
- 	res = erts_bld_uint(&hp, NULL, erts_dist_buf_busy_limit);
- 	BIF_RET(res);
-+    } else if (ERTS_IS_ATOM_STR("do_not_sleep_constants", BIF_ARG_1)) {
-+#ifdef  ERTS_SMP
-+        if (!dss_enabled) {
-+            BIF_RET(am_false);
-+        } else {
-+            Eterm *hp = HAlloc(BIF_P, 3);
-+            res = TUPLE2(hp,
-+                         erts_make_integer(dss_sleep_m, BIF_P),
-+                         erts_make_integer(dss_sleep_n, BIF_P));
-+            BIF_RET(res);
-+        }
-+#else
-+        BIF_RET(am_false);
-+#endif
-     } else if (ERTS_IS_ATOM_STR("print_ethread_info", BIF_ARG_1)) {
- #if defined(ETHR_NATIVE_ATOMIC32_IMPL) \
-     || defined(ETHR_NATIVE_ATOMIC64_IMPL) \
+From 005be2e442074ea529ae0a188399eda553cb8783 Mon Sep 17 00:00:00 2001
+From: evan <evan@basho.com>
+Date: Tue, 18 Jun 2013 17:52:54 -0400
+Subject: [PATCH] backport sfwi to R15B01 
+
+---
+ erts/emulator/beam/erl_init.c    |   16 +++++++
+ erts/emulator/beam/erl_process.c |   89 ++++++++++++++++++++++++++++++++++++--
+ erts/emulator/beam/erl_process.h |    9 ++++
+ erts/etc/common/erlexec.c        |    1 +
+ 4 files changed, 112 insertions(+), 3 deletions(-)
+
 diff --git a/erts/emulator/beam/erl_init.c b/erts/emulator/beam/erl_init.c
-index e6a96d4..40cb0e6 100644
+index ca4385d..4c2aef3 100644
 --- a/erts/emulator/beam/erl_init.c
 +++ b/erts/emulator/beam/erl_init.c
-@@ -560,6 +560,9 @@ void erts_usage(void)
-     erts_fprintf(stderr, "            see error_logger documentation for details\n");
-     erts_fprintf(stderr, "-zdbbl size set the distribution buffer busy limit in kilobytes\n");
-     erts_fprintf(stderr, "            valid range is [1-%d]\n", INT_MAX/1024);
-+    erts_fprintf(stderr, "-zdss N:M\n");
-+    erts_fprintf(stderr, "            disable scheduler sleeps and replace with\n");
-+    erts_fprintf(stderr, "            static N and M microsecond pauses.\n");
-     erts_fprintf(stderr, "\n");
-     erts_fprintf(stderr, "Note that if the emulator is started with erlexec (typically\n");
-     erts_fprintf(stderr, "from the erl script), these flags should be specified with +.\n");
-@@ -886,6 +889,9 @@ early_init(int *argc, char **argv) /*
-     erts_ets_realloc_always_moves = 0;
-     erts_ets_always_compress = 0;
-     erts_dist_buf_busy_limit = ERTS_DE_BUSY_LIMIT;
-+#ifdef ERTS_SMP
-+    dss_enabled = 0;
-+#endif
- 
-     return ncpu;
- }
-@@ -1598,7 +1604,25 @@ erl_start(int argc, char **argv)
- 		} else {
- 		    erts_dist_buf_busy_limit = new_limit*1024;
- 		}
-+            } else if (has_prefix("dss", sub_param)) {
-+                useconds_t m, n;
-+                char *arg = get_arg(sub_param+3, argv[i+1], &i);
-+                switch (sscanf(arg, "%d:%d", &m, &n)) {
-+                case 1:
-+                    n = m;
-+                    /* fall through */
-+                case 2:
-+#ifdef ERTS_SMP
-+                    dss_enabled = 1;
-+                    dss_sleep_m = m;
-+                    dss_sleep_n = n;
-+#endif
-+                    break;
-+                default:
-+                    goto bad_z_option;
-+                }
- 	    } else {
-+            bad_z_option:
- 		erts_fprintf(stderr, "bad -z option %s\n", argv[i]);
- 		erts_usage();
+@@ -1283,6 +1283,22 @@ erl_start(int argc, char **argv)
+     		("suggested scheduler thread stack size %d kilo words\n",
+ 			 erts_sched_thread_suggested_stack_size));
  	    }
++	    else if (has_prefix("fwi", sub_param)) {
++		long val;
++		arg = get_arg(sub_param+3, argv[i+1], &i);
++		errno = 0;
++		val = strtol(arg, NULL, 10);
++		if (errno != 0 || val < 0) {
++		    erts_fprintf(stderr,
++				 "bad scheduler forced wakeup "
++				 "interval %s\n",
++				 arg);
++		    erts_usage();
++		}
++#ifdef ERTS_SMP
++		erts_runq_supervision_interval = val;
++#endif
++	    }
+ 	    else {
+ 		erts_fprintf(stderr, "bad scheduling option %s\n", argv[i]);
+ 		erts_usage();
 diff --git a/erts/emulator/beam/erl_process.c b/erts/emulator/beam/erl_process.c
-index 7415a57..68bc4fb 100644
+index 95d408f..fec9160 100644
 --- a/erts/emulator/beam/erl_process.c
 +++ b/erts/emulator/beam/erl_process.c
-@@ -270,6 +270,10 @@ Eterm erts_system_monitor_long_gc;
- Eterm erts_system_monitor_large_heap;
- struct erts_system_monitor_flags_t erts_system_monitor_flags;
- 
-+int dss_enabled = 0;
-+useconds_t dss_sleep_m = 1000;
-+useconds_t dss_sleep_n = 2000;
-+
- /* system performance monitor */
- Eterm erts_system_profile;
- struct erts_system_profile_flags_t erts_system_profile_flags;
-@@ -2306,6 +2310,10 @@ scheduler_wait(int *fcalls, ErtsSchedulerData *esdp, ErtsRunQueue *rq)
- 	    if (aux_work)
- 		flgs = erts_smp_atomic32_read_acqb(&ssi->flags);
- 	    else {
-+                if (dss_enabled) {
-+                    usleep(dss_sleep_m);
-+                    break;
-+                }
- 		if (thr_prgr_active) {
- 		    erts_thr_progress_active(esdp, thr_prgr_active = 0);
- 		    sched_wall_time_change(esdp, 0);
-@@ -2468,6 +2476,11 @@ scheduler_wait(int *fcalls, ErtsSchedulerData *esdp, ErtsRunQueue *rq)
- 	    goto sys_poll_aux_work;
- 	}
+@@ -211,6 +211,10 @@ static erts_smp_atomic32_t function_calls;
  #ifdef ERTS_SMP
-+        if (dss_enabled) {
-+            usleep(dss_sleep_n);
-+            erts_smp_runq_unlock(rq);
-+            goto sys_woken;
-+        } else
- 	flgs = sched_set_sleeptype(ssi, ERTS_SSI_FLG_POLL_SLEEPING);
- 	if (!(flgs & ERTS_SSI_FLG_SLEEPING)) {
- 	    if (!(flgs & ERTS_SSI_FLG_WAITING)) {
-diff --git a/erts/emulator/beam/erl_process.h b/erts/emulator/beam/erl_process.h
-index 5a1f6bb..e062308 100644
---- a/erts/emulator/beam/erl_process.h
-+++ b/erts/emulator/beam/erl_process.h
-@@ -1981,3 +1981,9 @@ erts_sched_poke(ErtsSchedulerSleepInfo *ssi)
- void erl_halt(int code);
- extern erts_smp_atomic32_t erts_halt_progress;
- extern int erts_halt_code;
+ static erts_smp_atomic32_t doing_sys_schedule;
+ static erts_smp_atomic32_t no_empty_run_queues;
++long erts_runq_supervision_interval = 0;
++static ethr_event runq_supervision_event;
++static erts_tid_t runq_supervisor_tid;
++static erts_atomic_t runq_supervisor_sleeping;
+ #else /* !ERTS_SMP */
+ ErtsSchedulerData *erts_scheduler_data;
+ #endif
+@@ -1794,7 +1798,13 @@ empty_runq(ErtsRunQueue *rq)
+ 	 */
+ 	ASSERT(0 <= empty && empty < 2*erts_no_run_queues);
+ #endif
+-	erts_smp_atomic32_inc_relb(&no_empty_run_queues);
++	if (!erts_runq_supervision_interval)
++	    erts_smp_atomic32_inc_relb(&no_empty_run_queues);
++	else {
++	    erts_smp_atomic32_inc_mb(&no_empty_run_queues);
++	    if (erts_atomic_read_nob(&runq_supervisor_sleeping))
++		ethr_event_set(&runq_supervision_event);
++	}
+     }
+ }
+ 
+@@ -1812,7 +1822,14 @@ non_empty_runq(ErtsRunQueue *rq)
+ 	 */
+ 	ASSERT(0 < empty && empty <= 2*erts_no_run_queues);
+ #endif
+-	erts_smp_atomic32_dec_relb(&no_empty_run_queues);
++	if (!erts_runq_supervision_interval)
++	    erts_smp_atomic32_dec_relb(&no_empty_run_queues);
++	else {
++	    erts_aint32_t no;
++	    no = erts_smp_atomic32_dec_read_mb(&no_empty_run_queues);
++	    if (no > 0 && erts_atomic_read_nob(&runq_supervisor_sleeping))
++		ethr_event_set(&runq_supervision_event);
++	}
+     }
+ }
+ 
+@@ -2412,7 +2429,6 @@ try_inc_no_active_runqs(int active)
+     return 0;
+ }
+ 
+-
+ static ERTS_INLINE int
+ chk_wake_sched(ErtsRunQueue *crq, int ix, int activate)
+ {
+@@ -3875,6 +3891,57 @@ erts_get_scheduler_data(void)
+     return (ErtsSchedulerData *) erts_tsd_get(sched_data_key);
+ }
+ 
++#ifdef ERTS_SMP
++
++static int
++no_runqs_to_supervise(void)
++{
++    int used;
++    erts_aint32_t nerq = erts_smp_atomic32_read_acqb(&no_empty_run_queues);
++    if (nerq <= 0)
++	return 0;
++    get_no_runqs(NULL, &used);
++    if (nerq >= used)
++	return 0;
++    return used;
++}
++
++static void *
++runq_supervisor(void *unused)
++{
++    while (1) {
++	int ix, no_rqs;
++
++	erts_milli_sleep(erts_runq_supervision_interval);
++	no_rqs = no_runqs_to_supervise();
++	if (!no_rqs) {
++	    erts_atomic_set_nob(&runq_supervisor_sleeping, 1);
++	    while (1) {
++		ethr_event_reset(&runq_supervision_event);
++		no_rqs = no_runqs_to_supervise();
++		if (no_rqs) {
++		    erts_atomic_set_nob(&runq_supervisor_sleeping, 0);
++		    break;
++		}
++		ethr_event_wait(&runq_supervision_event);
++	    }
++	}
++
++	for (ix = 0; ix < no_rqs; ix++) {
++	    ErtsRunQueue *rq = ERTS_RUNQ_IX(ix);
++	    if (ERTS_RUNQ_IFLGS_GET(rq) & ERTS_RUNQ_IFLG_NONEMPTY) {
++		erts_smp_runq_lock(rq);
++		if (rq->len != 0) { 
++		    wake_scheduler_on_empty_runq(rq); /* forced wakeup... */
++		}
++		erts_smp_runq_unlock(rq);
++	    }
++	}
++    }
++    return NULL;
++}
++
++#endif
+ #endif
+ 
+ static int remove_proc_from_runq(ErtsRunQueue *rq, Process *p, int to_inactive);
+@@ -4851,6 +4918,22 @@ erts_start_schedulers(void)
+     ethr_thr_opts opts = ETHR_THR_OPTS_DEFAULT_INITER;
+ 
+     opts.detached = 1;
 +
 +#ifdef ERTS_SMP
-+extern int dss_enabled;
-+extern useconds_t dss_sleep_m;
-+extern useconds_t dss_sleep_n;
++    if (erts_runq_supervision_interval) {
++	opts.suggested_stack_size = 16;
++	erts_atomic_init_nob(&runq_supervisor_sleeping, 0);
++	if (0 != ethr_event_init(&runq_supervision_event))
++	    erl_exit(1, "Failed to create run-queue supervision event\n");
++	if (0 != ethr_thr_create(&runq_supervisor_tid,
++				 runq_supervisor,
++				 NULL,
++				 &opts))
++	    erl_exit(1, "Failed to create run-queue supervision thread\n");
++
++    }
 +#endif
-diff --git a/erts/etc/common/erlexec.c b/erts/etc/common/erlexec.c
-index 31d9b2e..4ce64ab 100644
---- a/erts/etc/common/erlexec.c
-+++ b/erts/etc/common/erlexec.c
-@@ -149,6 +149,7 @@ static char *plusr_val_switches[] = {
- /* +z arguments with values */
- static char *plusz_val_switches[] = {
-     "dbbl",
-+    "dss",
-     NULL
++
+     opts.suggested_stack_size = erts_sched_thread_suggested_stack_size;
+ 
+     if (wanted < 1)
+diff --git a/erts/emulator/beam/erl_process.h b/erts/emulator/beam/erl_process.h
+index cff0783..e1f4f1e 100644
+--- a/erts/emulator/beam/erl_process.h
++++ b/erts/emulator/beam/erl_process.h
+@@ -148,6 +148,8 @@ extern int erts_sched_thread_suggested_stack_size;
+   (((Uint32) 1) << (ERTS_RUNQ_FLG_BASE2 + 3))
+ #define ERTS_RUNQ_FLG_INACTIVE \
+   (((Uint32) 1) << (ERTS_RUNQ_FLG_BASE2 + 4))
++#define ERTS_RUNQ_FLG_NONEMPTY \
++  (((Uint32) 1) << (ERTS_RUNQ_FLG_BASE2 + 5))
+ 
+ #define ERTS_RUNQ_FLGS_MIGRATION_QMASKS	\
+   (ERTS_RUNQ_FLGS_EMIGRATE_QMASK	\
+@@ -186,6 +188,9 @@ extern int erts_sched_thread_suggested_stack_size;
+ #define ERTS_UNSET_RUNQ_FLG_EVACUATE(FLGS, PRIO) \
+   ((FLGS) &= ~ERTS_RUNQ_FLG_EVACUATE((PRIO)))
+ 
++#define ERTS_RUNQ_IFLGS_GET(RQ)						\
++    ((Uint32) erts_smp_atomic32_read_acqb(&(RQ)->info_flags))
++
+ #define ERTS_RUNQ_IFLG_SUSPENDED		(((erts_aint32_t) 1) << 0)
+ #define ERTS_RUNQ_IFLG_NONEMPTY			(((erts_aint32_t) 1) << 1)
+ 
+@@ -370,6 +375,10 @@ struct ErtsRunQueue_ {
+     } ports;
  };
  
-diff --git a/erts/test/erlexec_SUITE.erl b/erts/test/erlexec_SUITE.erl
-index 0dfe6c2..8317101 100644
---- a/erts/test/erlexec_SUITE.erl
-+++ b/erts/test/erlexec_SUITE.erl
-@@ -35,7 +35,7 @@
- 	 init_per_group/2,end_per_group/2, 
- 	 init_per_testcase/2, end_per_testcase/2]).
- 
---export([args_file/1, evil_args_file/1, env/1, args_file_env/1, otp_7461/1, otp_7461_remote/1, otp_8209/1, zdbbl_dist_buf_busy_limit/1]).
-+-export([args_file/1, evil_args_file/1, env/1, args_file_env/1, otp_7461/1, otp_7461_remote/1, otp_8209/1, zdbbl_dist_buf_busy_limit/1, zdss_sleep_constants/1]).
- 
- -include_lib("test_server/include/test_server.hrl").
-     
-@@ -57,7 +57,7 @@ suite() -> [{ct_hooks,[ts_install_cth]}].
- 
- all() -> 
-     [args_file, evil_args_file, env, args_file_env,
--     otp_7461, otp_8209, zdbbl_dist_buf_busy_limit].
-+     otp_7461, otp_8209, zdbbl_dist_buf_busy_limit, zdss_sleep_constants].
- 
- groups() -> 
-     [].
-@@ -368,6 +368,26 @@ zdbbl_dist_buf_busy_limit(Config) when is_list(Config) ->
-     ?line ok = cleanup_node(SNameS, 10),
-     ok.
-     
-+zdss_sleep_constants(doc) ->
-+    ["Check +zdss flag"];
-+zdss_sleep_constants(suite) ->
-+    [];
-+zdss_sleep_constants(Config) when is_list(Config) ->
-+    M = 500,
-+    N = 600,
-+    ?line {ok,[[PName]]} = init:get_argument(progname),
-+    ?line SNameS = "erlexec_test_03",
-+    ?line SName = list_to_atom(SNameS++"@"++
-+                         hd(tl(string:tokens(atom_to_list(node()),"@")))),
-+    ?line Cmd = PName ++ " -sname "++SNameS++" -setcookie "++
-+        atom_to_list(erlang:get_cookie()) ++
-+	" +zdss " ++ integer_to_list(M) ++ ":" ++ integer_to_list(N),
-+    ?line open_port({spawn,Cmd},[]),
-+    ?line pong = loop_ping(SName,40),
-+    ?line {M, N} = rpc:call(SName,erlang,system_info,[do_not_sleep_constants]),
-+    ?line ok = cleanup_node(SNameS, 10),
-+    ok.
++#ifdef ERTS_SMP
++extern long erts_runq_supervision_interval;
++#endif
 +
+ typedef union {
+     ErtsRunQueue runq;
+     char align[ERTS_ALC_CACHE_LINE_ALIGN_SIZE(sizeof(ErtsRunQueue))];
+diff --git a/erts/etc/common/erlexec.c b/erts/etc/common/erlexec.c
+index 19b3bb8..ac4e509 100644
+--- a/erts/etc/common/erlexec.c
++++ b/erts/etc/common/erlexec.c
+@@ -123,6 +123,7 @@ static char *pluss_val_switches[] = {
+     "bt",
+     "cl",
+     "ct",
++    "fwi",
+     "wt",
+     "ss",
+     NULL
+-- 
+1.7.9.5
+
