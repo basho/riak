@@ -1,5 +1,35 @@
 # Riak 1.4.0 Release Notes
 
+# Riak 1.4.1 Release Notes
+
+This is a bugfix release.  The major fixes are to the Secondary Index,
+Riak Control, and LevelDB subsystems.
+
+* Pagination for equality queries is fixed by riak_kv/615.
+
+* The ability to set a timeout on a 2i query has been added by riak_kv/616.
+
+* Using 2i as input for a map-reduce job has been fixed by riak_kv/618.
+
+* Riak Control can crash it's host node when in a mixed-cluster
+  environment containing a 1.4.0 node.  This has been addressed by riak_control/120.
+
+* Basho's leveldb fork has added better fadvise support and fixed some
+  race conditions in the write path.  See leveldb/88.
+
+## Issues / PR's Resolved
+
+* riak_core/351: [Fix catch pattern to match all errors](https://github.com/basho/riak_core/pull/351)
+* riak_core/352: [Fix TCP mon to correctly spot nodes coming up](https://github.com/basho/riak_core/pull/352)
+* riak_kv/615: [Do not set the start_term to the last seen key for eq (2i)](https://github.com/basho/riak_kv/pull/615)
+* riak_kv/616: [Add millisecond timeout parameter to API 2i endpoints](https://github.com/basho/riak_kv/pull/616)
+* riak_kv/618: [Strip index term from result before passing to MR (2i)](https://github.com/basho/riak_kv/pull/618)
+* riak-erlang-client/108: [Add timeouts to 2i queries](https://github.com/basho/riak-erlang-client/pull/108)
+* riak_pb/50: [Add timeout field to 2i messages](https://github.com/basho/riak_pb/pull/50)
+* riak_control/120: [Handle incompatible records between the 1.3 and 1.4 release](https://github.com/basho/riak_control/pull/120)
+* leveldb/88: [More effective fadvise calls + fix write race conditions](https://github.com/basho/leveldb/pull/88)
+* riak_repl/348: [Don't crash on bad stats](https://github.com/basho/riak_repl/pull/348)
+
 ## Major Features / Improvements
 
 ### Improved Binary Format
