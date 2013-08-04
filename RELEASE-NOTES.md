@@ -3,17 +3,17 @@
 This is a bugfix release.  The major fixes are to the Secondary Index,
 Riak Control, and LevelDB subsystems.
 
-* Pagination for equality queries is fixed by riak_kv/615.
+* Pagination for equality queries is fixed by [riak_kv/615](https://github.com/basho/riak_kv/pull/615).
 
-* The ability to set a timeout on a 2i query has been added by riak_kv/616.
+* The ability to set a timeout on a 2i query has been added by [riak_kv/616](https://github.com/basho/riak_kv/pull/616).
 
-* Using 2i as input for a map-reduce job has been fixed by riak_kv/618.
+* Using 2i as input for a map-reduce job has been fixed by [riak_kv/618](https://github.com/basho/riak_kv/pull/618).
 
-* Riak Control can crash it's host node when in a mixed-cluster
-  environment containing a 1.4.0 node.  This has been addressed by riak_control/120.
+* Riak Control can crash its host node when in a mixed-cluster
+  environment containing a 1.4.0 node.  This has been addressed by [riak_control/120](https://github.com/basho/riak_control/pull/120).
 
 * Basho's leveldb fork has added better fadvise support and fixed some
-  race conditions in the write path.  See leveldb/88.
+  race conditions in the write path.  See [leveldb/88](https://github.com/basho/leveldb/pull/88).
 
 ## Issues / PR's Resolved
 
