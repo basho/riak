@@ -1,5 +1,3 @@
-# Riak 1.4.0 Release Notes
-
 # Riak 1.4.1 Release Notes
 
 This is a bugfix release.  The major fixes are to the Secondary Index,
@@ -29,6 +27,8 @@ Riak Control, and LevelDB subsystems.
 * riak_control/120: [Handle incompatible records between the 1.3 and 1.4 release](https://github.com/basho/riak_control/pull/120)
 * leveldb/88: [More effective fadvise calls + fix write race conditions](https://github.com/basho/leveldb/pull/88)
 * riak_repl/348: [Don't crash on bad stats](https://github.com/basho/riak_repl/pull/348)
+
+# Riak 1.4.0 Release Notes
 
 ## Major Features / Improvements
 
