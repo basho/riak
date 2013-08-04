@@ -26,6 +26,8 @@ Riak Control, and LevelDB subsystems.
 * riak_pb/50: [Add timeout field to 2i messages](https://github.com/basho/riak_pb/pull/50)
 * riak_control/120: [Handle incompatible records between the 1.3 and 1.4 release](https://github.com/basho/riak_control/pull/120)
 * leveldb/88: [More effective fadvise calls + fix write race conditions](https://github.com/basho/leveldb/pull/88)
+* node_package/75: [In RPMs: Do not error on post install script if usermod fails](https://github.com/basho/node_package/pull/75)
+* node_package/76: [Fix `riak version` for RPM packages](https://github.com/basho/node_package/pull/76)
 
 # Riak 1.4.0 Release Notes
 
