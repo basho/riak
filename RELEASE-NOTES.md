@@ -3,17 +3,17 @@
 This is a bugfix release.  The major fixes are to the Secondary Index,
 Riak Control, and LevelDB subsystems.
 
-* Pagination for equality queries is fixed by riak_kv/615.
+* Pagination for equality queries is fixed by [riak_kv/615](https://github.com/basho/riak_kv/pull/615).
 
-* The ability to set a timeout on a 2i query has been added by riak_kv/616.
+* The ability to set a timeout on a 2i query has been added by [riak_kv/616](https://github.com/basho/riak_kv/pull/616).
 
-* Using 2i as input for a map-reduce job has been fixed by riak_kv/618.
+* Using 2i as input for a map-reduce job has been fixed by [riak_kv/618](https://github.com/basho/riak_kv/pull/618).
 
-* Riak Control can crash it's host node when in a mixed-cluster
-  environment containing a 1.4.0 node.  This has been addressed by riak_control/120.
+* Riak Control can crash its host node when in a mixed-cluster
+  environment containing a 1.4.0 node.  This has been addressed by [riak_control/120](https://github.com/basho/riak_control/pull/120).
 
 * Basho's leveldb fork has added better fadvise support and fixed some
-  race conditions in the write path.  See leveldb/88.
+  race conditions in the write path.  See [leveldb/88](https://github.com/basho/leveldb/pull/88).
 
 ## Issues / PR's Resolved
 
@@ -27,6 +27,8 @@ Riak Control, and LevelDB subsystems.
 * riak_control/120: [Handle incompatible records between the 1.3 and 1.4 release](https://github.com/basho/riak_control/pull/120)
 * leveldb/88: [More effective fadvise calls + fix write race conditions](https://github.com/basho/leveldb/pull/88)
 * riak_repl/348: [Don't crash on bad stats](https://github.com/basho/riak_repl/pull/348)
+* node_package/75: [In RPMs: Do not error on post install script if usermod fails](https://github.com/basho/node_package/pull/75)
+* node_package/76: [Fix `riak version` for RPM packages](https://github.com/basho/node_package/pull/76)
 
 # Riak 1.4.0 Release Notes
 
