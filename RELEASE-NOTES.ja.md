@@ -6,9 +6,9 @@
 
 * [riak_kv/616](https://github.com/basho/riak_kv/pull/616) 2iクエリでもタイムアウトを設定できるようになりました。
 
-* [riak_kv/618](https://github.com/basho/riak_kv/pull/618) 2iをMapReduceの入力できなかった問題が解決しました。
+* [riak_kv/618](https://github.com/basho/riak_kv/pull/618)  2iをMapReduceの入力として渡せなかった問題が解決しました。
 
-* [riak_control/120](https://github.com/basho/riak_control/pull/120) 1.4.0ノードを追加すると Riak Control がクラッシュする問題を解決しました。
+* [riak_control/120](https://github.com/basho/riak_control/pull/120) 1.3系で動作するクラスタに1.4.0のノードを追加すると Riak Control がRiakノードをクラッシュさせる問題を解決しました。
 
 *  [leveldb/88](https://github.com/basho/leveldb/pull/88) Basho 版の LevelDB の fadvise サポートが改善され、書き込み時の競合がいくつか解決されました。
 
