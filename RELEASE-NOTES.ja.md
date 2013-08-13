@@ -1,19 +1,16 @@
-# Riak 1.4.1 Release Notes
+# Riak 1.4.1 リリースノート
 
-This is a bugfix release.  The major fixes are to the Secondary Index,
-Riak Control, and LevelDB subsystems.
+これはバグフィックスのリリースです。主にセカンダリーインデックス、Riak Control、LevelDB に関する修正が含まれています。
 
-* Pagination for equality queries is fixed by [riak_kv/615](https://github.com/basho/riak_kv/pull/615).
+* [riak_kv/615](https://github.com/basho/riak_kv/pull/615) で、完全一致のクエリに対するページネーションの問題が修正されました。
 
-* The ability to set a timeout on a 2i query has been added by [riak_kv/616](https://github.com/basho/riak_kv/pull/616).
+* [riak_kv/616](https://github.com/basho/riak_kv/pull/616) 2iクエリでもタイムアウトを設定できるようになりました。
 
-* Using 2i as input for a map-reduce job has been fixed by [riak_kv/618](https://github.com/basho/riak_kv/pull/618).
+* [riak_kv/618](https://github.com/basho/riak_kv/pull/618)  2iをMapReduceの入力として渡せなかった問題が解決しました。
 
-* Riak Control can crash its host node when in a mixed-cluster
-  environment containing a 1.4.0 node.  This has been addressed by [riak_control/120](https://github.com/basho/riak_control/pull/120).
+* [riak_control/120](https://github.com/basho/riak_control/pull/120) 1.3系で動作するクラスタに1.4.0のノードを追加すると Riak Control がRiakノードをクラッシュさせる問題を解決しました。
 
-* Basho's leveldb fork has added better fadvise support and fixed some
-  race conditions in the write path.  See [leveldb/88](https://github.com/basho/leveldb/pull/88).
+*  [leveldb/88](https://github.com/basho/leveldb/pull/88) Basho 版の LevelDB の fadvise サポートが改善され、書き込み時の競合がいくつか解決されました。
 
 ## Issues / PR's Resolved
 
@@ -29,172 +26,147 @@ Riak Control, and LevelDB subsystems.
 * node_package/75: [In RPMs: Do not error on post install script if usermod fails](https://github.com/basho/node_package/pull/75)
 * node_package/76: [Fix `riak version` for RPM packages](https://github.com/basho/node_package/pull/76)
 
-# Riak 1.4.0 Release Notes
+# Riak 1.4.0 リリースノート
 
-## Major Features / Improvements
+## 主な新機能／改善点
 
-### Improved Binary Format
+### バイナリフォーマットの改善 (Improved Binary Format)
 
-Data stored in Riak can now be represented in a more compact
-format. The new format reduces storage overhead, especially in the
-case of small objects or those with large bucket names, keys, or
-metadata.
+Riakに保存されるデータのフォーマットがさらにコンパクトになりました。
+新しいフォーマットはデータ保存時のオーバーヘッドを減らしています。
+特に小さいオブジェクトや大きなバケット名、キー名、メタデータに対して効果を発揮します。
 
-By default new Riak clusters, starting with Riak 1.4, will have
-the new format enabled by default. Users upgrading to Riak 1.4 should
-first perform the upgrade and once happy with the operation enable the
-new format. Riak supports both the old and new representation
-simultaneously, so no additional upgrade process is necessary.
+Riak1.4で新規に作ったRiakクラスターはデフォルトで新しいフォーマットが有効になっています。
+Riak1.4へアップグレードする際は、アップグレードをおこなうと新しいフォーマットが有効になります。
+新旧のフォーマットは双方共にサポートされますので、アップグレードに伴う追加のオペレーションは必要ありません。
 
-Which representation is used can be configured by setting
-`object_format` to either `v0` or `v1` in the `riak_kv` section of
-`app.config`. `v1` is the new format.
+どのフォーマットが用いられるかは `app.config` の `riak_kv` セクションで、`object_format` を設定します。
+設定値は `v0`、`v1` のどちらかであり、新しいフォーマットは`v1`です。
 
-The new format is also used during handoff if the cluster supports it.
+この新しいフォーマットはクラスターがサポートすればhandoff でも使用されます。
 
-For users who upgrade to Riak 1.4 and enable the new format,
-downgrading to a previous version requires reformatting any data
-written in the new representation (previous version of Riak won't
-understand it). A utility is provided via `riak-admin` to perform this
-operation:
+Riak1.4へアップグレードして新しいフォーマットを有効にしたユーザーが前バージョンへのダウングレードするには、
+新しいフォーマットになっているデータを書きかえる必要があります（以前のバージョンのRiakは新しいフォーマットを読み込めません）。
+`riak-admin` ではこのユーティリティが用意されています:
 
 ```
 riak-admin downgrade-objects <kill-handoffs> [<concurrency>]
 ```
 
-The utility should be run per-node immediately prior to downgrading
-it. `<kill-handoffs>` must be either `true` or `false`. If `false` any
-ongoing handoff will be waited on before performing the
-reformat. Otherwise, all in-flight handoff, inbound to the node or
-outbound from it, will be killed. During and after the reformat the
-`transfer-limit` will be set to 0. The optional `<concurrency>`
-argument must be an integer greater than zero. It determines how many
-partitions are reformatted on the node concurrently. By default the
-concurrency is two. Additionally, in anticipation that the entire
-cluster will be downgraded `downgrade-objects` sets the preferred
-format to `v0`. `downgrade-objects` can be run multiple times in the
-case of error or if the node crashes.
+このユーティリティはダウングレードするにあたって、ノードごとに実行します。
+`<kill-handoffs>`は `true` か `false` のどちらかの値をとります。`false`の場合、
+再フォーマットの前に実行中のhandoffを待ちます。`true`であればノードが受信もしくは
+送信している実行中のhandoffは全てkillされます。
+再フォーマット中やその後はtransfer-limitが0に設定されます。
+`<concurrency>`オプションは1以上の整数値を取ります。これはそのノード上で、
+いくつのパーティションが並列で再フォーマットされるかを指定するものです。
+デフォルトは２になっています。そしてクラスタ全体がダウングレードされることを見越して、
+`downgrade-objects`は推奨フォーマットを `v0` に設定します。`downgrade-objects`はエラーや、
+ノードがクラッシュした場合に複数回実行できます。
 
 
-### Changed behavior of `riak attach`
+### `riak attach`の挙動を変更 (Changed behavior of `riak attach`)
 
-If you are a frequent user of `riak attach` it is worth noting that the behavior has changed in 1.4.  `riak attach` used to attach to a named pipe that erlang provides to talk to running erlang nodes. This is great except that an accidental Ctrl-C would not only kill your session, but also kill the running node.  The behavior has now changed to use `-remsh` (remote shell) to connect to the node.  This method is safer because a Ctrl-C will not kill a running node.  In cases where distributed erlang having problems for some reason and a -remsh is not wanted, `riak attach-direct` is a new command which uses the old pipe behavior of `riak attach`.
+`riak attach`にすでに慣れているユーザーは1.4での変更は注目に値します。
+`riak attach`は稼働中のerlangノードと通信するためにerlangに提供されている
+named pipeを使用していました。この機能は素晴らしいのですが、偶然にも Ctrl-C を押してしまうと
+アタッチしたセッションと共に動作中のノードも終了させてしまいます。この振る舞いを今回、
+`-remsh` (remote shell)を使ったノード通信に変更しました。これはCtrl-Cが稼働中のノードをkillしないので、より安全です。
+分散erlangの問題にぶつかったり、-remsh が望ましくない場合は、以前の`riak attach`と同じ振る舞いする新しいコマンドの
+ `riak attach-direct` を使ってください。
 
-### `riak-admin transfers` Improvements
+### `riak-admin transfers` 改善 (`riak-admin transfers` Improvements)
 
-The output of `riak-admin transfers` now includes per-transfer
-progress reporting and improved display of long node names.
+`riak-admin transfers` でトランスファーごとの進捗を見られるようになりました。
+また長いノード名の表示も改善しています。
 
-Whether or not progress is reported and how the progress is calculated is
-dependent on the cluster's backend. Progress reporting is enabled for
-`riak_kv_bitcask_backend`, `riak_kv_eleveldb_backend` and
-`riak_kv_memory_backend`. Clusters using `riak_kv_multi_backend` will
-not have progress reporting enabled. When using `riak_kv_bitcask_backend` or
-`riak_kv_memory_backend` progress is determined by the number of keys
-already transferred out of the total number stored. Large variance in
-value sizes can skew reporting. For `riak_kv_eleveldb_backend`
-progress is measured in stored bytes. The total number of bytes used
-may be an overestimate -- meaning progress will always be what is
-reported or further along than reported in the worst case.
+進捗が表示されるかどうか、またどのように計算されるかはクラスターのバックエンドに依存します。
+進捗は `riak_kv_bitcask_backend` と `riak_kv_eleveldb_backend` 、`riak_kv_memory_backend` で有効です。
+ `riak_kv_multi_backend` を使うクラスタは進捗の表示が有効になりません。
+`riak_kv_bitcask_backend` と `riak_kv_memory_backend` ではキーの総数と送信済み数により進捗が決まります。
+バリューサイズが大きく変わる場合には進捗が素直に出ないことがあります。 `riak_kv_eleveldb_backend` では、
+進捗は保存されたバイトで測られます。総使用バイトは時に過大評価となるため、表示される進捗は、
+実際の進捗を正しく表していることもありますが、最悪の場合には表示よりも先に進んでいる可能性があります。
 
-### Lager Upgrade 1.2.2 to 2.0.0
+### Lager アップグレード 1.2.2 to 2.0.0 (Lager Upgrade 1.2.2 to 2.0.0)
 
-Lager has been updated in Riak from Lager 1.2.2 that was in the Riak 1.3.x series to Lager 2.0.0.  Please see the lager documentation at https://github.com/basho/lager for the new capabilities in Lager 2.0.
+Lager は Riak 1.3.x 系で用いられていた 1.2.2 から 2.0.0 へアップデートされました。 Lager 自体の新しい機能は https://github.com/basho/lager をご覧ください。
 
+### クエリ (Querying)
 
-### Querying
+#### 2i ページネーション (Pagination Support in 2i)
 
-#### Pagination Support in 2i
+セカンダリーインデックス (2i) を拡張し、ページネーションを可能にしました。 `max_results` オプションを指定することで、プロトコルバッファーと HTTP の両方で利用できます。完全な詳細は [こちら](https://github.com/basho/riak_kv/pull/540) をご覧ください。
 
-We've extended Riak's Secondary Indexing (2i) interface to allow for paginated results. This is done via the `max_results` option in both the Protocol Buffers and HTTP 2i end points. Full details can be found [here](https://github.com/basho/riak_kv/pull/540).
+### クライアント API (Client APIs)
 
+#### クライアント指定のタイムアウト (Client-specified timeouts)
 
-### Client APIs
+クライアントタイムアウト値をミリ秒で指定できるようになりました。これはオブジェクトの取得、保存、削除に対するデフォルトの内部的なタイムアウトを上書きします。
 
-#### Client-specified timeouts
+#### プロトコルバッファーでのバケットプロパティー(Protocol Buffers bucket properties)
 
-Clients can now specify a timeout value, in milliseconds, that will
-override the default internal timeout on requests that manipulate
-objects (fetch, store, delete), list buckets, or list keys.
+プロトコルバッファーは既知のすべてのバケットプロパティーをサポートします。またリセットも可能になりました。
 
-#### Protocol Buffers bucket properties
+#### バケットリストのストリーミング (List-buckets streaming)
 
-The Protocol Buffers interface now supports all known bucket
-properties, and the ability to "reset" bucket properties to their
-defaults.
+キーリストと同様に、バケットリストもストリーミング可能になりました。
+Riak が各ノードからの応答をすべて集めてからクライアントに応答するのではなく、各ノードからの応答に応じてクライアントに送信します。
 
-#### List-buckets streaming
+#### プロトコルバッファーの複数インターフェースサポート (Protocol buffers binds to multiple interfaces)
 
-Similar to listing keys, listing buckets can be streamed to clients.
-This means that Riak will send bucket names to the client as they are
-received, rather than waiting for the request to complete on all
-nodes.
+HTTP と同様に、プロトコルバッファーも複数のインターフェースにバインド出来るようになりました。設定は `pb_port` と `pb_ip` から変更され、単一の `pb` となりました。そこでは IP とポートのリストを指定できます。
 
-#### Protocol buffers binds to multiple interfaces
+### データタイプ (Data Types)
 
-Similar to HTTP, Protocol Buffers will now bind to multiple interfaces
-and ports. Existing configurations will change the previous `pb_port`
-and `pb_ip` settings to the singular `pb` setting, which is a list of
-IP/port pairs.
+#### PN-カウンター (PN-Counters)
 
-
-### Data Types
-
-#### PN-Counters
-
-1.4 sees the addition of Riak's first data type: PN-Counters. A PN-Counter is capable of being both incremented (P) and decremented (N). The full details are [here](https://github.com/basho/riak_kv/pull/536). We're also fast at work on a [CRDT Cookbook](https://github.com/lenary/riak_crdt_cookbook) that will demonstrate this and future data types in Riak.
-
+Riak 1.4 では、Riak で初めてとなる分散データ型である PN-カウンターを追加しました。PN-カウンターはインクリメント(P)とデクリメント(N)の両方が可能です。完全な詳細は [こちら](https://github.com/basho/riak_kv/pull/536) をご覧ください。私達は Riak の将来のデータ型を説明するため [CRDT Cookbook](https://github.com/lenary/riak_crdt_cookbook) にも取り組んでいます。
 
 ### Riak Control
 
-Riak Control now has an improved cluster management interface, and standalone node management interface, for staging and committing changes to the cluster, which mimics the CLI API.
+Riak Control はクラスタとスタンドアローンノードの管理を改善し、変更のステージングとコミットをサポートします。
 
+### 新しいコマンド: riak-debug (New command: riak-debug)
 
-### New command: riak-debug
+コマンド `riak-debug` はトラブルシューティングのための情報収集自動化の
+助けとなるシェルスクリプトです。OS コマンド、Riak コマンド、Riak 設定ファイル、
+Riak ログファイルの情報を集めます。スクリプトの使い方やワークフローへの組み込み方は
+`riak-debug -h` や `man riak-debug` を参照してください。
 
-The command `riak-debug` is a shell script provided to aid in the automation of gathering information from Riak nodes for troubleshooting. Information gathered includes operating system command output, Riak command output, Riak configuration files, and Riak logs. See `riak-debug -h` and `man riak-debug` for more information on using the script and for tips on integrating its usage into your workflow.
+### パッケージ/ランタイムの変更 (Packaging / Runtime changes)
 
+Riak 1.4 は [node_package](http://github.com/basho/node_package) を
+用いてパッケージ化されるようになりました。Riak CS は初めてのリリースから
+このツールを用いています。
+この共通化により、一貫性のある機能を提供し、またパッケージング品質を向上させています。
+このリリースに対するパッケージングのバグフィックスは "Issues" セクションの
+node\_package の項目をご覧ください。
 
-### Packaging / Runtime changes
+##### 追加、削除されたプラットフォーム (Platforms Added / Removed)
 
-Riak 1.4 took a major step forward in how it is packaged by changing
-over to using [node_package](http://github.com/basho/node_package) for
-its packaging.  This is the same tool used for RiakCS since its first
-release.  This commonality will improve overall feature parity and
-stability of the packages themselves by cutting down on the number of
-places packaging bug fixes need to happen.  See the 'node_package'
-section in the Issues section for all the bug fixes to packaging in
-this release.
+Debian Wheezy と SmartOS 13.1 が 1.4 でサポートされます。
+予定通り、 32 bit パッケージは削除されました。
 
-##### Platforms Added / Removed
+##### パッケージとランタイムの主要な変更点 (Major changes in packages and runtime)
 
-Support for Debian Wheezy and SmartOS 13.1 have been added to 1.4.  As
-planned, support for 32bit packages has been dropped.
-
-##### Major changes in packages and runtime
-
-   * init.d scripts for Deb and RPM systems have been rewritten to
-     comply with the standards of those distributions.  In particular
-     the init scripts now actually return nonzero exit codes on
-     failure.  This was a major issue we had that prevented tools from
-     working seamlessly.
-   * All start, stop, and status commands use return codes rather than
-     reading stdout.  This has been a major 'technical debt' we've had
-     for a long time and it is about time the rest of it is finally
-     fixed.
-   * `riak.pid` files are now created and removed on `riak
-     start/stop`. This allows other tools to take advantage of .pid
-     files without them needing knowledge about the riak script or
-     nodetool.
-   * Warnings added to `riak attach` and `riak attach-direct` to let
-     users know about implications of q() and CTRL-C
-   * The `riak` script now makes it more obvious which commands need
-     to be run as the Riak user (or root user).  Status commands like
-     `getpid` or `ping` can be run by any user while daemon commands
-     like `start` and `stop` will error in a more graceful if not run
-     by the Riak user.
-
-
+   * Deb と RPM システム向けの init.d スクリプトが、これらのディストリビューションの
+  標準に合わせて書き換えられました。
+  特に、 init スクリプトは失敗するとノンゼロの終了コードを返します。
+  これは他のツールとシームレスに動作するために大きな問題となっていました。
+   * start, stop, status コマンドは stdout を読まなくても、戻り値を
+  返すようになりました。
+  これは私達がずっと抱えていた主要な "技術的負債" で、ようやく修正されました。
+   * `riak start/stop` コマンドから `riak.pid` ファイルが作成、削除
+  されるようになりました。他のツールは、riak スクリプトや nodetool を知らなくても
+  .pid ファイルを活用できます。
+   * `riak attach` と `riak attach-direct` はユーザに q() と CTRL-C の意味について
+  警告するようになりました。
+   * `riak` スクリプトはどのコマンドが riak ユーザ(または root ユーザ)で
+  実行されるべきかを明確にしました。
+  `getpid` や `ping` のステータスコマンドはどのユーザでも実行できますが、
+  `start`, `stop` のようなデーモンコマンドは riak ユーザにより実行されていない
+  場合にはエラーとなります。
 
 ## Issues / PR's Resolved
 
@@ -376,20 +348,18 @@ planned, support for 32bit packages has been dropped.
 * webmachine/151: [Removing io:format/2 calls from log file processing](https://github.com/basho/webmachine/issues/151)
 
 
-## Known Issues
+## 既知の問題 (Known Issues)
 
-### leveldb 1.3 to 1.4 conversion
+### leveldb 1.3 から 1.4への変換 (leveldb 1.3 to 1.4 conversion)
 
-The first execution of 1.4.0 leveldb using a 1.3.x or 1.2.x dataset will initiate an automatic conversion that could pause the startup of each node by 3 to 7 minutes.  The leveldb data in "level #1" is being adjusted such that "level #1" can operate as an overlapped data level instead of as a sorted data level.  The conversion is simply the reduction of the number of files in "level #1" to being less than eight via normal compaction of data from "level #1" into "level #2".  This is a one time conversion.
+leveldb 1.3.x、1.2.xのデータを使ってleveldb 1.4.0を初めて起動すると、データの自動変換が始まります。これは、各ノードの起動を3分から7分停止する可能性があります。”level #1”内のleveldbのデータは”level #1”がソートされたデータレベルの代わりに、重複したデータレベルとしての役割を果たすよう、調整されてゆきます。この変換は”level #1”から”level #2”への通常のコンパクションを通じて、単に”level #1”内のファイル数を８より小さくするものです。これは一度だけ実行されます。
 
-## Deprecation Warnings
+## 廃止予定 (Deprecation Warnings)
 
 ### Ubuntu 11.04 (Natty) EOL
 
-Ubuntu 11.04 Natty Narwhal reached its end-of-life October 2012 and
-recently the public apt updates and security repos were removed.  Due
-to this, Riak will no longer be built against 11.04 going forward.  We
-will consider supporting the latest non-LTS release depending on the
-timing of the next major Riak release.
+Ubuntu 11.04 Natty Narwhal は2012年10月でend-of-lifeになり、apt update、securityの公開リポジトリは削除されています。
+これによりRiakは今後11.04に対してビルドされません。私たちは次のRiakのメジャーバージョンリリースのタイミングで、
+最新のnon-LTSリリースに対するサポートを検討する予定です。
 
-Ubuntu LTS releases still supported (10.04 and 12.04) are unaffected.
+UbuntuのLTSリリース(10.04、12.04)は引き続きサポートされますので影響はありません。
