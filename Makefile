@@ -84,7 +84,7 @@ perfdev : all
 	mkdir -p perfdev
 	(cd rel && ../rebar generate target_dir=../perfdev overlay_vars=vars/perf_vars.config)
 
-perf: perfdev
+perf:
 	perfdev/bin/riak stop || : 
 	perfdev/bin/riak start
 	perfdev/bin/riak-admin wait-for-service riak_kv 'perfdev@127.0.0.1'
