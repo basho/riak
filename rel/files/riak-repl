@@ -318,6 +318,16 @@ case "$1" in
         esac
         ;;
 
+    full_objects)
+        NEWVAL=$2
+
+        node_up_check
+
+        $NODETOOL rpc riak_repl_console full_objects $NEWVAL
+        exit 1
+        ;;
+
+
     proxy_get)
         ACTION=$1
         shift
@@ -550,6 +560,19 @@ Version 3 MDC replication:
              Limits the number of fullsync workers allowed to run on each
              individual node in a sink cluster. If the value is omitted, the
              current max_fssink_node value is displayed.
+
+      full_objects [ always | never | positive_integer ]
+
+             When receiving an object from a source on either realtime or
+             fullsync, replication can reduce the memory used to store that
+             object. The reduced object maintains enough information to
+             get the full object from the source cluster. Defaults to
+             always. When set to never, objects are always reduced and any
+             get will be proxied to the clsuter of record for that object.
+             When set to a positive integer, that many full objects will
+             be kept, with the rest reduced if the value is smaller than
+             the n_val specified on writes. If omitted, the current value
+             is displayed.
 
    NAT Configuration:
 
