@@ -97,7 +97,7 @@
 { translation,
   "riak_core.http",
     fun(Conf) ->
-        HTTP = cuttlefish_util:filter_by_variable_starts_with("listener.http.", Conf),
+        HTTP = cuttlefish_util:filter_by_variable_starts_with("listener.http", Conf),
         [ IP || {_, IP} <- HTTP]
     end
 }.
@@ -114,7 +114,7 @@
 { translation,
   "riak_api.pb",
     fun(Conf) ->
-        PB = cuttlefish_util:filter_by_variable_starts_with("listener.protobuf.", Conf),
+        PB = cuttlefish_util:filter_by_variable_starts_with("listener.protobuf", Conf),
         [ IP || {_, IP} <- PB]
     end
 }.
@@ -145,7 +145,7 @@
 { translation,
   "riak_core.https",
     fun(Conf) ->
-        HTTPS = cuttlefish_util:filter_by_variable_starts_with("listener.https.", Conf),
+        HTTPS = cuttlefish_util:filter_by_variable_starts_with("listener.https", Conf),
         [ IP || {_, IP} <- HTTPS]
     end
 }.
