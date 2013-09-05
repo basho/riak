@@ -985,7 +985,7 @@ end}.
 %% before leveldb responded with “write good”. The reality in modern servers 
 %% is that many layers of data caching exist between the database program and 
 %% the physical disks. This flag influences only one of the layers.
-{mapping, "leveldb.cache_size", "eleveldb.cache_size", [
+{mapping, "leveldb.sync", "eleveldb.sync", [
   {default, false},
   {datatype, enum},
   {enum, [true, false]},
