@@ -133,11 +133,11 @@ another) would exacerbate the problem.
   `riak_core_stat_q:log_error:123 Failed to calculate stat {riak_kv,vnode,backend,leveldb,read_block_error} with error:badarg`
       [Fixed in master](https://github.com/basho/riak_kv/issues/470)
 
-## Riak 1.3.1 Release Notes
+## Riak 1.3.1 リリースノート
 
-### New Features or Major Improvements for Riak
+### Riakの新機能と主な改善点
 
-#### 2i Big Integer Encoding
+#### 2i Big Integerエンコーディング
 
 For all Riak versions prior to 1.3.1, 2i range queries involving
 integers greater than or equal to 2147483647 (0x7fffffff) could return
@@ -148,6 +148,13 @@ sort order. For these large integers, this was not the case.  Since
 the 2i implementation relies on this property, some range queries were
 affected.
 
+1.3.1以前の全てのバージョンのRiakでは、2iのintの範囲指定は 2147483647 (0x7fffffff)
+異常の結果を全て返すことができませんでした。これはRiakが内部でデータをeleveldbに
+格納するためのエンコーディングライブラリ sext [1] の問題に由来するものと判明しました。
+sext はソート順を保ったままErlangのタームをバイナリにシリアライズするものです。
+大きな整数の場合はこれがうまくいきませんでした。
+2iの実装がこの機能に依存しているため、範囲検索が影響を受けていました。
+
 The issue in sext was patched [2] and is included in Riak 1.3.1. New
 installations of Riak 1.3.1 will immediately take advantage of the
 change.  However, the fix introduces an incompatibly in the encoding
@@ -155,6 +162,11 @@ of big integers.  Integer indexes containing values greater than or
 equal to 2147483647 already written to disk with Riak 1.3 and below
 will need to be rewritten, so that range queries over them will return
 the correct results.
+
+sextの問題は修正され [2] 、Riak 1.3.1 に含まれています。新しくRiak 1.3.1 を
+インストールした場合はこの恩恵を受けることができますが、大きな整数のエンコーディングは
+多少の非互換性をもたらします。1.3以前のRiakを使ってディスクにすでに書かれた
+2147483647 以上の整数のインデックスがある場合には、正しい値を返すために上書きする必要があります。
 
 Riak 1.3.1 includes a utility, as part of
 `riak-admin`, that will perform the reformatting of these indexes
@@ -166,7 +178,15 @@ to 1.3.1, regardless of whether or not large integer index values are
 used. It will report how many indexes were affected (rewritten). Unaffected
 indexes are not modified and new writes will be written in the correct format.
 
+Riak 1.3.1は `riak-admin` の一部としてノードの稼働中にインデックスを上書きする
+ツールを含んでいます。インデックスが全てのノードで上書きされたあとは、範囲検索は
+正しい結果を返すようになるでしょう。このツールは、大きな整数をインデックスを含んでいる
+かどうかにかかわらず、2i を使うクラスタが全て 1.3.1 にアップグレードしたあとに
+適用されなければなりません。
+
 To reformat indexes on a Riak node run:
+
+Riak ノードでこの上書きを実行するためには:
 
 ```
 riak-admin reformat-indexes [<concurrency>] [<batch size>]
@@ -184,10 +204,22 @@ if it errors).  *If the reformatting operation errors, it should be
 re-executed.* The operation will only attempt to reformat keys that
 were not fixed on the previous run.
 
+concurrencyオプションは同時に何個のパーティションを上書きするかを決めます。
+特に指定されない場合はデフォルトで2となります。 batch size は一度に何個の
+キーを変更するかを指定します。デフォルトは100です。 *負荷がかかっていなければ*
+concurrencyを上げると、もっと早く終わらせることができるでしょう。 batchを
+下げると、負荷がかかっている場合に他の操作のレイテンシが改善するでしょう。
+上書きが終了すれば、結果はログに表示されます。 *もし上書きが失敗していたら再実行してください。*
+この場合、上書きしていないキーだけを上書きしようとします。
+
 If downgrading back to Riak 1.3 from Riak 1.3.1, indexes will need to
 be reformatted back to the old encoding in order for the downgraded
 node to run correctly. The `--downgrade` flag can be passed to
 `riak-admin reformat-indexes` to perform this operation:
+
+もし1.3.1から1.3へのダウングレードをしたい場合には、ダウングレード後も正しく動作するために
+インデックスを古いエンコーディングに再フォーマットしなおさないといけません。
+これをするためには、`--downgrade` フラグを `riak-admin reformat-indexes` に与えます。
 
 ```
 riak-admin reformat-indexes [<concurrency>] [<batch size>] --downgrade
@@ -196,34 +228,55 @@ riak-admin reformat-indexes [<concurrency>] [<batch size>] --downgrade
 The concurrency and batch size parameters work in exactly the same way as in the
 upgrade case above.
 
+concurrencyとbatch sizeのパラメータはアップグレードの場合と同様です。
+
 [1] https://github.com/uwiger/sext
 
 [2] https://github.com/uwiger/sext/commit/ff10beb7a791f04ad439d2c1c566251901dd6bdc
 
 #### Improved bitcask startup time
+#### bitcaskの起動時間の改善
 
 We fixed a problem that was preventing vnodes from starting concurrently. Installations
 using the bitcask backend should see a substantial improvement in startup times if
 multiple cores are available.  We have observed improvements in the vicinity of an order
 of magnitude (~10X) on some of our own clusters.
 
+vnodeを並列に起動しない問題を改善しました。マルチコアのマシンで動作するとき、
+バックエンドにbitcaskを使っている場合は起動時間がかなり改善するでしょう。
+我々のクラスタでは桁違い(~10倍)の性能が出たこともあります。
+
 #### Fix behaviour of PR/PW
+#### PR/PW の挙動
 
 For Riak releases prior to 1.3.1 the get and put options PR and PW only
 checked that the requested number of primaries were online when the request was handled.
 It did not check which vnodes actually responded. So with a PW of 2 you could easily write
 to one primary, one fallback, fail the second primary write and return success.
 
+これまでのRiakでは get と put の PR/PW が指定された場合、指定された数のプライマリだけが
+オンラインかどうかをチェックしていましたが、 vnode が本当に生きているかどうかまでは確かめて
+いませんでした。もしPW=2だった場合、ひとつのプライマリ、ひとつのフォールバック、もうひとつの
+プライマリ書き込みで成功を返していました。
+
 As of Riak 1.3.1, PR and PW will also wait until the required number of primaries have responded
 before returning the result of the operation. This means that if PR + PW > N and both requests
 succeed, you'll be guaranteed to have read the previous value you've written (barring other
 intervening writes and irretrievably lost replicas).
 
+Riak 1.3.1では、PRとPWでは、指定された数のプライマリが結果を返すまでは待つようになりました。
+これは、 PR+PW > N かつ全てのリクエストが成功したら書き込んだデータが必ず読めるようになったことを
+保証するということです（他のwriteを妨げてレプリカを消したことになる）。
+
 Note however, that writes with PW that fail may easily have done a partial write. This change is
 purely about strengthening the constraints you can impose on read/write success. See more information
 in the pull request linked below.
 
-### Issues / PR's Resolved
+失敗したPWは用意に部分書き込みになりうることを忘れないでください。この変更は純粋に、
+read/write の成功で保証される内容を強化したものです。詳細は以下のプルリクエストのリンクをご覧ください。
+
+
+### 解決された Issues / PR
 
 * riak_kv/505: [Fix bug where stats endpoints were calculating _all_ riak_kv stats](https://github.com/basho/riak_kv/issues/505)
   NOTE: this fix introduces a slight change to the stats caching strategy in riak. Formerly stats were cached for TTL seconds
