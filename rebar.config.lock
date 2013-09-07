@@ -51,6 +51,9 @@
        {ibrowse,".*",
                 {git,"git://github.com/cmullaparthi/ibrowse.git",
                      "9b8b042fb7d37b90994ef6b6615c92dd2769328e"}},
+       {kvc,".*",
+            {git,"git://github.com/etrepum/kvc.git",
+                 "75c4e76468cb2bd03067a9c349989ee914a1b581"}},
        {lager,".*",
               {git,"git://github.com/basho/lager",
                    "169cffd94759e99e2e8870b125861a91e3c1482a"}},
@@ -122,6 +125,9 @@
                     "a67e9b6e61398f23917f1c1de2c0cc9728b1f172"}},
        {webmachine,".*",
                    {git,"git://github.com/basho/webmachine",
-                        "a16996309aff904ba01f60a73de1d88063292b02"}}]}.
+                        "a16996309aff904ba01f60a73de1d88063292b02"}},
+       {yokozuna,".*",
+                 {git,"git://github.com/basho/yokozuna",
+                      "8c4092446ff9939b0315fe2f824b1fb8c9290cd9"}}]}.
 {plugins,[cuttlefish_rebar_plugin,rebar_lock_deps_plugin]}.
 
