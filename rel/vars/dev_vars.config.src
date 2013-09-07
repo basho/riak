@@ -54,3 +54,10 @@
 %%
 {cuttlefish,         "on"}.
 {cuttlefish_conf,    "riak.conf"}.
+
+%%
+%% yokozuna
+%%
+{yz_dir, "{{platform_data_dir}}/yz"}.
+{yz_solr_port, @YZSOLRPORT@}.
+{yz_solr_jmx_port, @YZSOLRJMXPORT@}.
