@@ -12,12 +12,13 @@
 %% etc/app.config
 %%
 {web_ip,            "127.0.0.1"}.
-{cluster_mgr_ip,   "127.0.0.1"}.
-{cluster_mgr_port,  @CM_PORT@}.
+{cluster_manager_ip,   "127.0.0.1"}.
+{cluster_manager_port,  @CM_PORT@}.
 {web_port,          @WEBPORT@}.
 {handoff_port,      @HANDOFFPORT@}.
 {pb_ip,             "127.0.0.1"}.
 {pb_port,           @PBPORT@}.
+{jmx_port,          @JMXPORT@}.
 {ring_state_dir,    "{{platform_data_dir}}/ring"}.
 {bitcask_data_root, "{{platform_data_dir}}/bitcask"}.
 {leveldb_data_root, "{{platform_data_dir}}/leveldb"}.
@@ -67,3 +68,10 @@
 %% etc/snmp/agent.conf
 %%
 {snmp_agent_port, @SNMPPORT@}.
+
+%%
+%% cuttlefish
+%%
+{cuttlefish,         "on"}.
+{cuttlefish_conf,    "riak.conf"}.
+
