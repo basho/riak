@@ -82,8 +82,8 @@ perfdev : all
 	perfdev/bin/riak stop || :
 	rm -rf perfdev
 	mkdir -p perfdev
-	rel/gen_dev $@ rel/vars/perf_vars.config.src rel/vars/$@_vars.config
-	(cd rel && ../rebar generate target_dir=../perfdev overlay_vars=vars/perfdev_vars.config)
+	rel/gen_dev $@ rel/vars/perf_vars.config.src rel/vars/perf_vars.config
+	(cd rel && ../rebar generate target_dir=../perfdev overlay_vars=vars/perf_vars.config)
 	$(foreach dep,$(wildcard deps/*), rm -rf perfdev/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) perfdev/lib;)
 
 perf:

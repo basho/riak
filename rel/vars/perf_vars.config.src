@@ -43,7 +43,7 @@
 %%
 %% etc/vm.args
 %%
-{node,         "per@NODE@"}.
+{node,         "@NODE@"}.
 {crash_dump,   "{{platform_log_dir}}/erl_crash.dump"}.
 
 %%
