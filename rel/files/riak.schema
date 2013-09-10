@@ -126,14 +126,14 @@
 %% HTTP Listeners
 %% @doc listener.http.<name> is an IP address and TCP port that the Riak
 %% HTTP interface will bind.
-{mapping, "listener.http.$name", "riak_core.http", [
+{mapping, "listener.http.$name", "riak_api.http", [
   {default, {"{{web_ip}}",{{web_port}} }},
   {datatype, ip},
   {include_default, "internal"}
 ]}.
 
 { translation,
-  "riak_core.http",
+  "riak_api.http",
     fun(Conf) ->
         HTTP = cuttlefish_util:filter_by_variable_starts_with("listener.http", Conf),
         [ IP || {_, IP} <- HTTP]
@@ -174,14 +174,14 @@
 
 %% @doc listener.https.<name> is an IP address and TCP port that the Riak
 %% HTTPS interface will bind.
-{mapping, "listener.https.$name", "riak_core.https", [
+{mapping, "listener.https.$name", "riak_api.https", [
   {commented, {"{{web_ip}}",{{web_port}} }},
   {datatype, ip},
   {include_default, "internal"}
 ]}.
 
 { translation,
-  "riak_core.https",
+  "riak_api.https",
     fun(Conf) ->
         HTTPS = cuttlefish_util:filter_by_variable_starts_with("listener.https", Conf),
         [ IP || {_, IP} <- HTTPS]
