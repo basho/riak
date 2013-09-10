@@ -13,8 +13,7 @@
 %% mechanism that will be used on this node.
 {mapping, "multi_backend.$name.storage_backend", "riak_kv.multi_backend", [
   {default, bitcask},
-  {datatype, enum},
-  {enum, [bitcask, leveldb, memory]},
+  {datatype, {enum, [bitcask, leveldb, memory]}},
   {level, advanced}
 ]}.
 
@@ -101,13 +100,12 @@
 %%  * `interval` - Riak will force Bitcask to sync every `bitcask.sync_interval` seconds.
 {mapping, "multi_backend.$name.bitcask.sync_strategy", "riak_kv.multi_backend", [
   {default, none},
-  {datatype, enum},
-  {enum, [none, o_sync, interval]},
+  {datatype, {enum, [none, o_sync, interval]}},
   {level, advanced}
 ]}.
 
 {mapping, "multi_backend.$name.bitcask.sync_interval", "riak_kv.multi_backend", [
-  {datatype, duration_secs},
+  {datatype, {duration, s}},
   {level, advanced}
 ]}.
 
@@ -116,7 +114,7 @@
 %% file to exceed this size threshold then that file is closed, and a new file
 %% is opened for writes.
 {mapping, "multi_backend.$name.bitcask.max_file_size", "riak_kv.multi_backend", [
-  {default, "2gb"},
+  {default, "2GB"},
   {datatype, bytesize},
   {level, advanced}
 ]}.
@@ -136,8 +134,7 @@
 %% want to change this setting from the default.
 {mapping, "multi_backend.$name.bitcask.merge_window", "riak_kv.multi_backend", [
   {default, always},
-  {datatype, enum},
-  {enum, [always, never, window]},
+  {datatype, {enum, [always, never, window]}},
   {level, advanced}
 ]}.
 
@@ -182,7 +179,7 @@
 {mapping, "multi_backend.$name.bitcask.dead_bytes_merge_trigger", "riak_kv.multi_backend", [
   {datatype, bytesize},
   {level, advanced},
-  {default, "512mb"}
+  {default, "512MB"}
 ]}.
 
 %% @doc `frag_threshold` setting describes what ratio of
@@ -209,7 +206,7 @@
 {mapping, "multi_backend.$name.bitcask.dead_bytes_threshold", "riak_kv.multi_backend", [
   {datatype, bytesize},
   {level, advanced},
-  {default, "128mb"}
+  {default, "128MB"}
 ]}.
 
 %% @doc `small_file_threshold` setting describes the minimum
@@ -222,7 +219,7 @@
 {mapping, "multi_backend.$name.bitcask.small_file_threshold", "riak_kv.multi_backend", [
   {datatype, bytesize},
   {level, advanced},
-  {default, "10mb"}
+  {default, "10MB"}
 ]}.
 
 %% @doc Fold keys thresholds will reuse the keydir if another fold was started less
@@ -249,7 +246,7 @@
 %% 
 %% Default is: `-1` which disables automatic expiration
 {mapping, "multi_backend.$name.bitcask.expiry", "riak_kv.multi_backend", [
-  {datatype, duration_secs},
+  {datatype, {duration, s}},
   {level, advanced},
   {default, -1}
 ]}.
@@ -262,8 +259,7 @@
 %% become the default setting in a future release.
 {mapping, "multi_backend.$name.bitcask.require_hint_crc", "riak_kv.multi_backend", [
   {default, true},
-  {datatype, enum},
-  {enum, [true, false]},
+  {datatype, {enum, [true, false]}},
   {level, advanced}
 ]}.
 
@@ -276,7 +272,7 @@
 %%
 %% Default is: `0`
 {mapping, "multi_backend.$name.bitcask.expiry_grace_time", "riak_kv.multi_backend", [
-  {datatype, duration_secs},
+  {datatype, {duration, s}},
   {level, advanced},
   {default, 0}
 ]}.
@@ -291,8 +287,7 @@
 %% and possible throughput collapse.
 {mapping, "multi_backend.$name.bitcask.io_mode", "riak_kv.multi_backend", [
   {default, erlang},
-  {datatype, enum},
-  {enum, [erlang, nif]},
+  {datatype, {enum, [erlang, nif]}},
   {level, advanced}
 ]}.
 
@@ -321,7 +316,7 @@
 %% access to adjacent keys.
 {mapping, "multi_backend.$name.leveldb.cache_size", "riak_kv.multi_backend", [
   {datatype, bytesize},
-  {default, "8mb"},
+  {default, "8MB"},
   {level, advanced}
 ]}.
 
@@ -334,8 +329,7 @@
 %% the physical disks. This flag influences only one of the layers.
 {mapping, "multi_backend.$name.leveldb.sync", "riak_kv.multi_backend", [
   {default, false},
-  {datatype, enum},
-  {enum, [true, false]},
+  {datatype, {enum, [true, false]}},
   {level, advanced}
 ]}.
 
@@ -345,13 +339,13 @@
 %% write buffer for performance reasons. The random size is somewhere 
 %% between write_buffer_size_min and write_buffer_size_max.
 {mapping, "multi_backend.$name.leveldb.write_buffer_size_min", "riak_kv.multi_backend", [
-  {default, "15mb"},
+  {default, "15MB"},
   {datatype, bytesize},
   {level, advanced}
 ]}.
 
 {mapping, "multi_backend.$name.leveldb.write_buffer_size_max", "riak_kv.multi_backend", [
-  {default, "30mb"},
+  {default, "30MB"},
   {datatype, bytesize},
   {level, advanced}
 ]}.
@@ -363,8 +357,7 @@
 %% in the riak.conf to take effect.
 {mapping, "multi_backend.$name.leveldb.bloomfilter", "riak_kv.multi_backend", [
   {default, on},
-  {datatype, enum},
-  {enum, [on, off]},
+  {datatype, {enum, [on, off]}},
   {level, advanced}
 ]}.
 
@@ -372,7 +365,7 @@
 %% within one .sst table file. Each new block gets an index entry in the .sst
 %% table file's master index.
 {mapping, "multi_backend.$name.leveldb.block_size", "riak_kv.multi_backend", [
-  {default, "4kb"},
+  {default, "4KB"},
   {datatype, bytesize},
   {level, advanced}
 ]}.
@@ -390,8 +383,7 @@
 %% requests data from the leveldb database on behalf of the user.
 {mapping, "multi_backend.$name.leveldb.verify_checksums", "riak_kv.multi_backend", [
   {default, true},
-  {datatype, enum},
-  {enum, [true, false]},
+  {datatype, {enum, [true, false]}},
   {level, advanced}
 ]}.
 
@@ -399,8 +391,7 @@
 %% leveldb reads data as part of its background compaction operations.
 {mapping, "multi_backend.$name.leveldb.verify_compaction", "riak_kv.multi_backend", [
   {default, true},
-  {datatype, enum},
-  {enum, [true, false]},
+  {datatype, {enum, [true, false]}},
   {level, advanced}
 ]}.
 
@@ -408,12 +399,12 @@
 
 {mapping, "multi_backend.$name.memory_backend.max_memory", "riak_kv.multi_backend", [
   {datatype, bytesize},
-  {default, "4gb"},
+  {default, "4GB"},
   {level, advanced}
 ]}.
 
 {mapping, "multi_backend.$name.memory_backend.ttl", "riak_kv.multi_backend", [
-  {datatype, duration_secs},
+  {datatype, {duration, s}},
   {commented, "1d"}, %% no default, it's undefined.
   {level, advanced}
 ]}.
