@@ -340,9 +340,9 @@ end}.
 %% @doc Storage_backend specifies the Erlang module defining the storage
 %% mechanism that will be used on this node.
 {mapping, "storage_backend", "riak_kv.storage_backend", [
-  {default, bitcask},
+  {default, {{storage_backend}}},
   {datatype, enum},
-  {enum, [bitcask, leveldb, memory, multi]}
+  {enum, [bitcask, leveldb, memory, yessir, multi]}
 ]}.
 
 { translation,
@@ -353,6 +353,7 @@ end}.
       bitcask -> riak_kv_bitcask_backend;
       leveldb -> riak_kv_eleveldb_backend;
       memory -> riak_kv_memory_backend;
+      yessir -> riak_kv_yessir_backend;
       multi -> riak_kv_multi_backend;
       _Default -> riak_kv_bitcask_backend
     end
