@@ -17,21 +17,20 @@
 %% Slightly more complex mapping with translation layer
 %% @doc enable active anti-entropy subsystem
 {mapping, "anti_entropy", "riak_kv.anti_entropy", [
-  {datatype, enum},
-  {enum, [on, off, debug]},
+  {datatype, {enum, [on, off, debug]}},
   {default, on}
 ]}.
 
 { translation,
   "riak_kv.anti_entropy",
   fun(Conf) ->
-  	Setting = cuttlefish_util:conf_get_value("anti_entropy", Conf), 
-  	case Setting of
-  		on -> {on, []};
-  		debug -> {on, [debug]};
-  		off -> {off, []};
-  		_Default -> {on, []}
-  	end
+    Setting = cuttlefish_util:conf_get_value("anti_entropy", Conf), 
+    case Setting of
+      on -> {on, []};
+      debug -> {on, [debug]};
+      off -> {off, []};
+      _Default -> {on, []}
+    end
   end
 }.
 
@@ -51,35 +50,33 @@
 %% @doc turn on syslog
 {mapping, "log.syslog", "lager.handlers", [
   {default, off},
-  {datatype, enum},
-  {enum, [on, off]}
+  {datatype, {enum, [on, off]}}
 ]}.
 
 { translation,
   "lager.handlers",
-	fun(Conf) ->
-		SyslogHandler = case cuttlefish_util:conf_get_value("log.syslog", Conf) of
-			on ->  {lager_syslog_backend, ["riak", daemon, info]};
-			_ -> undefined
-		end,
-		ErrorHandler = case cuttlefish_util:conf_get_value("log.error.file", Conf) of
-			undefined -> undefined;
-			ErrorFilename -> {lager_file_backend, [{file, ErrorFilename}, {level, error}]}
-		end,
+  fun(Conf) ->
+    SyslogHandler = case cuttlefish_util:conf_get_value("log.syslog", Conf) of
+      on ->  {lager_syslog_backend, ["riak", daemon, info]};
+      _ -> undefined
+    end,
+    ErrorHandler = case cuttlefish_util:conf_get_value("log.error.file", Conf) of
+      undefined -> undefined;
+      ErrorFilename -> {lager_file_backend, [{file, ErrorFilename}, {level, error}]}
+    end,
         ConsoleHandler = case cuttlefish_util:conf_get_value("log.console.file", Conf) of
-        	undefined -> undefined;
-        	ConsoleFilename -> {lager_file_backend, [{file, ConsoleFilename}, {level, info}]}
+          undefined -> undefined;
+          ConsoleFilename -> {lager_file_backend, [{file, ConsoleFilename}, {level, info}]}
         end,
         lists:filter(fun(X) -> X =/= undefined end, [SyslogHandler, ErrorHandler, ConsoleHandler]) 
-	end
+  end
 }.
 
 %% SASL 
 %% We should never care about this
 {mapping, "sasl", "sasl.sasl_error_logger", [
   {default, off},
-  {datatype, enum},
-  {enum, [on, off]},
+  {datatype, {enum, [on, off]}},
   {level, advanced}
 ]}.
 
@@ -196,8 +193,7 @@
 %% source repository & branch.
 {mapping, "dtrace", "riak_core.dtrace_support", [
   {default, off},
-  {datatype, enum},
-  {enum, [on, off]}
+  {datatype, {enum, [on, off]}}
 ]}.
 
 %% consistent on/off (in lieu of enabled/disabled, true/false)
@@ -238,8 +234,7 @@
 %% @datatype enum on, off
 {mapping, "search", "riak_search.enabled", [
   {default, off},
-  {datatype, enum},
-  {enum, [on, off]}
+  {datatype, {enum, [on, off]}}
 ]}.
 
 { translation,
@@ -262,7 +257,7 @@ end}.
 %% threshold has been reached the data is transformed
 %% into a segment file which resides on disk.
 {mapping, "merge_index.buffer_rollover_size", "merge_index.buffer_rollover_size", [
-  {default, "1mb"},
+  {default, "1MB"},
   {datatype, bytesize}
 ]}.
 
@@ -287,14 +282,14 @@ end}.
 %% @datatype integer
 %% @mapping 
 {mapping, "log.crash.msg_size", "lager.crash_log_msg_size", [
-  {default, "64kb"},
+  {default, "64KB"},
   {datatype, bytesize}
 ]}.
 
 %% @doc Maximum size of the crash log in bytes, before its rotated, set
 %% to 0 to disable rotation - default is 0
 {mapping, "log.crash.size", "lager.crash_log_size", [
-  {default, "10mb"},
+  {default, "10MB"},
   {datatype, bytesize}
 ]}.
 
@@ -315,8 +310,7 @@ end}.
 %% @doc Whether to redirect error_logger messages into lager - defaults to true
 {mapping, "log.error.redirect", "lager.error_logger_redirect", [
   {default, on},
-  {datatype, enum},
-  {enum, [on, off]}
+  {datatype, {enum, [on, off]}}
 ]}.
 
 { translation,
@@ -341,8 +335,7 @@ end}.
 %% mechanism that will be used on this node.
 {mapping, "storage_backend", "riak_kv.storage_backend", [
   {default, bitcask},
-  {datatype, enum},
-  {enum, [bitcask, leveldb, memory, multi]}
+  {datatype, {enum, [bitcask, leveldb, memory, multi]}}
 ]}.
 
 { translation,
@@ -378,7 +371,7 @@ end}.
 
 {mapping, "anti_entropy.build_limit.per_timespan", "riak_kv.anti_entropy_build_limit", [
   {default, "1h"},
-  {datatype, duration}
+  {datatype, {duration, ms}}
 ]}.
 
 {translation,
@@ -397,7 +390,7 @@ end}.
 %% milliseconds. The default is 1 week.
 {mapping, "anti_entropy.expire", "riak_kv.anti_entropy_expire", [
   {default, "1w"},
-  {datatype, duration}
+  {datatype, {duration, ms}}
 ]}.
 
 %% @doc Limit how many AAE exchanges/builds can happen concurrently.
@@ -413,7 +406,7 @@ end}.
 %% Increasing the value is not recommended.
 {mapping, "anti_entropy.tick", "riak_kv.anti_entropy_tick", [
   {default, "15s"},
-  {datatype, duration}
+  {datatype, {duration, ms}}
 ]}.
 
 %% @doc The directory where AAE hash trees are stored.
@@ -424,7 +417,7 @@ end}.
 %% @doc The LevelDB options used by AAE to generate the LevelDB-backed
 %% on-disk hashtrees.
 {mapping, "anti_entropy.write_buffer_size", "riak_kv.anti_entropy_leveldb_opts.write_buffer_size", [
-  {default, "4mb"},
+  {default, "4MB"},
   {datatype, bytesize}
 ]}.
 
@@ -445,8 +438,7 @@ end}.
 %% undefined during a rolling upgrade from 1.0.
 {mapping, "mapred_2i_pipe", "riak_kv.mapred_2i_pipe", [
   {default, on},
-  {datatype, enum},
-  {enum, [on, off]}
+  {datatype, {enum, [on, off]}}
 ]}.
 
 { translation,
@@ -508,8 +500,7 @@ end}.
 %% mode will be removed in a future release.
 {mapping, "http_url_encoding", "riak_kv.http_url_encoding", [
   {default, on},
-  {datatype, enum},
-  {enum, [on, off]}
+  {datatype, {enum, [on, off]}}
 ]}.
 
 %% @doc Switch to vnode-based vclocks rather than client ids.  This
@@ -517,8 +508,7 @@ end}.
 %% Only set on if *all* nodes in the cluster are upgraded to 1.0
 {mapping, "vnode_vclocks", "riak_kv.vnode_vclocks", [
   {default, on},
-  {datatype, enum},
-  {enum, [on, off]}  
+  {datatype, {enum, [on, off]}} 
 ]}.
 
 { translation,
@@ -539,8 +529,7 @@ end}.
 %% operations
 {mapping, "listkeys_backpressure", "riak_kv.listkeys_backpressure", [
   {default, on},
-  {datatype, enum},
-  {enum, [on, off]} 
+  {datatype, {enum, [on, off]}}
 ]}.
 
 { translation,
@@ -571,8 +560,7 @@ end}.
 %% v1: New format for more compact storage of small values.
 {mapping, "object_format", "riak_kv.object_format", [
   {default, v1},
-  {datatype, enum},
-  {enum, [v0, v1]}
+  {datatype, {enum, [v0, v1]}}
 ]}.
 
 %% riak_sysmon config
@@ -609,14 +597,12 @@ end}.
 %% of that event type.
 {mapping, "riak_sysmon.busy_port", "riak_sysmon.busy_port", [
   {default, true},
-  {datatype, enum},
-  {enum, [true, false]},
+  {datatype, {enum, [true, false]}},
   {level, advanced}
 ]}.
 {mapping, "riak_sysmon.busy_dist_port", "riak_sysmon.busy_dist_port", [
   {default, true},
-  {datatype, enum},
-  {enum, [true, false]},
+  {datatype, {enum, [true, false]}},
   {level, advanced}
 ]}.
 
@@ -624,9 +610,9 @@ end}.
 %% @doc Set to false to disable the admin panel.
 {mapping, "riak_control", "riak_control.enabled", [
   {default, off},
-  {datatype, enum},
-  {enum, [on, off]}
+  {datatype, {enum, [on, off]}}
 ]}.
+
 {translation,
  "riak_control.enabled",
  fun(Conf) ->
@@ -642,8 +628,7 @@ end}.
 %% panel. Valid styles are 'userlist' <TODO>.
 {mapping, "riak_control.auth", "riak_control.auth", [
   {default, userlist},
-  {datatype, enum},
-  {enum, [userlist]}
+  {datatype, {enum, [userlist]}}
 ]}.
 
 %% @doc If auth is set to 'userlist' then this is the
@@ -674,8 +659,7 @@ end}.
 %% by one of these settings.
 {mapping, "riak_control.admin", "riak_control.admin", [
   {default, on},
-  {datatype, enum},
-  {enum, [on, off]}
+  {datatype, {enum, [on, off]}}
 ]}.
 
 {translation,
@@ -734,13 +718,12 @@ end}.
 %%  * `interval` - Riak will force Bitcask to sync every `bitcask.sync_interval` seconds.
 {mapping, "bitcask.sync_strategy", "bitcask.sync_strategy", [
   {default, none},
-  {datatype, enum},
-  {enum, [none, o_sync, interval]},
+  {datatype, {enum, [none, o_sync, interval]}},
   {level, advanced}
 ]}.
 
 {mapping, "bitcask.sync_interval", "bitcask.sync_strategy", [
-  {datatype, duration_secs},
+  {datatype, {duration, s}},
   {level, advanced}
 ]}.
 
@@ -763,7 +746,7 @@ end}.
 %% file to exceed this size threshold then that file is closed, and a new file
 %% is opened for writes.
 {mapping, "bitcask.max_file_size", "bitcask.max_file_size", [
-  {default, "2gb"},
+  {default, "2GB"},
   {datatype, bytesize},
   {level, advanced}
 ]}.
@@ -783,8 +766,7 @@ end}.
 %% want to change this setting from the default.
 {mapping, "bitcask.merge_window", "bitcask.merge_window", [
   {default, always},
-  {datatype, enum},
-  {enum, [always, never, window]},
+  {datatype, {enum, [always, never, window]}},
   {level, advanced}
 ]}.
 
@@ -845,7 +827,7 @@ end}.
 {mapping, "bitcask.dead_bytes_merge_trigger", "bitcask.dead_bytes_merge_trigger", [
   {datatype, bytesize},
   {level, advanced},
-  {default, "512mb"}
+  {default, "512MB"}
 ]}.
 
 %% @doc `frag_threshold` setting describes what ratio of
@@ -872,7 +854,7 @@ end}.
 {mapping, "bitcask.dead_bytes_threshold", "bitcask.dead_bytes_threshold", [
   {datatype, bytesize},
   {level, advanced},
-  {default, "128mb"}
+  {default, "128MB"}
 ]}.
 
 %% @doc `small_file_threshold` setting describes the minimum
@@ -885,7 +867,7 @@ end}.
 {mapping, "bitcask.small_file_threshold", "bitcask.small_file_threshold", [
   {datatype, bytesize},
   {level, advanced},
-  {default, "10mb"}
+  {default, "10MB"}
 ]}.
 
 %% @doc Fold keys thresholds will reuse the keydir if another fold was started less
@@ -912,7 +894,7 @@ end}.
 %% 
 %% Default is: `-1` which disables automatic expiration
 {mapping, "bitcask.expiry", "bitcask.expiry_secs", [
-  {datatype, duration_secs},
+  {datatype, {duration, s}},
   {level, advanced},
   {default, -1}
 ]}.
@@ -925,8 +907,7 @@ end}.
 %% become the default setting in a future release.
 {mapping, "bitcask.require_hint_crc", "bitcask.require_hint_crc", [
   {default, true},
-  {datatype, enum},
-  {enum, [true, false]},
+  {datatype, {enum, [true, false]}},
   {level, advanced}
 ]}.
 
@@ -939,7 +920,7 @@ end}.
 %%
 %% Default is: `0`
 {mapping, "bitcask.expiry_grace_time", "bitcask.expiry_grace_time", [
-  {datatype, duration_secs},
+  {datatype, {duration, s}},
   {level, advanced},
   {default, 0}
 ]}.
@@ -954,8 +935,7 @@ end}.
 %% and possible throughput collapse.
 {mapping, "bitcask.io_mode", "bitcask.io_mode", [
   {default, erlang},
-  {datatype, enum},
-  {enum, [erlang, nif]}
+  {datatype, {enum, [erlang, nif]}}
 ]}.
 
 %%%% This is the leveldb section
@@ -982,7 +962,7 @@ end}.
 %% access to adjacent keys.
 {mapping, "leveldb.cache_size", "eleveldb.cache_size", [
   {datatype, bytesize},
-  {default, "8mb"},
+  {default, "8MB"},
   {level, advanced}
 ]}.
 
@@ -995,8 +975,7 @@ end}.
 %% the physical disks. This flag influences only one of the layers.
 {mapping, "leveldb.sync", "eleveldb.sync", [
   {default, false},
-  {datatype, enum},
-  {enum, [true, false]},
+  {datatype, {enum, [true, false]}},
   {level, advanced}
 ]}.
 
@@ -1006,13 +985,13 @@ end}.
 %% write buffer for performance reasons. The random size is somewhere 
 %% between write_buffer_size_min and write_buffer_size_max.
 {mapping, "leveldb.write_buffer_size_min", "eleveldb.write_buffer_size_min", [
-  {default, "30mb"},
+  {default, "30MB"},
   {datatype, bytesize},
   {level, advanced}
 ]}.
 
 {mapping, "leveldb.write_buffer_size_max", "eleveldb.write_buffer_size_max", [
-  {default, "60mb"},
+  {default, "60MB"},
   {datatype, bytesize},
   {level, advanced}
 ]}.
@@ -1024,8 +1003,7 @@ end}.
 %% in the riak.conf to take effect.
 {mapping, "leveldb.bloomfilter", "eleveldb.use_bloomfilter", [
   {default, on},
-  {datatype, enum},
-  {enum, [on, off]}
+  {datatype, {enum, [on, off]}}
 ]}.
 
 { translation,
@@ -1043,7 +1021,7 @@ end}.
 %% within one .sst table file. Each new block gets an index entry in the .sst
 %% table file's master index.
 {mapping, "leveldb.block_size", "eleveldb.sst_block_size", [
-  {default, "4kb"},
+  {default, "4KB"},
   {datatype, bytesize},
   {level, advanced}
 ]}.
@@ -1061,8 +1039,7 @@ end}.
 %% requests data from the leveldb database on behalf of the user.
 {mapping, "leveldb.verify_checksums", "eleveldb.verify_checksums", [
   {default, true},
-  {datatype, enum},
-  {enum, [true, false]},
+  {datatype, {enum, [true, false]}},
   {level, advanced}
 ]}.
 
@@ -1070,8 +1047,7 @@ end}.
 %% leveldb reads data as part of its background compaction operations.
 {mapping, "leveldb.verify_compaction", "eleveldb.verify_compaction", [
   {default, true},
-  {datatype, enum},
-  {enum, [true, false]},
+  {datatype, {enum, [true, false]}},
   {level, advanced}
 ]}.
 
@@ -1079,7 +1055,7 @@ end}.
 
 {mapping, "memory_backend.max_memory", "riak_kv.memory_backend.max_memory", [
   {datatype, bytesize},
-  {default, "4gb"},
+  {default, "4GB"},
   {level, advanced}
 ]}.
 
@@ -1092,7 +1068,7 @@ end}.
 }.
 
 {mapping, "memory_backend.ttl", "riak_kv.memory_backend.ttl", [
-  {datatype, duration_secs},
+  {datatype, {duration, s}},
   {commented, "1d"}, %% no default, it's undefined.
   {level, advanced}
 ]}.
@@ -1169,7 +1145,7 @@ end}.
 %% The Erlang/OTP default is 1024 (1 megabyte).
 %% See: http://www.erlang.org/doc/man/erl.html#%2bzdbbl
 {mapping, "erlang.zdouble", "vm_args.+zdbbl", [
-  {commented, "32mb"},
+  {commented, "32MB"},
   {datatype, bytesize}
 ]}.
 
