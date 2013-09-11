@@ -3,7 +3,7 @@
 # ex: ts=4 sw=4 et
 
 # Pull environment for this install
-. "{{runner_base_dir}}/lib/env.sh"
+. "$(cd ${0%/*} && pwd)/../lib/env.sh"
 
 # Make sure the user running this script is the owner and/or su to that user
 check_user $@
@@ -389,6 +389,58 @@ case "$1" in
                 exit 1
         esac
         ;;
+    add-block-provider-redirect)
+        CMD=$1
+        shift
+        if [ $# -ne 2 ]; then
+            echo "Usage: $SCRIPT $ACTION show |"
+            echo "                       block-provider-redirect <from-cluster> <to-cluster>"
+            exit 1
+        fi
+        # Make sure the local node is running
+        node_up_check
+
+        $NODETOOL rpc riak_repl_console add_block_provider_redirect $1 $2
+        ;;
+    show-block-provider-redirect)
+        CMD=$1
+        shift
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT $ACTION show |"
+            echo "                       show-block-provider-redirect <from-cluster>"
+            exit 1
+        fi
+        # Make sure the local node is running
+        node_up_check
+
+        $NODETOOL rpc riak_repl_console show_block_provider_redirect $1 
+        ;;
+    delete-block-provider-redirect)
+        CMD=$1
+        shift
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT $ACTION show |"
+            echo "                       delete-block-provider-redirect <from-cluster>"
+            exit 1
+        fi
+        # Make sure the local node is running
+        node_up_check
+
+        $NODETOOL rpc riak_repl_console delete_block_provider_redirect $1
+        ;;
+    show-local-cluster-id)
+        CMD=$1
+        shift
+        if [ $# -ne 0 ]; then
+            echo "Usage: $SCRIPT $ACTION show |"
+            echo "                       show-local-cluster-id"
+            exit 1
+        fi
+        # Make sure the local node is running
+        node_up_check
+
+        $NODETOOL rpc riak_repl_console show_local_cluster_id
+        ;;
     *)
 
 
@@ -519,6 +571,24 @@ Version 3 MDC replication:
 
              modelist is one or both of mode_repl12, mode_repl13 separated by
              spaces. Changes the behavior of the realtime replication bucket hooks.
+
+      add-block-provider-redirect [<from-cluster-id> <to-cluster-id>]
+
+             provide a redirection to the <to-cluster-id> for proxy_get if
+             the original cluster is going to be put out of service
+
+      show-block-provider-redirect [<from-cluster-id>]
+             show the mapping for a given cluster-id redirect
+   
+      delete-block-provider-redirect [<from-cluster-id>]
+
+             delete a pre-existing redirect such that proxy_gets go
+             again to the original provider cluster id.
+    
+      show-local-cluster-id []
+ 
+             display this cluster's cluster-id tuple, for use with the *-block-provider-redirect
+             commands
 
    Performance Tuning:
 
