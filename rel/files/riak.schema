@@ -34,7 +34,22 @@
   end
 }.
 
-%% complex lager example
+%% @doc where do you want the console.log output:
+%% off : nowhere
+%% file: the file specified by log.console.file
+%% console : standard out
+%% both : log.console.file and standard out.
+{mapping, "log.console", "lager.handlers", [
+  {default, {{console_log_default}} },
+  {datatype, {enum, [off, file, console, both]}}
+]}.
+
+%% @doc the log level of the console log
+{mapping, "log.console.level", "lager.handlers", [
+  {default, info},
+  {datatype, {enum, [debug, info, warning, error]}}
+]}.
+
 %% @doc location of the console log
 {mapping, "log.console.file", "lager.handlers", [
   {default, "{{platform_log_dir}}/console.log"}
@@ -57,18 +72,36 @@
   "lager.handlers",
   fun(Conf) ->
     SyslogHandler = case cuttlefish_util:conf_get_value("log.syslog", Conf) of
-      on ->  {lager_syslog_backend, ["riak", daemon, info]};
-      _ -> undefined
+      on ->  [{lager_syslog_backend, ["riak", daemon, info]}];
+      _ -> []
     end,
     ErrorHandler = case cuttlefish_util:conf_get_value("log.error.file", Conf) of
-      undefined -> undefined;
-      ErrorFilename -> {lager_file_backend, [{file, ErrorFilename}, {level, error}]}
+      undefined -> [];
+      ErrorFilename -> [{lager_file_backend, [{file, ErrorFilename}, 
+                                              {level, error},
+                                              {size, 10485760},
+                                              {date, "$D0"},
+                                              {count, 5}]}]
     end,
-        ConsoleHandler = case cuttlefish_util:conf_get_value("log.console.file", Conf) of
-          undefined -> undefined;
-          ConsoleFilename -> {lager_file_backend, [{file, ConsoleFilename}, {level, info}]}
-        end,
-        lists:filter(fun(X) -> X =/= undefined end, [SyslogHandler, ErrorHandler, ConsoleHandler]) 
+
+    ConsoleLogLevel = cuttlefish_util:conf_get_value("log.console.level", Conf),
+    ConsoleLogFile = cuttlefish_util:conf_get_value("log.console.file", Conf),
+
+    ConsoleHandler = {lager_console_handler, ConsoleLogLevel},
+    ConsoleFileHandler = {lager_file_backend, [{file, ConsoleLogFile},
+                                                {level, ConsoleLogLevel},
+                                                {size, 10485760},
+                                                {date, "$D0"},
+                                                {count, 5}]},
+
+    ConsoleHandlers = case cuttlefish_util:conf_get_value("log.console", Conf) of
+      off -> [];
+      file -> [ConsoleFileHandler];
+      console -> [ConsoleHandler];
+      both -> [ConsoleHandler, ConsoleFileHandler];
+      _ -> []
+    end,
+    SyslogHandler ++ ConsoleHandlers ++ ErrorHandler
   end
 }.
 
@@ -93,14 +126,14 @@
 %% HTTP Listeners
 %% @doc listener.http.<name> is an IP address and TCP port that the Riak
 %% HTTP interface will bind.
-{mapping, "listener.http.$name", "riak_core.http", [
+{mapping, "listener.http.$name", "riak_api.http", [
   {default, {"{{web_ip}}",{{web_port}} }},
   {datatype, ip},
   {include_default, "internal"}
 ]}.
 
 { translation,
-  "riak_core.http",
+  "riak_api.http",
     fun(Conf) ->
         HTTP = cuttlefish_util:filter_by_variable_starts_with("listener.http", Conf),
         [ IP || {_, IP} <- HTTP]
@@ -141,14 +174,14 @@
 
 %% @doc listener.https.<name> is an IP address and TCP port that the Riak
 %% HTTPS interface will bind.
-{mapping, "listener.https.$name", "riak_core.https", [
+{mapping, "listener.https.$name", "riak_api.https", [
   {commented, {"{{web_ip}}",{{web_port}} }},
   {datatype, ip},
   {include_default, "internal"}
 ]}.
 
 { translation,
-  "riak_core.https",
+  "riak_api.https",
     fun(Conf) ->
         HTTPS = cuttlefish_util:filter_by_variable_starts_with("listener.https", Conf),
         [ IP || {_, IP} <- HTTPS]
