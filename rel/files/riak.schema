@@ -658,11 +658,21 @@ end}.
  end}.
 
 %% @doc Authentication style used for access to the admin
-%% panel. Valid styles are 'userlist' <TODO>.
+%% panel. Valid styles are: off, userlist
 {mapping, "riak_control.auth", "riak_control.auth", [
   {default, userlist},
-  {datatype, {enum, [userlist]}}
+  {datatype, {enum, [off, userlist]}}
 ]}.
+
+{translation,
+"riak_control.auth",
+fun(Conf) ->
+  case cuttlefish_util:conf_get_value("riak_control.auth", Conf) of
+    userlist -> userlist;
+    off -> none;
+    _ -> none
+  end
+end}.
 
 %% @doc If auth is set to 'userlist' then this is the
 %% list of usernames and passwords for access to the
