@@ -10,11 +10,11 @@ Riak 1.2で、我々はleveldbの壊れたブロックを lost/BLOCKS.bad に、
 
 Unfortunately, we did not realize that only one of two corruption tests was actually active during a compaction.  There is a CRC test that applies to all blocks, including file metadata.  Compression logic has a hash test that applies only to compressed data blocks.  The CRC test was not active by default.  Sadly, leveldb makes limited defensive tests beyond the CRC.  A corrupted disk file could readily result in a leveldb / Riak crash ... unless the bad block happened to be detected by the compression hash test.
 
-残念なことに、ふたつあるデータ破壊チェックのうちひとつしかコンパクション中に動いていなかったことに気づいていませんでした。ファイルのメタデータも含めて全てのブロックに対するCRCチェックです。圧縮のロジックでは、圧縮されたデータブロックに対して hash によるチェックが入っています。CRCチェックの方はデフォルトでは有効になっていません。悲しいことに、 leveldb はCRC以上のことは非常に限られたことしかしません。もし壊れたブロックがたまたま圧縮のhashチェックで全て検出されたから運がよかったものの、壊れたディスクのファイルを読むと leveldb / Riak のクラッシュもありえました。
+残念なことに、ふたつあるデータ破壊チェックのうちひとつしかコンパクション中に動いていなかったことに気づいていませんでした。ファイルのメタデータも含めて全てのブロックに対するCRCチェックです。圧縮のロジックでは、圧縮されたデータブロックに対して hash によるチェックが入っています。CRCチェックの方はデフォルトでは有効になっていません。悲しいことに、 leveldb はCRC以上のことは非常に限られたことしかしません。もし壊れたブロックがたまたま圧縮のhashチェックで全て検出できればから運がよいものの、壊れたディスクのファイルを読むと leveldb / Riak のクラッシュもありえました。
 
 Google's answer to this problem is the paranoid_checks option, which defaults to false.  Unfortunately setting this to true activates not only the compaction CRC test but also a CRC test of the recovery log.  A CRC failure in the recovery log after a crash is expected, and utilized by the existing code logic to enable automated recovery upon next start up.  paranoid_checks option will actually stop the automatic recovery if set to true.  This second behavior is undesired.
 
-これに対するGoogleの対策はデフォルトでオフになっている `paranoid_checks` オプションです。残念ながらこれを `true` にするとコンパクション時のCRCチェックが有効になるだけでなく、リカバリログのCRCチェックも有効になってしまいます。プロセスが落ちた後のリカバリログのCRCチェックは失敗することが期待されます。これは既存のコードでも、次に起動したときに活用されます。 `paranoid_checks` オプションが `true` になっていると自動リカバリ（の際の修復）が動きません。これは望ましくない挙動です。
+これに対するGoogleの対策はデフォルトでオフになっている `paranoid_checks` オプションです。残念ながらこれを `true` にするとコンパクション時のCRCチェックが有効になるだけでなく、リカバリログのCRCチェックも有効になってしまいます。プロセスが落ちた後のリカバリログのCRCチェックは失敗することがありえます。これは既存のコードでも、次に起動したときに活用されます。 `paranoid_checks` オプションが `true` になっていると自動リカバリ（の際の修復）が動きません。これは望ましくない挙動です。
 
 This branch creates a new option, verify_compactions.  The background CRC test previously controlled by paranoid_checks is now controlled by this new option.  The recovery log CRC check is still controlled by paranoid_checks.  verify_compactions defaults to true.  paranoid_checks continues to default to false.
 
@@ -46,9 +46,9 @@ can be found at: https://gist.github.com/evanmcc/a599f4c6374338ed672e.
 
 このリリースのRiak EDSはErlang/OTPの仮想マシンに、スリープしている
 スケジューラを通常の間隔で起こすためのパッチを必要とします。 `+sfwi` というフラグが
-`vm.args` ファイルに入っていることでしょう。この値はミリ秒です。アプリケーションに
+`vm.args` ファイルに入っている必要があります。この値はミリ秒です。アプリケーションに
 よってはチューニングが必要になると思います。オープンソース版のRiakでも、
-このパッチ（ "vm.args" の追加フラグ）は推奨されています。パッチは
+このパッチ（ `vm.args` の追加フラグ）は推奨されています。パッチは
 https://gist.github.com/evanmcc/a599f4c6374338ed672e にあります。
 
 #### Overload Protection / Work Shedding
@@ -59,7 +59,7 @@ Riak node becomes overloaded, Riak will now immediately respond
 `{error, overload}` rather than perpetually enqueuing requests and
 making the situation worse.
 
-Riak 1.3.2 で、過負荷を防御する仕組みが組み込まれています。もしRiakノードが
+Riak 1.3.2 で、過負荷を防御する仕組みを組み込みました。もしRiakノードが
 過負荷状態になると、 `{error, overload}` というレスポンスを返すことで
 リクエストがキューに積まれたまま放置することはなくなりました。
 
@@ -94,7 +94,7 @@ configured through the `riak_kv/fsm_limit` setting. The default is
 the default allows up to `100000` in-flight requests in total.
 
 Riakには2種類の過負荷対策が組み込まれています。どちらも異なる設定です。
-ひとつめはノードあたりの get と put の数を制限するものです。これは
+ひとつめはノードあたりの get と put の同時実行数を制限するものです。これは
 `riak_kv/fsm_limit` という項目で設定できます。デフォルトは `50000` です。
 この最大値は get と put それぞれで制御されますので、デフォルトではトータルで
 `100000` まで扱えることになります。
@@ -146,7 +146,7 @@ completed within the last second. Finally, the
 due to overload in their respective time windows.
 
 `node_get_fsm_active` と `node_get_fsm_active_60s` の統計値は
-そのノード上のそれぞれ直近1秒、1分現在で有効な get のリクエスト数を表します。
+そのノード上のそれぞれ直近1秒、1分で有効な get のリクエスト数を表します。
 `node_get_fsm_in_rate` と `node_get_fsm_out_rate` は直近1秒で
 リクエスト処理の開始と終了を終えたものの数をあらわします。さいごに、
 `node_get_fsm_rejected`, `node_get_fsm_rejected_60s` と
@@ -166,7 +166,7 @@ another) would exacerbate the problem.
 
 ヘルスチェックの機能は Riak 1.3.0 でリリースされましたが、 1.3.2 で無効化されました。
 過負荷対策の仕組みが同様の役割をより安全に果たしているからです。特に、ヘルスチェックの
-アプローチは、ノードが遅いためになってしまった過負荷状態からはうまく復帰できましたが、
+アプローチは、ノードが遅いために発生してしまった過負荷状態からはうまく復帰できましたが、
 クラスタ全体の処理能力を超えた負荷スパイクに対しては脆弱でした。つまり、2番目の場合には、
 ヘルスチェックのアプローチ（負荷を別のノードに分担する）は、問題を悪化させます。
 
@@ -222,7 +222,7 @@ the 2i implementation relies on this property, some range queries were
 affected.
 
 1.3.1以前の全てのバージョンのRiakでは、2iのintの範囲指定は 2147483647 (0x7fffffff)
-異常の結果を全て返すことができませんでした。これはRiakが内部でデータをeleveldbに
+以上の結果を全て返すことができませんでした。これはRiakが内部でデータをeleveldbに
 格納するためのエンコーディングライブラリ sext [1] の問題に由来するものと判明しました。
 sext はソート順を保ったままErlangのタームをバイナリにシリアライズするものです。
 大きな整数の場合はこれがうまくいきませんでした。
@@ -327,10 +327,10 @@ checked that the requested number of primaries were online when the request was 
 It did not check which vnodes actually responded. So with a PW of 2 you could easily write
 to one primary, one fallback, fail the second primary write and return success.
 
-これまでのRiakでは get と put の PR/PW が指定された場合、指定された数のプライマリだけが
-オンラインかどうかをチェックしていましたが、 vnode が本当に生きているかどうかまでは確かめて
-いませんでした。もしPW=2だった場合、ひとつのプライマリ、ひとつのフォールバック、もうひとつの
-プライマリ書き込みで成功を返していました。
+これまでのRiakでは get と put の PR/PW が指定された場合、指定された数のプライマリが
+オンラインかどうかだけをチェックしていましたが、 vnode が本当に応答したかどうかまでは確かめて
+いませんでした。もしPW=2だった場合、ひとつのプライマリとひとつのフォールバックに書き込み成功すれば、
+もうひとつのプライマリへの書き込みに失敗してもで成功の応答を返していました。
 
 As of Riak 1.3.1, PR and PW will also wait until the required number of primaries have responded
 before returning the result of the operation. This means that if PR + PW > N and both requests
@@ -339,7 +339,7 @@ intervening writes and irretrievably lost replicas).
 
 Riak 1.3.1では、PRとPWでは、指定された数のプライマリが結果を返すまでは待つようになりました。
 これは、 PR+PW > N かつ全てのリクエストが成功したら書き込んだデータが必ず読めるようになったことを
-保証するということです（他のwriteを妨げてレプリカを消したことになる）。
+保証するということです（その間に他の書き込みや、修復不能なレプリカ障害がない限り）。
 
 Note however, that writes with PW that fail may easily have done a partial write. This change is
 purely about strengthening the constraints you can impose on read/write success. See more information
