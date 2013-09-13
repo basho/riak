@@ -22,7 +22,7 @@ This branch creates a new option, verify_compactions.  The background CRC test p
 
 **Note:**  CRC calculations are typically expensive.  Riak 1.3 added code to leveldb to utilize Intel hardware CRC on 64bit servers where available.  Riak 1.2 added code to leveldb to create multiple, prioritized compaction threads.  These two prior features work to minimize / hide the impact of the increased CRC workload during background compactions.
 
-**注意:** CRC計算は高コストです。Riak 1.3 でIntelのハードウェアCRC回路が有効な場合はそれを使うコードが追加されました。Riak 1.2では複数の優先度付けされたスレッドが動作するようになっています。これらの2つの機能によって、バックグラウドのコンパクション処理にまかせることによって、高価なCRC計算のコストの影響を最小限に留めることができています。
+**注意:** CRC計算は高コストです。Riak 1.3 でIntelのハードウェアCRC回路が有効な場合はそれを使うコードが追加されました。Riak 1.2では複数の優先度付けされたスレッドが動作するようになっています。これらの2つの機能によって、バックグラウドのコンパクション処理中の高価なCRC計算のコストの影響を最小限に留めることができています。
 
 #### Erlang Scheduler Collapse
 #### Erlang スケジューラ縮退
@@ -32,9 +32,9 @@ Erlang computation scheduler threads going asleep too aggressively.
 The sleeping periods reduce power consumption and inter-thread
 resource contention.
 
-R16B01以前の全てのErlang/OTPのりr−すでは、Erlangのスケジューラがスリープしすぎる
-という問題があります。スリープすることによって、その間の電力消費や
-スレッド間のリソース競合を減らすことができます。
+R16B01以前の全てのErlang/OTPのリリースでは、Erlangのスケジューラがスリープしやすすぎる
+という問題があります。スリープすることによって、その間の電力消費やスレッド間の
+リソース競合を減らすことができます。
 
 This release of Riak EDS requires a patch to the Erlang/OTP
 virtual machine to force sleeping scheduler threads to wake up a
