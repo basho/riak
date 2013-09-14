@@ -338,6 +338,15 @@ case "$1" in
                 continue
             fi
 
+            # Make sure the requested node is known before checking service status
+            # primarily to give typo feedback to user
+            KNOWNNODES=`$NODETOOL rpcterms erlang nodes "known."`
+            echo "$KNOWNNODES" | grep "[[,]'$TARGETNODE'[],]" > /dev/null 2>&1
+            if [ "X$?" != "X0" ]; then
+                echo "$TARGETNODE is not a known node"
+                exit 1
+            fi
+
             # Get the list of services that are available on the requested noe
             SERVICES=`$NODETOOL rpcterms riak_core_node_watcher services "'${TARGETNODE}'."`
             echo "$SERVICES" | grep "[[,]$SVC[],]" > /dev/null 2>&1
