@@ -155,9 +155,24 @@ security_admin()
         print-sources)
             $NODETOOL rpc riak_core_console print_sources
             ;;
-        print-grants)
-            $NODETOOL rpc riak_core_console print_grants
+        print-user)
+            shift
+            $NODETOOL rpc riak_core_console print_user "$@"
             ;;
+        *)
+            echo "\
+Usage: $SCRIPT security <command>
+
+The following commands modify users and security ACLs for Riak:
+
+    add-user <username> [options]
+    add-source all|<users> <CIDR> <source> [options]
+    grant <permissions> ON ANY|<type> [bucket] TO <users>
+    revoke <permissions> ON ANY|<type> [bucket] FROM <users>
+    print-users
+    print-sources
+    print-user [user]
+"
     esac
 }
 
