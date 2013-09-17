@@ -4,45 +4,21 @@
 
 #### eLevelDB のコンパクションの整合性チェック
 
-In Riak 1.2 we added code to have leveldb automatically shunt corrupted blocks to the lost/BLOCKS.bad file during a compaction.  This was to keep the compactions from going into an infinite loop over an issue that A) read repair and AAE could fix behind the scenes and B) took up a bunch of customer support / engineering time to help customers fix manually.
-
 Riak 1.2で、我々はleveldbの壊れたブロックを lost/BLOCKS.bad に、コンパクション中に隔離するようにしました。これは、コンパクションのために A)リードリペアとAAEが裏側でデータをデータを修正しうるにもかかわらず、 B)手動でこれを修正する顧客サポートのエンジニアの工数がかかることを防ぐためです。
-
-Unfortunately, we did not realize that only one of two corruption tests was actually active during a compaction.  There is a CRC test that applies to all blocks, including file metadata.  Compression logic has a hash test that applies only to compressed data blocks.  The CRC test was not active by default.  Sadly, leveldb makes limited defensive tests beyond the CRC.  A corrupted disk file could readily result in a leveldb / Riak crash ... unless the bad block happened to be detected by the compression hash test.
 
 残念なことに、ふたつあるデータ破壊チェックのうちひとつしかコンパクション中に動いていなかったことに気づいていませんでした。ファイルのメタデータも含めて全てのブロックに対するCRCチェックです。圧縮のロジックでは、圧縮されたデータブロックに対して hash によるチェックが入っています。CRCチェックの方はデフォルトでは有効になっていません。悲しいことに、 leveldb はCRC以上のことは非常に限られたことしかしません。もし壊れたブロックがたまたま圧縮のhashチェックで全て検出できればから運がよいものの、壊れたディスクのファイルを読むと leveldb / Riak のクラッシュもありえました。
 
-Google's answer to this problem is the paranoid_checks option, which defaults to false.  Unfortunately setting this to true activates not only the compaction CRC test but also a CRC test of the recovery log.  A CRC failure in the recovery log after a crash is expected, and utilized by the existing code logic to enable automated recovery upon next start up.  paranoid_checks option will actually stop the automatic recovery if set to true.  This second behavior is undesired.
-
 これに対するGoogleの対策はデフォルトでオフになっている `paranoid_checks` オプションです。残念ながらこれを `true` にするとコンパクション時のCRCチェックが有効になるだけでなく、リカバリログのCRCチェックも有効になってしまいます。プロセスが落ちた後のリカバリログのCRCチェックは失敗することがありえます。これは既存のコードでも、次に起動したときに活用されます。 `paranoid_checks` オプションが `true` になっていると自動リカバリ（の際の修復）が動きません。これは望ましくない挙動です。
-
-This branch creates a new option, verify_compactions.  The background CRC test previously controlled by paranoid_checks is now controlled by this new option.  The recovery log CRC check is still controlled by paranoid_checks.  verify_compactions defaults to true.  paranoid_checks continues to default to false.
 
 そこで、新しいオプション `verify_compactions` を設けました。`paranoid_checks` で切り替えていた、バックグラウドで動作するCRCチェックはこの新しいオプションで設定できます。リカバリログのCRCチェックはこれからも `paranoid_checks` で設定されます。 `verify_compactions` のデフォルトは `true` です。 `paranoid_checks` のデフォルトは `false` のままです。
 
-**Note:**  CRC calculations are typically expensive.  Riak 1.3 added code to leveldb to utilize Intel hardware CRC on 64bit servers where available.  Riak 1.2 added code to leveldb to create multiple, prioritized compaction threads.  These two prior features work to minimize / hide the impact of the increased CRC workload during background compactions.
-
 **注意:** CRC計算は高コストです。Riak 1.3 でIntelのハードウェアCRC回路が有効な場合はそれを使うコードが追加されました。Riak 1.2では複数の優先度付けされたスレッドが動作するようになっています。これらの2つの機能によって、バックグラウドのコンパクション処理中の高価なCRC計算のコストの影響を最小限に留めることができています。
 
-#### Erlang Scheduler Collapse
 #### Erlang スケジューラ縮退
-
-All Erlang/OTP releases prior to R16B01 are vulnerable to the
-Erlang computation scheduler threads going asleep too aggressively.
-The sleeping periods reduce power consumption and inter-thread
-resource contention.
 
 R16B01以前の全てのErlang/OTPのリリースでは、Erlangのスケジューラがスリープしやすすぎる
 という問題があります。スリープすることによって、その間の電力消費やスレッド間の
 リソース競合を減らすことができます。
-
-This release of Riak EDS requires a patch to the Erlang/OTP
-virtual machine to force sleeping scheduler threads to wake up a
-regular intervals.  The flag `+sfwi 500` must also be
-present in the `vm.args` file.  This value is in milliseconds and may
-need tuning for your application.  For the Open Source Riak release,
-the patch (and extra "vm.args" flags) are recommended: the patch
-can be found at: https://gist.github.com/evanmcc/a599f4c6374338ed672e.
 
 このリリースのRiak EDSはErlang/OTPの仮想マシンに、スリープしている
 スケジューラを通常の間隔で起こすためのパッチを必要とします。 `+sfwi` というフラグが
@@ -51,47 +27,21 @@ can be found at: https://gist.github.com/evanmcc/a599f4c6374338ed672e.
 このパッチ（ `vm.args` の追加フラグ）は推奨されています。パッチは
 https://gist.github.com/evanmcc/a599f4c6374338ed672e にあります。
 
-#### Overload Protection / Work Shedding
 #### 過負荷対策 / 負荷制御
-
-As of Riak 1.3.2, Riak now includes built-in overload protection. If a
-Riak node becomes overloaded, Riak will now immediately respond
-`{error, overload}` rather than perpetually enqueuing requests and
-making the situation worse.
 
 Riak 1.3.2 で、過負荷を防御する仕組みを組み込みました。もしRiakノードが
 過負荷状態になると、 `{error, overload}` というレスポンスを返すことで
 リクエストがキューに積まれたまま放置することはなくなりました。
 
-Previously, Riak would always enqueue requests. As an overload
-situation became worse, requests would take longer and longer to
-service, eventually getting to the point where requests would
-continually timeout. In extreme scenarios, Riak nodes could become
-unresponsive and ultimately crash.
-
 これまでは、Riakは常にリクエストをキューに保持してきました。過負荷状態が
 悪化すると、キューに積まれたリクエストはタイムアウトするまでキューに積まれた
 ままでした。最終的にはRiakのノードは応答できなくなり、クラッシュしていました。
 
-The new overload protection addresses these issues.
-
 新しい過負荷対策はこのために用意されました。
-
-The overload protection is configurable through `app.config`
-settings. The default settings have been tested on clusters of varying
-sizes and request rates and should be sufficient for all users of
-Riak. However, for completeness, the new settings are explained below.
 
 `app.config` で設定可能です。デフォルトの設定は様々なクラスタのサイズでテストされ、
 処理可能なリクエスト数はRiakの全てのユーザーを満足させるものです。しかし、
 完璧を期して以下に説明しておきます。
-
-There are two types of overload protection in Riak, each with
-different settings. The first limits the number of in-flight get and
-put operations initiated by a node in a Riak cluster. This is
-configured through the `riak_kv/fsm_limit` setting. The default is
-`50000`. This limit is tracked separately for get and put requests, so
-the default allows up to `100000` in-flight requests in total.
 
 Riakには2種類の過負荷対策が組み込まれています。どちらも異なる設定です。
 ひとつめはノードあたりの get と put の同時実行数を制限するものです。これは
@@ -99,51 +49,21 @@ Riakには2種類の過負荷対策が組み込まれています。どちらも
 この最大値は get と put それぞれで制御されますので、デフォルトではトータルで
 `100000` まで扱えることになります。
 
-The second type of overload protection limits the message queue size
-for individual vnodes, setting an upper bound on unserviced requests
-on a per-vnode basis. This is configured through the
-`riak_core/vnode_overload_threshold` setting and defaults to `10000`
-messages.
-
 ふたつめの過負荷対策は、各 vnode 毎のメッセージキューの長さを制限するものです。
 これは `riak_core/vnode_overload_threashold` という項目で設定できます。
 デフォルトは `10000` です。
-
-Setting either config setting to `undefined` in `app.config` will
-disable overload protection. This is not recommended. Note: not
-configuring the options at all will use the defaults mentioned above,
-ie. when missing from `app.config`.
 
 どちらの設定も、 `app.config` で `undefined` とすると過負荷対策それ自体を
 無効化することができますが、これは推奨しません。 `app.config` から項目を消すなど
 して設定しなかった場合、前述のデフォルト値が採用されます。
 
-The overload protection provides new stats that are exposed over the
-`/stats` endpoint.
-
 過負荷対策と同時に `/stats` に表示される新しい統計値を導入しました。
-
-The `dropped_vnode_requests_total` stat counts the number of messages
-discarded due to the vnode overload protection.
 
 `dropped_vnode_requests_total` の統計値は vnode の過負荷制御部分で無視された
 メッセージの数を表しています。
 
-For the get/put overload protection, there are several new stats. The
-stats related to gets are listed below, there are equivalent versions
-for puts.
-
 get/put の過負荷対策については、いくつか新しい統計値があります。以下のものは
 get についてのものですが、同様のものが put についても追加されています。
-
-The `node_get_fsm_active` and `node_get_fsm_active_60s` stats shows
-how many gets are currently active on the node within the last second
-or last minute respectively. The `node_get_fsm_in_rate` and
-`node_get_fsm_out_rate` track the number of requests initiated and
-completed within the last second. Finally, the
-`node_get_fsm_rejected`, `node_get_fsm_rejected_60s`, and
-`node_get_fsm_rejected_total` track the number of requests discarded
-due to overload in their respective time windows.
 
 `node_get_fsm_active` と `node_get_fsm_active_60s` の統計値は
 そのノード上のそれぞれ直近1秒、1分で有効な get のリクエスト数を表します。
@@ -152,17 +72,7 @@ due to overload in their respective time windows.
 `node_get_fsm_rejected`, `node_get_fsm_rejected_60s` と
 `node_get_fsm_rejected_total` はそれぞれの時間幅で無視されたリクエスト数を表します。
 
-#### Health Check Disabled
 #### ヘルスチェック無効化
-
-The health check feature that shipped in Riak 1.3.0 has been disabled
-as of Riak 1.3.2. The new overload protection feature serves a similar
-purpose and is much safer. Specifically, the health check approach was
-able to successfully recover from overload that was caused by slow
-nodes, but not from overload that was caused by incoming workload
-spiking beyond absolute cluster capacity. In fact, in the second case,
-the health check approach (divert overload traffic from one node to
-another) would exacerbate the problem.
 
 ヘルスチェックの機能は Riak 1.3.0 でリリースされましたが、 1.3.2 で無効化されました。
 過負荷対策の仕組みが同様の役割をより安全に果たしているからです。特に、ヘルスチェックの
@@ -212,15 +122,6 @@ another) would exacerbate the problem.
 
 #### 2i Big Integerエンコーディング
 
-For all Riak versions prior to 1.3.1, 2i range queries involving
-integers greater than or equal to 2147483647 (0x7fffffff) could return
-missing results. The cause was identified to be an issue with the
-encoding library sext [1], which Riak uses for indexes stored in
-eleveldb.  Sext serializes Erlang terms to a binary while preserving
-sort order. For these large integers, this was not the case.  Since
-the 2i implementation relies on this property, some range queries were
-affected.
-
 1.3.1以前の全てのバージョンのRiakでは、2iのintの範囲指定は 2147483647 (0x7fffffff)
 以上の結果を全て返すことができませんでした。これはRiakが内部でデータをeleveldbに
 格納するためのエンコーディングライブラリ sext [1] の問題に由来するものと判明しました。
@@ -228,28 +129,10 @@ sext はソート順を保ったままErlangのタームをバイナリにシリ
 大きな整数の場合はこれがうまくいきませんでした。
 2iの実装がこの機能に依存しているため、範囲検索が影響を受けていました。
 
-The issue in sext was patched [2] and is included in Riak 1.3.1. New
-installations of Riak 1.3.1 will immediately take advantage of the
-change.  However, the fix introduces an incompatibly in the encoding
-of big integers.  Integer indexes containing values greater than or
-equal to 2147483647 already written to disk with Riak 1.3 and below
-will need to be rewritten, so that range queries over them will return
-the correct results.
-
 sextの問題は修正され [2] 、Riak 1.3.1 に含まれています。新しくRiak 1.3.1 を
 インストールした場合はこの恩恵を受けることができますが、大きな整数のエンコーディングは
 多少の非互換性をもたらします。1.3以前のRiakを使ってディスクにすでに書かれた
 2147483647 以上の整数のインデックスがある場合には、正しい値を返すために上書きする必要があります。
-
-Riak 1.3.1 includes a utility, as part of
-`riak-admin`, that will perform the reformatting of these indexes
-while the node is online. After the affected indexes have been
-reformatted on all nodes, range queries will begin returning the
-correct results for previously written data. The utility should be run
-against any riak cluster using 2i after upgrading the entire cluster
-to 1.3.1, regardless of whether or not large integer index values are
-used. It will report how many indexes were affected (rewritten). Unaffected
-indexes are not modified and new writes will be written in the correct format.
 
 Riak 1.3.1は `riak-admin` の一部としてノードの稼働中にインデックスを上書きする
 ツールを含んでいます。インデックスが全てのノードで上書きされたあとは、範囲検索は
@@ -257,25 +140,11 @@ Riak 1.3.1は `riak-admin` の一部としてノードの稼働中にインデ�
 かどうかにかかわらず、2i を使うクラスタが全て 1.3.1 にアップグレードしたあとに
 適用されなければなりません。
 
-To reformat indexes on a Riak node run:
-
 Riak ノードでこの上書きを実行するためには:
 
 ```
 riak-admin reformat-indexes [<concurrency>] [<batch size>]
 ```
-
-The concurrency option controls how many partitions are reformatted
-concurrently.  If not provided it defaults to 2. Batch size controls
-how many keys are fixed at a time and it defaults to 100. A node
-*without load* could finish reformatting much faster with a higher
-concurrency value. Lowering the batch could lower the latency of other
-node operations if the node is under load during the reformatting. We
-recommend to use the default valuess and tweak only after testing.
-Output will be printed to logs once the reformatting has completed (or
-if it errors).  *If the reformatting operation errors, it should be
-re-executed.* The operation will only attempt to reformat keys that
-were not fixed on the previous run.
 
 concurrencyオプションは同時に何個のパーティションを上書きするかを決めます。
 特に指定されない場合はデフォルトで2となります。 batch size は一度に何個の
@@ -285,11 +154,6 @@ concurrencyを上げると、もっと早く終わらせることができるで
 上書きが終了すれば、結果はログに表示されます。 *もし上書きが失敗していたら再実行してください。*
 この場合、上書きしていないキーだけを上書きしようとします。
 
-If downgrading back to Riak 1.3 from Riak 1.3.1, indexes will need to
-be reformatted back to the old encoding in order for the downgraded
-node to run correctly. The `--downgrade` flag can be passed to
-`riak-admin reformat-indexes` to perform this operation:
-
 もし1.3.1から1.3へのダウングレードをしたい場合には、ダウングレード後も正しく動作するために
 インデックスを古いエンコーディングに再フォーマットしなおさないといけません。
 これをするためには、`--downgrade` フラグを `riak-admin reformat-indexes` に与えます。
@@ -298,52 +162,28 @@ node to run correctly. The `--downgrade` flag can be passed to
 riak-admin reformat-indexes [<concurrency>] [<batch size>] --downgrade
 ```
 
-The concurrency and batch size parameters work in exactly the same way as in the
-upgrade case above.
-
 concurrencyとbatch sizeのパラメータはアップグレードの場合と同様です。
 
 [1] https://github.com/uwiger/sext
 
 [2] https://github.com/uwiger/sext/commit/ff10beb7a791f04ad439d2c1c566251901dd6bdc
 
-#### Improved bitcask startup time
 #### bitcaskの起動時間の改善
-
-We fixed a problem that was preventing vnodes from starting concurrently. Installations
-using the bitcask backend should see a substantial improvement in startup times if
-multiple cores are available.  We have observed improvements in the vicinity of an order
-of magnitude (~10X) on some of our own clusters.
 
 vnodeを並列に起動しない問題を改善しました。マルチコアのマシンで動作するとき、
 バックエンドにbitcaskを使っている場合は起動時間がかなり改善するでしょう。
 我々のクラスタでは桁違い(~10倍)の性能が出たこともあります。
 
-#### Fix behaviour of PR/PW
 #### PR/PW の挙動
-
-For Riak releases prior to 1.3.1 the get and put options PR and PW only
-checked that the requested number of primaries were online when the request was handled.
-It did not check which vnodes actually responded. So with a PW of 2 you could easily write
-to one primary, one fallback, fail the second primary write and return success.
 
 これまでのRiakでは get と put の PR/PW が指定された場合、指定された数のプライマリが
 オンラインかどうかだけをチェックしていましたが、 vnode が本当に応答したかどうかまでは確かめて
 いませんでした。もしPW=2だった場合、ひとつのプライマリとひとつのフォールバックに書き込み成功すれば、
-もうひとつのプライマリへの書き込みに失敗してもで成功の応答を返していました。
-
-As of Riak 1.3.1, PR and PW will also wait until the required number of primaries have responded
-before returning the result of the operation. This means that if PR + PW > N and both requests
-succeed, you'll be guaranteed to have read the previous value you've written (barring other
-intervening writes and irretrievably lost replicas).
+もうひとつのプライマリへの書き込みに失敗しても成功の応答を返していました。
 
 Riak 1.3.1では、PRとPWでは、指定された数のプライマリが結果を返すまでは待つようになりました。
 これは、 PR+PW > N かつ全てのリクエストが成功したら書き込んだデータが必ず読めるようになったことを
 保証するということです（その間に他の書き込みや、修復不能なレプリカ障害がない限り）。
-
-Note however, that writes with PW that fail may easily have done a partial write. This change is
-purely about strengthening the constraints you can impose on read/write success. See more information
-in the pull request linked below.
 
 失敗したPWは用意に部分書き込みになりうることを忘れないでください。この変更は純粋に、
 read/write の成功で保証される内容を強化したものです。詳細は以下のプルリクエストのリンクをご覧ください。
