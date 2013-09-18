@@ -24,11 +24,26 @@ clean: testclean
 distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
-
 generate:
 	./rebar generate $(OVERLAY_VARS)
 
 
+##
+## Lock Targets
+##
+##  see https://github.com/seth/rebar_lock_deps_plugin
+lock: deps compile
+	./rebar lock-deps
+
+locked-all: locked-deps compile
+
+locked-deps:
+	@echo "Using rebar.config.lock file to fetch dependencies"
+	./rebar -C rebar.config.lock get-deps
+
+##
+## Test targets
+##
 TEST_LOG_FILE := eunit.log
 testclean:
 	@rm -f $(TEST_LOG_FILE)
