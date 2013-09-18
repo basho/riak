@@ -3,7 +3,7 @@
 # ex: ts=4 sw=4 et
 
 # Pull environment for this install
-. "$(cd ${0%/*} && pwd)/../lib/env.sh"
+. "{{runner_base_dir}}/lib/env.sh"
 
 # Make sure the user running this script is the owner and/or su to that user
 check_user $@
