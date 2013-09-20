@@ -28,7 +28,7 @@ usage() {
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
     echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
-    echo "                    downgrade-objects }"
+    echo "                    downgrade-objects | security }"
 }
 
 cluster_admin()
@@ -135,18 +135,34 @@ security_admin()
     case "$1" in
         add-user)
             shift
+            if [ $# -lt 1 ]; then
+                echo "Usage: $SCRIPT security add-user <user> [options]"
+                exit 1
+            fi
             $NODETOOL rpc riak_core_console add_user "$@"
             ;;
         add-source)
             shift
+            if [ $# -lt 3 ]; then
+                echo "Usage: $SCRIPT security add-source all|<users> <CIDR> <source> [options]"
+                exit 1
+            fi
             $NODETOOL rpc riak_core_console add_source "$@"
             ;;
         grant)
             shift
+            if [ $# -lt 4 ]; then
+                echo "Usage: $SCRIPT security grant <permissions> ON ANY|<type> [bucket] TO <users>"
+                exit 1
+            fi
             $NODETOOL rpc riak_core_console grant "$@"
             ;;
         revoke)
             shift
+            if [ $# -lt 4 ]; then
+                echo "Usage: $SCRIPT security revoke <permissions> ON ANY|<type> [bucket] FROM <users>"
+                exit 1
+            fi
             $NODETOOL rpc riak_core_console revoke "$@"
             ;;
         print-users)
@@ -157,6 +173,10 @@ security_admin()
             ;;
         print-user)
             shift
+            if [ $# -lt 1 ]; then
+                echo "Usage: $SCRIPT security print-user <user>"
+                exit 1
+            fi
             $NODETOOL rpc riak_core_console print_user "$@"
             ;;
         *)
@@ -171,7 +191,7 @@ The following commands modify users and security ACLs for Riak:
     revoke <permissions> ON ANY|<type> [bucket] FROM <users>
     print-users
     print-sources
-    print-user [user]
+    print-user <user>
 "
     esac
 }
