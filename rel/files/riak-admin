@@ -151,7 +151,7 @@ security_admin()
             ;;
         grant)
             shift
-            if [ $# -lt 4 ]; then
+            if [ $# -lt 5 ]; then
                 echo "Usage: $SCRIPT security grant <permissions> ON ANY|<type> [bucket] TO <users>"
                 exit 1
             fi
@@ -159,7 +159,7 @@ security_admin()
             ;;
         revoke)
             shift
-            if [ $# -lt 4 ]; then
+            if [ $# -lt 5 ]; then
                 echo "Usage: $SCRIPT security revoke <permissions> ON ANY|<type> [bucket] FROM <users>"
                 exit 1
             fi
