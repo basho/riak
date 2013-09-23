@@ -24,10 +24,21 @@ main(_Args) ->
     saturation(),
     puts(),
     gets(),
-    io:format("======    That's all folks!   ======~n", []).
+    io:format("======   That's all, folks!   ======~n", []).
 
 prepare() ->
-    rpc:call(?NODE, riak_core_bucket, set_bucket, [?BUCKET, [{n_val, 1}]]).
+    rpc:call(?NODE, riak_core_bucket, set_bucket, [?BUCKET, [{n_val, 1}]]),
+    %% maybe setup lockcount here if it's supported.
+    rpc:call(?NODE, lcnt, start, []),
+    Ret = rpc:call(?NODE, lcnt, clear, []),
+    case Ret of
+        {badrpc, _} ->
+            rpc:call(?NODE, lcnt, stop, []),
+            erlang:put(lockcount, false);
+        ok ->
+            io:format("lockcount build detected, collecting info~n"),
+            erlang:put(lockcount, true)
+    end.
 
 
 warmup() ->
@@ -86,12 +97,24 @@ do_ops(Label, MaxElapsed, WFun, NWorkers, ReportType) ->
     PFun = fun(_T) ->
             do_until(WFun, {0, 0}, StartTime, MaxElapsed)
     end,
-    io:format("Will run ~s for ~.1f seconds~n", [Label, MaxElapsed/1000000]),
+    io:format("Will run ~s for ~.1f seconds~n", [Label, MaxElapsed/1000000]), 
+    case erlang:get(lockcount) of
+        true ->
+            rpc:call(?NODE, lcnt, clear, []);
+        _ -> ok
+    end,
     Results = riak_core_util:pmap(PFun,
                                   lists:seq(1, NWorkers),
                                   NWorkers ),
     {Good, Bad} = lists:foldl(fun({G, B}, {G2, B2}) -> {G+G2,B+B2} end,
                               {0, 0}, Results),
+    case erlang:get(lockcount) of
+        true ->
+            rpc:call(?NODE, lcnt, collect, []),
+            rpc:call(?NODE, lcnt, conflicts, []);
+        _ -> ok
+    end,
+                
     case Bad > 0 of
         true ->
             io:format(standard_error, "There were ~p errors doing ~s yo!!~n",
@@ -121,9 +144,11 @@ do_until(F, Acc, StartTime, MaxElapsed) ->
     end.
 
 new_client() ->
+    {T1, T2, T3} = now(),
+    random:seed(T1, T2, T3),
     {ok, C} = riak:client_connect(?NODE),
     C.
 
 random_key() ->
-    N = crypto:rand_uniform(0, ?MAX_KEYS),
+    N = random:uniform(?MAX_KEYS),
     <<N:32/native>>.
