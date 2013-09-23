@@ -146,6 +146,6 @@
                         "9cd03ae697628b1e5a24b05cf24ad4ac8329f6e0"}},
        {yokozuna,".*",
                  {git,"git://github.com/basho/yokozuna",
-                      "e5c4c3e53307c23e0c75fb1d611e17b983c6e5dd"}}]}.
+                      "797edb741c72ed28bdc9832fd912ad3be2129c43"}}]}.
 {plugins,[cuttlefish_rebar_plugin,rebar_lock_deps_plugin]}.
 
