@@ -19,6 +19,7 @@
 R14B03=${R14B03:-$HOME/erlang-R14B03}
 R14B04=${R14B04:-$HOME/erlang-R14B04}
 R15B01=${R15B01:-$HOME/erlang-R15B01}
+R16B02=${R16B02:-$HOME/erlang-R16B02}
 
 checkbuild()
 {
@@ -103,7 +104,7 @@ build()
     echo " - $SRCDIR built."
 }
 
-build "riak_ee-1.2.1" $R15B01 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/627f21/1.2.1/riak_ee-1.2.1.tar.gz
+build "riak_ee-1.3.4" $R15B01 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/f23iaj/1.3.4/riak_ee-1.3.4.tar.gz
 echo
-build "riak_ee-1.3.2" $R15B01 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/f23iaj/1.3.2/riak_ee-1.3.2.tar.gz
+build "riak_ee-1.4.2" $R15B01 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/20b089/1.4.2/riak-ee-1.4.2.tar.gz
 echo
