@@ -1,0 +1,154 @@
+#!/usr/bin/env escript
+%% -*- erlang -*-
+%%! -smp enable -name perfsmoke@127.0.0.1 -setcookie riak -pa deps/riak_kv/ebin ebin deps/riak_core/ebin
+
+%% Simple performance sanity check that could be used to catch changes
+%% that cause unexpected performance degradation in the main KV Get/Put
+%% code paths.  This is not meant to be a comprehensive performance suite.
+
+-mode(compile). % Tell escript to NOT use erl_eval. Better for profiling.
+-define(NODE, 'perfdev@127.0.0.1').
+-define(BUCKET, <<"test">>).
+-define(SECS_TO_MICROS(S), S * 1000 * 1000).
+-define(WARMUP_TIME, ?SECS_TO_MICROS(60)).
+-define(GET_TIME, ?SECS_TO_MICROS(30)).
+-define(PUT_TIME, ?SECS_TO_MICROS(30)).
+-define(SATURATION_TIME, ?SECS_TO_MICROS(30)).
+-define(NUM_WORKERS, 4).
+-define(MAX_KEYS, 10000).
+
+main(_Args) ->
+    io:format("====== Performance smoke test ======~n"),
+    prepare(),
+    warmup(),
+    saturation(),
+    puts(),
+    gets(),
+    io:format("======   That's all, folks!   ======~n", []).
+
+prepare() ->
+    rpc:call(?NODE, riak_core_bucket, set_bucket, [?BUCKET, [{n_val, 1}]]),
+    %% maybe setup lockcount here if it's supported.
+    rpc:call(?NODE, lcnt, start, []),
+    Ret = rpc:call(?NODE, lcnt, clear, []),
+    case Ret of
+        {badrpc, _} ->
+            rpc:call(?NODE, lcnt, stop, []),
+            erlang:put(lockcount, false);
+        ok ->
+            io:format("lockcount build detected, collecting info~n"),
+            erlang:put(lockcount, true)
+    end.
+
+
+warmup() ->
+    StartTime = os:timestamp(),
+    MaxElapsed = ?WARMUP_TIME,
+    WFun = fun(_) ->
+		   C = new_client(),
+		   K = random_key(),
+		   ok = C:put(riak_object:new(?BUCKET, K, <<"v">>)),
+		   C:get(?BUCKET, K),
+		   ok
+	   end,
+    Workers = erlang:system_info(schedulers) * 4,
+    io:format("Will run warmup for ~.1f seconds~n", [MaxElapsed/1000000]),
+    riak_core_util:pmap(fun(_T) -> do_until(WFun, ok, StartTime, MaxElapsed) end,
+                        lists:seq(1, Workers), Workers),
+    ok.
+
+gets() ->
+    C = new_client(),
+    WFun = fun({Good, Bad}) ->
+            case C:get(?BUCKET, random_key()) of
+                {ok, _} -> {Good+1, Bad};
+                _ -> 
+		    {Good, Bad+1}
+            end
+    end,
+    do_ops("Gets", ?GET_TIME, WFun, ?NUM_WORKERS, per).
+ 
+puts() ->
+    C = new_client(),
+    WFun = fun({Good, Bad}) ->
+            case C:put(riak_object:new(?BUCKET, random_key(), <<"v">>)) of
+                ok -> {Good+1, Bad};
+                _ -> 
+		    {Good, Bad+1}
+            end
+    end,
+    do_ops("Puts", ?PUT_TIME, WFun, ?NUM_WORKERS, per).
+
+saturation() ->  
+    C = new_client(),
+    WFun = fun({Good, Bad}) ->
+            case C:get(?BUCKET, random_key()) of
+                {ok, _} -> {Good+1, Bad};
+                _ -> 
+		    {Good, Bad+1}
+            end
+    end,
+    do_ops("Saturation", ?SATURATION_TIME, WFun, 
+	   erlang:system_info(schedulers)*4, total).
+  
+
+do_ops(Label, MaxElapsed, WFun, NWorkers, ReportType) ->
+    StartTime = os:timestamp(),
+    PFun = fun(_T) ->
+            do_until(WFun, {0, 0}, StartTime, MaxElapsed)
+    end,
+    io:format("Will run ~s for ~.1f seconds~n", [Label, MaxElapsed/1000000]), 
+    case erlang:get(lockcount) of
+        true ->
+            rpc:call(?NODE, lcnt, clear, []);
+        _ -> ok
+    end,
+    Results = riak_core_util:pmap(PFun,
+                                  lists:seq(1, NWorkers),
+                                  NWorkers ),
+    {Good, Bad} = lists:foldl(fun({G, B}, {G2, B2}) -> {G+G2,B+B2} end,
+                              {0, 0}, Results),
+    case erlang:get(lockcount) of
+        true ->
+            rpc:call(?NODE, lcnt, collect, []),
+            rpc:call(?NODE, lcnt, conflicts, []);
+        _ -> ok
+    end,
+                
+    case Bad > 0 of
+        true ->
+            io:format(standard_error, "There were ~p errors doing ~s yo!!~n",
+                      [Bad, Label]);
+        false ->
+            ok
+    end,
+    Secs = MaxElapsed / 1000000,
+    case ReportType of 
+	per ->
+	    io:format("~s : ~p ops in ~p seconds with ~p workers. Rate = ~.1f ops/second/worker~n",
+		      [Label, Good, Secs, NWorkers, Good / Secs / NWorkers]);
+	total ->
+	    io:format("~s : ~p ops in ~p seconds with ~p workers. Rate = ~.1f ops/second~n",
+		      [Label, Good, Secs, NWorkers, Good / Secs])
+    end,
+    ok.
+
+do_until(F, Acc, StartTime, MaxElapsed) ->
+    Elapsed = timer:now_diff(os:timestamp(), StartTime),
+    case Elapsed < MaxElapsed of
+        true ->
+            NewAcc = F(Acc),
+            do_until(F, NewAcc, StartTime, MaxElapsed);
+        false ->
+            Acc 
+    end.
+
+new_client() ->
+    {T1, T2, T3} = now(),
+    random:seed(T1, T2, T3),
+    {ok, C} = riak:client_connect(?NODE),
+    C.
+
+random_key() ->
+    N = random:uniform(?MAX_KEYS),
+    <<N:32/native>>.
