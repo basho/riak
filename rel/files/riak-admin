@@ -324,8 +324,8 @@ case "$1" in
     wait[_-]for[_-]service)
         SVC=$2
         TARGETNODE=$3
-        if [ $# -lt 3 ]; then
-            echo "Usage: $SCRIPT $1 <service_name> <target_node>"
+        if [ $# -lt 2 ]; then
+            echo "Usage: $SCRIPT $1 <service_name> [<target_node>]"
             exit 1
         fi
 
@@ -338,8 +338,13 @@ case "$1" in
                 continue
             fi
 
-            # Get the list of services that are available on the requested noe
-            SERVICES=`$NODETOOL rpcterms riak_core_node_watcher services "'${TARGETNODE}'."`
+            # Get the list of services that are available on the requested node
+            # If no node is specified, get the list of services from the local node
+            if [ "X$TARGETNODE" = "X" ]; then
+                SERVICES=`$NODETOOL rpcterms riak_core_node_watcher services ''`
+            else
+                SERVICES=`$NODETOOL rpcterms riak_core_node_watcher services "'${TARGETNODE}'."`
+            fi
             echo "$SERVICES" | grep "[[,]$SVC[],]" > /dev/null 2>&1
             if [ "X$?" = "X0" ]; then
                 echo "$SVC is up"
