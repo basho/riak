@@ -105,7 +105,7 @@ perf:
 	perfdev/bin/riak stop || : 
 	perfdev/bin/riak start
 	perfdev/bin/riak-admin wait-for-service riak_kv 'perfdev@127.0.0.1'
-	escript src/riak_perf_smoke || :
+	escript apps/riak/src/riak_perf_smoke || :
 	perfdev/bin/riak stop
 
 stagedev% : dev%
