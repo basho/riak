@@ -687,15 +687,12 @@ end}.
 {translation,
 "riak_control.userlist",
 fun(Conf) ->
-  UserList1 = lists:filter(
+  UserList = lists:filter(
     fun({K, _V}) -> 
-      cuttlefish_util:fuzzy_variable_match(K, "riak_control.user.$username.password")
+      cuttlefish_util:fuzzy_variable_match(K, string:tokens("riak_control.user.$username.password", "."))
     end,
     Conf),
-  UserList = [ begin
-    [_, _, Username, _] = string:tokens(Key, "."),
-    {Username, Password}
-  end || {Key, Password} <- UserList1]
+  [ {Username, Password} || {[_, _, Username, _], Password} <- UserList ]
 
 end}.
 
