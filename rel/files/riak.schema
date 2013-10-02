@@ -200,6 +200,12 @@
   {commented, "{{platform_etc_dir}}/key.pem"}
 ]}.
 
+%% @doc Default signing authority location for https can be overridden
+%% with the ssl config variable, for example:
+{mapping, "ssl.cacertfile", "riak_core.ssl.cacertfile", [
+  {commented, "{{platform_etc_dir}}/cacertfile.pem"}
+]}.
+
 %% @doc handoff.port is the TCP port that Riak uses for
 %% intra-cluster data handoff.
 {mapping, "handoff.port", "riak_core.handoff_port", [
