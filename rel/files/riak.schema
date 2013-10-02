@@ -700,25 +700,6 @@ fun(Conf) ->
 
 end}.
 
-%% @doc The admin panel is broken up into multiple
-%% components, each of which is enabled or disabled
-%% by one of these settings.
-{mapping, "riak_control.admin", "riak_control.admin", [
-  {default, on},
-  {datatype, {enum, [on, off]}}
-]}.
-
-{translation,
- "riak_control.admin",
- fun(Conf) ->
-    Setting = cuttlefish_util:conf_get_value("riak_control.admin", Conf), 
-    case Setting of
-      on -> true;
-      off -> false;
-      _Default -> true
-    end
- end}.
-
 
 %%%% bitcask
 
