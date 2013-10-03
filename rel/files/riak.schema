@@ -648,7 +648,7 @@ end}.
 ]}.
 
 %% riak_control config
-%% @doc Set to false to disable the admin panel.
+%% @doc Set to 'off' to disable the admin panel.
 {mapping, "riak_control", "riak_control.enabled", [
   {default, off},
   {datatype, {enum, [on, off]}}
