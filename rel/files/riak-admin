@@ -28,7 +28,7 @@ usage() {
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
     echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
-    echo "                    downgrade-objects | security }"
+    echo "                    downgrade-objects | security | bucket-type}"
 }
 
 cluster_admin()
@@ -192,6 +192,73 @@ The following commands modify users and security ACLs for Riak:
     print-users
     print-sources
     print-user <user>
+"
+    esac
+}
+
+btype_admin()
+{
+    case "$1" in
+        status)
+            if [ $# -ne 2 ]; then
+                echo "Usage: $SCRIPT bucket-type status <type>";
+                exit 1
+            fi
+            node_up_check
+            $NODETOOL rpc riak_kv_console bucket_type_status "$2"
+            ;;
+        activate)
+            if [ $# -ne 2 ]; then
+                echo "Usage: $SCRIPT bucket-type activate <type>"
+                exit 1
+            fi
+            node_up_check
+            $NODETOOL rpc riak_kv_console bucket_type_activate "$2"
+            ;;
+        create)
+            if [ $# -ne 3 ]; then
+                echo "Usage: $SCRIPT bucket-type create <type> '{\"props\": { ... }}'"
+                exit 1
+            fi
+            node_up_check
+            $NODETOOL rpc riak_kv_console bucket_type_create "$2" "$3"
+            ;;
+        update)
+            if [ $# -ne 3 ]; then
+                echo "Usage: $SCRIPT bucket-type update <type> '{\"props\": { ... }}'"
+                exit 1
+            fi
+            node_up_check
+            $NODETOOL rpc riak_kv_console bucket_type_update "$2" "$3"
+            ;;
+        reset)
+            if [ $# -ne 2 ]; then
+                echo "Usage: $SCRIPT bucket-type reset <type>"
+                exit 1
+            fi
+            node_up_check
+            $NODETOOL rpc riak_kv_console bucket_type_reset "$2"
+            ;;
+        list)
+            if [ $# -ne 1 ]; then
+                echo "Usage: $SCRIPT bucket-type list"
+                exit 1
+            fi
+            node_up_check
+            $NODETOOL rpc riak_kv_console bucket_type_list
+            ;;
+        *)
+            echo "\
+Usage: $SCRIPT bucket-type <command>
+
+The follow commands can be used to manage bucket types for the cluster:
+
+   list                           List all bucket types and their activation status
+   status <type>                  Display the status and properties of a type
+   activate <type>                Activate a type
+   create <type> <json>           Create or modify a type before activation
+   update <type> <json>           Update a type after activation
+   reset <type>                   Reset a type after activation
 "
     esac
 }
@@ -557,6 +624,10 @@ case "$1" in
     cluster)
         shift
         cluster_admin "$@"
+        ;;
+    bucket-type)
+        shift
+        btype_admin "$@"
         ;;
     transfer[_-]limit)
         if [ $# -gt 3 ]; then
