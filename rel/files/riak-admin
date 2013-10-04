@@ -542,8 +542,8 @@ case "$1" in
         FILENAME=$3
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
-                    -pa $RUNNER_LIB_DIR/basho-patches \
-                    -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
+                       -pa $RUNNER_LIB_DIR/basho-patches \
+                       -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
 
     backup)
@@ -561,8 +561,8 @@ case "$1" in
         TYPE=$4
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
-                    -pa $RUNNER_LIB_DIR/basho-patches \
-                    -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
+                       -pa $RUNNER_LIB_DIR/basho-patches \
+                       -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
         ;;
 
     test)
@@ -575,11 +575,11 @@ case "$1" in
         NODE_NAME=${NAME_ARG#* }
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_test$NAME_HOST $COOKIE_ARG \
-                    -pa $RUNNER_LIB_DIR/basho-patches \
-                    -eval "case catch(riak:client_test(\"$NODE_NAME\")) of \
-                            ok -> init:stop();                             \
-                            _  -> init:stop(1)                             \
-                            end."
+                       -pa $RUNNER_LIB_DIR/basho-patches \
+                       -eval "case catch(riak:client_test(\"$NODE_NAME\")) of \
+                               ok -> init:stop();                             \
+                               _  -> init:stop(1)                             \
+                              end."
 
         ;;
     diag)
