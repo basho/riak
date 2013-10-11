@@ -321,7 +321,7 @@ end}.
 
 {translation, "vm_args.+P", 
 fun(Conf) -> 
-  Procs = cuttlefish_util:conf_get_value("process_limit", Conf),
+  Procs = cuttlefish_util:conf_get_value("erlang.process_limit", Conf),
   integer_to_list(Procs)
 end}.
 
