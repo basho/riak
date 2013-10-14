@@ -1,3 +1,38 @@
+# Riak 1.4.2 リリースノート
+
+これはRiak 1.4.x系のバグフィックスのリリースです。
+
+* stats 関連の問題を解決
+* 1.4.1 からの不要なログを削除（Not foundのエラーなど）
+* 2iクエリのタイムアウト関連の問題を解決
+* バックエンドの壊れたデータに対する追加の安全策を導入
+* Riak Controlでの、ノードが非互換に見える不正なネゴシエーションを修正
+
+## 解決された問題
+
+* leveldb/89: [スループット制御の小さな調整](https://github.com/basho/leveldb/wiki/mv-level-work4)
+* node_package/77: [FreeBSD で lib と etc ディレクトリにファイルを追加](https://github.com/basho/node_package/issues/77)
+* node_package/82: [Debのpostinstスクリプトが/etcディレクトリをchmodしようとする](https://github.com/basho/node_package/issues/82)
+* node_package/83: [FreeBSD パッケージが .tbz ではなく .tgz としてパッケージされてしまう](https://github.com/basho/node_package/issues/83)
+* riak_control/132: [1.4でネゴシエーション順序が不正](https://github.com/basho/riak_control/pull/132)
+* riak_control/133: [拡張レコードマクロを使用](https://github.com/basho/riak_control/pull/133)
+* riak_control/135: [非互換は比較的深刻ではない](https://github.com/basho/riak_control/pull/135)
+* riak_kv/644: [webmachine の 2i タイムアウトを修正](https://github.com/basho/riak_kv/pull/644)
+* riak_kv/639: [HTTP MapReduce のエラーレポート表示を修正](https://github.com/basho/riak_kv/commit/01190f23099bf7febbb69d74f6b4922a91d045e3)
+* riak_kv/636: [riak_kv_stat クラッシュによるプロセスリークを修正](https://github.com/basho/riak_kv/pull/636)
+* riak_kv/638: [デシリアライズとCRCエラーをnot_foundとみなす](https://github.com/basho/riak_kv/pull/638)
+* riak_kv/641: [1.4のLevelDBのfoldを改善](https://github.com/basho/riak_kv/pull/641)
+* riak_kv/635: [2i タイムアウトのレスポンスを改善](https://github.com/basho/riak_kv/pull/635)
+* riak_kv/632: [riak_kv_stat のタイムアウトを修正](https://github.com/basho/riak_kv/pull/632)
+* riak_core/356: [folsom の stat エラーのハンドリングを追加](https://github.com/basho/riak_core/pull/356)
+* riak_core/359: [handoff中のデータ破壊を検出](https://github.com/basho/riak_core/pull/359)
+* webmachine/137: [Webmachine の単体テスト、結合テストのカバレッジ改善](https://github.com/basho/webmachine/pull/137)
+* webmachine/164: [Webmachineの組み込みのログハンドラをエラーログで使用](https://github.com/basho/webmachine/pull/164)
+* webmachine/161: [Webmachine APIでソケットを取得できるように変更](https://github.com/basho/webmachine/pull/161)
+* webmachine/160: [R15B01以降のErlangとの互換性を再追加](https://github.com/basho/webmachine/pull/160)
+* webmachine/158: [localtime から universaltime への変換を回避](https://github.com/basho/webmachine/pull/158)
+* webmachine/156: [Erlang R15 互換性を追加](https://github.com/basho/webmachine/pull/156)
+
 # Riak 1.4.1 リリースノート
 
 これはバグフィックスのリリースです。主にセカンダリーインデックス、Riak Control、LevelDB に関する修正が含まれています。

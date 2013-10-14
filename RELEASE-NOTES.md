@@ -1,3 +1,39 @@
+# Riak 1.4.2 Release Notes
+
+This is a bugfix release on the Riak 1.4.x series.
+
+* Fixed various problems related to crashing stats
+* Fixed extra noisy logs introduced in 1.4.1 (Not found errors and others)
+* Fixed issues related to 2i queries timing out
+* Added more protection against corrupt data in backends
+* Fixed incorrect capability negotiation causing nodes to appear incompatible in Riak Control
+
+## Issues / PR's Resolved
+
+* leveldb/89: [Minor adjustments to throttle](https://github.com/basho/leveldb/wiki/mv-level-work4)
+* node_package/77: [FreeBSD needs to scan lib and etc directories for extra files](https://github.com/basho/node_package/issues/77)
+* node_package/82: [Deb: Deb postinst script attempts to chmod's /etc directory](https://github.com/basho/node_package/issues/82)
+* node_package/83: [FreeBSD package incorrectly packaged as .tgz rather than .tbz](https://github.com/basho/node_package/issues/83)
+* riak_control/132: [Resolve incorrect capability negotation order in 1.4](https://github.com/basho/riak_control/pull/132)
+* riak_control/133: [Use expanded record macro.](https://github.com/basho/riak_control/pull/133)
+* riak_control/135: [Incompatible is less serious](https://github.com/basho/riak_control/pull/135)
+* riak_kv/644: [Fix webmachine 2i timeout](https://github.com/basho/riak_kv/pull/644)
+* riak_kv/639: [Fix HTTP MR error reporting](https://github.com/basho/riak_kv/commit/01190f23099bf7febbb69d74f6b4922a91d045e3)
+* riak_kv/636: [Fix riak_kv_stat crash leaking processes](https://github.com/basho/riak_kv/pull/636)
+* riak_kv/638: [Bad deserialization and CRC errors to not_found](https://github.com/basho/riak_kv/pull/638)
+* riak_kv/641: [LevelDB fold hardening for 1.4](https://github.com/basho/riak_kv/pull/641)
+* riak_kv/635: [Fix 2i timeout responses](https://github.com/basho/riak_kv/pull/635)
+* riak_kv/632: [Fix riak_kv_stat timeout](https://github.com/basho/riak_kv/pull/632)
+* riak_core/356: [Add protection against folsom stat errors](https://github.com/basho/riak_core/pull/356)
+* riak_core/359: [Support for corruption detecting during handoff](https://github.com/basho/riak_core/pull/359)
+* webmachine/137: [Increase line coverage of Webmachine unit and integration tests](https://github.com/basho/webmachine/pull/137)
+* webmachine/164: [Rework Webmachine error logging to use the built-in log handler](https://github.com/basho/webmachine/pull/164)
+* webmachine/161: [Expose local socket via the Webmachine API](https://github.com/basho/webmachine/pull/161)
+* webmachine/160: [Re-add compatibility for Erlang versions newer than R15B01](https://github.com/basho/webmachine/pull/160)
+* webmachine/158: [Avoid localtime to universaltime](https://github.com/basho/webmachine/pull/158)
+* webmachine/156: [Fix Erlang R15 compatibility](https://github.com/basho/webmachine/pull/156)
+
+
 # Riak 1.4.1 Release Notes
 
 This is a bugfix release.  The major fixes are to the Secondary Index,
