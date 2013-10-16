@@ -71,12 +71,25 @@ init(Config) ->
     loop(Config).
 
 loop(Config) ->
+    N = get_n_value(),
+    loop(Config, N).
+
+loop(Config, 1) ->
+    do_update(Config),
+    stopped;
+loop(Config, N) ->
     Info = do_update(Config),
+    Nnext = case N of
+                N when is_integer(N) andalso N > 1 ->
+                    N-1;
+                _ ->
+                    undefined
+            end,
     receive 
 	stop -> stopped;
-	{dump,Fd} -> do_update(Fd,Info,Config), loop(Config); 
-	{config,_,Config1} -> loop(Config1)
-    after Config#opts.intv-500 -> loop(Config)
+	{dump,Fd} -> do_update(Fd,Info,Config), loop(Config, Nnext); 
+	{config,_,Config1} -> loop(Config1, Nnext)
+    after Config#opts.intv-500 -> loop(Config, Nnext)
     end.
 
 do_update(Config) ->
@@ -132,4 +145,16 @@ writepinfo(Fd,[#etop_proc_info{pid=Pid,
     writepinfo(Fd,T);
 writepinfo(_Fd,[]) ->
     ok.
+
+get_n_value() ->
+    case init:get_argument(n) of
+        {ok,[[Nstr]]} ->
+            try
+                list_to_integer(Nstr)
+            catch
+                _:_ -> undefined
+            end;
+        _ ->
+            undefined
+    end.
 
