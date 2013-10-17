@@ -156,6 +156,7 @@ cleanplt:
 
 ## Create a dependency graph png
 depgraph: graphviz
+	@echo "Note: If you have nothing in deps/ this might be boring"
 	@echo "Creating dependency graph..."
 	@misc/mapdeps.erl | dot -Tpng -oriak.png
 	@echo "Dependency graph created as riak.png"
