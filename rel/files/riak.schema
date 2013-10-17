@@ -1220,13 +1220,13 @@ end}.
 %% will generate a warning in the logs.
 {mapping, "warn_siblings", "riak_kv.warn_siblings", [
   {datatype, integer},
-  {default, 100}
+  {default, 25}
 ]}.
 
 %% @doc Writing an object with more than this number of siblings
 %% will fail.
 {mapping, "max_siblings", "riak_kv.max_siblings", [
   {datatype, integer},
-  {default, 1000}
+  {default, 100}
 ]}.
 
