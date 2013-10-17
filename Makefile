@@ -118,10 +118,10 @@ docs:
 orgs: orgs-doc orgs-README
 
 orgs-doc:
-	@emacs -l orgbatch.el -batch --eval="(riak-export-doc-dir \"doc\" 'html)"
+	@emacs -l misc/orgbatch.el -batch --eval="(riak-export-doc-dir \"doc\" 'html)"
 
 orgs-README:
-	@emacs -l orgbatch.el -batch --eval="(riak-export-doc-file \"README.org\" 'ascii)"
+	@emacs -l misc/orgbatch.el -batch --eval="(riak-export-doc-file \"README.org\" 'ascii)"
 	@mv README.txt README
 
 APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
@@ -152,6 +152,15 @@ cleanplt:
 	@echo
 	sleep 5
 	rm $(COMBO_PLT)
+
+
+## Create a dependency graph png
+depgraph: graphviz
+	@echo "Creating dependency graph..."
+	@misc/mapdeps.erl | dot -Tpng -oriak.png
+	@echo "Dependency graph created as riak.png"
+graphviz:
+	$(if $(shell which dot),,$(error "To make the depgraph, you need graphviz installed"))
 
 ##
 ## Version and naming variables for distribution and packaging
