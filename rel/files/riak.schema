@@ -219,7 +219,7 @@ end}.
 %% The Erlang/OTP default is 1024 (1 megabyte).
 %% See: http://www.erlang.org/doc/man/erl.html#%2bzdbbl
 {mapping, "erlang.zdbbl", "vm_args.+zdbbl", [
-  {commented, "33554432"}
+  {commented, "32768"}
 ]}.
 
 %% @doc Erlang VM scheduler tuning.
