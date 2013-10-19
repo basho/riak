@@ -32,7 +32,7 @@
                    "1f6954ce8f313139385110f68c18c17adb2723f8"}},
        {eleveldb,".*",
                  {git,"git://github.com/basho/eleveldb.git",
-                      "3e456868234f2b84a6a1b98364efb660641ad82b"}},
+                      "6b34c0cd6dbfae91256141cd2ed1db8501ae4bd5"}},
        {eper,".*",
              {git,"git://github.com/basho/eper.git",
                   "7f94808f958e810b477e096a4960ee90ea9c0f4b"}},
