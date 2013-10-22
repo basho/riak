@@ -517,7 +517,7 @@ case "$1" in
         fi
 
         # Make sure the local node is running
-        node_up_check
+        node_down_check
 
         OLDNODE=$1
         NEWNODE=$2
