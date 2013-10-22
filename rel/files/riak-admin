@@ -519,11 +519,18 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
+        # Sanity check the app.config file
+        check_config
+        ES=$?
+        if [ "$ES" -ne 0 ]; then
+            exit $ES
+        fi
+
         OLDNODE=$1
         NEWNODE=$2
         $ERTS_PATH/erl -noshell \
             -pa $RUNNER_LIB_DIR/basho-patches \
-            -config $RUNNER_ETC_DIR/app.config \
+            $CONFIG_ARGS \
             -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
             -s init stop
         ;;
