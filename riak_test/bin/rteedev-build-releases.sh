@@ -16,6 +16,8 @@
 # Or, alternatively, just substitute the paths to the kerl install paths as
 # that should work too.
 
+set -e
+
 R14B03=${R14B03:-$HOME/erlang-R14B03}
 R14B04=${R14B04:-$HOME/erlang-R14B04}
 R15B01=${R15B01:-$HOME/erlang-R15B01}
