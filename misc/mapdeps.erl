@@ -102,8 +102,7 @@ map_rebar(BaseDir, Path, Acc) ->
 
 app_name(Path) ->
     %% assumes Path ends in rebar.config
-    re:replace(filename:basename(filename:dirname(Path)),
-               "-", "_", [global, {return, list}]).
+    filename:basename(filename:dirname(Path)).
 
 file_start() ->
     io:format(standard_io, "digraph {~n", []).
@@ -112,4 +111,4 @@ file_end() ->
     io:format(standard_io, "}~n", []).
 
 file_edge(From, To) ->
-    io:format(standard_io, " ~s -> ~s;~n", [From, To]).
+    io:format(standard_io, " \"~s\" -> ~s;~n", [From, To]).
