@@ -3,3 +3,4 @@ rel/riak
 rel/vars/dev*_vars.config
 dev/
 ebin/
+riak.png
