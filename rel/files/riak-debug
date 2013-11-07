@@ -396,6 +396,7 @@ if [ 1 -eq $get_riakcmds ]; then
     dump riak_transfers "$riak_bin_dir"/riak-admin transfers
     dump riak_diag "$riak_bin_dir"/riak-admin diag
     dump riak_repl_status "$riak_bin_dir"/riak-repl status
+    dump riak_repl_connections "$riak_bin_dir"/riak-repl connections
 
     # Get the latest ring file
     mkdir_or_die "${start_dir}"/"${debug_dir}"/ring/.info
