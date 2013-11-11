@@ -141,6 +141,22 @@ security_admin()
             fi
             $NODETOOL rpc riak_core_console add_user "$@"
             ;;
+        alter-user)
+            shift
+            if [ $# -lt 2 ]; then
+                echo "Usage: $SCRIPT security alter-user <user> <option> [options]"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console alter_user "$@"
+            ;;
+        del-user)
+            shift
+            if [ $# -ne 1 ]; then
+                echo "Usage: $SCRIPT security alter-user <user>"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console del_user "$@"
+            ;;
         add-source)
             shift
             if [ $# -lt 3 ]; then
@@ -148,6 +164,14 @@ security_admin()
                 exit 1
             fi
             $NODETOOL rpc riak_core_console add_source "$@"
+            ;;
+        del-source)
+            shift
+            if [ $# -ne 2 ]; then
+                echo "Usage: $SCRIPT security del-source all|<users> <CIDR>"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console del_source "$@"
             ;;
         grant)
             shift
@@ -186,7 +210,10 @@ Usage: $SCRIPT security <command>
 The following commands modify users and security ACLs for Riak:
 
     add-user <username> [options]
+    alter-user <username> <option> [options]
+    del-user <username>
     add-source all|<users> <CIDR> <source> [options]
+    del-source all|<users> <CIDR>
     grant <permissions> ON ANY|<type> [bucket] TO <users>
     revoke <permissions> ON ANY|<type> [bucket] FROM <users>
     print-users
