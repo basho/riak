@@ -146,3 +146,10 @@ end}.
   {default, 100},
   {datatype, integer}
 ]}.
+
+
+%% @doc Cookie for distributed node communication.  All nodes in the same cluster
+%% should use the same cookie or they will not be able to communicate.
+{mapping, "distributed_cookie", "vm_args.-setcookie", [
+  {default, "riak"}
+]}.
