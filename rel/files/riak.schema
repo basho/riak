@@ -146,30 +146,3 @@ end}.
   {default, 100},
   {datatype, integer}
 ]}.
-
-%% @doc Reading or writing objects bigger than this size will write
-%% a warning in the logs.
-{mapping, "warn_object_size", "riak_kv.warn_object_size", [
-  {datatype, bytesize},
-  {default, "5MB"}
-]}.
-
-%% @doc Writing an object bigger than this will fail.
-{mapping, "max_object_size", "riak_kv.max_object_size", [
-  {datatype, bytesize},
-  {default, "50MB"}
-]}.
-
-%% @doc Writing an object with more than this number of siblings
-%% will generate a warning in the logs.
-{mapping, "warn_siblings", "riak_kv.warn_siblings", [
-  {datatype, integer},
-  {default, 25}
-]}.
-
-%% @doc Writing an object with more than this number of siblings
-%% will fail.
-{mapping, "max_siblings", "riak_kv.max_siblings", [
-  {datatype, integer},
-  {default, 100}
-]}.
