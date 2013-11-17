@@ -23,7 +23,7 @@
                           "13a5600d6d74dd2c7aa6db2ebf06e8a42bdb9fe5"}},
        {cuttlefish,".*",
                    {git,"git://github.com/basho/cuttlefish.git",
-                        "785348253dbeebd956175342a809ab7a1ff4b348"}},
+                        "0a890b119fbea628008cd2310001745bed55816d"}},
        {ebloom,".*",
                {git,"git://github.com/basho/ebloom.git",
                     "0b6d7d9ee8d2b42f08d24d149d64848734c21121"}},
