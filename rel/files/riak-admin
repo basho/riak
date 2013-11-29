@@ -26,10 +26,44 @@ usage() {
     echo "                    reip | js-reload | erl-reload | wait-for-service | "
     echo "                    ringready | transfers | force-remove | down |"
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
-    echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
+    echo "                    aae-status | diag | stat | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
     echo "                    search | services | ensemble-status }"
+}
+
+stat_admin()
+{
+    case "$1" in
+        show)
+            shift
+            node_up_check
+            $NODETOOL rpc riak_core_console stat_show "$*"
+            ;;
+        enable)
+            shift
+            node_up_check
+            $NODETOOL rpc riak_core_console stat_enable "$*"
+            ;;
+        disable)
+            shift
+            node_up_check
+            $NODETOOL rpc riak_core_console stat_disable "$*"
+            echo "stat disable $*"
+            ;;
+        *)
+            echo "\
+Usage: $SCRIPT stat <command>
+
+The following commands stage manage and display statistics.
+A statistics entry is given either as a name: Identifiers separated by periods, '.'.
+Wildcards are allowed, and given as '*'. Quoting is permitted.
+
+   show <entry>                   Show the value(s) of a specific entry or entries
+   enable <entry>                 Enable entry or entries
+   disable <entry>                Disable entry or entries
+"
+    esac
 }
 
 cluster_admin()
@@ -823,6 +857,10 @@ case "$1" in
     cluster)
         shift
         cluster_admin "$@"
+        ;;
+    stat)
+        shift
+        stat_admin "$@"
         ;;
     bucket-type)
         shift
