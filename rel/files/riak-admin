@@ -40,6 +40,16 @@ stat_admin()
             node_up_check
             $NODETOOL rpc riak_core_console stat_show "$*"
             ;;
+        show-all)
+            shift
+            node_up_check
+            $NODETOOL rpc riak_core_console stat_showall "$*"
+            ;;
+        info)
+            shift
+            node_up_check
+            $NODETOOL rpc riak_core_console stat_info "$*"
+            ;;
         enable)
             shift
             node_up_check
@@ -49,7 +59,6 @@ stat_admin()
             shift
             node_up_check
             $NODETOOL rpc riak_core_console stat_disable "$*"
-            echo "stat disable $*"
             ;;
         *)
             echo "\
@@ -59,9 +68,16 @@ The following commands stage manage and display statistics.
 A statistics entry is given either as a name: Identifiers separated by periods, '.'.
 Wildcards are allowed, and given as '*'. Quoting is permitted.
 
-   show <entry>                   Show the value(s) of a specific entry or entries
-   enable <entry>                 Enable entry or entries
-   disable <entry>                Disable entry or entries
+   show <entry>                Show the value(s) of a specific entry or entries
+   show-all <entry>            Show the value(s), including disabled entries
+   enable <entry>              Enable entry or entries
+   disable <entry>             Disable entry or entries
+   info [ -name | -type |      Display information about the entry or entries.
+        | -module              The attributes are described in the Exometer docs
+        | -value | -cache        
+        | -status | -timestamp
+        | -options | -ref
+        | -datapoints ] <entry>
 "
     esac
 }
