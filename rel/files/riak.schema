@@ -1,3 +1,4 @@
+%%-*- mode: erlang -*-
 %% @doc where do you want the console.log output:
 %% off : nowhere
 %% file: the file specified by log.console.file
@@ -35,21 +36,21 @@
 { translation,
   "lager.handlers",
   fun(Conf) ->
-    SyslogHandler = case cuttlefish_util:conf_get_value("log.syslog", Conf) of
+    SyslogHandler = case cuttlefish:conf_get("log.syslog", Conf) of
       on ->  [{lager_syslog_backend, ["riak", daemon, info]}];
       _ -> []
     end,
-    ErrorHandler = case cuttlefish_util:conf_get_value("log.error.file", Conf) of
+    ErrorHandler = case cuttlefish:conf_get("log.error.file", Conf) of
       undefined -> [];
-      ErrorFilename -> [{lager_file_backend, [{file, ErrorFilename}, 
+      ErrorFilename -> [{lager_file_backend, [{file, ErrorFilename},
                                               {level, error},
                                               {size, 10485760},
                                               {date, "$D0"},
                                               {count, 5}]}]
     end,
 
-    ConsoleLogLevel = cuttlefish_util:conf_get_value("log.console.level", Conf),
-    ConsoleLogFile = cuttlefish_util:conf_get_value("log.console.file", Conf),
+    ConsoleLogLevel = cuttlefish:conf_get("log.console.level", Conf),
+    ConsoleLogFile = cuttlefish:conf_get("log.console.file", Conf),
 
     ConsoleHandler = {lager_console_backend, ConsoleLogLevel},
     ConsoleFileHandler = {lager_file_backend, [{file, ConsoleLogFile},
@@ -58,7 +59,7 @@
                                                 {date, "$D0"},
                                                 {count, 5}]},
 
-    ConsoleHandlers = case cuttlefish_util:conf_get_value("log.console", Conf) of
+    ConsoleHandlers = case cuttlefish:conf_get("log.console", Conf) of
       off -> [];
       file -> [ConsoleFileHandler];
       console -> [ConsoleHandler];
@@ -69,7 +70,7 @@
   end
 }.
 
-%% SASL 
+%% SASL
 %% We should never care about this
 {mapping, "sasl", "sasl.sasl_error_logger", [
   {default, off},
@@ -80,7 +81,7 @@
 { translation,
   "sasl.sasl_error_logger",
   fun(Conf) ->
-    case cuttlefish_util:conf_get_value("sasl", Conf) of %%how to pull default?
+    case cuttlefish:conf_get("sasl", Conf) of %%how to pull default?
         on -> true;
         _ -> false
     end
@@ -97,7 +98,7 @@
 
 %% @doc Maximum size in bytes of events in the crash log - defaults to 65536
 %% @datatype integer
-%% @mapping 
+%% @mapping
 {mapping, "log.crash.msg_size", "lager.crash_log_msg_size", [
   {default, "64KB"},
   {datatype, bytesize}
@@ -131,8 +132,8 @@
 ]}.
 
 { translation,
-  "lager.error_logger_redirect", fun(Conf) -> 
-    Setting = cuttlefish_util:conf_get_value("log.error.redirect", Conf), 
+  "lager.error_logger_redirect", fun(Conf) ->
+    Setting = cuttlefish:conf_get("log.error.redirect", Conf),
     case Setting of
       on -> true;
       off -> false;
