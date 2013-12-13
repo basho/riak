@@ -21,6 +21,7 @@ cd $RUNNER_BASE_DIR
 # Identify the script name
 SCRIPT=`basename $0`
 
+V2REPLDEP="WARNING: Version 2 replication has been deprecated and will be unavailable as of Riak Enterprise 2.2.\nPlease upgrade to Version 3 replication as soon as possible.\nIf you need assistance migrating to Version 3 replication, please contact Basho Client Services."
 
 # Check the first argument for instructions
 case "$1" in
@@ -34,6 +35,7 @@ case "$1" in
         ;;
 
     add-listener)
+        echo $V2REPLDEP
         ACTION=$1
         shift
         if [ $# -lt 3 ]; then
@@ -48,6 +50,7 @@ case "$1" in
         ;;
 
     add-nat-listener)
+        echo $V2REPLDEP
         ACTION=$1
         shift
         if [ $# -lt 5 ]; then
@@ -63,6 +66,7 @@ case "$1" in
 
 
     del-listener)
+        echo $V2REPLDEP
         ACTION=$1
         shift
         if [ $# -lt 3 ]; then
@@ -77,6 +81,7 @@ case "$1" in
         ;;
 
     add-site)
+        echo $V2REPLDEP
         ACTION=$1
         shift
         if [ $# -lt 3 ]; then
@@ -90,6 +95,7 @@ case "$1" in
         $NODETOOL rpc riak_repl_console add_site $1 $2 $3
         ;;
    del-site)
+        echo $V2REPLDEP
         ACTION=$1
         shift
         if [ $# -lt 1 ]; then
@@ -103,6 +109,7 @@ case "$1" in
         $NODETOOL rpc riak_repl_console del_site $1
         ;;
     start-fullsync)
+        echo $V2REPLDEP
         ACTION=$1
         shift
 
@@ -112,6 +119,7 @@ case "$1" in
         $NODETOOL rpc riak_repl_console start_fullsync
         ;;
     cancel-fullsync)
+        echo $V2REPLDEP
         ACTION=$1
         shift
 
@@ -121,6 +129,7 @@ case "$1" in
         $NODETOOL rpc riak_repl_console cancel_fullsync
         ;;
     pause-fullsync)
+        echo $V2REPLDEP
         ACTION=$1
         shift
 
@@ -130,6 +139,7 @@ case "$1" in
         $NODETOOL rpc riak_repl_console pause_fullsync
         ;;
     resume-fullsync)
+        echo $V2REPLDEP
         ACTION=$1
         shift
 
@@ -458,61 +468,6 @@ case "$1" in
 Usage: $SCRIPT <command>
 
 ===============================================================================
-Version 2 MDC replication:
-
-   Connection setup:
-
-      add-listener <nodename> <listen_ip> <port>
-
-            Adds a listener (source) for version 2
-            replication.
-
-      add-nat-listener <nodename> <listen_ip> <port> <public_ip> <public_port>
-
-            Adds a listener (source)capable of listening
-            on both an internal listen_ip:port as well as an
-            external public_ip:port.
-
-      del-listener <nodename> <listen_ip> <port>
-
-            Deletes an established listener or nat-listener
-            on nodename and listener_ip:port.
-
-      add-site <ipaddr> <portnum> <sitename>
-
-            Adds a named replication site at ipaddr:portnum.
-
-      del-site <sitename>
-
-            Deletes a named replication site.
-
-   Operations:
-
-      status
-
-            Displays replication status and statistics.
-
-      start-fullsync
-
-            Start fullsync replication between a listener
-            (source) and a site (sink).
-
-      cancel-fullsync
-
-            Cancels a running fullsync replication process.
-            The next fullsync will start over from scratch.
-
-      pause-fullsync
-
-            Pauses a running fullsync replication process.
-            Once resumed, continue fullsync where the process was
-            paused.
-
-      resume-fullsync
-
-            Continue fullsync if it was previously paused.
-
-===============================================================================
 Version 3 MDC replication:
 
    Connection setup:
@@ -589,14 +544,14 @@ Version 3 MDC replication:
 
       show-block-provider-redirect [<from-cluster-id>]
              show the mapping for a given cluster-id redirect
-   
+
       delete-block-provider-redirect [<from-cluster-id>]
 
              delete a pre-existing redirect such that proxy_gets go
              again to the original provider cluster id.
-    
+
       show-local-cluster-id []
- 
+
              display this cluster's cluster-id tuple, for use with the *-block-provider-redirect
              commands
 
@@ -658,6 +613,65 @@ Version 3 MDC replication:
      nat-map del <externalip>[:port] <internalip>
 
             Delete a specific NAT map entry.
+
+===============================================================================
+Version 2 MDC replication:
+
+   $V2REPLDEP
+
+   Connection setup:
+
+      add-listener <nodename> <listen_ip> <port>
+
+            Adds a listener (source) for version 2
+            replication.
+
+      add-nat-listener <nodename> <listen_ip> <port> <public_ip> <public_port>
+
+            Adds a listener (source)capable of listening
+            on both an internal listen_ip:port as well as an
+            external public_ip:port.
+
+      del-listener <nodename> <listen_ip> <port>
+
+            Deletes an established listener or nat-listener
+            on nodename and listener_ip:port.
+
+      add-site <ipaddr> <portnum> <sitename>
+
+            Adds a named replication site at ipaddr:portnum.
+
+      del-site <sitename>
+
+            Deletes a named replication site.
+
+   Operations:
+
+      status
+
+            Displays replication status and statistics.
+
+      start-fullsync
+
+            Start fullsync replication between a listener
+            (source) and a site (sink).
+
+      cancel-fullsync
+
+            Cancels a running fullsync replication process.
+            The next fullsync will start over from scratch.
+
+      pause-fullsync
+
+            Pauses a running fullsync replication process.
+            Once resumed, continue fullsync where the process was
+            paused.
+
+      resume-fullsync
+
+            Continue fullsync if it was previously paused.
+
+
 "
 exit 1
 ;;
