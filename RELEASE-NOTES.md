@@ -1,3 +1,94 @@
+# Riak 1.4.4 Release Notes
+
+This is a bugfix release on the Riak 1.4.x series.
+
+## Secondary index improvements
+
+### Regular expression filter in range queries.
+
+The new `term_regex` parameter filters secondary index range query results
+such that only terms that match the regular expression are returned.
+For example, the following query:
+
+`http://localhost:10018/buckets/b/index/f1_bin/a/z?return_terms=true`
+
+If it returned the following term/keys pairs:
+
+`[("baa", "key1"),("aab", "key2"),("bba", "key3")]`
+
+Passing the following regular expression:
+
+`http://localhost:10018/buckets/b/index/f1_bin/a/z?return_terms=true&term_regex=^.a`
+
+Would return only the items that have an 'a' as the second character in the term:
+
+`[("baa", "key1"),("aab", "key2")]`
+
+**Note: This feature is not character encoding aware. We recommend normalizing
+your data to ascii characters if possible.**
+
+### Faster internal encoding/decoding of leveldb secondary index data
+
+We are now using a C version of the sext codec used to write and read
+secondary index and object key data. This should speed up secondary index
+query scans that read a large number of items from leveldb.
+
+### Pagination performance fix
+
+When using small page sizes, it was possible for vnodes to send a batch of
+results larger than the page size. Those results could have never been sent
+to the client anyway. That has been fixed.
+
+### Sorting in non-paginated queries.
+
+Paginated secondary index queries work by sorting results by term,
+then key.  When they were introduced, this internal sorting also
+became the default for regular secondary index queries not involving
+pagination.  That caused performance degradation in some cases. The
+default behavior of non-paginated queries (those not using the
+max_results or continuation parameters) has been changed back to
+unsorted. The `pagination_sort` parameter can be used to re-enable
+this sorting per request. Also, the behavior can be restored per node
+in the configuration file by setting `secondary_index_sort_default` to
+`true` in the `riak_kv` section of the `app.config`. This should be
+useful if your application relied on this order and a code change is
+inconvenient.
+
+### Anti-entropy for secondary index data.
+
+The new `riak-admin repair-2i` command will scan and fix any
+mismatches between the secondary index data used for querying and the
+secondary index data stored in the riak objects. It can run on all the
+partitions of a node or in a subset of them.  Use the `riak-admin
+repair-2i status` command to monitor the progress of a repair. A
+repair may be stopped with `riak-admin repair-2i kill`.
+
+This operation involves scanning all the secondary index data used for
+querying from disk, then building a hashtree. This hashtree will be
+used to minimize the number of riak_objects that will be read from
+disk and repaired. **We recommend to schedule repairs during non-peak
+activity time windows.**
+
+### Stats
+
+Added a timeout to stat calculation so that stuck or extremely slow
+processes no longer keep stats from proceeding forever. [**riak_core
+467**](https://github.com/basho/riak_core/pull/467)
+
+## Issues / PR's Resolved
+* bitcask/122:   [Bound merge queue to number of partitions](https://github.com/basho/bitcask/pull/122)
+* node_package/101: [Add extra options to debuild template](https://github.com/basho/node_package/pull/101)
+* node_package/93: [Incorrect package format in SmartOS causes segfault on pkg_info](https://github.com/basho/node_package/issues/93)
+* riak_core/429: [Handoff fix is to enable handoff to complete in mixed pre-1.4 clusters](https://github.com/basho/riak_core/pull/429)
+* riak_core/467: [Bound the time that stats calculation can take](https://github.com/basho/riak_core/pull/467)
+* riak_core/470: [Provide a synchronous registration and unregistration of services.](https://github.com/basho/riak_core/pull/470)
+* riak_core/476: [Remove connection manager and service manager.](https://github.com/basho/riak_core/pull/476)
+* riak_kv/715: [2i term regex filter 1.4](https://github.com/basho/riak_kv/pull/715)
+* riak_kv/743: [Fix vnode sending > max_results items for 2i query](https://github.com/basho/riak_kv/pull/743)
+* leveldb/110 [Add option for changing fadvise() handling when physical memory exceeds database size](https://github.com/basho/leveldb/pull/110)
+* leveldb/112: [Create asynchronous close path to resolve race between write threads](https://github.com/basho/leveldb/pull/112)
+
+
 # Riak 1.4.2 Release Notes
 
 This is a bugfix release on the Riak 1.4.x series.
