@@ -134,7 +134,7 @@
 %% 'current', only the current open log file is kept.
 {mapping, "log.crash.rotation.keep", "lager.crash_log_count", [
   {default, 5},
-  {datatype, [{atom, current}, integer]},
+  {datatype, [integer, {atom, current}]},
   {validators, ["rotation_count"]}
 ]}.
 
