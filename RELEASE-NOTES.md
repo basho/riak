@@ -1,6 +1,6 @@
 # Riak 1.4.4 Release Notes
 
-This is a bugfix release on the Riak 1.4.x series.
+This is a bugfix release on the Riak 1.4.x series. There is no public 1.4.3 release.
 
 ## Secondary index improvements
 
