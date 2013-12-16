@@ -1,41 +1,42 @@
 %%-*- mode: erlang -*-
-%% @doc where do you want the console.log output:
-%% off : nowhere
-%% file: the file specified by log.console.file
-%% console : standard out
-%% both : log.console.file and standard out.
+
+%% @doc Where to emit the default log messages (typically at 'info'
+%% severity):
+%%     off: disabled
+%%    file: the file specified by log.console.file
+%% console: to standard output (seen when using `riak attach-direct`)
+%%    both: log.console.file and standard out.
 {mapping, "log.console", "lager.handlers", [
   {default, {{console_log_default}} },
   {datatype, {enum, [off, file, console, both]}}
 ]}.
 
-%% @doc the log level of the console log
+%% @doc The severity level of the console log, default is 'info'.
 {mapping, "log.console.level", "lager.handlers", [
   {default, info},
   {datatype, {enum, [debug, info, warning, error]}}
 ]}.
 
-%% @doc location of the console log
+%% @doc When 'log.console' is set to 'file' or 'both', the file where
+%% console messages will be logged.
 {mapping, "log.console.file", "lager.handlers", [
   {default, "{{platform_log_dir}}/console.log"}
 ]}.
 
-%% *gasp* notice the same @mapping!
-%% @doc location of the error log
+%% @doc The file where error messages will be logged.
 {mapping, "log.error.file", "lager.handlers", [
   {default, "{{platform_log_dir}}/error.log"}
 ]}.
 
-%% *gasp* notice the same @mapping!
-%% @doc turn on syslog
+%% @doc When set to 'on', enables log output to syslog.
 {mapping, "log.syslog", "lager.handlers", [
   {default, off},
   {datatype, {enum, [on, off]}}
 ]}.
 
-{ translation,
-  "lager.handlers",
-  fun(Conf) ->
+{translation,
+ "lager.handlers",
+ fun(Conf) ->
     SyslogHandler = case cuttlefish:conf_get("log.syslog", Conf) of
       on ->  [{lager_syslog_backend, ["riak", daemon, info]}];
       _ -> []
@@ -81,54 +82,84 @@
 { translation,
   "sasl.sasl_error_logger",
   fun(Conf) ->
-    case cuttlefish:conf_get("sasl", Conf) of %%how to pull default?
+    case cuttlefish:conf_get("sasl", Conf) of
         on -> true;
         _ -> false
     end
   end
 }.
 
-%% Lager Config
-
-%% @doc Whether to write a crash log, and where.
-%% Commented/omitted/undefined means no crash logger.
-{mapping, "log.crash.file", "lager.crash_log", [
-  {default, "./log/crash.log"}
+%% @doc Whether to enable the crash log.
+{mapping, "log.crash", "lager.crash_log", [
+  {default, on},
+  {datatype, {enum, [on, off]}}
 ]}.
 
-%% @doc Maximum size in bytes of events in the crash log - defaults to 65536
-%% @datatype integer
-%% @mapping
-{mapping, "log.crash.msg_size", "lager.crash_log_msg_size", [
+%% @doc If the crash log is enabled, the file where its messages will
+%% be written.
+{mapping, "log.crash.file", "lager.crash_log", [
+  {default, "{{platform_log_dir}}/crash.log"}
+]}.
+
+{translation,
+ "lager.crash_log",
+ fun(Conf) ->
+     case cuttlefish:conf_get("log.crash", Conf) of
+         off -> undefined;
+         _ ->
+             cuttlefish:conf_get("log.crash.file", Conf, "{{platform_log_dir}}/crash.log")
+     end
+ end}.
+
+%% @doc Maximum size in bytes of individual messages in the crash log
+{mapping, "log.crash.maximum_message_size", "lager.crash_log_msg_size", [
   {default, "64KB"},
   {datatype, bytesize}
 ]}.
 
-%% @doc Maximum size of the crash log in bytes, before its rotated, set
-%% to 0 to disable rotation - default is 0
+%% @doc Maximum size of the crash log in bytes, before it is rotated
 {mapping, "log.crash.size", "lager.crash_log_size", [
   {default, "10MB"},
   {datatype, bytesize}
 ]}.
 
-%% @doc What time to rotate the crash log - default is no time
-%% rotation. See the lager README for a description of this format:
-%% https://github.com/basho/lager/blob/master/README.org
-{mapping, "log.crash.date", "lager.crash_log_date", [
+%% @doc The schedule on which to rotate the crash log.  For more
+%% information see:
+%% https://github.com/basho/lager/blob/master/README.md#internal-log-rotation
+{mapping, "log.crash.rotation", "lager.crash_log_date", [
   {default, "$D0"}
 ]}.
 
-%% @doc Number of rotated crash logs to keep, 0 means keep only the
-%% current one - default is 0
-{mapping, "log.crash.count", "lager.crash_log_count", [
+%% @doc The number of rotated crash logs to keep. When set to
+%% 'current', only the current open log file is kept.
+{mapping, "log.crash.rotation.keep", "lager.crash_log_count", [
   {default, 5},
-  {datatype, integer}
+  {datatype, [integer, {atom, current}]},
+  {validators, ["rotation_count"]}
 ]}.
+
+{validator,
+ "rotation_count",
+ "must be 'current' or a positive integer",
+ fun(current) -> true;
+    (Int) when is_integer(Int) andalso Int >= 0 -> true;
+    (_) -> false
+ end}.
+
+{translation,
+ "lager.crash_log_count",
+ fun(Conf) ->
+    case cuttlefish:conf_get("log.crash.rotation.keep", Conf) of
+       current -> 0;
+       Int -> Int
+    end
+ end}.
 
 %% @doc Whether to redirect error_logger messages into lager - defaults to true
 {mapping, "log.error.redirect", "lager.error_logger_redirect", [
   {default, on},
-  {datatype, {enum, [on, off]}}
+  {datatype, {enum, [on, off]}},
+  {level, advanced}
 ]}.
 
 { translation,
@@ -141,11 +172,11 @@
     end
 end}.
 
-%% @doc maximum number of error_logger messages to handle in a second
-%% lager 2.0.0 shipped with a limit of 50, which is a little low for riak's startup
+%% @doc Maximum number of error_logger messages to handle in a second
 {mapping, "log.error.messages_per_second", "lager.error_logger_hwm", [
   {default, 100},
-  {datatype, integer}
+  {datatype, integer},
+  {level, advanced}
 ]}.
 
 
