@@ -99,6 +99,22 @@ cluster_admin()
             node_up_check
             $NODETOOL rpc riak_core_console clear_staged
             ;;
+        members)
+            if [ $# -ne 1 ]; then
+                echo "Usage: $SCRIPT cluster $1"
+                exit 1
+            fi
+
+            # Make sure the local node IS running
+            RES=`$NODETOOL ping`
+            if [ "$RES" != "pong" ]; then
+                echo "Node is not running!"
+                exit 1
+            fi
+            shift
+
+            $NODETOOL rpc riak_core_console member_status $@
+            ;;
         *)
             echo "\
 Usage: $SCRIPT cluster <command>
@@ -126,6 +142,9 @@ Staging commands:
    plan                           Display the staged changes to the cluster
    commit                         Commit the staged changes
    clear                          Clear the staged changes
+
+Info commands:
+   members                        Display the current cluster members
 "
     esac
 }
