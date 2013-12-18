@@ -60,6 +60,11 @@ stat_admin()
             node_up_check
             $NODETOOL rpc riak_core_console stat_disable "$*"
             ;;
+        reset)
+            shift
+            node_up_check
+            $NODETOOL rpc riak_core_console stat_reset "$*"
+            ;;
         *)
             echo "\
 Usage: $SCRIPT stat <command>
@@ -72,6 +77,7 @@ Wildcards are allowed, and given as '*'. Quoting is permitted.
    show-all <entry>            Show the value(s), including disabled entries
    enable <entry>              Enable entry or entries
    disable <entry>             Disable entry or entries
+   reset <entry>               Reset entry or entries
    info [ -name | -type |      Display information about the entry or entries.
         | -module              The attributes are described in the Exometer docs
         | -value | -cache        
