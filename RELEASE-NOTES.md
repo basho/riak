@@ -1,3 +1,18 @@
+# Riak 1.4.5 Release Notes
+
+This is a bugfix release to address some problems found at the time 1.4.4 was
+released:
+
+### Broken 2i queries during a rolling upgrade
+* [riak_kv/766](https://github.com/basho/riak_kv/pull/766)
+2i queries could fail if some nodes in the cluster were running on
+older versions of Riak (1.3.x, 1.4.2 for example).
+### AAE tree building fails to hash secondary index data
+* [riak_kv/767](https://github.com/basho/riak_kv/pull/767)
+AAE trees building would fail to hash 2i data. The logs would be filled with
+error messages and the system may have wastefully issued many repair operations
+that would end up doing nothing.
+
 # Riak 1.4.4 Release Notes
 
 This is a bugfix release on the Riak 1.4.x series. There is no public 1.4.3 release.
