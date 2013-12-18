@@ -315,6 +315,16 @@ if [ 1 -eq $get_syscmds ]; then
         dump swapon swapon -s
     fi
 
+    BLOCKDEV=/sbin/blockdev
+    if [ -e $BLOCKDEV ]; then
+        for mount_point in `mount | egrep '^/' | awk '{print $1}'`; do
+            flat_point=`echo $mount_point | sed 's:/:_:g'`
+            dump blockdev.$flat_point $BLOCKDEV --getra $mount_point
+        done
+    else
+        dump blockdev._ echo $BLOCKDEV s not available
+    fi
+
     # Running iptables commands if the module is not loaded can automatically
     # load them. This is rarely desired and can even cause connectivity
     # problems if, e.g., nf_conntrack gets autoloaded and autoenabled.
