@@ -407,6 +407,12 @@ if [ 1 -eq $get_riakcmds ]; then
     dump riak_diag "$riak_bin_dir"/riak-admin diag
     dump riak_repl_status "$riak_bin_dir"/riak-repl status
 
+    CI=`pwd`/cluster-info.html
+    touch $CI
+    chmod 666 $CI
+    dump cluster-info riak-admin cluster-info $CI
+    chmod 444 $CI
+
     # Get the latest ring file
     mkdir_or_die "${start_dir}"/"${debug_dir}"/ring/.info
     cd "${start_dir}"/"${debug_dir}"/ring
