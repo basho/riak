@@ -1,23 +1,21 @@
 # Riak 1.4.5 Release Notes
 
-This is a bugfix release to address some problems found at the time 1.4.4 was
-released:
+This is a bugfix release on the 1.4.x series of Riak.
+
+## Secondary index improvements
 
 ### Broken 2i queries during a rolling upgrade
+
 * [riak_kv/766](https://github.com/basho/riak_kv/pull/766)
 2i queries could fail if some nodes in the cluster were running on
 older versions of Riak (1.3.x, 1.4.2 for example).
+
 ### AAE tree building fails to hash secondary index data
+
 * [riak_kv/767](https://github.com/basho/riak_kv/pull/767)
 AAE trees building would fail to hash 2i data. The logs would be filled with
 error messages and the system may have wastefully issued many repair operations
 that would end up doing nothing.
-
-# Riak 1.4.4 Release Notes
-
-This is a bugfix release on the Riak 1.4.x series. There is no public 1.4.3 release.
-
-## Secondary index improvements
 
 ### Regular expression filter in range queries.
 
@@ -81,7 +79,7 @@ repair may be stopped with `riak-admin repair-2i kill`.
 This operation involves scanning all the secondary index data used for
 querying from disk, then building a hashtree. This hashtree will be
 used to minimize the number of riak_objects that will be read from
-disk and repaired. **We recommend to schedule repairs during non-peak
+disk and repaired. **We recommend scheduling repairs during non-peak
 activity time windows.**
 
 ### Stats
@@ -100,6 +98,8 @@ processes no longer keep stats from proceeding forever. [**riak_core
 * riak_core/476: [Remove connection manager and service manager.](https://github.com/basho/riak_core/pull/476)
 * riak_kv/715: [2i term regex filter 1.4](https://github.com/basho/riak_kv/pull/715)
 * riak_kv/743: [Fix vnode sending > max_results items for 2i query](https://github.com/basho/riak_kv/pull/743)
+* riak_kv/766: [Fix error when hashing index data in tree builds](https://github.com/basho/riak_kv/pull/766)
+* riak_kv/767: [Fixed 2i queries in mixed clusters](https://github.com/basho/riak_kv/pull/767)
 * leveldb/110 [Add option for changing fadvise() handling when physical memory exceeds database size](https://github.com/basho/leveldb/pull/110)
 * leveldb/112: [Create asynchronous close path to resolve race between write threads](https://github.com/basho/leveldb/pull/112)
 
