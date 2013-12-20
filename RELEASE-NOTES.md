@@ -105,6 +105,11 @@ processes no longer keep stats from proceeding forever. [**riak_core
 * leveldb/110 [Add option for changing fadvise() handling when physical memory exceeds database size](https://github.com/basho/leveldb/pull/110)
 * leveldb/112: [Create asynchronous close path to resolve race between write threads](https://github.com/basho/leveldb/pull/112)
 
+## Known issues
+
+* Issuing 2i queries during a rolling upgrade with the memory backend will
+  fail if 1.4 nodes are mixed with pre-1.4 nodes.
+
 # Riak 1.4.3, 1.4.4, 1.4.5
 
 These were unreleased Riak versions
