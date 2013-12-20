@@ -1,4 +1,4 @@
-# Riak 1.4.5 Release Notes
+# Riak 1.4.6 Release Notes
 
 This is a bugfix release on the 1.4.x series of Riak.
 
@@ -100,9 +100,14 @@ processes no longer keep stats from proceeding forever. [**riak_core
 * riak_kv/743: [Fix vnode sending > max_results items for 2i query](https://github.com/basho/riak_kv/pull/743)
 * riak_kv/766: [Fix error when hashing index data in tree builds](https://github.com/basho/riak_kv/pull/766)
 * riak_kv/767: [Fixed 2i queries in mixed clusters](https://github.com/basho/riak_kv/pull/767)
+* riak_kv/772: [Fix broken return terms handling](https://github.com/basho/riak_kv/pull/772)
+* riak_kv/774: [Enable bloom filters for AAE LevelDB instances](https://github.com/basho/riak_kv/pull/774)
 * leveldb/110 [Add option for changing fadvise() handling when physical memory exceeds database size](https://github.com/basho/leveldb/pull/110)
 * leveldb/112: [Create asynchronous close path to resolve race between write threads](https://github.com/basho/leveldb/pull/112)
 
+# Riak 1.4.3, 1.4.4, 1.4.5
+
+These were unreleased Riak versions
 
 # Riak 1.4.2 Release Notes
 
