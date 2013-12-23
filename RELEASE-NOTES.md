@@ -107,6 +107,9 @@ processes no longer keep stats from proceeding forever. [**riak_core
 
 ## Known issues
 
+* The new 2i AAE feature will stop working when the AAE trees expire and
+  are rebuilt. We are already working on addressing this in the next point
+  release.
 * Issuing 2i queries during a rolling upgrade with the memory backend will
   fail if 1.4 nodes are mixed with pre-1.4 nodes.
 
