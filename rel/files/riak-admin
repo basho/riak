@@ -195,6 +195,15 @@ security_admin()
         print-sources)
             $NODETOOL rpc riak_core_console print_sources
             ;;
+        enable)
+            $NODETOOL rpc riak_core_console security_enable
+            ;;
+        disable)
+            $NODETOOL rpc riak_core_console security_disable
+            ;;
+        status)
+            $NODETOOL rpc riak_core_console security_status
+            ;;
         print-user)
             shift
             if [ $# -lt 1 ]; then
@@ -219,6 +228,9 @@ The following commands modify users and security ACLs for Riak:
     print-users
     print-sources
     print-user <user>
+    enable
+    disable
+    status
 "
     esac
 }
