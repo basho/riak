@@ -136,18 +136,42 @@ security_admin()
         add-user)
             shift
             if [ $# -lt 1 ]; then
-                echo "Usage: $SCRIPT security add-user <user> [options]"
+                echo "Usage: $SCRIPT security add-user <user> [<option>=<value> [...]]"
                 exit 1
             fi
             $NODETOOL rpc riak_core_console add_user "$@"
             ;;
+        alter-user)
+            shift
+            if [ $# -lt 2 ]; then
+                echo "Usage: $SCRIPT security alter-user <user> <option> [<option>=<value> [...]]"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console alter_user "$@"
+            ;;
+        del-user)
+            shift
+            if [ $# -ne 1 ]; then
+                echo "Usage: $SCRIPT security alter-user <user>"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console del_user "$@"
+            ;;
         add-source)
             shift
             if [ $# -lt 3 ]; then
-                echo "Usage: $SCRIPT security add-source all|<users> <CIDR> <source> [options]"
+                echo "Usage: $SCRIPT security add-source all|<users> <CIDR> <source> [<option>=<value> [...]]"
                 exit 1
             fi
             $NODETOOL rpc riak_core_console add_source "$@"
+            ;;
+        del-source)
+            shift
+            if [ $# -ne 2 ]; then
+                echo "Usage: $SCRIPT security del-source all|<users> <CIDR>"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console del_source "$@"
             ;;
         grant)
             shift
@@ -171,6 +195,15 @@ security_admin()
         print-sources)
             $NODETOOL rpc riak_core_console print_sources
             ;;
+        enable)
+            $NODETOOL rpc riak_core_console security_enable
+            ;;
+        disable)
+            $NODETOOL rpc riak_core_console security_disable
+            ;;
+        status)
+            $NODETOOL rpc riak_core_console security_status
+            ;;
         print-user)
             shift
             if [ $# -lt 1 ]; then
@@ -185,13 +218,19 @@ Usage: $SCRIPT security <command>
 
 The following commands modify users and security ACLs for Riak:
 
-    add-user <username> [options]
-    add-source all|<users> <CIDR> <source> [options]
+    add-user <username> [<option>=<value> [...]]
+    alter-user <username> <option> [<option>=<value> [...]]
+    del-user <username>
+    add-source all|<users> <CIDR> <source> [<option>=<value> [...]]
+    del-source all|<users> <CIDR>
     grant <permissions> ON ANY|<type> [bucket] TO <users>
     revoke <permissions> ON ANY|<type> [bucket] FROM <users>
     print-users
     print-sources
     print-user <user>
+    enable
+    disable
+    status
 "
     esac
 }
