@@ -410,7 +410,7 @@ if [ 1 -eq $get_riakcmds ]; then
     CI=`pwd`/cluster-info.html
     touch $CI
     chmod 666 $CI
-    dump cluster-info riak-admin cluster-info $CI
+    dump cluster-info riak-admin cluster-info $CI local
     chmod 444 $CI
 
     # Get the latest ring file
