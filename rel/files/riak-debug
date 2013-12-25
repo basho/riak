@@ -322,7 +322,7 @@ if [ 1 -eq $get_syscmds ]; then
             dump blockdev.$flat_point $BLOCKDEV --getra $mount_point
         done
     else
-        dump blockdev._ echo $BLOCKDEV s not available
+        dump blockdev._ echo $BLOCKDEV is not available
     fi
 
     # Running iptables commands if the module is not loaded can automatically
