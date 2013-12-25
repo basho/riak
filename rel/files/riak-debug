@@ -315,6 +315,16 @@ if [ 1 -eq $get_syscmds ]; then
         dump swapon swapon -s
     fi
 
+    BLOCKDEV=/sbin/blockdev
+    if [ -e $BLOCKDEV ]; then
+        for mount_point in `mount | egrep '^/' | awk '{print $1}'`; do
+            flat_point=`echo $mount_point | sed 's:/:_:g'`
+            dump blockdev.$flat_point $BLOCKDEV --getra $mount_point
+        done
+    else
+        dump blockdev._ echo $BLOCKDEV is not available
+    fi
+
     # Running iptables commands if the module is not loaded can automatically
     # load them. This is rarely desired and can even cause connectivity
     # problems if, e.g., nf_conntrack gets autoloaded and autoenabled.
@@ -399,6 +409,12 @@ if [ 1 -eq $get_riakcmds ]; then
     dump riak_repl_connections "$riak_bin_dir"/riak-repl connections
     dump riak_repl_clusterstats "$riak_bin_dir"/riak-repl clusterstats
     
+    CI=`pwd`/cluster-info.html
+    touch $CI
+    chmod 666 $CI
+    dump cluster-info riak-admin cluster-info $CI local
+    chmod 444 $CI
+
     # Get the latest ring file
     mkdir_or_die "${start_dir}"/"${debug_dir}"/ring/.info
     cd "${start_dir}"/"${debug_dir}"/ring
