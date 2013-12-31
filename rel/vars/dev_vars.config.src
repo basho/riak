@@ -1,6 +1,8 @@
 %% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
 %% ex: ft=erlang ts=4 sw=4 et
 
+{devrel, true}.
+
 %% Platform-specific installation paths
 {platform_bin_dir,  "./bin"}.
 {platform_data_dir, "./data"}.
