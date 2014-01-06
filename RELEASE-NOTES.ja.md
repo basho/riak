@@ -1,3 +1,111 @@
+# Riak 1.4.6 リリースノート
+
+これはRiak 1.4.x系のバグフィックスのリリースです。
+
+## セカンダリインデックスの改善
+
+### ローリングアップグレード中における2iクエリの失敗
+
+* [riak_kv/766](https://github.com/basho/riak_kv/pull/766)
+クラスタ内の一部のノードが古いバージョンのRiakで動いている場合、
+2iクエリが失敗する可能性があります。(例: 1.3.x と 1.4.2 の混在環境)
+
+### AAEツリーの生成がセカンダリインデックスデータのハッシュ生成に失敗
+
+* [riak_kv/767](https://github.com/basho/riak_kv/pull/767)
+AAEツリーの生成が2iデータのハッシュ生成に失敗します。
+ログはエラーメッセージで埋もれ、最終的に何もしないような
+無駄なリペア処理が多く発行されているかもしれません。
+
+### レンジクエリにおける正規表現フィルター
+
+新しい `term_regex` パラメータは、正規表現にマッチしたtermだけを返すように
+セカンダリインデックスのレンジクエリ結果をフィルタします。例えば次のクエリが：
+
+`http://localhost:10018/buckets/b/index/f1_bin/a/z?return_terms=true`
+
+次のterm/keysのペアを返すとします：
+
+`[("baa", "key1"),("aab", "key2"),("bba", "key3")]`
+
+これを正規表現にかけます：
+
+`http://localhost:10018/buckets/b/index/f1_bin/a/z?return_terms=true&term_regex=^.a`
+
+するとtermの２つ目の文字が 'a' となるものだけを返します。
+
+`[("baa", "key1"),("aab", "key2")]`
+
+**注意: この機能は文字エンコーディングを認識しません。
+可能であればASCII文字への正規化を推奨します。**
+
+### leveldbのセカンダリインデックスデータの内部変換を高速化
+
+現在、セカンダリインデックスとオブジェクトのKeyデータの読み書きに、sextコーデックのC言語版を使用しています。
+これは大量のデータをleveldbから読み込む、走査系クエリの高速化に寄与するでしょう。
+
+### ページネーションパフォーマンスの修正
+
+これまでは小さなページあたりの件数を使う場合でも、
+vnodeはそれより多い件数の結果を返すことができましたが（いずれにせよクライアントへは送信されません）
+これが修正されています。
+
+### 非ページネーションクエリにおけるソート
+
+ページネートされたセカンダリインデックスクエリはterm、そしてkeyによってソートされます。
+これらが導入されたため、この内部ソートはページネーションを伴わない標準のセカンダリインデックスクエリに対しても
+デフォルト操作となっていました。これはいくつかのケースにおいて、パフォーマンスの低下を招きました。
+非ページネーションクエリ（max_resultやcontinuationパラメータを含まない）に対するデフォルトの挙動は、
+ソートされないものへ戻されています。`pagination_sort` パラメータでリクエスト毎にこのソートを再度、有効化できます。
+また、設定ファイル `app.config` の `riak_kv` セクションにて `secondary_index_sort_default` を `true`
+へすることでノード毎にこの挙動を戻すこともできます。これはアプリケーションがソート順序に依存しており、
+コードの変更が難しい場合に便利でしょう。
+
+### セカンダリインデックスデータのアンチエントロピー
+
+新しい `riak-admin repair-2i` コマンドは、クエリに使用されるセカンダリインデックスデータと、
+Riakオブジェクト内に保存されるセカンダリインデックスデータとの、あらゆる差異をスキャンし修正します。
+これはノード上のすべてのパーティション、もしくはそのサブセット上で動作します。
+修復の進捗確認には `riak-admin repair-2i status` コマンドを使用します。
+また、`riak-admin repair-2i kill` は修復を停止させます。
+
+この操作はディスク読み込みによる、すべてのセカンダリインデックスデータのスキャンを伴い、その後ハッシュツリーを生成します。
+ハッシュツリーは、ディスクから読み込まれ修復されるRiakオブジェクト数を最小化します。
+**修復はピーク時間帯を避けてスケジューリングすることを推奨します。**
+
+### Stats
+
+プロセスの大きな遅延や詰まりがstatの更新を妨げないように、statの集計処理にタイムアウトを追加。
+[**riak_core 467**](https://github.com/basho/riak_core/pull/467)
+
+## Issues / PR's Resolved
+* bitcask/122:   [Bound merge queue to number of partitions](https://github.com/basho/bitcask/pull/122)
+* node_package/101: [Add extra options to debuild template](https://github.com/basho/node_package/pull/101)
+* node_package/93: [Incorrect package format in SmartOS causes segfault on pkg_info](https://github.com/basho/node_package/issues/93)
+* riak_core/429: [Handoff fix is to enable handoff to complete in mixed pre-1.4 clusters](https://github.com/basho/riak_core/pull/429)
+* riak_core/467: [Bound the time that stats calculation can take](https://github.com/basho/riak_core/pull/467)
+* riak_core/470: [Provide a synchronous registration and unregistration of services.](https://github.com/basho/riak_core/pull/470)
+* riak_core/476: [Remove connection manager and service manager.](https://github.com/basho/riak_core/pull/476)
+* riak_kv/715: [2i term regex filter 1.4](https://github.com/basho/riak_kv/pull/715)
+* riak_kv/743: [Fix vnode sending > max_results items for 2i query](https://github.com/basho/riak_kv/pull/743)
+* riak_kv/766: [Fix error when hashing index data in tree builds](https://github.com/basho/riak_kv/pull/766)
+* riak_kv/767: [Fixed 2i queries in mixed clusters](https://github.com/basho/riak_kv/pull/767)
+* riak_kv/772: [Fix broken return terms handling](https://github.com/basho/riak_kv/pull/772)
+* riak_kv/774: [Enable bloom filters for AAE LevelDB instances](https://github.com/basho/riak_kv/pull/774)
+* leveldb/110 [Add option for changing fadvise() handling when physical memory exceeds database size](https://github.com/basho/leveldb/pull/110)
+* leveldb/112: [Create asynchronous close path to resolve race between write threads](https://github.com/basho/leveldb/pull/112)
+
+## 既知の問題 (Known Issues)
+
+* AAEツリーの期限切れ、リビルドの際に2iの新しいAAE機能が停止します。
+  次のリリースにこの修正を含めるよう、既に対応を開始しています。
+* 1.4のノードとそれ以前のノードが混在しているmemoryバックエンド環境で、
+  ローリングアップグレード中に2iクエリの発行が失敗します。
+
+# Riak 1.4.3, 1.4.4, 1.4.5
+
+これらのバージョンのRiakはリリースされていません。
+
 # Riak 1.4.2 リリースノート
 
 これはRiak 1.4.x系のバグフィックスのリリースです。
