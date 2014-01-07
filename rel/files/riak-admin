@@ -560,7 +560,7 @@ case "$1" in
             exit 1
         fi
 
-        # Make sure the local node is running
+        # Make sure the local node is not running
         node_down_check
 
         # Sanity check the app.config file
