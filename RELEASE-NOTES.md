@@ -1,3 +1,52 @@
+# Riak 1.4.7 Release Notes
+
+This is a bugfix release on the 1.4.x series of Riak
+
+## Issues / PR's Resolved
+
+### Fix Bitcask NIF mode
+
+Configuring Bitcask to use NIF mode (file I/O operations using native code instead of Erlang) would result in the backend being unable to create new files.
+
+### Fix 2i AAE being disabled on AAE tree rebuilds
+
+The ability to repair 2i data would be lost once AAE did a tree re-build. By default trees are re-built after a week, so the command could work for a while and then suddenly break.
+
+### Active Anti-Entropy exchange & repair throttle
+
+A throttle based upon cluster-wide values of the `riak_kv_vnode_max`
+statistic has been added in riak_kv/754.  Its purpose is to avoid rare
+situations where vnodes are overloaded by AAE exchange and repair
+operations.
+
+* The exchange & repair throttle is enabled by default.  Define
+  `{aae_throttle_kill, true}` in the `riak_kv` section of the
+  `app.config` file to disable the throttle entirely.
+  * It may also be disabled/enabled non-persistently
+    using the Riak console to execute
+    `riak_kv_entropy_manager:set_aae_throttle_kill(true | false).`,
+  respectively.
+* The configured throttle defaults, as defined by
+  `aae_throttle_sleep_time` item in the `riak_kv` section of the
+  `app.config` file, appear to be very effective in lab testing.
+  * The Riak console can be used to execute query and change the
+    setting non-persistently using
+    `riak_kv_entropy_manager:get_aae_throttle_limits()` and
+    `riak_kv_entropy_manager:set_aae_throttle_limits(LimitDefinition)`.
+  * Contact Basho support if the default weightings are not effective.
+* The configuration syntax for this throttle has been converted
+  to Cuttlefish-style syntax for the Riak 2.0 release.  The
+  implementation of the throttle is the same as the 1.4.7 release.
+
+### Issues Closed
+
+* bitcask/129: [Fix nif-mode and eunit_nif tests](https://github.com/basho/bitcask/pull/129)
+* riak_kv/754: [Add timer:sleep()-based throttle to riak_kv_exchange_fsm:read_repair_keydiff()](https://github.com/basho/riak_kv/pull/754)
+* riak_kv/775: [Make memory backend obey 2i return terms properly](https://github.com/basho/riak_kv/pull/775)
+* riak_kv/780: [Fix lost 2i AAE tree on rebuild](https://github.com/basho/riak_kv/pull/780)
+* riak_kv/789: [Fix logging call](https://github.com/basho/riak_kv/pull/789)
+
+
 # Riak 1.4.6 Release Notes
 
 This is a bugfix release on the 1.4.x series of Riak.
