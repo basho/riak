@@ -1,3 +1,45 @@
+# Riak 1.4.7 リリースノート
+
+これはRiak 1.4.x系のバグフィックスのリリースです。
+
+## Issues / PR's Resolved
+
+### BitcaskのNIFモードへの変更
+
+BitcaskをNIFモードを使用するように変更（ファイルIO操作では、Erlangの代わりにネイティブコードを使用する）した場合に、バックエンドにおいて新しいファイルが生成されないことがある。
+
+### AAEツリーの再生成による2i AAE無効化の修正
+
+一度、AAEがツリーの再生成をおこなうと、2iデータの修復機能が失われます。デフォルトでツリーは一週間後に再生成されるので、修復コマンドはある期間で機能するものの、あるとき突然動かなくなります。
+
+### アクティブアンチエントロピーのexchangeおよびrepairのスロットリング
+
+クラスタ全体の`riak_kv_vnodeq_max`という値を用いたスロットリングがriak_kv/754で追加されました。
+稀にAAEのexchange, repair操作によってvnodeが過負荷に陥ることがあり、これを避けることが目的です。
+
+* exchangeとrepairのスロットリングはデフォルトで有効です。
+  スロットリングを完全に無効化するには、`app.config`の`riak_kv`セクションに
+  `{aae_throttle_kill, true}`を定義してください。
+  * Riakコンソールで以下を実行すると非永続的に無効化／有効化をそれぞれ実行できます。
+    `riak_kv_entropy_manager:set_aae_throttle_kill(true | false).`,
+* スロットリングのデフォルト設定(`aae_throttle_sleep_time`: `app.config`内の`riak_kv`セクション)は
+  検証環境での試験において非常に効果が見られました。
+  * Riakコンソールはクエリの実行や下記を利用した非永続的な設定変更に利用されます。
+    `riak_kv_entropy_manager:get_aae_throttle_limits()` や
+    `riak_kv_entropy_manager:set_aae_throttle_limits(LimitDefinition)`.
+  * デフォルト設定が効果的でない場合はBashoのサポートへコンタクトしてください。
+* このスロットリング設定の構文は、Riak 2.0のCuttlefishスタイルの構文へ変換されます。
+  そのスロットリング実装は1.4.7リリースのものと同じです。
+
+### Issues Closed
+
+* bitcask/129: [Fix nif-mode and eunit_nif tests](https://github.com/basho/bitcask/pull/129)
+* riak_kv/754: [Add timer:sleep()-based throttle to riak_kv_exchange_fsm:read_repair_keydiff()](https://github.com/basho/riak_kv/pull/754)
+* riak_kv/775: [Make memory backend obey 2i return terms properly](https://github.com/basho/riak_kv/pull/775)
+* riak_kv/780: [Fix lost 2i AAE tree on rebuild](https://github.com/basho/riak_kv/pull/780)
+* riak_kv/789: [Fix logging call](https://github.com/basho/riak_kv/pull/789)
+
+
 # Riak 1.4.6 リリースノート
 
 これはRiak 1.4.x系のバグフィックスのリリースです。
