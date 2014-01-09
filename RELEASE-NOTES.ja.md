@@ -1,42 +1,35 @@
-# Riak 1.4.7 Release Notes
+# Riak 1.4.7 リリースノート
 
-This is a bugfix release on the 1.4.x series of Riak
+これはRiak 1.4.x系のバグフィックスのリリースです。
 
 ## Issues / PR's Resolved
 
-### Fix Bitcask NIF mode
+### BitcaskのNIFモードへの変更
 
-Configuring Bitcask to use NIF mode (file I/O operations using native code instead of Erlang) would result in the backend being unable to create new files.
+BitcaskをNIFモードを使用するように変更（ファイルIO操作では、Erlangの代わりにネイティブコードを使用する）した場合に、バックエンドにおいて新しいファイルが生成されないことがある。
 
-### Fix 2i AAE being disabled on AAE tree rebuilds
+### AAEツリーの再生成による2i AAE無効化の修正
 
-The ability to repair 2i data would be lost once AAE did a tree re-build. By default trees are re-built after a week, so the command could work for a while and then suddenly break.
+一度、AAEがツリーの再生成をおこなうと、2iデータの修復機能が失われます。デフォルトでツリーは一週間後に再生成されるので、修復コマンドはある期間で機能するものの、あるとき突然動かなくなります。
 
-### Active Anti-Entropy exchange & repair throttle
+### アクティブアンチエントロピーのexchangeおよびrepairのスロットリング
 
-A throttle based upon cluster-wide values of the `riak_kv_vnode_max`
-statistic has been added in riak_kv/754.  Its purpose is to avoid rare
-situations where vnodes are overloaded by AAE exchange and repair
-operations.
+クラスタ全体の`riak_kv_vnodeq_max`という値を用いたスロットリングがriak_kv/754で追加されました。
+稀にAAEのexchange, repair操作によってvnodeが過負荷に陥ることがあり、これを避けることが目的です。
 
-* The exchange & repair throttle is enabled by default.  Define
-  `{aae_throttle_kill, true}` in the `riak_kv` section of the
-  `app.config` file to disable the throttle entirely.
-  * It may also be disabled/enabled non-persistently
-    using the Riak console to execute
+* exchangeとrepairのスロットリングはデフォルトで有効です。
+  スロットリングを完全に無効化するには、`app.config`の`riak_kv`セクションに
+  `{aae_throttle_kill, true}`を定義してください。
+  * Riakコンソールで以下を実行すると非永続的に無効化／有効化をそれぞれ実行できます。
     `riak_kv_entropy_manager:set_aae_throttle_kill(true | false).`,
-  respectively.
-* The configured throttle defaults, as defined by
-  `aae_throttle_sleep_time` item in the `riak_kv` section of the
-  `app.config` file, appear to be very effective in lab testing.
-  * The Riak console can be used to execute query and change the
-    setting non-persistently using
-    `riak_kv_entropy_manager:get_aae_throttle_limits()` and
+* スロットリングのデフォルト設定(`aae_throttle_sleep_time`: `app.config`内の`riak_kv`セクション)は
+  検証環境での試験において非常に効果が見られました。
+  * Riakコンソールはクエリの実行や下記を利用した非永続的な設定変更に利用されます。
+    `riak_kv_entropy_manager:get_aae_throttle_limits()` や
     `riak_kv_entropy_manager:set_aae_throttle_limits(LimitDefinition)`.
-  * Contact Basho support if the default weightings are not effective.
-* The configuration syntax for this throttle has been converted
-  to Cuttlefish-style syntax for the Riak 2.0 release.  The
-  implementation of the throttle is the same as the 1.4.7 release.
+  * デフォルト設定が効果的でない場合はBashoのサポートへコンタクトしてください。
+* このスロットリング設定の構文は、Riak 2.0のCuttlefishスタイルの構文へ変換されます。
+  そのスロットリング実装は1.4.7リリースのものと同じです。
 
 ### Issues Closed
 
