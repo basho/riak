@@ -187,13 +187,11 @@ end}.
 ]}.
 
 {{#devrel}}
-%% @doc limited_developer_mem is a Riak specific option that is used
-%% when a developer is testing a high number of vnodes and/or several
-%% VMs on a machine with limited physical memory.  Do NOT use this
-%% option if making performance measurements.  This option overwrites
-%% values given to write_buffer_size_min and write_buffer_size_max.
+%% Because of the 'merge' keyword in the proplist below, the docs and datatype
+%% are pulled from the leveldb schema.
 {mapping, "leveldb.limited_developer_mem", "eleveldb.limited_developer_mem", [
-  {default, true},
-  {datatype, {enum, [true, false]}}
+  {default, on},
+  merge
 ]}.
 {{/devrel}}
+
