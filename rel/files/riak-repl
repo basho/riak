@@ -273,12 +273,11 @@ case "$1" in
                 exit 1
               fi
               NEWVAL=$1
-              shift
 
               # Make sure the local node is running
               node_up_check
 
-              $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
+              $NODETOOL rpc riak_repl_console $SUB_CMD $@
               ;;
             cascades)
               if [ "$ACTION" != "realtime" ]; then
@@ -286,13 +285,12 @@ case "$1" in
                 exit 1
               fi
               NEWVAL=$1
-              shift
               RES=`$NODETOOL ping`
               if [ "$RES" != "pong" ]; then
                 echo "Node is not running!"
                 exit 1
               fi
-              $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
+              $NODETOOL rpc riak_repl_console realtime cascades $@
               ;;
             max_fssource_cluster)
               if [ "$ACTION" != "fullsync" ]; then
@@ -300,12 +298,11 @@ case "$1" in
                 exit 1
               fi
               NEWVAL=$1
-              shift
 
               # Make sure the local node is running
               node_up_check
 
-              $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
+              $NODETOOL rpc riak_repl_console $SUB_CMD $@
               ;;
             max_fssink_node)
               if [ "$ACTION" != "fullsync" ]; then
@@ -313,12 +310,11 @@ case "$1" in
                 exit 1
               fi
               NEWVAL=$1
-              shift
 
               # Make sure the local node is running
               node_up_check
 
-              $NODETOOL rpc riak_repl_console $SUB_CMD $NEWVAL
+              $NODETOOL rpc riak_repl_console $SUB_CMD $@
               ;;
             *)
                 echo "Usage: $SCRIPT $ACTION realtime start [clustername] |"
