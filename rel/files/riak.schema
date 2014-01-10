@@ -191,6 +191,7 @@ end}.
 %% are pulled from the leveldb schema.
 {mapping, "leveldb.limited_developer_mem", "eleveldb.limited_developer_mem", [
   {default, on},
+  {level, basic},
   merge
 ]}.
 {{/devrel}}
