@@ -194,4 +194,10 @@ end}.
   {level, basic},
   merge
 ]}.
+
+%% @doc erlang vm shutdown_time is useful when running a riak_test devrel
+{mapping, "erlang.shutdown_time", "vm_args.-shutdown_time", [
+  {default, "10s"},
+  {datatype, {duration, ms}}
+]}.
 {{/devrel}}
