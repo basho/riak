@@ -290,7 +290,7 @@ case "$1" in
                 echo "Node is not running!"
                 exit 1
               fi
-              $NODETOOL rpc riak_repl_console realtime cascades $@
+              $NODETOOL rpc riak_repl_console realtime_cascades $@
               ;;
             max_fssource_cluster)
               if [ "$ACTION" != "fullsync" ]; then
