@@ -20,27 +20,27 @@
 %% @doc When 'log.console' is set to 'file' or 'both', the file where
 %% console messages will be logged.
 {mapping, "log.console.file", "lager.handlers", [
-  {default, "{{platform_log_dir}}/console.log"}
+  {default, "{{platform_log_dir}}/console.log"},
+  {datatype, file}
 ]}.
 
 %% @doc The file where error messages will be logged.
 {mapping, "log.error.file", "lager.handlers", [
-  {default, "{{platform_log_dir}}/error.log"}
+  {default, "{{platform_log_dir}}/error.log"},
+  {datatype, file}
 ]}.
 
 %% @doc When set to 'on', enables log output to syslog.
 {mapping, "log.syslog", "lager.handlers", [
   {default, off},
-  {datatype, {enum, [on, off]}}
+  {datatype, flag}
 ]}.
 
 {translation,
  "lager.handlers",
  fun(Conf) ->
-    SyslogHandler = case cuttlefish:conf_get("log.syslog", Conf) of
-      on ->  [{lager_syslog_backend, ["riak", daemon, info]}];
-      _ -> []
-    end,
+    SyslogHandler = [{lager_syslog_backend, ["riak", daemon, info]} ||
+                     cuttlefish:conf_get("log.syslog", Conf)],
     ErrorHandler = case cuttlefish:conf_get("log.error.file", Conf) of
       undefined -> [];
       ErrorFilename -> [{lager_file_backend, [{file, ErrorFilename},
@@ -55,10 +55,10 @@
 
     ConsoleHandler = {lager_console_backend, ConsoleLogLevel},
     ConsoleFileHandler = {lager_file_backend, [{file, ConsoleLogFile},
-                                                {level, ConsoleLogLevel},
-                                                {size, 10485760},
-                                                {date, "$D0"},
-                                                {count, 5}]},
+                                               {level, ConsoleLogLevel},
+                                               {size, 10485760},
+                                               {date, "$D0"},
+                                               {count, 5}]},
 
     ConsoleHandlers = case cuttlefish:conf_get("log.console", Conf) of
       off -> [];
@@ -71,41 +71,31 @@
   end
 }.
 
-%% SASL
-%% We should never care about this
+%% @doc Whether to enable Erlang's built-in error logger.
 {mapping, "sasl", "sasl.sasl_error_logger", [
   {default, off},
-  {datatype, {enum, [on, off]}},
+  {datatype, flag},
   {level, advanced}
 ]}.
-
-{ translation,
-  "sasl.sasl_error_logger",
-  fun(Conf) ->
-    case cuttlefish:conf_get("sasl", Conf) of
-        on -> true;
-        _ -> false
-    end
-  end
-}.
 
 %% @doc Whether to enable the crash log.
 {mapping, "log.crash", "lager.crash_log", [
   {default, on},
-  {datatype, {enum, [on, off]}}
+  {datatype, flag}
 ]}.
 
 %% @doc If the crash log is enabled, the file where its messages will
 %% be written.
 {mapping, "log.crash.file", "lager.crash_log", [
-  {default, "{{platform_log_dir}}/crash.log"}
+  {default, "{{platform_log_dir}}/crash.log"},
+  {datatype, file}
 ]}.
 
 {translation,
  "lager.crash_log",
  fun(Conf) ->
      case cuttlefish:conf_get("log.crash", Conf) of
-         off -> undefined;
+         false -> undefined;
          _ ->
              cuttlefish:conf_get("log.crash.file", Conf, "{{platform_log_dir}}/crash.log")
      end
@@ -155,22 +145,13 @@
     end
  end}.
 
-%% @doc Whether to redirect error_logger messages into lager - defaults to true
+%% @doc Whether to redirect error_logger messages into lager -
+%% defaults to true
 {mapping, "log.error.redirect", "lager.error_logger_redirect", [
   {default, on},
-  {datatype, {enum, [on, off]}},
+  {datatype, flag},
   {level, advanced}
 ]}.
-
-{ translation,
-  "lager.error_logger_redirect", fun(Conf) ->
-    Setting = cuttlefish:conf_get("log.error.redirect", Conf),
-    case Setting of
-      on -> true;
-      off -> false;
-      _Default -> true
-    end
-end}.
 
 %% @doc Maximum number of error_logger messages to handle in a second
 {mapping, "log.error.messages_per_second", "lager.error_logger_hwm", [
@@ -180,8 +161,9 @@ end}.
 ]}.
 
 
-%% @doc Cookie for distributed node communication.  All nodes in the same cluster
-%% should use the same cookie or they will not be able to communicate.
+%% @doc Cookie for distributed node communication.  All nodes in the
+%% same cluster should use the same cookie or they will not be able to
+%% communicate.
 {mapping, "distributed_cookie", "vm_args.-setcookie", [
   {default, "riak"}
 ]}.

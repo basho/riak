@@ -4,3 +4,4 @@ rel/vars/dev*_vars.config
 dev/
 ebin/
 riak.png
+apps/riak/.eunit
