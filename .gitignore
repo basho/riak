@@ -4,3 +4,4 @@ rel/vars/dev*_vars.config
 dev/
 perfdev/
 ebin/
+apps/riak/.eunit
