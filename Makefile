@@ -286,3 +286,7 @@ package: distdir/$(PKG_ID).tar.gz
 
 .PHONY: package
 export PKG_VERSION PKG_ID PKG_BUILD BASE_DIR ERLANG_BIN REBAR OVERLAY_VARS RELEASE
+
+# Package up a devrel to save time later rebuilding it
+pkg-devrel: devrel
+	tar -czf $(PKG_ID)-devrel.tar.gz dev/
