@@ -22,5 +22,8 @@ cd $RUNNER_BASE_DIR
 SCRIPT=`basename $0`
 
 # Make sure the local node IS running
+echo "** This tool is for a deprecated version of Riak Search."
+echo "** This will not work for Yokozuna. If you have yet to, please upgrade."
+echo ""
 node_up_check
 $NODETOOL rpc_infinity riak_search_cmd command $ORIGINAL_DIR "$@"
