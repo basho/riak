@@ -141,6 +141,14 @@ security_admin()
             fi
             $NODETOOL rpc riak_core_console add_user "$@"
             ;;
+        add-group)
+            shift
+            if [ $# -lt 1 ]; then
+                echo "Usage: $SCRIPT security add-group <group> [<option>=<value> [...]]"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console add_group "$@"
+            ;;
         alter-user)
             shift
             if [ $# -lt 2 ]; then
@@ -149,13 +157,29 @@ security_admin()
             fi
             $NODETOOL rpc riak_core_console alter_user "$@"
             ;;
+        alter-group)
+            shift
+            if [ $# -lt 2 ]; then
+                echo "Usage: $SCRIPT security alter-group <group> <option> [<option>=<value> [...]]"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console alter_group "$@"
+            ;;
         del-user)
             shift
             if [ $# -ne 1 ]; then
-                echo "Usage: $SCRIPT security alter-user <user>"
+                echo "Usage: $SCRIPT security del-user <user>"
                 exit 1
             fi
             $NODETOOL rpc riak_core_console del_user "$@"
+            ;;
+        del-group)
+            shift
+            if [ $# -ne 1 ]; then
+                echo "Usage: $SCRIPT security del-group <user>"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console del_group "$@"
             ;;
         add-source)
             shift
