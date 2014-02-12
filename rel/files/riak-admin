@@ -216,6 +216,9 @@ security_admin()
         print-users)
             $NODETOOL rpc riak_core_console print_users
             ;;
+        print-groups)
+            $NODETOOL rpc riak_core_console print_groups
+            ;;
         print-sources)
             $NODETOOL rpc riak_core_console print_sources
             ;;
@@ -235,6 +238,14 @@ security_admin()
                 exit 1
             fi
             $NODETOOL rpc riak_core_console print_user "$@"
+            ;;
+        print-group)
+            shift
+            if [ $# -lt 1 ]; then
+                echo "Usage: $SCRIPT security print-group <group>"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console print_group "$@"
             ;;
         ciphers)
             shift
