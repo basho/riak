@@ -247,8 +247,11 @@ Usage: $SCRIPT security <command>
 The following commands modify users and security ACLs for Riak:
 
     add-user <username> [<option>=<value> [...]]
+    add-group <groupname> [<option>=<value> [...]]
     alter-user <username> <option> [<option>=<value> [...]]
+    alter-group <groupname> <option> [<option>=<value> [...]]
     del-user <username>
+    del-group <groupname>
     add-source all|<users> <CIDR> <source> [<option>=<value> [...]]
     del-source all|<users> <CIDR>
     grant <permissions> ON ANY|<type> [bucket] TO <users>
