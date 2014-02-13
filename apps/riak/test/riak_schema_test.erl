@@ -4,7 +4,7 @@
 
 basic_schema_test() ->
     Config = cuttlefish_unit:generate_templated_config(
-               ["../../../rel/files/riak.schema"], [], context()),
+               ["../../../rel/files/riak.schema"], [], context(), predefined_schema()),
 
     cuttlefish_unit:assert_config(Config, "lager.handlers",
                                   [
@@ -47,7 +47,7 @@ override_schema_test() ->
             {["distributed_cookie"], "tyktorp"}],
 
     Config = cuttlefish_unit:generate_templated_config(
-               ["../../../rel/files/riak.schema"], Conf, context()),
+               ["../../../rel/files/riak.schema"], Conf, context(), predefined_schema()),
 
     cuttlefish_unit:assert_config(Config, "lager.handlers",
                                   [{lager_syslog_backend, ["riak", daemon, info]},
@@ -77,7 +77,7 @@ override_schema_test() ->
 crash_log_test() ->
     Conf = [{["log", "crash"], off}],
     Config = cuttlefish_unit:generate_templated_config(
-               ["../../../rel/files/riak.schema"], Conf, context()),
+               ["../../../rel/files/riak.schema"], Conf, context(), predefined_schema()),
     cuttlefish_unit:assert_config(Config, "lager.crash_log", undefined),
     ok.
 
@@ -85,7 +85,7 @@ devrel_test() ->
     RelConfig = cuttlefish_unit:generate_templated_config(
                   ["../../../rel/files/riak.schema",
                   "../../../deps/eleveldb/priv/eleveldb.schema"],
-                  [], context()),
+                  [], context(), predefined_schema()),
 
     cuttlefish_unit:assert_config(RelConfig, "eleveldb.limited_developer_mem", false),
     cuttlefish_unit:assert_not_configured(RelConfig, "vm_args.-shutdown_time"),
@@ -93,7 +93,8 @@ devrel_test() ->
     DevRelConfig = cuttlefish_unit:generate_templated_config(
                      ["../../../rel/files/riak.schema",
                       "../../../deps/eleveldb/priv/eleveldb.schema"], [],
-                     lists:keyreplace(devrel, 1, context(), {devrel, true})),
+                     lists:keyreplace(devrel, 1, context(), {devrel, true}), predefined_schema()),
+
     cuttlefish_unit:assert_config(DevRelConfig, "eleveldb.limited_developer_mem", true),
     cuttlefish_unit:assert_config(DevRelConfig, "vm_args.-shutdown_time", 10000),
     ok.
@@ -101,5 +102,23 @@ devrel_test() ->
 context() ->
     [{console_log_default, file},
      {platform_log_dir, "./log"},
-     {platform_data_dir, "./data"},
      {devrel, false}].
+
+%% This predefined schema covers riak's dependency on
+%% platform_log_dir
+predefined_schema() ->
+    Mappings = [cuttlefish_mapping:parse({mapping,
+                                        "platform_log_dir",
+                                        "riak_core.platform_log_dir", [
+                                            {default, "./log"},
+                                            {datatype, directory}
+                                       ]}),
+                cuttlefish_mapping:parse({mapping,
+                                        "platform_data_dir",
+                                        "riak_core.platform_data_dir", [
+                                            {default, "./data"},
+                                            {datatype, directory}
+                                       ]})
+               ],
+
+    {[], Mappings, []}.
