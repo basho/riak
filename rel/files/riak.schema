@@ -20,13 +20,13 @@
 %% @doc When 'log.console' is set to 'file' or 'both', the file where
 %% console messages will be logged.
 {mapping, "log.console.file", "lager.handlers", [
-  {default, "{{platform_log_dir}}/console.log"},
+  {default, "#(platform_log_dir)/console.log"},
   {datatype, file}
 ]}.
 
 %% @doc The file where error messages will be logged.
 {mapping, "log.error.file", "lager.handlers", [
-  {default, "{{platform_log_dir}}/error.log"},
+  {default, "#(platform_log_dir)/error.log"},
   {datatype, file}
 ]}.
 
@@ -75,7 +75,7 @@
 {mapping, "sasl", "sasl.sasl_error_logger", [
   {default, off},
   {datatype, flag},
-  {level, advanced}
+  hidden
 ]}.
 
 %% @doc Whether to enable the crash log.
@@ -87,7 +87,7 @@
 %% @doc If the crash log is enabled, the file where its messages will
 %% be written.
 {mapping, "log.crash.file", "lager.crash_log", [
-  {default, "{{platform_log_dir}}/crash.log"},
+  {default, "#(platform_log_dir)/crash.log"},
   {datatype, file}
 ]}.
 
@@ -150,14 +150,14 @@
 {mapping, "log.error.redirect", "lager.error_logger_redirect", [
   {default, on},
   {datatype, flag},
-  {level, advanced}
+  hidden
 ]}.
 
 %% @doc Maximum number of error_logger messages to handle in a second
 {mapping, "log.error.messages_per_second", "lager.error_logger_hwm", [
   {default, 100},
   {datatype, integer},
-  {level, advanced}
+  hidden
 ]}.
 
 
