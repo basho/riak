@@ -6,7 +6,7 @@
 . "{{runner_base_dir}}/lib/env.sh"
 
 # Make sure the user running this script is the owner and/or su to that user
-check_user $@
+check_user "$@"
 ES=$?
 if [ "$ES" -ne 0 ]; then
     exit $ES
@@ -378,7 +378,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_kv_console down $@
+        $NODETOOL rpc riak_kv_console down "$@"
         ;;
 
     status)
@@ -391,7 +391,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_kv_console status $@
+        $NODETOOL rpc riak_kv_console status "$@"
         ;;
 
     vnode[_-]status)
@@ -404,7 +404,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_kv_console vnode_status $@
+        $NODETOOL rpc riak_kv_console vnode_status "$@"
         ;;
 
     ringready)
@@ -417,7 +417,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_kv_console ringready $@
+        $NODETOOL rpc riak_kv_console ringready "$@"
         ;;
 
     transfers)
@@ -430,7 +430,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_core_console transfers $@
+        $NODETOOL rpc riak_core_console transfers "$@"
         ;;
 
     member[_-]status)
@@ -443,7 +443,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_core_console member_status $@
+        $NODETOOL rpc riak_core_console member_status "$@"
         ;;
 
     ring[_-]status)
@@ -456,7 +456,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_core_console ring_status $@
+        $NODETOOL rpc riak_core_console ring_status "$@"
         ;;
 
     aae[_-]status)
@@ -469,7 +469,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_kv_console aae_status $@
+        $NODETOOL rpc riak_kv_console aae_status "$@"
         ;;
 
     repair[_-]2i)
@@ -478,7 +478,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_kv_console repair_2i $@
+        $NODETOOL rpc riak_kv_console repair_2i "$@"
         ;;
 
     cluster[_-]info)
@@ -491,7 +491,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc_infinity riak_kv_console cluster_info $@
+        $NODETOOL rpc_infinity riak_kv_console cluster_info "$@"
         ;;
 
     services)
@@ -541,7 +541,7 @@ case "$1" in
         # Make sure the local node is running
         node_up_check
 
-        $NODETOOL rpc riak_kv_js_manager reload $@
+        $NODETOOL rpc riak_kv_js_manager reload "$@"
         ;;
 
     erl[_-]reload)
