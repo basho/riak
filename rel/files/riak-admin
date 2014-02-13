@@ -268,8 +268,10 @@ The following commands modify users and security ACLs for Riak:
     grant <permissions> ON ANY|<type> [bucket] TO <users>
     revoke <permissions> ON ANY|<type> [bucket] FROM <users>
     print-users
-    print-sources
+    print-groups
     print-user <user>
+    print-group <group>
+    print-sources
     enable
     disable
     status
