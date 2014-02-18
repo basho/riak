@@ -1,3 +1,33 @@
+# Riak 1.4.8 Release Notes
+
+This is a bugfix release on the 1.4 series of Riak.
+
+## Issues / PR's Resolved
+
+### AAE regression fixed
+
+This fixes the backport issue that caused AAE to stop detecting object
+modifications due to a failure to compute the hashes.
+
+### Bitcask startup failures on upgrade.
+
+A regression introduced in 1.4.4 caused bitcask partitions to no
+longer be able to start when an empty datafile had the highest file id
+in that partition.  This most commonly happened on the first start of
+an upgraded node going from a pre-1.4.4 build to something later, but
+was possible to see in a few other conditions.  The fix added in this
+release removes empty files on partition startup, and fixes added in
+1.4.4 will prevent them from being created in the future.
+
+### Issues Closed
+
+* bitcask/137: [add code to clean up empty data and hintfiles](https://github.com/basho/bitcask/pull/137)
+* riak_kv/818: [Add missing riak_object:is_robject function](https://github.com/basho/riak_kv/pull/818)
+* riak_kv/834: [Export riak_kv_vnode:get/4](https://github.com/basho/riak_kv/pull/834)
+* riak_kv/836: [Backport object size/sibling limits to 1.4](https://github.com/basho/riak_kv/pull/836)
+* riak_kv/845: [Fix use of FSM timeouts in 2i AAE](https://github.com/basho/riak_kv/pull/845)
+
+
 # Riak 1.4.7 Release Notes
 
 This is a bugfix release on the 1.4.x series of Riak
