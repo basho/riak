@@ -1,3 +1,32 @@
+# Riak 1.4.8 リリースノート
+
+これはRiak 1.4.x系のバグフィックスのリリースです。
+
+## Issues / PR's Resolved
+
+### AAEのリグレッションを修正
+
+これはハッシュ計算の不具合によって、AAEがオブジェクトの差分を誤って検出する問題を修正します。
+
+### アップグレード後のBitcask起動時の不具合
+
+bitcaskパーティション内で一番大きなIDを持つデータファイルが空だった場合、
+そのパーティションがもはや起動できなくなる問題が1.4.4で混入しました。
+これが最もよく発生したのは、1.4.4より前のバージョンから以降のバージョンへアップグレードしたノードを
+最初に起動したときですが、他の状況においてもわずかに発生する可能性がありました。
+本リリースにおける修正は、パーティション起動時に空ファイルを削除し、
+1.4.4における修正は今後、それらが作成されることを防ぐものです。
+
+
+### Issues Closed
+
+* bitcask/137: [add code to clean up empty data and hintfiles](https://github.com/basho/bitcask/pull/137)
+* riak_kv/818: [Add missing riak_object:is_robject function](https://github.com/basho/riak_kv/pull/818)
+* riak_kv/834: [Export riak_kv_vnode:get/4](https://github.com/basho/riak_kv/pull/834)
+* riak_kv/836: [Backport object size/sibling limits to 1.4](https://github.com/basho/riak_kv/pull/836)
+* riak_kv/845: [Fix use of FSM timeouts in 2i AAE](https://github.com/basho/riak_kv/pull/845)
+
+
 # Riak 1.4.7 リリースノート
 
 これはRiak 1.4.x系のバグフィックスのリリースです。
