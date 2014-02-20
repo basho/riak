@@ -141,6 +141,14 @@ security_admin()
             fi
             $NODETOOL rpc riak_core_console add_user "$@"
             ;;
+        add-group)
+            shift
+            if [ $# -lt 1 ]; then
+                echo "Usage: $SCRIPT security add-group <group> [<option>=<value> [...]]"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console add_group "$@"
+            ;;
         alter-user)
             shift
             if [ $# -lt 2 ]; then
@@ -149,13 +157,29 @@ security_admin()
             fi
             $NODETOOL rpc riak_core_console alter_user "$@"
             ;;
+        alter-group)
+            shift
+            if [ $# -lt 2 ]; then
+                echo "Usage: $SCRIPT security alter-group <group> <option> [<option>=<value> [...]]"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console alter_group "$@"
+            ;;
         del-user)
             shift
             if [ $# -ne 1 ]; then
-                echo "Usage: $SCRIPT security alter-user <user>"
+                echo "Usage: $SCRIPT security del-user <user>"
                 exit 1
             fi
             $NODETOOL rpc riak_core_console del_user "$@"
+            ;;
+        del-group)
+            shift
+            if [ $# -ne 1 ]; then
+                echo "Usage: $SCRIPT security del-group <user>"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console del_group "$@"
             ;;
         add-source)
             shift
@@ -192,6 +216,9 @@ security_admin()
         print-users)
             $NODETOOL rpc riak_core_console print_users
             ;;
+        print-groups)
+            $NODETOOL rpc riak_core_console print_groups
+            ;;
         print-sources)
             $NODETOOL rpc riak_core_console print_sources
             ;;
@@ -212,6 +239,14 @@ security_admin()
             fi
             $NODETOOL rpc riak_core_console print_user "$@"
             ;;
+        print-group)
+            shift
+            if [ $# -lt 1 ]; then
+                echo "Usage: $SCRIPT security print-group <group>"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console print_group "$@"
+            ;;
         ciphers)
             shift
             $NODETOOL rpc riak_core_console ciphers "$@"
@@ -223,8 +258,11 @@ Usage: $SCRIPT security <command>
 The following commands modify users and security ACLs for Riak:
 
     add-user <username> [<option>=<value> [...]]
+    add-group <groupname> [<option>=<value> [...]]
     alter-user <username> <option> [<option>=<value> [...]]
+    alter-group <groupname> <option> [<option>=<value> [...]]
     del-user <username>
+    del-group <groupname>
     add-source all|<users> <CIDR> <source> [<option>=<value> [...]]
     del-source all|<users> <CIDR>
     grant <permissions> ON ANY|<type> [bucket] TO <users>
