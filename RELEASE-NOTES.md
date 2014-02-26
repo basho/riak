@@ -9,6 +9,14 @@ This is a bugfix release on the 1.4 series of Riak.
 This fixes the backport issue that caused AAE to stop detecting object
 modifications due to a failure to compute the hashes.
 
+**IMPORTANT** We recommend removing current AAE trees before upgrading.
+That is, all files under the anti_entropy sub-directory.
+This will avoid potentially large amounts of repair activity once correct
+hashes start being added.  The data in the current trees can only be fixed
+by a full rebuild, so this repair activity is wasteful. Trees will start to
+build once AAE is re-enabled. To minimize the impact of this, we recommend
+upgrading during a period of low activity.
+
 ### Bitcask startup failures on upgrade.
 
 A regression introduced in 1.4.4 caused bitcask partitions to no
