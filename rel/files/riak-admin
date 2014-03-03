@@ -224,9 +224,11 @@ security_admin()
             ;;
         enable)
             $NODETOOL rpc riak_core_console security_enable
+            $NODETOOL rpc riak_core_console security_status
             ;;
         disable)
             $NODETOOL rpc riak_core_console security_disable
+            $NODETOOL rpc riak_core_console security_status
             ;;
         status)
             $NODETOOL rpc riak_core_console security_status
