@@ -20,13 +20,13 @@
 %% @doc When 'log.console' is set to 'file' or 'both', the file where
 %% console messages will be logged.
 {mapping, "log.console.file", "lager.handlers", [
-  {default, "#(platform_log_dir)/console.log"},
+  {default, "$(platform_log_dir)/console.log"},
   {datatype, file}
 ]}.
 
 %% @doc The file where error messages will be logged.
 {mapping, "log.error.file", "lager.handlers", [
-  {default, "#(platform_log_dir)/error.log"},
+  {default, "$(platform_log_dir)/error.log"},
   {datatype, file}
 ]}.
 
@@ -87,7 +87,7 @@
 %% @doc If the crash log is enabled, the file where its messages will
 %% be written.
 {mapping, "log.crash.file", "lager.crash_log", [
-  {default, "#(platform_log_dir)/crash.log"},
+  {default, "$(platform_log_dir)/crash.log"},
   {datatype, file}
 ]}.
 
