@@ -224,16 +224,18 @@ security_admin()
             ;;
         enable)
             $NODETOOL rpc riak_core_console security_enable
+            $NODETOOL rpc riak_core_console security_status
             ;;
         disable)
             $NODETOOL rpc riak_core_console security_disable
+            $NODETOOL rpc riak_core_console security_status
             ;;
         status)
             $NODETOOL rpc riak_core_console security_status
             ;;
         print-user)
             shift
-            if [ $# -lt 1 ]; then
+            if [ $# -ne 1 ]; then
                 echo "Usage: $SCRIPT security print-user <user>"
                 exit 1
             fi
@@ -241,7 +243,7 @@ security_admin()
             ;;
         print-group)
             shift
-            if [ $# -lt 1 ]; then
+            if [ $# -ne 1 ]; then
                 echo "Usage: $SCRIPT security print-group <group>"
                 exit 1
             fi
