@@ -140,6 +140,9 @@ security_admin()
                 exit 1
             fi
             $NODETOOL rpc riak_core_console add_user "$@"
+            if [ $? -eq 0 ]; then
+                $NODETOOL rpc riak_core_console print_user "$1"
+            fi
             ;;
         add-group)
             shift
@@ -148,6 +151,9 @@ security_admin()
                 exit 1
             fi
             $NODETOOL rpc riak_core_console add_group "$@"
+            if [ $? -eq 0 ]; then
+                $NODETOOL rpc riak_core_console print_group "$1"
+            fi
             ;;
         alter-user)
             shift
@@ -156,6 +162,9 @@ security_admin()
                 exit 1
             fi
             $NODETOOL rpc riak_core_console alter_user "$@"
+            if [ $? -eq 0 ]; then
+                $NODETOOL rpc riak_core_console print_user "$1"
+            fi
             ;;
         alter-group)
             shift
@@ -164,6 +173,9 @@ security_admin()
                 exit 1
             fi
             $NODETOOL rpc riak_core_console alter_group "$@"
+            if [ $? -eq 0 ]; then
+                $NODETOOL rpc riak_core_console print_group "$1"
+            fi
             ;;
         del-user)
             shift
@@ -233,6 +245,14 @@ security_admin()
         status)
             $NODETOOL rpc riak_core_console security_status
             ;;
+        print-grants)
+            shift
+            if [ $# -ne 1 ]; then
+                echo "Usage: $SCRIPT security print-grants <user>"
+                exit 1
+            fi
+            $NODETOOL rpc riak_core_console print_grants "$@"
+            ;;
         print-user)
             shift
             if [ $# -ne 1 ]; then
@@ -273,6 +293,7 @@ The following commands modify users and security ACLs for Riak:
     print-groups
     print-user <user>
     print-group <group>
+    print-grants <user|group>
     print-sources
     enable
     disable
