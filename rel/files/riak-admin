@@ -28,7 +28,8 @@ usage() {
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
     echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
-    echo "                    downgrade-objects | security | bucket-type | repair-2i }"
+    echo "                    downgrade-objects | security | bucket-type | repair-2i |"
+    echo "                    search }"
 }
 
 cluster_admin()
@@ -299,6 +300,32 @@ The following commands modify users and security ACLs for Riak:
     disable
     status
     ciphers [cipherlist]
+"
+    esac
+}
+
+search_admin()
+{
+    case "$1" in
+        aae[_-]status)
+            if [ $# -ne 1 ]; then
+                echo "Usage: $SCRIPT search $1"
+                exit 1
+            fi
+            shift
+
+            # Make sure the local node is running
+            node_up_check
+
+            $NODETOOL rpc yz_console aae_status "$@"
+            ;;
+        *)
+echo "\
+Usage: $SCRIPT search <command>
+
+Available commands:
+
+    aae-status
 "
     esac
 }
@@ -778,6 +805,10 @@ case "$1" in
     security)
         shift
         security_admin "$@"
+        ;;
+    search)
+        shift
+        search_admin "$@"
         ;;
     *)
         usage
