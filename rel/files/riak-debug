@@ -110,6 +110,10 @@ get_riakcmds=0
 get_syscmds=0
 get_extracmds=0
 
+## Use riak config generate to set $riak_app_config and
+## $riak_vm_args
+read riak_app_config riak_vm_args <<< `"$riak_bin_dir"/riak config generate | cut -d' ' -f 3,5`
+
 ###
 ### Parse options
 ###
@@ -162,10 +166,10 @@ while [ -n "$1" ]; do
 
             if [ $# -gt 1 ]; then
                 echoerr "Trailing options following filename $1. Aborting."
-                echoerr "See 'riak-debug -h' and manpage for help." 
+                echoerr "See 'riak-debug -h' and manpage for help."
                 exit 1
             fi
-            
+
             outfile="$1"
             ;;
     esac
@@ -199,7 +203,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
 
     if [ ! -f "$epath_file" ]; then
         echoerr "Required file app_epath.sh not found. Expected here:"
-        echoerr "$epath_file" 
+        echoerr "$epath_file"
         echoerr "See 'riak-debug -h' and manpage for help."
         exit 1
     fi
@@ -210,7 +214,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
         riak_base_dir="$RIAK_BASE_DIR"
         if [ "/" != "`echo "$riak_base_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
             echoerr "Riak base directory should be an absolute path."
-            echoerr "$riak_base_dir" 
+            echoerr "$riak_base_dir"
             echoerr "See 'riak-debug -h' and manpage for help."
             exit 1
         fi
@@ -220,7 +224,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
         riak_bin_dir="$RIAK_BIN_DIR"
         if [ "/" != "`echo "$riak_bin_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
             echoerr "Riak bin directory should be an absolute path."
-            echoerr "$riak_bin_dir" 
+            echoerr "$riak_bin_dir"
             echoerr "See 'riak-debug -h' and manpage for help."
             exit 1
         fi
@@ -230,15 +234,15 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
         riak_etc_dir="$RIAK_ETC_DIR"
         if [ "/" != "`echo "$riak_etc_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
             echoerr "Riak etc directory should be an absolute path."
-            echoerr "$riak_etc_dir" 
+            echoerr "$riak_etc_dir"
             echoerr "See 'riak-debug -h' and manpage for help."
             exit 1
         fi
     fi
 fi
 
-if [ -f "${riak_etc_dir}"/vm.args ]; then
-    node_name="`egrep '^\-s?name' "${riak_etc_dir}"/vm.args 2>/dev/null | cut -d ' ' -f 2`"
+if [ -f "${riak_vm_args}" ]; then
+    node_name="`egrep '^\-s?name' "${riak_vm_args}" 2>/dev/null | cut -d ' ' -f 2`"
 fi
 
 if [ -z "$node_name" ]; then
@@ -259,7 +263,7 @@ debug_dir="${node_name}-riak-debug"
 
 if [ -d "${start_dir}"/"${debug_dir}" ]; then
     echoerr "Temporary directory already exists. Aborting."
-    echoerr "${start_dir}"/"${debug_dir}" 
+    echoerr "${start_dir}"/"${debug_dir}"
     exit 1
 fi
 
@@ -270,7 +274,7 @@ fi
 
 if [ '-' != "$outfile" ] && [ -f "$outfile" ]; then
     echoerr "Output file already exists. Aborting."
-    echoerr "$outfile" 
+    echoerr "$outfile"
     exit 1
 fi
 
@@ -409,7 +413,7 @@ if [ 1 -eq $get_riakcmds ]; then
     dump riak_repl_status "$riak_bin_dir"/riak-repl status
     dump riak_repl_connections "$riak_bin_dir"/riak-repl connections
     dump riak_repl_clusterstats "$riak_bin_dir"/riak-repl clusterstats
-    
+
     CI=`pwd`/cluster-info.html
     touch $CI
     chmod 666 $CI
@@ -421,7 +425,7 @@ if [ 1 -eq $get_riakcmds ]; then
     cd "${start_dir}"/"${debug_dir}"/ring
 
     # Make a flat, easily searchable version of the app.config settings
-    riak_epaths=`make_app_epaths "${riak_etc_dir}/app.config"`
+    riak_epaths=`make_app_epaths "${riak_app_config}"`
     ring_dir="`epath 'riak_core ring_state_dir' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
     if [ '.' = `echo "$ring_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
         # relative path. prepend base dir
@@ -466,7 +470,7 @@ if [ 1 -eq $get_logs ]; then
     cd "${start_dir}"/"${debug_dir}"/logs
 
     # if not already made, make a flat, searchable version of the app.config
-    [ -z "$riak_epaths" ] && riak_epaths=`make_app_epaths "${riak_etc_dir}/app.config"`
+    [ -z "$riak_epaths" ] && riak_epaths=`make_app_epaths "${riak_app_config}"`
 
     log_dir="`epath 'riak_core platform_log_dir' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
     if [ '.' = `echo "$log_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
@@ -618,4 +622,3 @@ rm -rf "${debug_dir}"
 
 # keep things looking pretty
 echoerr ""
-
