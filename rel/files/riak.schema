@@ -168,6 +168,13 @@
   {default, "riak"}
 ]}.
 
+
+%% override zdbbl from 1mb to 32mb
+{mapping, "erlang.distribution_buffer_size", "vm_args.+zdbbl", [
+  {default, "32MB"},
+  merge
+]}.
+
 {{#devrel}}
 %% Because of the 'merge' keyword in the proplist below, the docs and datatype
 %% are pulled from the leveldb schema.
