@@ -103,6 +103,7 @@ RUNNER_BASE_DIR={{runner_base_dir}}
 riak_base_dir={{runner_base_dir}}
 riak_bin_dir={{runner_script_dir}}
 riak_etc_dir={{runner_etc_dir}}
+riak_data_dir={{platform_data_dir}}
 
 get_cfgs=0
 get_logs=0
@@ -237,8 +238,8 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
     fi
 fi
 
-if [ -f "${riak_etc_dir}"/vm.args ]; then
-    node_name="`egrep '^\-s?name' "${riak_etc_dir}"/vm.args 2>/dev/null | cut -d ' ' -f 2`"
+if [ -f "${riak_etc_dir}"/riak.conf ]; then
+    node_name=`"$riak_bin_dir"/riak config effective | awk '/nodename/ {print $3}'`
 fi
 
 if [ -z "$node_name" ]; then
@@ -419,7 +420,8 @@ if [ 1 -eq $get_riakcmds ]; then
     cd "${start_dir}"/"${debug_dir}"/ring
 
     # Make a flat, easily searchable version of the app.config settings
-    riak_epaths=`make_app_epaths "${riak_etc_dir}/app.config"`
+    generated_app_config= `ls -t "${riak_data_dir}"/generated.configs | head -1`
+    riak_epaths=`make_app_epaths "${riak_data_dir}"/generated.configs/"$generated_app_config"`
     ring_dir="`epath 'riak_core ring_state_dir' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
     if [ '.' = `echo "$ring_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
         # relative path. prepend base dir
