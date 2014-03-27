@@ -497,10 +497,13 @@ if [ 1 -eq $get_logs ]; then
     fi
 
     # Lager info and error files
-    for lager_level in info error; do
-        lager_path="`epath 'lager handlers lager_file_backend' "$riak_epaths" \
-                             | grep $lager_level | sed -e 's/^"//' -e 's/".*$//'`"
-
+    new_format_lager_files="`epath 'lager handlers lager_file_backend file' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
+    if [ -z "$new_format_lager_files" ]; then
+        lager_files="`epath 'lager handlers lager_file_backend' "$riak_epaths" | cut -d' ' -f 1 | sed -e 's/^"//' -e 's/".*$//'`"
+    else
+        lager_files=$new_format_lager_files
+    fi
+    for lager_path in $lager_files; do
         # Get lager logs if they weren't in platform_log_dir
         if [ -n "$lager_path" ]; then
             if [ '.' = `echo "$lager_path" | awk 'BEGIN {FS=""} {print $1}'` ]; then
