@@ -503,9 +503,6 @@ if [ 1 -eq $get_logs ]; then
         lager_files=$new_format_lager_files
     fi
     for lager_path in $lager_files; do
-        lager_path="`epath 'lager handlers lager_file_backend' "$riak_epaths" \
-                             | grep $lager_level | sed -e 's/^"//' -e 's/".*$//'`"
-
         # Get lager logs if they weren't in platform_log_dir
         if [ -n "$lager_path" ]; then
             if [ '.' = `echo "$lager_path" | awk 'BEGIN {FS=""} {print $1}'` ]; then
