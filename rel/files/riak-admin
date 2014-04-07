@@ -323,12 +323,13 @@ btype_admin()
             $NODETOOL rpc riak_kv_console bucket_type_activate "$2"
             ;;
         create)
-            if [ $# -ne 3 ]; then
-                echo "Usage: $SCRIPT bucket-type create <type> '{\"props\": { ... }}'"
+            if [ $# -lt 2 ]; then
+                echo "Usage: $SCRIPT bucket-type create <type> ['{\"props\": { ... }}']"
                 exit 1
             fi
             node_up_check
-            $NODETOOL rpc riak_kv_console bucket_type_create "$2" "$3"
+            json=${3:-}
+            $NODETOOL rpc riak_kv_console bucket_type_create "$2" "$json"
             ;;
         update)
             if [ $# -ne 3 ]; then
