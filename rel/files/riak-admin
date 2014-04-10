@@ -213,7 +213,7 @@ security_admin()
         grant)
             shift
             if [ $# -lt 5 ]; then
-                echo "Usage: $SCRIPT security grant <permissions> ON ANY|<type> [bucket] TO <users>"
+                echo "Usage: $SCRIPT security grant <permissions> on any|<type> [bucket] to <users>"
                 exit 1
             fi
             $NODETOOL rpc riak_core_console grant "$@"
@@ -221,7 +221,7 @@ security_admin()
         revoke)
             shift
             if [ $# -lt 5 ]; then
-                echo "Usage: $SCRIPT security revoke <permissions> ON ANY|<type> [bucket] FROM <users>"
+                echo "Usage: $SCRIPT security revoke <permissions> on any|<type> [bucket] from <users>"
                 exit 1
             fi
             $NODETOOL rpc riak_core_console revoke "$@"
@@ -288,8 +288,8 @@ The following commands modify users and security ACLs for Riak:
     del-group <groupname>
     add-source all|<users> <CIDR> <source> [<option>=<value> [...]]
     del-source all|<users> <CIDR>
-    grant <permissions> ON ANY|<type> [bucket] TO <users>
-    revoke <permissions> ON ANY|<type> [bucket] FROM <users>
+    grant <permissions> on any|<type> [bucket] to <users>
+    revoke <permissions> on any|<type> [bucket] from <users>
     print-users
     print-groups
     print-user <user>
