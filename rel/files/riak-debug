@@ -241,6 +241,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
     fi
 fi
 
+
 if [ -f "${riak_vm_args}" ]; then
     node_name="`egrep '^\-s?name' "${riak_vm_args}" 2>/dev/null | cut -d ' ' -f 2`"
 fi
@@ -625,3 +626,4 @@ rm -rf "${debug_dir}"
 
 # keep things looking pretty
 echoerr ""
+

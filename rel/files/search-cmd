@@ -2,8 +2,6 @@
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
 
-# installed by node_package (github.com/basho/node_package)
-
 # Pull environment for this install
 . "{{runner_base_dir}}/lib/env.sh"
 
