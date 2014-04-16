@@ -5,3 +5,4 @@ dev/
 ebin/
 riak.png
 apps/riak/.eunit
+.rebar/*
