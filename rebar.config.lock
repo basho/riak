@@ -132,13 +132,13 @@
                               "8b21161e332ab99184294a51fb72acde9d32dc74"}},
        {riak_repl,".*",
                   {git,"git@github.com:/basho/riak_repl.git",
-                       "abe4fc9e3be484cd8ab60b1a1f27454464d2adc2"}},
+                       "52bc3fd0de1791bbfcded96271a8e5e5964ca03d"}},
        {erlydtl,".*",
                 {git,"git://github.com/evanmiller/erlydtl.git",
                      "d20b53f04837a1053ed18987f645cb60eae82453"}},
        {riak_control,".*",
                      {git,"git://github.com/basho/riak_control.git",
-                          "c0e9d561a7bcdc58298276c88d7f43e30a31be65"}},
+                          "f644f089950a5d6499999b556b38e84e36ac95fc"}},
        {riaknostic,".*",
                    {git,"git://github.com/basho/riaknostic.git",
                         "4e7daa5c27cc6bd8cfb4a1c5f19a6e8ac2a8e344"}},
@@ -156,6 +156,6 @@
                             "6ae36b2c3e426e7b0d9fa5bf3a589f8f90c1a810"}},
        {rebar_lock_deps_plugin,".*",
                                {git,"git://github.com/seth/rebar_lock_deps_plugin.git",
-                                    "911481ee8a20f59fc9092e370e2b0d116bec19df"}}]}.
+                                    "f80bbdfc9e129c3c71c4524c68383c3890c78f04"}}]}.
 {plugins,[rebar_lock_deps_plugin]}.
 
