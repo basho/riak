@@ -29,7 +29,7 @@ usage() {
     echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
-    echo "                    search }"
+    echo "                    search | services }"
 }
 
 cluster_admin()
@@ -624,6 +624,12 @@ case "$1" in
         ;;
 
     services)
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT $1"
+            echo ""
+            echo "Lists the services available on the node. See also: wait-for-service"
+            exit 1
+        fi
         $NODETOOL rpcterms riak_core_node_watcher services ''
         ;;
 
