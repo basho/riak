@@ -3,4 +3,4 @@ bundle them with the Riak server source code, we have given them each
 their own source repository.
 
 The most up-to-date information on our client libraries can be found
-on our wiki clients page http://wiki.basho.com/Client-Libraries.html
+on our wiki clients page http://docs.basho.com/riak/latest/dev/using/libraries/
