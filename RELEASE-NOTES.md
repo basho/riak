@@ -1,3 +1,15 @@
+# Riak 1.4.9 Release Notes
+
+This is a bugfix release on the 1.4 series of Riak.
+
+## Issues / PR's Resolved
+* riak_core/584: [Bugfix/set bucket 1.4](https://github.com/basho/riak_core/pull/584)
+* riak_kv/940: [Fix mem backend to honor various settings correctly.](https://github.com/basho/riak_kv/pull/940)
+* riak_kv/957: [Bugfix/2i refresh mod state](https://github.com/basho/riak_kv/pull/957)
+* leveldb:  [Fix async close logic](https://github.com/basho/leveldb/wiki/mv-hot-threads)
+* leveldb:  [Raise performance for heavily changing keys, plus general compaction](https://github.com/basho/leveldb/wiki/mv-hot-threads)
+
+
 # Riak 1.4.8 Release Notes
 
 This is a bugfix release on the 1.4 series of Riak.
