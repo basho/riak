@@ -2,6 +2,18 @@
 
 This is a bugfix release on the 1.4 series of Riak.
 
+### Memory backend fixes
+
+The prior to this release deletes on the memory backend when
+`max_memory` was set would result in the space limit not being
+updated, so that the number of values storable would shrink over time,
+eventually leading to no values being storable at all.
+
+Additionally, there was an interaction with expiry when both were set
+which would cause gets on expired values (which call the delete path
+above) to have the same effect.
+
+
 ## Issues / PR's Resolved
 * riak_core/584: [Bugfix/set bucket 1.4](https://github.com/basho/riak_core/pull/584)
 * riak_kv/940: [Fix mem backend to honor various settings correctly.](https://github.com/basho/riak_kv/pull/940)
