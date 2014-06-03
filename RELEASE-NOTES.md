@@ -18,7 +18,7 @@ above) to have the same effect.
 * riak_core/584: [Bugfix/set bucket 1.4](https://github.com/basho/riak_core/pull/584)
 * riak_kv/940: [Fix mem backend to honor various settings correctly.](https://github.com/basho/riak_kv/pull/940)
 * riak_kv/957: [Bugfix/2i refresh mod state](https://github.com/basho/riak_kv/pull/957)
-* leveldb:  [Fix async close logic](https://github.com/basho/leveldb/wiki/mv-hot-threads)
+* leveldb:  [Fix async close logic](https://github.com/basho/leveldb/wiki/mv-async-close)
 * leveldb:  [Raise performance for heavily changing keys, plus general compaction](https://github.com/basho/leveldb/wiki/mv-hot-threads)
 
 
