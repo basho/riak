@@ -25,6 +25,17 @@
 # If you start to think "We should execute some Erlang in here", then go work
 # on Riaknostic, which is called with `riak-admin diag` below.
 
+# /bin/sh on Solaris is not a POSIX compatible shell, but /usr/bin/ksh is.
+if [ `uname -s` = 'SunOS' -a "${POSIX_SHELL}" != "true" ]; then
+    POSIX_SHELL="true"
+    export POSIX_SHELL
+    # To support 'whoami' add /usr/ucb to path
+    PATH=/usr/ucb:$PATH
+    export PATH
+    exec /usr/bin/ksh $0 "$@"
+fi
+unset POSIX_SHELL # clear it so if we invoke other scripts, they run as ksh as well
+
 ###
 ### Function declarations
 ###
@@ -112,7 +123,9 @@ get_extracmds=0
 
 ## Use riak config generate to set $riak_app_config and
 ## $riak_vm_args
-read riak_app_config riak_vm_args <<< `"$riak_bin_dir"/riak config generate | cut -d' ' -f 3,5`
+gen_result=`"$riak_bin_dir"/riak config generate | cut -d' ' -f 3,5`
+riak_app_config=`echo $gen_result | cut -d' ' -f 1`
+riak_vm_args=`echo $gen_result | cut -d' ' -f 2`
 
 ###
 ### Parse options
@@ -624,4 +637,3 @@ rm -rf "${debug_dir}"
 
 # keep things looking pretty
 echoerr ""
-
