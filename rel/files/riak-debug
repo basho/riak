@@ -112,7 +112,9 @@ get_extracmds=0
 
 ## Use riak config generate to set $riak_app_config and
 ## $riak_vm_args
-read riak_app_config riak_vm_args <<< `"$riak_bin_dir"/riak config generate | cut -d' ' -f 3,5`
+gen_result=`"$riak_bin_dir"/riak config generate | cut -d' ' -f 3,5`
+riak_app_config=`echo $gen_result | cut -d' ' -f 1`
+riak_vm_args=`echo $gen_result | cut -d' ' -f 2`
 
 ###
 ### Parse options
@@ -626,4 +628,3 @@ rm -rf "${debug_dir}"
 
 # keep things looking pretty
 echoerr ""
-
