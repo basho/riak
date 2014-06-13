@@ -29,7 +29,7 @@ usage() {
     echo "                    aae-status | diag | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
-    echo "                    search | services }"
+    echo "                    search | services | ensemble-status }"
 }
 
 cluster_admin()
@@ -599,6 +599,19 @@ case "$1" in
         node_up_check
 
         $NODETOOL rpc riak_kv_console aae_status "$@"
+        ;;
+
+    ensemble[_-]status)
+        if [ $# -ne 1 ] && [ $# -ne 2 ]; then
+            echo "Usage: $SCRIPT $1 [<ensemble>]"
+            exit 1
+        fi
+        shift
+
+        # Make sure the local node is running
+        node_up_check
+
+        $NODETOOL rpc riak_kv_console ensemble_status "$@"
         ;;
 
     repair[_-]2i)
