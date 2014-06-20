@@ -85,7 +85,7 @@ relclean:
 ##    make stagedevrel DEVNODES=68
 
 .PHONY : stagedevrel devrel
-DEVNODES ?= 6
+DEVNODES ?= 8
 
 # 'seq' is not available on all *BSD, so using an alternate in awk
 SEQ = $(shell awk 'BEGIN { for (i = 1; i < '$(DEVNODES)'; i++) printf("%i ", i); print i ;exit(0);}')
