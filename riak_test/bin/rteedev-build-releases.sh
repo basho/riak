@@ -108,5 +108,5 @@ build()
 
 build "riak_ee-1.3.4" $R15B01 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/f23iaj/1.3.4/riak_ee-1.3.4.tar.gz
 echo
-build "riak-ee-1.4.8" $R15B01 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/20b089/1.4.8/riak-ee-1.4.8.tar.gz
+build "riak-ee-1.4.9" $R15B01 http://s3.amazonaws.com/private.downloads.basho.com/riak_ee/20b089/1.4.9/riak-ee-1.4.9.tar.gz
 echo
