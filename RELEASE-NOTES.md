@@ -1,3 +1,363 @@
+# Riak 1.4.10 Release Notes
+
+This is a bugfix release on the 1.4 series of Riak.
+
+## Issues / PR's Resolved
+
+* riak_core/603: [Bugfix/reip update claimant](https://github.com/basho/riak_core/pull/603)
+* riak_search/163: [Add configurable range_loop and stream_timeouts](https://github.com/basho/riak_search/pull/163)
+* leveldb/135 & 136: [Correct infinite loop caused by mutex changes in 1.4.9](https://github.com/basho/leveldb/issues/135)
+
+# Riak 1.4.9 Release Notes
+
+This is a bugfix release on the 1.4 series of Riak.
+
+### Memory backend fixes
+
+The prior to this release deletes on the memory backend when
+`max_memory` was set would result in the space limit not being
+updated, so that the number of values storable would shrink over time,
+eventually leading to no values being storable at all.
+
+Additionally, there was an interaction with expiry when both were set
+which would cause gets on expired values (which call the delete path
+above) to have the same effect.
+
+## Issues / PR's Resolved
+* riak_core/584: [Bugfix/set bucket 1.4](https://github.com/basho/riak_core/pull/584)
+* riak_kv/940: [Fix mem backend to honor various settings correctly.](https://github.com/basho/riak_kv/pull/940)
+* riak_kv/957: [Bugfix/2i refresh mod state](https://github.com/basho/riak_kv/pull/957)
+* riak_repl/556: [Bug/mw/repl wm stats multiple fs sources](https://github.com/basho/riak_repl/pull/556)
+* riak_repl/561: [Correctly jsonify mutiple fs source/sink](https://github.com/basho/riak_repl/pull/561)
+* riak_repl/577: [Fixes monitor leak for realtime objects (#204).](https://github.com/basho/riak_repl/pull/577)
+* riak_repl/583: [Fix JSONifying datetimes in the webmachine stats](https://github.com/basho/riak_repl/pull/583)
+* leveldb:  [Fix async close logic](https://github.com/basho/leveldb/wiki/mv-async-close)
+* leveldb:  [Raise performance for heavily changing keys, plus general compaction](https://github.com/basho/leveldb/wiki/mv-hot-threads)
+
+# Riak 1.4.8 Release Notes
+
+This is a bugfix release on the 1.4 series of Riak.
+
+## Issues / PR's Resolved
+
+### AAE regression fixed
+
+This fixes the backport issue that caused AAE to stop detecting object
+modifications due to a failure to compute the hashes.
+
+**IMPORTANT** We recommend removing current AAE trees before upgrading.
+That is, all files under the anti_entropy sub-directory.
+This will avoid potentially large amounts of repair activity once correct
+hashes start being added.  The data in the current trees can only be fixed
+by a full rebuild, so this repair activity is wasteful. Trees will start to
+build once AAE is re-enabled. To minimize the impact of this, we recommend
+upgrading during a period of low activity.
+
+### Bitcask startup failures on upgrade.
+
+A regression introduced in 1.4.4 caused bitcask partitions to no
+longer be able to start when an empty datafile had the highest file id
+in that partition.  This most commonly happened on the first start of
+an upgraded node going from a pre-1.4.4 build to something later, but
+was possible to see in a few other conditions.  The fix added in this
+release removes empty files on partition startup, and fixes added in
+1.4.4 will prevent them from being created in the future.
+
+### AAE fullsync
+
+Fixes a deadlock that could prevent AAE fullsync from making progress, as
+well as issues that prevented modified objects from being included in the
+fullsync.
+
+### Issues Closed
+
+* bitcask/137: [add code to clean up empty data and hintfiles](https://github.com/basho/bitcask/pull/137)
+* riak_kv/818: [Add missing riak_object:is_robject function](https://github.com/basho/riak_kv/pull/818)
+* riak_kv/834: [Export riak_kv_vnode:get/4](https://github.com/basho/riak_kv/pull/834)
+* riak_kv/836: [Backport object size/sibling limits to 1.4](https://github.com/basho/riak_kv/pull/836)
+* riak_kv/845: [Fix use of FSM timeouts in 2i AAE](https://github.com/basho/riak_kv/pull/845)
+* riak_repl/513: [Ensure we update the bloom for object differences.](https://github.com/basho/riak_repl/pull/513)
+* riak_repl/515: [Prevent deadlock in hashtree compare.](https://github.com/basho/riak_repl/pull/515)
+
+
+# Riak 1.4.7 Release Notes
+
+This is a bugfix release on the 1.4.x series of Riak
+
+## Issues / PR's Resolved
+
+### Improve active anti-entropy replication.
+
+   * In the event that the tcp connection errors without completing full-sync, and when the max fssinks is not configured and defaulted to one, this causes the aae_sink process to terminate normally, but not propagate errors to the fssink process.  This causes an abandoned fssink process, which locks out any future reservations for full sync causing replication to stall indefinitely on the sink cluster.
+   * In the event that max fssink setting is not configured to one, and specified at another value, tcp errors can cause available reservation slots to be depleted over time.
+   * Gracefully handle the not_built message from the hashtree.
+   * Ensure that when aae_source dies, we handle the DOWN message and terminate the fsssource process instead of ignoring the message.
+   * Do not throw the error, or send the complete message to the sink, when the process dies; both are not necessary.
+   * Ensure abnormal exits when the aae_source fails.
+   * Remove monitors, handle not_responsible as a independent message instead of a failure state.
+   * Provide a bound on the number of times a partition will be retried in the event of failure through the fullsync coordinator process.  If we exceed the number of retries for all queued partitions, end the fullsync.
+   * If ownership transfer is occurring, ensure we bail and notify the fscoordinator with an abnormal exit, which will reschedule the partition.
+   * No longer attempt to gain locks on hashtrees during the initialization function of a sink process, which, in the event of failure would cause connection manager to use an exponential backoff, in addition to invalidating the endpoint preventing other partitions on the same node from being synchronized.
+   * Ensure that the AAE source process exits if the socket closes.
+   * Ensure we reserve and unreserve partitions when we detect source processes exiting.
+
+### Fix Bitcask NIF mode
+
+Configuring Bitcask to use NIF mode (file I/O operations using native code instead of Erlang) would result in the backend being unable to create new files.
+
+### Fix 2i AAE being disabled on AAE tree rebuilds
+
+The ability to repair 2i data would be lost once AAE did a tree re-build. By default trees are re-built after a week, so the command could work for a while and then suddenly break.
+
+### Active Anti-Entropy exchange & repair throttle
+
+A throttle based upon cluster-wide values of the `riak_kv_vnode_max`
+statistic has been added in riak_kv/754.  Its purpose is to avoid rare
+situations where vnodes are overloaded by AAE exchange and repair
+operations.
+
+* The exchange & repair throttle is enabled by default.  Define
+  `{aae_throttle_kill, true}` in the `riak_kv` section of the
+  `app.config` file to disable the throttle entirely.
+  * It may also be disabled/enabled non-persistently
+    using the Riak console to execute
+    `riak_kv_entropy_manager:set_aae_throttle_kill(true | false).`,
+  respectively.
+* The configured throttle defaults, as defined by
+  `aae_throttle_sleep_time` item in the `riak_kv` section of the
+  `app.config` file, appear to be very effective in lab testing.
+  * The Riak console can be used to execute query and change the
+    setting non-persistently using
+    `riak_kv_entropy_manager:get_aae_throttle_limits()` and
+    `riak_kv_entropy_manager:set_aae_throttle_limits(LimitDefinition)`.
+  * Contact Basho support if the default weightings are not effective.
+* The configuration syntax for this throttle has been converted
+  to Cuttlefish-style syntax for the Riak 2.0 release.  The
+  implementation of the throttle is the same as the 1.4.7 release.
+
+### Issues Closed
+
+* bitcask/129: [Fix nif-mode and eunit_nif tests](https://github.com/basho/bitcask/pull/129)
+* riak_kv/754: [Add timer:sleep()-based throttle to riak_kv_exchange_fsm:read_repair_keydiff()](https://github.com/basho/riak_kv/pull/754)
+* riak_kv/775: [Make memory backend obey 2i return terms properly](https://github.com/basho/riak_kv/pull/775)
+* riak_kv/780: [Fix lost 2i AAE tree on rebuild](https://github.com/basho/riak_kv/pull/780)
+* riak_kv/789: [Fix logging call](https://github.com/basho/riak_kv/pull/789)
+* riak_repl/500: [Improve active anti-entropy replication.](https://github.com/basho/riak_repl/pull/500)
+* riak_repl/504: [Don't write empty clusters to the ring, ever](https://github.com/basho/riak_repl/pull/504)
+
+
+# Riak 1.4.6 Release Notes
+
+This is a bugfix release on the 1.4.x series of Riak
+
+## Issues / PR's Resolved
+
+* riak_kv/772: [Fix broken return terms handling](https://github.com/basho/riak_kv/pull/772)
+* riak_kv/774: [Enable bloom filters for AAE LevelDB instances](https://github.com/basho/riak_kv/pull/774)
+
+# Riak 1.4.5 Release Notes
+
+This is a bugfix release on the 1.4.x series of Riak.
+
+## MDC v3 Replication
+
+- When connection_mgr crashes, and the supervisor restarts, ensure we reregister the `CLUSTER_NAME_LOCATOR_TYPE`. **riak_repl 430**
+- Prevent a hard crash when the cluster has been connected, but the gen_server has not been registered because we're still in the process of reconfiguring after a topology change in riak_repl2_pg_block_requester. **riak_repl 434**
+- Add *user event messages* for Riak MDC replication, such as starting/stopping realtime replication from the shell. These will be displayed with an inline `[user]` string in Riak log files. **riak_repl 446**
+- Kill current nodes() pg_proxies upon leader election, which will force a reconnect from the source.     **riak_repl 451**
+- The realtime replication heartbeat is initiated in a `spawn()` call to prevent real time queue deadlocks. **riak_repl 461**
+- In the event that a joining node happens to trigger an election, which completes prior to ring convergence, it will never receive the repl configuration on the source side in time to perform outbound connections to the sink cluster. Manually trigger the connection handler code when a ring event occurs, and the current node is the leader. **riak_repl 464**
+- Prevent a potential race condition where services may or may not be registered by the service manager because of the ordering of registration, and the nature of cast'ing the registration messages. **riak_repl 466**
+- Prevent races where locators are registered after requests come in because of the startup dependency between riak_core_connection_mgr and riak_core_cluster_mgr. **riak_repl 472**
+- riak_core_connection_manager and riak_core_service_manager removed from riak_core. **riak_core 476**
+
+## Secondary index improvements
+
+### Broken 2i queries during a rolling upgrade
+
+* [riak_kv/766](https://github.com/basho/riak_kv/pull/766)
+2i queries could fail if some nodes in the cluster were running on
+older versions of Riak (1.3.x, 1.4.2 for example).
+
+### AAE tree building fails to hash secondary index data
+
+* [riak_kv/767](https://github.com/basho/riak_kv/pull/767)
+AAE trees building would fail to hash 2i data. The logs would be filled with
+error messages and the system may have wastefully issued many repair operations
+that would end up doing nothing.
+
+### Regular expression filter in range queries.
+
+The new `term_regex` parameter filters secondary index range query results
+such that only terms that match the regular expression are returned.
+For example, the following query:
+
+`http://localhost:10018/buckets/b/index/f1_bin/a/z?return_terms=true`
+
+If it returned the following term/keys pairs:
+
+`[("baa", "key1"),("aab", "key2"),("bba", "key3")]`
+
+Passing the following regular expression:
+
+`http://localhost:10018/buckets/b/index/f1_bin/a/z?return_terms=true&term_regex=^.a`
+
+Would return only the items that have an 'a' as the second character in the term:
+
+`[("baa", "key1"),("aab", "key2")]`
+
+**Note: This feature is not character encoding aware. We recommend normalizing
+your data to ascii characters if possible.**
+
+### Faster internal encoding/decoding of leveldb secondary index data
+
+We are now using a C version of the sext codec used to write and read
+secondary index and object key data. This should speed up secondary index
+query scans that read a large number of items from leveldb.
+
+### Pagination performance fix
+
+When using small page sizes, it was possible for vnodes to send a batch of
+results larger than the page size. Those results could have never been sent
+to the client anyway. That has been fixed.
+
+### Sorting in non-paginated queries.
+
+Paginated secondary index queries work by sorting results by term,
+then key.  When they were introduced, this internal sorting also
+became the default for regular secondary index queries not involving
+pagination.  That caused performance degradation in some cases. The
+default behavior of non-paginated queries (those not using the
+max_results or continuation parameters) has been changed back to
+unsorted. The `pagination_sort` parameter can be used to re-enable
+this sorting per request. Also, the behavior can be restored per node
+in the configuration file by setting `secondary_index_sort_default` to
+`true` in the `riak_kv` section of the `app.config`. This should be
+useful if your application relied on this order and a code change is
+inconvenient.
+
+### Anti-entropy for secondary index data.
+
+The new `riak-admin repair-2i` command will scan and fix any
+mismatches between the secondary index data used for querying and the
+secondary index data stored in the riak objects. It can run on all the
+partitions of a node or in a subset of them.  Use the `riak-admin
+repair-2i status` command to monitor the progress of a repair. A
+repair may be stopped with `riak-admin repair-2i kill`.
+
+This operation involves scanning all the secondary index data used for
+querying from disk, then building a hashtree. This hashtree will be
+used to minimize the number of riak_objects that will be read from
+disk and repaired. **We recommend scheduling repairs during non-peak
+activity time windows.**
+
+### Stats
+
+Added a timeout to stat calculation so that stuck or extremely slow
+processes no longer keep stats from proceeding forever. [**riak_core
+467**](https://github.com/basho/riak_core/pull/467)
+
+## Issues / PR's Resolved
+* bitcask/122:   [Bound merge queue to number of partitions](https://github.com/basho/bitcask/pull/122)
+* node_package/101: [Add extra options to debuild template](https://github.com/basho/node_package/pull/101)
+* node_package/93: [Incorrect package format in SmartOS causes segfault on pkg_info](https://github.com/basho/node_package/issues/93)
+* riak_core/467: [Bound the time that stats calculation can take](https://github.com/basho/riak_core/pull/467)
+* riak_core/470: [Provide a synchronous registration and unregistration of services.](https://github.com/basho/riak_core/pull/470)
+* riak_core/476: [Remove connection manager and service manager.](https://github.com/basho/riak_core/pull/476)
+* riak_kv/715: [2i term regex filter 1.4](https://github.com/basho/riak_kv/pull/715)
+* riak_kv/743: [Fix vnode sending > max_results items for 2i query](https://github.com/basho/riak_kv/pull/743)
+* riak_kv/766: [Fix error when hashing index data in tree builds](https://github.com/basho/riak_kv/pull/766)
+* riak_kv/767: [Fixed 2i queries in mixed clusters](https://github.com/basho/riak_kv/pull/767)
+* riak_repl/430: [Reregister cluster name locator.](https://github.com/basho/riak_repl/pull/430)
+* riak_repl/434: [Handle race by treating cluster as disconnected.](https://github.com/basho/riak_repl/pull/434)
+* riak_repl/446: [added user event messages](https://github.com/basho/riak_repl/pull/446)
+* riak_repl/451: [kill current nodes() pg_proxies upon leader election](https://github.com/basho/riak_repl/pull/451)
+* riak_repl/454: [Remove undeliverables from the real time queue.](https://github.com/basho/riak_repl/pull/454)
+* riak_repl/461: [spawn the heartbeat from the source](https://github.com/basho/riak_repl/pull/461)
+* riak_repl/464: [Resolve race condition when joining a node.](https://github.com/basho/riak_repl/pull/464)
+* riak_repl/466: [Prevent potential race condition.](https://github.com/basho/riak_repl/pull/466)
+* riak_repl/472: [Hardcode locator functions to prevent race/deadlocks.](https://github.com/basho/riak_repl/pull/472)
+* riak_repl/436: [fix misleading error message](https://github.com/basho/riak_repl/pull/436)
+* leveldb/110 [Add option for changing fadvise() handling when physical memory exceeds database size](https://github.com/basho/leveldb/pull/110)
+* leveldb/112: [Create asynchronous close path to resolve race between write threads](https://github.com/basho/leveldb/pull/112)
+
+## Known issues
+
+* The new 2i AAE feature will stop working when the AAE trees expire and
+  are rebuilt. We are already working on addressing this in the next point
+  release.
+* Issuing 2i queries during a rolling upgrade with the memory backend will
+  fail if 1.4 nodes are mixed with pre-1.4 nodes.
+
+# Riak 1.4.3 Release Notes
+
+This is a bugfix release on the Riak 1.4.x series of Riak EE
+
+* riak_core/429: [Handoff fix is to enable handoff to complete in mixed pre-1.4 clusters](https://github.com/basho/riak_core/pull/429)
+* **Backport fix for Issue 384: Repl stats errors to 1.4**
+    - https://github.com/basho/riak_repl/pull/423
+* Added a catch all so that bad stat names would not lead to a crash.
+* Added handling for the case where the sink socket has gone {active, {false, scheduled}} (likely in the event of too many messages) and a timer has been started to reactive it, leading to a stats crash.
+* **Bugfix/mw rt incorrect ack 1.4**
+    - https://github.com/basho/riak_repl/pull/401
+
+	The wrong check was causing the ack to be proxied through the helper.
+The helper builds a map for acks from v1 to the actual v2 sequence
+number. However, because this was a version 2 protocol, the map was
+not needed, and thus not built. Without finding the v1 sequence number,
+and ack is never sent to the rtq, leaving the object forever unacked.
+
+* **Fix ack issues and queue fill up w/ bi-directional cascading**
+    - https://github.com/basho/riak_repl/pull/409
+
+* **Check repl hook result before concatenating (Riak CS fix)**
+    - fixes proxy_get for 1.4+
+    - https://github.com/basho/riak_repl/pull/415
+
+# Riak 1.4.2 Release Notes
+
+This is a bugfix release on the Riak 1.4.x series.
+
+* Fixed various problems related to crashing stats
+* Fixed extra noisy logs introduced in 1.4.1 (Not found errors and others)
+* Fixed issues related to 2i queries timing out
+* Added more protection against corrupt data in backends
+* Fixed incorrect capability negotiation causing nodes to appear incompatible in Riak Control
+
+## Issues / PR's Resolved
+
+* leveldb/89: [Minor adjustments to throttle](https://github.com/basho/leveldb/wiki/mv-level-work4)
+* node_package/77: [FreeBSD needs to scan lib and etc directories for extra files](https://github.com/basho/node_package/issues/77)
+* node_package/82: [Deb: Deb postinst script attempts to chmod's /etc directory](https://github.com/basho/node_package/issues/82)
+* node_package/83: [FreeBSD package incorrectly packaged as .tgz rather than .tbz](https://github.com/basho/node_package/issues/83)
+* riak_control/132: [Resolve incorrect capability negotation order in 1.4](https://github.com/basho/riak_control/pull/132)
+* riak_control/133: [Use expanded record macro.](https://github.com/basho/riak_control/pull/133)
+* riak_control/135: [Incompatible is less serious](https://github.com/basho/riak_control/pull/135)
+* riak_kv/644: [Fix webmachine 2i timeout](https://github.com/basho/riak_kv/pull/644)
+* riak_kv/639: [Fix HTTP MR error reporting](https://github.com/basho/riak_kv/commit/01190f23099bf7febbb69d74f6b4922a91d045e3)
+* riak_kv/636: [Fix riak_kv_stat crash leaking processes](https://github.com/basho/riak_kv/pull/636)
+* riak_kv/638: [Bad deserialization and CRC errors to not_found](https://github.com/basho/riak_kv/pull/638)
+* riak_kv/641: [LevelDB fold hardening for 1.4](https://github.com/basho/riak_kv/pull/641)
+* riak_kv/635: [Fix 2i timeout responses](https://github.com/basho/riak_kv/pull/635)
+* riak_kv/632: [Fix riak_kv_stat timeout](https://github.com/basho/riak_kv/pull/632)
+* riak_core/356: [Add protection against folsom stat errors](https://github.com/basho/riak_core/pull/356)
+* riak_core/359: [Support for corruption detecting during handoff](https://github.com/basho/riak_core/pull/359)
+* webmachine/137: [Increase line coverage of Webmachine unit and integration tests](https://github.com/basho/webmachine/pull/137)
+* webmachine/164: [Rework Webmachine error logging to use the built-in log handler](https://github.com/basho/webmachine/pull/164)
+* webmachine/161: [Expose local socket via the Webmachine API](https://github.com/basho/webmachine/pull/161)
+* webmachine/160: [Re-add compatibility for Erlang versions newer than R15B01](https://github.com/basho/webmachine/pull/160)
+* webmachine/158: [Avoid localtime to universaltime](https://github.com/basho/webmachine/pull/158)
+* webmachine/156: [Fix Erlang R15 compatibility](https://github.com/basho/webmachine/pull/156)
+* riak_repl/392: [Fix for heartbeat timeout bug discovered in riak_test](https://github.com/basho/riak_repl/pull/392)
+* riak_repl/382: [Queue implementation for heartbeat tracking (1.4)](https://github.com/basho/riak_repl/pull/382)
+* riak_repl/377: [Add overload check and recovery to realtime queue - 1.4](https://github.com/basho/riak_repl/pull/377)
+* riak_repl/380: [Drop bad data from the backend.](https://github.com/basho/riak_repl/pull/380)
+* riak_repl/365: [ACKs reset heartbeat timeout for 1.4](https://github.com/basho/riak_repl/pull/365)
+* riak_repl/363: [Don't crash up on stats errors](https://github.com/basho/riak_repl/pull/363) and https://github.com/basho/riak_repl/pull/348
+* riak_repl/361: [Use {active, once} for the rt_sink socket. (backported)](https://github.com/basho/riak_repl/pull/361)
+* riak_repl/340: [backport riak_core PR 313 to riak_repl, format _stat_ts bug](https://github.com/basho/riak_repl/pull/340)
+* riak_repl/386: [don't pop from the hb queue on timeout - 1.4](https://github.com/basho/riak_repl/pull/386)
+
 # Riak 1.4.1 Release Notes
 
 This is a bugfix release.  The major fixes are to the Secondary Index,
@@ -178,7 +538,7 @@ Additional fullsync stats *per sink* have been added in Riak EE 1.4.
 
 - **fullsync_start_time**
 
-    The time the current fullsink to the specified cluster began.
+    The time the current fullsync to the specified cluster began.
 
 - **last_fullsync_duration**
 
