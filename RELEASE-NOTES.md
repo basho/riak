@@ -1,3 +1,279 @@
+# Riak 1.4.10 Release Notes
+
+This is a bugfix release on the 1.4 series of Riak.
+
+## Issues / PR's Resolved
+
+* riak_core/603: [Bugfix/reip update claimant](https://github.com/basho/riak_core/pull/603)
+* riak_search/163: [Add configurable range_loop and stream_timeouts](https://github.com/basho/riak_search/pull/163)
+* leveldb/135 & 136: [Correct infinite loop caused by mutex changes in 1.4.9](https://github.com/basho/leveldb/issues/135)
+
+# Riak 1.4.9 Release Notes
+
+This is a bugfix release on the 1.4 series of Riak.
+
+### Memory backend fixes
+
+The prior to this release deletes on the memory backend when
+`max_memory` was set would result in the space limit not being
+updated, so that the number of values storable would shrink over time,
+eventually leading to no values being storable at all.
+
+Additionally, there was an interaction with expiry when both were set
+which would cause gets on expired values (which call the delete path
+above) to have the same effect.
+
+
+## Issues / PR's Resolved
+* riak_core/584: [Bugfix/set bucket 1.4](https://github.com/basho/riak_core/pull/584)
+* riak_kv/940: [Fix mem backend to honor various settings correctly.](https://github.com/basho/riak_kv/pull/940)
+* riak_kv/957: [Bugfix/2i refresh mod state](https://github.com/basho/riak_kv/pull/957)
+* leveldb:  [Fix async close logic](https://github.com/basho/leveldb/wiki/mv-async-close)
+* leveldb:  [Raise performance for heavily changing keys, plus general compaction](https://github.com/basho/leveldb/wiki/mv-hot-threads)
+
+
+# Riak 1.4.8 Release Notes
+
+This is a bugfix release on the 1.4 series of Riak.
+
+## Issues / PR's Resolved
+
+### AAE regression fixed
+
+This fixes the backport issue that caused AAE to stop detecting object
+modifications due to a failure to compute the hashes.
+
+**IMPORTANT** We recommend removing current AAE trees before upgrading.
+That is, all files under the anti_entropy sub-directory.
+This will avoid potentially large amounts of repair activity once correct
+hashes start being added.  The data in the current trees can only be fixed
+by a full rebuild, so this repair activity is wasteful. Trees will start to
+build once AAE is re-enabled. To minimize the impact of this, we recommend
+upgrading during a period of low activity.
+
+### Bitcask startup failures on upgrade.
+
+A regression introduced in 1.4.4 caused bitcask partitions to no
+longer be able to start when an empty datafile had the highest file id
+in that partition.  This most commonly happened on the first start of
+an upgraded node going from a pre-1.4.4 build to something later, but
+was possible to see in a few other conditions.  The fix added in this
+release removes empty files on partition startup, and fixes added in
+1.4.4 will prevent them from being created in the future.
+
+### Issues Closed
+
+* bitcask/137: [add code to clean up empty data and hintfiles](https://github.com/basho/bitcask/pull/137)
+* riak_kv/818: [Add missing riak_object:is_robject function](https://github.com/basho/riak_kv/pull/818)
+* riak_kv/834: [Export riak_kv_vnode:get/4](https://github.com/basho/riak_kv/pull/834)
+* riak_kv/836: [Backport object size/sibling limits to 1.4](https://github.com/basho/riak_kv/pull/836)
+* riak_kv/845: [Fix use of FSM timeouts in 2i AAE](https://github.com/basho/riak_kv/pull/845)
+
+
+# Riak 1.4.7 Release Notes
+
+This is a bugfix release on the 1.4.x series of Riak
+
+## Issues / PR's Resolved
+
+### Fix Bitcask NIF mode
+
+Configuring Bitcask to use NIF mode (file I/O operations using native code instead of Erlang) would result in the backend being unable to create new files.
+
+### Fix 2i AAE being disabled on AAE tree rebuilds
+
+The ability to repair 2i data would be lost once AAE did a tree re-build. By default trees are re-built after a week, so the command could work for a while and then suddenly break.
+
+### Active Anti-Entropy exchange & repair throttle
+
+A throttle based upon cluster-wide values of the `riak_kv_vnode_max`
+statistic has been added in riak_kv/754.  Its purpose is to avoid rare
+situations where vnodes are overloaded by AAE exchange and repair
+operations.
+
+* The exchange & repair throttle is enabled by default.  Define
+  `{aae_throttle_kill, true}` in the `riak_kv` section of the
+  `app.config` file to disable the throttle entirely.
+  * It may also be disabled/enabled non-persistently
+    using the Riak console to execute
+    `riak_kv_entropy_manager:set_aae_throttle_kill(true | false).`,
+  respectively.
+* The configured throttle defaults, as defined by
+  `aae_throttle_sleep_time` item in the `riak_kv` section of the
+  `app.config` file, appear to be very effective in lab testing.
+  * The Riak console can be used to execute query and change the
+    setting non-persistently using
+    `riak_kv_entropy_manager:get_aae_throttle_limits()` and
+    `riak_kv_entropy_manager:set_aae_throttle_limits(LimitDefinition)`.
+  * Contact Basho support if the default weightings are not effective.
+* The configuration syntax for this throttle has been converted
+  to Cuttlefish-style syntax for the Riak 2.0 release.  The
+  implementation of the throttle is the same as the 1.4.7 release.
+
+### Issues Closed
+
+* bitcask/129: [Fix nif-mode and eunit_nif tests](https://github.com/basho/bitcask/pull/129)
+* riak_kv/754: [Add timer:sleep()-based throttle to riak_kv_exchange_fsm:read_repair_keydiff()](https://github.com/basho/riak_kv/pull/754)
+* riak_kv/775: [Make memory backend obey 2i return terms properly](https://github.com/basho/riak_kv/pull/775)
+* riak_kv/780: [Fix lost 2i AAE tree on rebuild](https://github.com/basho/riak_kv/pull/780)
+* riak_kv/789: [Fix logging call](https://github.com/basho/riak_kv/pull/789)
+
+
+# Riak 1.4.6 Release Notes
+
+This is a bugfix release on the 1.4.x series of Riak.
+
+## Secondary index improvements
+
+### Broken 2i queries during a rolling upgrade
+
+* [riak_kv/766](https://github.com/basho/riak_kv/pull/766)
+2i queries could fail if some nodes in the cluster were running on
+older versions of Riak (1.3.x, 1.4.2 for example).
+
+### AAE tree building fails to hash secondary index data
+
+* [riak_kv/767](https://github.com/basho/riak_kv/pull/767)
+AAE trees building would fail to hash 2i data. The logs would be filled with
+error messages and the system may have wastefully issued many repair operations
+that would end up doing nothing.
+
+### Regular expression filter in range queries.
+
+The new `term_regex` parameter filters secondary index range query results
+such that only terms that match the regular expression are returned.
+For example, the following query:
+
+`http://localhost:10018/buckets/b/index/f1_bin/a/z?return_terms=true`
+
+If it returned the following term/keys pairs:
+
+`[("baa", "key1"),("aab", "key2"),("bba", "key3")]`
+
+Passing the following regular expression:
+
+`http://localhost:10018/buckets/b/index/f1_bin/a/z?return_terms=true&term_regex=^.a`
+
+Would return only the items that have an 'a' as the second character in the term:
+
+`[("baa", "key1"),("aab", "key2")]`
+
+**Note: This feature is not character encoding aware. We recommend normalizing
+your data to ascii characters if possible.**
+
+### Faster internal encoding/decoding of leveldb secondary index data
+
+We are now using a C version of the sext codec used to write and read
+secondary index and object key data. This should speed up secondary index
+query scans that read a large number of items from leveldb.
+
+### Pagination performance fix
+
+When using small page sizes, it was possible for vnodes to send a batch of
+results larger than the page size. Those results could have never been sent
+to the client anyway. That has been fixed.
+
+### Sorting in non-paginated queries.
+
+Paginated secondary index queries work by sorting results by term,
+then key.  When they were introduced, this internal sorting also
+became the default for regular secondary index queries not involving
+pagination.  That caused performance degradation in some cases. The
+default behavior of non-paginated queries (those not using the
+max_results or continuation parameters) has been changed back to
+unsorted. The `pagination_sort` parameter can be used to re-enable
+this sorting per request. Also, the behavior can be restored per node
+in the configuration file by setting `secondary_index_sort_default` to
+`true` in the `riak_kv` section of the `app.config`. This should be
+useful if your application relied on this order and a code change is
+inconvenient.
+
+### Anti-entropy for secondary index data.
+
+The new `riak-admin repair-2i` command will scan and fix any
+mismatches between the secondary index data used for querying and the
+secondary index data stored in the riak objects. It can run on all the
+partitions of a node or in a subset of them.  Use the `riak-admin
+repair-2i status` command to monitor the progress of a repair. A
+repair may be stopped with `riak-admin repair-2i kill`.
+
+This operation involves scanning all the secondary index data used for
+querying from disk, then building a hashtree. This hashtree will be
+used to minimize the number of riak_objects that will be read from
+disk and repaired. **We recommend scheduling repairs during non-peak
+activity time windows.**
+
+### Stats
+
+Added a timeout to stat calculation so that stuck or extremely slow
+processes no longer keep stats from proceeding forever. [**riak_core
+467**](https://github.com/basho/riak_core/pull/467)
+
+## Issues / PR's Resolved
+* bitcask/122:   [Bound merge queue to number of partitions](https://github.com/basho/bitcask/pull/122)
+* node_package/101: [Add extra options to debuild template](https://github.com/basho/node_package/pull/101)
+* node_package/93: [Incorrect package format in SmartOS causes segfault on pkg_info](https://github.com/basho/node_package/issues/93)
+* riak_core/429: [Handoff fix is to enable handoff to complete in mixed pre-1.4 clusters](https://github.com/basho/riak_core/pull/429)
+* riak_core/467: [Bound the time that stats calculation can take](https://github.com/basho/riak_core/pull/467)
+* riak_core/470: [Provide a synchronous registration and unregistration of services.](https://github.com/basho/riak_core/pull/470)
+* riak_core/476: [Remove connection manager and service manager.](https://github.com/basho/riak_core/pull/476)
+* riak_kv/715: [2i term regex filter 1.4](https://github.com/basho/riak_kv/pull/715)
+* riak_kv/743: [Fix vnode sending > max_results items for 2i query](https://github.com/basho/riak_kv/pull/743)
+* riak_kv/766: [Fix error when hashing index data in tree builds](https://github.com/basho/riak_kv/pull/766)
+* riak_kv/767: [Fixed 2i queries in mixed clusters](https://github.com/basho/riak_kv/pull/767)
+* riak_kv/772: [Fix broken return terms handling](https://github.com/basho/riak_kv/pull/772)
+* riak_kv/774: [Enable bloom filters for AAE LevelDB instances](https://github.com/basho/riak_kv/pull/774)
+* leveldb/110 [Add option for changing fadvise() handling when physical memory exceeds database size](https://github.com/basho/leveldb/pull/110)
+* leveldb/112: [Create asynchronous close path to resolve race between write threads](https://github.com/basho/leveldb/pull/112)
+
+## Known issues
+
+* The new 2i AAE feature will stop working when the AAE trees expire and
+  are rebuilt. We are already working on addressing this in the next point
+  release.
+* Issuing 2i queries during a rolling upgrade with the memory backend will
+  fail if 1.4 nodes are mixed with pre-1.4 nodes.
+
+# Riak 1.4.3, 1.4.4, 1.4.5
+
+These were unreleased Riak versions
+
+# Riak 1.4.2 Release Notes
+
+This is a bugfix release on the Riak 1.4.x series.
+
+* Fixed various problems related to crashing stats
+* Fixed extra noisy logs introduced in 1.4.1 (Not found errors and others)
+* Fixed issues related to 2i queries timing out
+* Added more protection against corrupt data in backends
+* Fixed incorrect capability negotiation causing nodes to appear incompatible in Riak Control
+
+## Issues / PR's Resolved
+
+* leveldb/89: [Minor adjustments to throttle](https://github.com/basho/leveldb/wiki/mv-level-work4)
+* node_package/77: [FreeBSD needs to scan lib and etc directories for extra files](https://github.com/basho/node_package/issues/77)
+* node_package/82: [Deb: Deb postinst script attempts to chmod's /etc directory](https://github.com/basho/node_package/issues/82)
+* node_package/83: [FreeBSD package incorrectly packaged as .tgz rather than .tbz](https://github.com/basho/node_package/issues/83)
+* riak_control/132: [Resolve incorrect capability negotation order in 1.4](https://github.com/basho/riak_control/pull/132)
+* riak_control/133: [Use expanded record macro.](https://github.com/basho/riak_control/pull/133)
+* riak_control/135: [Incompatible is less serious](https://github.com/basho/riak_control/pull/135)
+* riak_kv/644: [Fix webmachine 2i timeout](https://github.com/basho/riak_kv/pull/644)
+* riak_kv/639: [Fix HTTP MR error reporting](https://github.com/basho/riak_kv/commit/01190f23099bf7febbb69d74f6b4922a91d045e3)
+* riak_kv/636: [Fix riak_kv_stat crash leaking processes](https://github.com/basho/riak_kv/pull/636)
+* riak_kv/638: [Bad deserialization and CRC errors to not_found](https://github.com/basho/riak_kv/pull/638)
+* riak_kv/641: [LevelDB fold hardening for 1.4](https://github.com/basho/riak_kv/pull/641)
+* riak_kv/635: [Fix 2i timeout responses](https://github.com/basho/riak_kv/pull/635)
+* riak_kv/632: [Fix riak_kv_stat timeout](https://github.com/basho/riak_kv/pull/632)
+* riak_core/356: [Add protection against folsom stat errors](https://github.com/basho/riak_core/pull/356)
+* riak_core/359: [Support for corruption detecting during handoff](https://github.com/basho/riak_core/pull/359)
+* webmachine/137: [Increase line coverage of Webmachine unit and integration tests](https://github.com/basho/webmachine/pull/137)
+* webmachine/164: [Rework Webmachine error logging to use the built-in log handler](https://github.com/basho/webmachine/pull/164)
+* webmachine/161: [Expose local socket via the Webmachine API](https://github.com/basho/webmachine/pull/161)
+* webmachine/160: [Re-add compatibility for Erlang versions newer than R15B01](https://github.com/basho/webmachine/pull/160)
+* webmachine/158: [Avoid localtime to universaltime](https://github.com/basho/webmachine/pull/158)
+* webmachine/156: [Fix Erlang R15 compatibility](https://github.com/basho/webmachine/pull/156)
+
+
 # Riak 1.4.1 Release Notes
 
 This is a bugfix release.  The major fixes are to the Secondary Index,
