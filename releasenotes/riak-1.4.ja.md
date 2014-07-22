@@ -1,3 +1,13 @@
+# Riak 1.4.10 リリースノート
+
+これはRiak 1.4.x系のバグフィックスのリリースです。
+
+## Issues / PR's Resolved
+
+* riak_core/603: [Bugfix/reip update claimant](https://github.com/basho/riak_core/pull/603)
+* riak_search/163: [Add configurable range_loop and stream_timeouts](https://github.com/basho/riak_search/pull/163)
+* leveldb/135 & 136: [Correct infinite loop caused by mutex changes in 1.4.9](https://github.com/basho/leveldb/issues/135)
+
 # Riak 1.4.9 リリースノート
 
 これはRiak 1.4.x系のバグフィックスのリリースです。
