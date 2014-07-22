@@ -125,18 +125,40 @@ to other clusters.
 
 ### Search 2 (Yokozuna)
 
-The Yokozuna project [kept its own release notes](https://github.com/basho/yokozuna/blob/develop/docs/RELEASE_NOTES.md) 
-while it was being developed. Please read there for the most relevant 
+The Yokozuna project [kept its own release notes](https://github.com/basho/yokozuna/blob/develop/docs/RELEASE_NOTES.md)
+while it was being developed. Please read there for the most relevant
 information about Riak 2.0's new search.
 
 ### Strong Consistency
 
-Until all of our new features are fully documented on docs.basho.com 
+Until all of our new features are fully documented on docs.basho.com
 for 2.0 final, [here is a mostly-complete description of Strong Consistency in Riak 2.0](https://github.com/basho/riak_ensemble/blob/wip/riak-2.0-user-docs/riak_consistent_user_docs.md)
 
-This page also contains a "Known Issues" section, so please pay particular 
+This page also contains a "Known Issues" section, so please pay particular
 attention to that.
 
+### Security
+
+Riak 2.0 adds authentication and authorization. This is useful to
+prevent accidental collisions between environments (e.g., pointing
+application software under active development at the production
+cluster) and offers protection against malicious attack, although Riak
+still should not be exposed directly to any unsecured network.
+
+Basho's documentation website includes
+[extensive coverage of the new feature](http://docs.basho.com/riak/2.0.0/ops/running/authz/). Several
+important caveats when enabling security:
+
+* There is no support yet for auditing. This is on the roadmap for a
+  future release.
+* Two deprecated features will not work if security is enabled: link
+  walking and Riak's original full-text search tool.
+* There are restrictions on Erlang modules exposed to MapReduce jobs
+  when security is enabled.
+* Enabling security requires applications be designed to transition
+  gracefully based on the server response **or** applications will
+  need to be halted before security is enabled and brought back online
+  with support for the new security features.
 
 ### Packaging / Supported Platforms
 
