@@ -78,19 +78,19 @@ data structure, reconciling conflicts, mutating the result, and
 writing it back, you instead tell Riak what operations to perform on
 the Data Type. Here are some example operations:
 
-    * "increment counter by 10"
-    * "add 'joe' to set",
-    * "remove the Set field called 'friends' from the Map"
-    * "set the `prepay` flag to `true` in the Map"
+* "increment counter by 10"
+* "add 'joe' to set",
+* "remove the Set field called 'friends' from the Map"
+* "set the `prepay` flag to `true` in the Map"
 
 ##### Context
 
 In order for Riak Data Types to behave well, you _must_ return the
 opaque context received from a read when you:
 
-    * Set a flag to `false`
-    * Remove a field from a Map
-    * Remove an element from a Set
+* Set a flag to `false`
+* Remove a field from a Map
+* Remove an element from a Set
 
 The basic rule is "you cannot remove something you haven't seen", and
 the context tells Riak what you've actually seen. All of the official
