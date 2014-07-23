@@ -196,6 +196,46 @@ make up for  any pain we are causing to your tooling with an update in
 URLs. We apologize for the change, but think it is a good investment 
 going forward.
 
+## Deprecation Notices
+
+Riak 2.0 marks the beginning of the end for several features. See also
+**Termination Notices** below.
+
+* [Link Walking](http://docs.basho.com/riak/latest/dev/using/link-walking/)
+  is deprecated and will not work if security is enabled.
+* JavaScript MapReduce is deprecated; we have expanded our
+  [Erlang MapReduce](http://docs.basho.com/riak/2.0.0/dev/advanced/mapreduce/)
+  documentation to assist with the transition.
+* Riak Search 1.0 is being phased out in favor of the new Solr-based
+  [Riak Search 2.0](http://docs.basho.com/riak/2.0.0/dev/advanced/search/). Version
+  1.0 will not work if security is enabled.
+* v2 replication (a component of Riak Enterprise) has been superseded
+  by v3 and will be removed in the future.
+* Legacy gossip (Riak's original gossip mechanism, replaced in 1.0)
+  will be removed, at which point pre-1.0 Riak nodes will not be able
+  to join to a cluster.
+* Some users in the past have used Riak's internal API (e.g.,
+  `riak:local_client/1`); this API may change at any time, so we
+  strongly recommend using our
+  [Erlang client library](http://githbub.com/basho/riak-erlang-client/)
+  (or
+  [one of the other libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
+  we support) instead.
+
+## Termination Notices
+
+* `riak-admin backup` has been disabled; see
+  [our documentation](http://docs.basho.com/riak/2.0.0/ops/running/backups/)
+  for a detailed look at running backup and restore operations.
+* [Client ID-based vector clocks](http://docs.basho.com/riak/1.4.10/ops/advanced/configs/configuration-files/#-code-riak_kv-code-Settings)
+  have been removed; they were previously turned off by default in
+  favor of node-based vector clocks via the `vnode_vclocks`
+  configuration flag.
+* LevelDB configuration values `cache_size` and `max_open_files` have
+  been disabled in favor of `leveldb.maximum_memory.percent`. See
+  [Configuring eLevelDB](http://docs.basho.com/riak/2.0.0/ops/advanced/backends/leveldb/#Configuring-eLevelDB)
+  in our documentation.
+
 ## Known Issues
 
 * Related to [riak_kv#782](https://github.com/basho/riak_kv/pull/782), in clusters that have downgraded from 2.0, objects written with DVV enabled will break JavaScript MapReduce and precommit hooks.
