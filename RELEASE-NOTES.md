@@ -217,7 +217,7 @@ Riak 2.0 marks the beginning of the end for several features. See also
 * Some users in the past have used Riak's internal API (e.g.,
   `riak:local_client/1`); this API may change at any time, so we
   strongly recommend using our
-  [Erlang client library](http://githbub.com/basho/riak-erlang-client/)
+  [Erlang client library](http://github.com/basho/riak-erlang-client/)
   (or
   [one of the other libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
   we support) instead.
