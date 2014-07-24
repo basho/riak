@@ -203,6 +203,12 @@ Riak 2.0 marks the beginning of the end for several features. See also
 
 * [Link Walking](http://docs.basho.com/riak/latest/dev/using/link-walking/)
   is deprecated and will not work if security is enabled.
+* [Key Filters](http://docs.basho.com/riak/latest/dev/using/keyfilters/)
+  are deprecated; we strongly discourage key listing in production due
+  to the overhead involved, so it's better to maintain key indexes as
+  values in Riak (see also our new
+  [set data type](http://docs.basho.com/riak/2.0.0/dev/using/data-types/#Sets)
+  as a useful tool for such indexes).
 * JavaScript MapReduce is deprecated; we have expanded our
   [Erlang MapReduce](http://docs.basho.com/riak/2.0.0/dev/advanced/mapreduce/)
   documentation to assist with the transition.
