@@ -218,8 +218,12 @@ Riak 2.0 marks the beginning of the end for several features. See also
 * v2 replication (a component of Riak Enterprise) has been superseded
   by v3 and will be removed in the future.
 * Legacy gossip (Riak's original gossip mechanism, replaced in 1.0)
-  will be removed, at which point pre-1.0 Riak nodes will not be able
-  to join to a cluster.
+  will be removed in the future, at which point pre-1.0 Riak nodes
+  will not be able to join a cluster.
+* Legacy vnode routing (an early mechanism for managing requests
+  between servers) is deprecated. If `vnode_routing` is set to
+  `legacy` via Riak's capability system, it should be removed to
+  prevent upgrade problems in the future.
 * Some users in the past have used Riak's internal API (e.g.,
   `riak:local_client/1`); this API may change at any time, so we
   strongly recommend using our
