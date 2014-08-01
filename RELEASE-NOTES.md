@@ -205,9 +205,6 @@ have been updated for 2.0: Java, Python, Ruby, and Erlang.
 The PHP library has not been updated, and will not be soon. Its future
 is uncertain.
 
-Basho has recently adopted the very popular CorrugatedIron .NET client
-for Riak and will be updating it for full 2.0 support.
-
 ### HTTP API
 
 Historically Basho libraries have supported both HTTP and Protocol
