@@ -97,7 +97,7 @@ the context tells Riak what you've actually seen. All of the official
 Basho clients, with the exception of the Java client, handle opaque
 contexts for you. Please see the documentation for more details.
 
-Please see **Known Issues** below for two known issues with Riak maps.
+Please see **Known Issues** below for three known issues with Riak maps.
 
 ### Reduced sibling creation
 
@@ -210,6 +210,8 @@ going forward.
   fully supported for counters in Maps.
 * [riak_dt#99](https://github.com/basho/riak_dt/issues/99) Deferred operations may
   be lost before delivery in some cases.
+* [riak_dt#100](https://github.com/basho/riak_dt/issues/100) LWW Registers in Maps
+  may go "backwards" in time
 
 
 ## Upgrade Notes
