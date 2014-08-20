@@ -175,6 +175,19 @@
   merge
 ]}.
 
+%% VM scheduler collapse, part 1 of 2
+{mapping, "erlang.schedulers.force_wakeup_interval", "vm_args.+sfwi", [
+  {default, 500},
+  {datatype, integer},
+  merge
+]}.
+
+%% VM scheduler collapse, part 2 of 2
+{mapping, "erlang.schedulers.compaction_of_load", "vm_args.+scl", [
+  {default, false},
+  merge
+]}.
+
 {{#devrel}}
 %% Because of the 'merge' keyword in the proplist below, the docs and datatype
 %% are pulled from the leveldb schema.
