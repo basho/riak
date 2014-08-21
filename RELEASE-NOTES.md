@@ -218,6 +218,78 @@ from the database.
 
 The Python client retains HTTP support, but Java, Ruby, and Erlang do not.
 
+### Deprecation Notices
+
+Riak 2.0 marks the beginning of the end for several features. See also
+**Termination Notices** below.
+
+* [Link Walking](http://docs.basho.com/riak/latest/dev/using/link-walking/)
+  is deprecated and will not work if security is enabled.
+* [Key Filters](http://docs.basho.com/riak/latest/dev/using/keyfilters/)
+  are deprecated; we strongly discourage key listing in production due
+  to the overhead involved, so it's better to maintain key indexes as
+  values in Riak (see also our new
+  [set data type](http://docs.basho.com/riak/2.0.0/dev/using/data-types/#Sets)
+  as a useful tool for such indexes).
+* JavaScript MapReduce is deprecated; we have expanded our
+  [Erlang MapReduce](http://docs.basho.com/riak/2.0.0/dev/advanced/mapreduce/)
+  documentation to assist with the transition.
+* Riak Search 1.0 is being phased out in favor of the new Solr-based
+  [Riak Search 2.0](http://docs.basho.com/riak/2.0.0/dev/advanced/search/). Version
+  1.0 will not work if security is enabled.
+* v2 replication (a component of Riak Enterprise) has been superseded
+  by v3 and will be removed in the future.
+* Legacy gossip (Riak's original gossip mechanism, replaced in 1.0)
+  will be removed in the future, at which point pre-1.0 Riak nodes
+  will not be able to join a cluster.
+* Legacy vnode routing (an early mechanism for managing requests
+  between servers) is deprecated. If `vnode_routing` is set to
+  `legacy` via Riak's capability system, it should be removed to
+  prevent upgrade problems in the future.
+* Some users in the past have used Riak's internal API (e.g.,
+  `riak:local_client/1`); this API may change at any time, so we
+  strongly recommend using our
+  [Erlang client library](http://github.com/basho/riak-erlang-client/)
+  (or
+  [one of the other libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
+  we support) instead.
+
+## Termination Notices
+
+* `riak-admin backup` has been disabled; see
+  [our documentation](http://docs.basho.com/riak/2.0.0/ops/running/backups/)
+  for a detailed look at running backup and restore operations.
+* [Client ID-based vector clocks](http://docs.basho.com/riak/1.4.10/ops/advanced/configs/configuration-files/#-code-riak_kv-code-Settings)
+  have been removed; they were previously turned off by default in
+  favor of node-based vector clocks via the `vnode_vclocks`
+  configuration flag.
+* LevelDB configuration values `cache_size` and `max_open_files` have
+  been disabled in favor of `leveldb.maximum_memory.percent`. See
+  [Configuring eLevelDB](http://docs.basho.com/riak/2.0.0/ops/advanced/backends/leveldb/#Configuring-eLevelDB)
+  in our documentation.
+
+## Client libraries
+
+Most
+[Basho-supported client libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
+have been updated for 2.0: Java, Python, Ruby, and Erlang.
+
+The PHP library has not been updated, and will not be soon. Its future
+is uncertain.
+
+### HTTP API
+
+Historically Basho libraries have supported both HTTP and Protocol
+Buffers for access to Riak. Until recently, HTTP had an edge in
+support for all of Riak's features.
+
+Now that Protocol Buffers have reached feature parity, and because
+Protocol Buffers are generally faster, Basho is removing HTTP support
+**from the client libraries** only. There are no plans to remove the HTTP API
+from the database.
+
+The Python client retains HTTP support, but Java, Ruby, and Erlang do not.
+
 ## Known Issues
 
 * Related to [riak_kv#782](https://github.com/basho/riak_kv/pull/782), in clusters that have downgraded from 2.0, objects written with DVV enabled will break JavaScript MapReduce and precommit hooks.
