@@ -196,6 +196,28 @@ make up for  any pain we are causing to your tooling with an update in
 URLs. We apologize for the change, but think it is a good investment 
 going forward.
 
+## Client libraries
+
+Most
+[Basho-supported client libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
+have been updated for 2.0: Java, Python, Ruby, and Erlang.
+
+The PHP library has not been updated, and will not be soon. Its future
+is uncertain.
+
+### HTTP API
+
+Historically Basho libraries have supported both HTTP and Protocol
+Buffers for access to Riak. Until recently, HTTP had an edge in
+support for all of Riak's features.
+
+Now that Protocol Buffers have reached feature parity, and because
+Protocol Buffers are generally faster, Basho is removing HTTP support
+**from the client libraries** only. There are no plans to remove the HTTP API
+from the database.
+
+The Python client retains HTTP support, but Java, Ruby, and Erlang do not.
+
 ## Known Issues
 
 * Related to [riak_kv#782](https://github.com/basho/riak_kv/pull/782), in clusters that have downgraded from 2.0, objects written with DVV enabled will break JavaScript MapReduce and precommit hooks.
