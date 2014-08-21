@@ -78,19 +78,19 @@ data structure, reconciling conflicts, mutating the result, and
 writing it back, you instead tell Riak what operations to perform on
 the Data Type. Here are some example operations:
 
-    * "increment counter by 10"
-    * "add 'joe' to set",
-    * "remove the Set field called 'friends' from the Map"
-    * "set the `prepay` flag to `true` in the Map"
+* "increment counter by 10"
+* "add 'joe' to set",
+* "remove the Set field called 'friends' from the Map"
+* "set the `prepay` flag to `true` in the Map"
 
 ##### Context
 
 In order for Riak Data Types to behave well, you _must_ return the
 opaque context received from a read when you:
 
-    * Set a flag to `false`
-    * Remove a field from a Map
-    * Remove an element from a Set
+* Set a flag to `false`
+* Remove a field from a Map
+* Remove an element from a Set
 
 The basic rule is "you cannot remove something you haven't seen", and
 the context tells Riak what you've actually seen. All of the official
@@ -196,7 +196,29 @@ make up for  any pain we are causing to your tooling with an update in
 URLs. We apologize for the change, but think it is a good investment 
 going forward.
 
-## Deprecation Notices
+## Client libraries
+
+Most
+[Basho-supported client libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
+have been updated for 2.0: Java, Python, Ruby, and Erlang.
+
+The PHP library has not been updated, and will not be soon. Its future
+is uncertain.
+
+### HTTP API
+
+Historically Basho libraries have supported both HTTP and Protocol
+Buffers for access to Riak. Until recently, HTTP had an edge in
+support for all of Riak's features.
+
+Now that Protocol Buffers have reached feature parity, and because
+Protocol Buffers are generally faster, Basho is removing HTTP support
+**from the client libraries** only. There are no plans to remove the HTTP API
+from the database.
+
+The Python client retains HTTP support, but Java, Ruby, and Erlang do not.
+
+### Deprecation Notices
 
 Riak 2.0 marks the beginning of the end for several features. See also
 **Termination Notices** below.
@@ -245,6 +267,28 @@ Riak 2.0 marks the beginning of the end for several features. See also
   been disabled in favor of `leveldb.maximum_memory.percent`. See
   [Configuring eLevelDB](http://docs.basho.com/riak/2.0.0/ops/advanced/backends/leveldb/#Configuring-eLevelDB)
   in our documentation.
+
+## Client libraries
+
+Most
+[Basho-supported client libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
+have been updated for 2.0: Java, Python, Ruby, and Erlang.
+
+The PHP library has not been updated, and will not be soon. Its future
+is uncertain.
+
+### HTTP API
+
+Historically Basho libraries have supported both HTTP and Protocol
+Buffers for access to Riak. Until recently, HTTP had an edge in
+support for all of Riak's features.
+
+Now that Protocol Buffers have reached feature parity, and because
+Protocol Buffers are generally faster, Basho is removing HTTP support
+**from the client libraries** only. There are no plans to remove the HTTP API
+from the database.
+
+The Python client retains HTTP support, but Java, Ruby, and Erlang do not.
 
 ## Known Issues
 
