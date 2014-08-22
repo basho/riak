@@ -1,10 +1,10 @@
-# Riak 2.0.0 RC1 Release Notes
+# Riak 2.0.0 Release Notes
 
 ## Major Features / Additions to 2.0
 
 ### Bitcask
 
-* It is now possible to use multiple ongoing data iterators. Previously, Bitcask would only allow one iterator over the data, which can block AAE or fullsync operations. For this release, the in-memory key directory has been modified to hold multiple values of an entry so that multiple snapshots can co-exist. This means that it will consume more memory when iterators are used frequently. 
+* It is now possible to use multiple ongoing data iterators. Previously, Bitcask would only allow one iterator over the data, which can block AAE or fullsync operations. For this release, the in-memory key directory has been modified to hold multiple values of an entry so that multiple snapshots can co-exist. This means that it will consume more memory when iterators are used frequently.
 * Fixed a long-standing issue whereby deleted values would come back to life after restarting Bitcask. Both hint and data file formats required changes to accommodate a new tombstone format and deletion algorithm. Files marked for deletion by the merge algorithm will now have the execution bit set instead of the setuid bit. In case of a downgrade, hint files should be removed as they will fail to load on an older version. Riak will perform a gradual merge of all Bitcask files to re-generate them in the new format. This merge will obey the merge window settings and will be performed in chunks to avoid swamping a node. There are several advanced knobs available that enable you to completely skip or tune this merge. Bitcask will operate normally whether this merge happens or not. Its purpose is to reclaim disk space as fast as possible, as Bitcask will take much longer than before reclaiming space from old format files.
 * Fixed several problems with merges during startup. Merging will now be postponed until the `riak_kv` service is up.
 
@@ -101,21 +101,21 @@ Please see **Known Issues** below for two known issues with Riak maps.
 
 ### Reduced sibling creation
 
-In previous versions of Riak, it was trivial for even well-behaved 
-clients to cause a problem called "sibling explosion." In essence, 
-retried or interleaved writes could cause the number of sibling values 
-to grow without bound, even if clients resolved siblings before writing. 
-This occurred because while the vector clock was attached and properly 
-advanced for each write, causality information was missing from each 
-sibling value, meaning that values originating from the same write might 
+In previous versions of Riak, it was trivial for even well-behaved
+clients to cause a problem called "sibling explosion." In essence,
+retried or interleaved writes could cause the number of sibling values
+to grow without bound, even if clients resolved siblings before writing.
+This occurred because while the vector clock was attached and properly
+advanced for each write, causality information was missing from each
+sibling value, meaning that values originating from the same write might
 be duplicated.
 
-In Riak 2.0, we have drawn on [research](http://arxiv.org/abs/1011.5808) 
-and [a prototype](https://github.com/ricardobcl/Dotted-Version-Vectors) by 
-Preguiça, Baquero et al that addresses this issue. By attaching markers 
-for the event in which each was written (called a "dot"), siblings will 
-only grow to the number of **truly concurrent** writes, not in relation 
-to the number of times the object has been written, merged, or replicated 
+In Riak 2.0, we have drawn on [research](http://arxiv.org/abs/1011.5808)
+and [a prototype](https://github.com/ricardobcl/Dotted-Version-Vectors) by
+Preguiça, Baquero et al that addresses this issue. By attaching markers
+for the event in which each was written (called a "dot"), siblings will
+only grow to the number of **truly concurrent** writes, not in relation
+to the number of times the object has been written, merged, or replicated
 to other clusters.
 
 ### riak_control
@@ -173,27 +173,27 @@ Other already supported platforms have been updated from 1.4:
 * Fedora packages went from a Fedora 17, to Fedora 19 base
 * SmartOS continued to support 1.8 and 13.1 datasets, but dropped 1.6
 
-Finally CentOS/RHEL 7 came out post code freeze, but depending on 
-feedback, we might attempt to get this support added and tested for the 
+Finally CentOS/RHEL 7 came out post code freeze, but depending on
+feedback, we might attempt to get this support added and tested for the
 final Riak 2.0 release.
 
-### Apt/Yum Repositories 
+### Apt/Yum Repositories
 
-We will still provide apt and yum repositories for our users for 2.0, but 
+We will still provide apt and yum repositories for our users for 2.0, but
 we are extremely happy to be using a service to provide this for our
-customers moving forward.  
+customers moving forward.
 
-**[Packagecloud](https://packagecloud.io/)** is an awesome service which 
-takes much of the pain out of hosting our own apt/yum repositories as 
+**[Packagecloud](https://packagecloud.io/)** is an awesome service which
+takes much of the pain out of hosting our own apt/yum repositories as
 well as adding a lot more features for you as a user.  The most important
 feature for you, will be the universal installer they provide that will
-detect your OS/Version and install the proper repositories and security 
-keys automatically.  
+detect your OS/Version and install the proper repositories and security
+keys automatically.
 
-For now, 1.4 packages will remain at [apt|yum].basho.com, while 2.0 
-packages will be hosted on Packagecloud. We hope the added features will 
-make up for  any pain we are causing to your tooling with an update in 
-URLs. We apologize for the change, but think it is a good investment 
+For now, 1.4 packages will remain at [apt|yum].basho.com, while 2.0
+packages will be hosted on Packagecloud. We hope the added features will
+make up for  any pain we are causing to your tooling with an update in
+URLs. We apologize for the change, but think it is a good investment
 going forward.
 
 ## Known Issues
@@ -925,4 +925,4 @@ The list below is all PRs merged between the 1.4.x series and 2.0.  It does not 
 
 ----
 [1] http://doi.acm.org/10.1145/2332432.2332497
-Nuno Preguiça, Carlos Bauqero, Paulo Sérgio Almeida, Victor Fonte, and Ricardo Gonçalves. 2012. Brief announcement: efficient causality tracking in  distributed storage systems with dotted version vectors. In Proceedings of the 2012 ACM symposium on Principles of distributed computing (PODC '12). 
+Nuno Preguiça, Carlos Bauqero, Paulo Sérgio Almeida, Victor Fonte, and Ricardo Gonçalves. 2012. Brief announcement: efficient causality tracking in  distributed storage systems with dotted version vectors. In Proceedings of the 2012 ACM symposium on Principles of distributed computing (PODC '12).
