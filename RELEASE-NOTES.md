@@ -2,35 +2,29 @@
 
 ## Major Features / Additions to 2.0
 
-### Bitcask
-
-* It is now possible to use multiple ongoing data iterators. Previously, Bitcask would only allow one iterator over the data, which can block AAE or fullsync operations. For this release, the in-memory key directory has been modified to hold multiple values of an entry so that multiple snapshots can co-exist. This means that it will consume more memory when iterators are used frequently.
-* Fixed a long-standing issue whereby deleted values would come back to life after restarting Bitcask. Both hint and data file formats required changes to accommodate a new tombstone format and deletion algorithm. Files marked for deletion by the merge algorithm will now have the execution bit set instead of the setuid bit. In case of a downgrade, hint files should be removed as they will fail to load on an older version. Riak will perform a gradual merge of all Bitcask files to re-generate them in the new format. This merge will obey the merge window settings and will be performed in chunks to avoid swamping a node. There are several advanced knobs available that enable you to completely skip or tune this merge. Bitcask will operate normally whether this merge happens or not. Its purpose is to reclaim disk space as fast as possible, as Bitcask will take much longer than before reclaiming space from old format files.
-* Fixed several problems with merges during startup. Merging will now be postponed until the `riak_kv` service is up.
-
 ### Bucket Types
 
-Previous version of Riak used Buckets as a mechanism for logically
+Previous versions of Riak used buckets as a mechanism for logically
 grouping keys and for associating configuration with certain types of
-data. Riak 2.0 adds bucket types, which associate configuration
-with groups of buckets and act as a second level of namespacing.
+data. Riak 2.0 adds bucket types, which associate configuration with
+groups of buckets and act as a second level of namespacing.
 
 Unlike buckets, bucket types must be explicitly created before being
-used. In addition, the following properties may not be modifiable
-after creation: `consistent` and `datatype`. Other properties may
-be updated. Buckets grouped under a bucket type inherit all of the
-type's properties. Each bucket may override individual properties
-but some properties cannot be overridden.
+used. In addition, the following properties may not be modifiable after
+creation: `consistent` and `datatype`. Other properties may be updated.
+Buckets grouped under a bucket type inherit all of the type's
+properties. Each bucket may override individual properties but some
+properties cannot be overridden.
 
 Bucket Type administration is only supported via the `riak-admin
-bucket-type` command interface. The format of this command may
-change in an upcoming patch release. This release does not include
-an API to perform these actions. However, the Bucket Properties HTTP
-API, Protocol Buffers messages, and supported clients have been updated
-to set and retrieve bucket properties for a Bucket under a given bucket
-type.
+bucket-type` command interface. The format of this command may change in
+an upcoming patch release. This release does not include an API to
+perform these actions. However, the Bucket Properties HTTP API, Protocol
+Buffers messages, and supported clients have been updated to set and
+retrieve bucket properties for a Bucket under a given bucket type.
 
-For more details on bucket types see our [official documentation](http://docs.basho.com/riak/2.0.0/dev/advanced/bucket-types/).
+For more details on bucket types see our [official
+documentation](http://docs.basho.com/riak/2.0.0/dev/advanced/bucket-types/).
 
 
 ### Convergent Data Types
@@ -38,14 +32,18 @@ For more details on bucket types see our [official documentation](http://docs.ba
 In Riak 1.4 we added an eventually consistent counter to Riak. 2.0
 builds on this work to provide more data types. These data types are
 CRDTs[1]. Data Types are a departure from Riak's usual behaviour of
-treating data stored as opaque. Riak "knows" about these data types,
-and conflicting writes to them will converge automatically without
+treating data stored as opaque. Riak "knows" about these data types, and
+conflicting writes to them will converge automatically without
 presenting sibling values to the user.
 
-All data types must be stored in buckets bearing a bucket type that
-sets the `datatype` property to one of `counter`, `set`, or `map`.
-Note that the bucket must have the `allow_mult` property set to `true`.
-See documentation on [Riak Data Types](http://docs.basho.com/riak/2.0.0/dev/using/data-types/) and [bucket types](http://docs.basho.com/riak/2.0.0/dev/advanced/bucket-types/) for more details.
+All data types must be stored in buckets bearing a bucket type that sets
+the `datatype` property to one of `counter`, `set`, or `map`.  Note that
+the bucket must have the `allow_mult` property set to `true`.  See
+documentation on [Riak Data
+Types](http://docs.basho.com/riak/2.0.0/dev/using/data-types/) and
+[bucket
+types](http://docs.basho.com/riak/2.0.0/dev/advanced/bucket-types/) for
+more details.
 
 These Data Types are wrapped in a regular `riak_object`, so size
 constraints that apply to normal Riak values apply to Riak Data Types
@@ -53,8 +51,8 @@ too.
 
 #### Counters
 
-Counter behave much like they do in version 1.4, except that you can
-use Riak's new bucket types feature to ensure no type conflicts.
+Counter behave much like they do in version 1.4, except that you can use
+Riak's new bucket types feature to ensure no type conflicts.
 
 #### Sets
 
@@ -63,20 +61,20 @@ key. See the documentation for more details on usage and semantics.
 
 #### Maps
 
-Maps are a nested, recursive struct, or associative array. Think of
-them as a container for composing ad hoc data structures from multiple
-Data Types. Inside a map you may store sets, counters, flags
-(similar to booleans), registers (which store binaries according to a
+Maps are a nested, recursive struct, or associative array. Think of them
+as a container for composing ad hoc data structures from multiple Data
+Types. Inside a map you may store sets, counters, flags (similar to
+booleans), registers (which store binaries according to a
 last-write-wins logic), and even other maps. Please see the
 documentation for usage and semantics.
 
 #### API
 
-Riak Data Types provide a further departure from Riak's usual
-operation, in that the API is operation based. Rather than fetching the
-data structure, reconciling conflicts, mutating the result, and
-writing it back, you instead tell Riak what operations to perform on
-the Data Type. Here are some example operations:
+Riak Data Types provide a further departure from Riak's usual operation,
+in that the API is operation based. Rather than fetching the data
+structure, reconciling conflicts, mutating the result, and writing it
+back, you instead tell Riak what operations to perform on the Data Type.
+Here are some example operations:
 
 * "increment counter by 10"
 * "add 'joe' to set",
@@ -111,12 +109,12 @@ sibling value, meaning that values originating from the same write might
 be duplicated.
 
 In Riak 2.0, we have drawn on [research](http://arxiv.org/abs/1011.5808)
-and [a prototype](https://github.com/ricardobcl/Dotted-Version-Vectors) by
-Preguiça, Baquero et al that addresses this issue. By attaching markers
-for the event in which each was written (called a "dot"), siblings will
-only grow to the number of **truly concurrent** writes, not in relation
-to the number of times the object has been written, merged, or replicated
-to other clusters.
+and [a prototype](https://github.com/ricardobcl/Dotted-Version-Vectors)
+by Preguiça, Baquero et al that addresses this issue. By attaching
+markers for the event in which each was written (called a "dot"),
+siblings will only grow to the number of **truly concurrent** writes,
+not in relation to the number of times the object has been written,
+merged, or replicated to other clusters.
 
 ### riak_control
 
@@ -125,28 +123,31 @@ to other clusters.
 
 ### Search 2 (Yokozuna)
 
-The Yokozuna project [kept its own release notes](https://github.com/basho/yokozuna/blob/develop/docs/RELEASE_NOTES.md)
+The Yokozuna project [kept its own release
+notes](https://github.com/basho/yokozuna/blob/develop/docs/RELEASE_NOTES.md)
 while it was being developed. Please read there for the most relevant
 information about Riak 2.0's new search.
 
 ### Strong Consistency
 
-Until all of our new features are fully documented on docs.basho.com
-for 2.0 final, [here is a mostly-complete description of Strong Consistency in Riak 2.0](https://github.com/basho/riak_ensemble/blob/wip/riak-2.0-user-docs/riak_consistent_user_docs.md)
+Until all of our new features are fully documented on docs.basho.com for
+2.0 final, [here is a mostly-complete description of Strong Consistency
+in Riak
+2.0](https://github.com/basho/riak_ensemble/blob/wip/riak-2.0-user-docs/riak_consistent_user_docs.md)
 
-This page also contains a "Known Issues" section, so please pay particular
-attention to that.
+This page also contains a "Known Issues" section, so please pay
+particular attention to that.
 
 ### Security
 
 Riak 2.0 adds authentication and authorization. This is useful to
 prevent accidental collisions between environments (e.g., pointing
-application software under active development at the production
-cluster) and offers protection against malicious attack, although Riak
-still should not be exposed directly to any unsecured network.
+application software under active development at the production cluster)
+and offers protection against malicious attack, although Riak still
+should not be exposed directly to any unsecured network.
 
-Basho's documentation website includes
-[extensive coverage of the new feature](http://docs.basho.com/riak/2.0.0/ops/running/authz/). Several
+Basho's documentation website includes [extensive coverage of the new
+feature](http://docs.basho.com/riak/2.0.0/ops/running/authz/). Several
 important caveats when enabling security:
 
 * There is no support yet for auditing. This is on the roadmap for a
@@ -179,16 +180,16 @@ final Riak 2.0 release.
 
 ### Apt/Yum Repositories
 
-We will still provide apt and yum repositories for our users for 2.0, but
-we are extremely happy to be using a service to provide this for our
+We will still provide apt and yum repositories for our users for 2.0,
+but we are extremely happy to be using a service to provide this for our
 customers moving forward.
 
 **[Packagecloud](https://packagecloud.io/)** is an awesome service which
 takes much of the pain out of hosting our own apt/yum repositories as
-well as adding a lot more features for you as a user.  The most important
-feature for you, will be the universal installer they provide that will
-detect your OS/Version and install the proper repositories and security
-keys automatically.
+well as adding a lot more features for you as a user.  The most
+important feature for you, will be the universal installer they provide
+that will detect your OS/Version and install the proper repositories and
+security keys automatically.
 
 For now, 1.4 packages will remain at [apt|yum].basho.com, while 2.0
 packages will be hosted on Packagecloud. We hope the added features will
@@ -198,25 +199,51 @@ going forward.
 
 ## Client libraries
 
-Most
-[Basho-supported client libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
-have been updated for 2.0: Java, Python, Ruby, and Erlang.
+Most [Basho-supported client
+libraries](http://docs.basho.com/riak/latest/dev/using/libraries/) have
+been updated for 2.0: Java, Python, Ruby, and Erlang.
 
 The PHP library has not been updated, and will not be soon. Its future
 is uncertain.
 
+### Bitcask
+
+* It is now possible to use multiple ongoing data iterators. Previously,
+  Bitcask would only allow one iterator over the data, which can block
+  AAE or fullsync operations. For this release, the in-memory key
+  directory has been modified to hold multiple values of an entry so
+  that multiple snapshots can co-exist. This means that it will consume
+  more memory when iterators are used frequently.
+* Fixed a long-standing issue whereby deleted values would come back to
+  life after restarting Bitcask. Both hint and data file formats
+  required changes to accommodate a new tombstone format and deletion
+  algorithm. Files marked for deletion by the merge algorithm will now
+  have the execution bit set instead of the setuid bit. In case of a
+  downgrade, hint files should be removed as they will fail to load on
+  an older version. Riak will perform a gradual merge of all Bitcask
+  files to re-generate them in the new format. This merge will obey the
+  merge window settings and will be performed in chunks to avoid
+  swamping a node. There are several advanced knobs available that
+  enable you to completely skip or tune this merge. Bitcask will operate
+  normally whether this merge happens or not. Its purpose is to reclaim
+  disk space as fast as possible, as Bitcask will take much longer than
+  before reclaiming space from old format files.
+* Fixed several problems with merges during startup. Merging will now be
+  postponed until the `riak_kv` service is up.
+
 ### HTTP API
 
 Historically Basho libraries have supported both HTTP and Protocol
-Buffers for access to Riak. Until recently, HTTP had an edge in
-support for all of Riak's features.
+Buffers for access to Riak. Until recently, HTTP had an edge in support
+for all of Riak's features.
 
 Now that Protocol Buffers have reached feature parity, and because
 Protocol Buffers are generally faster, Basho is removing HTTP support
-**from the client libraries** only. There are no plans to remove the HTTP API
-from the database.
+**from the client libraries** only. There are no plans to remove the
+HTTP API from the database.
 
-The Python client retains HTTP support, but Java, Ruby, and Erlang do not.
+The Python client retains HTTP support, but Java, Ruby, and Erlang do
+not.
 
 ### Deprecation Notices
 
@@ -235,8 +262,8 @@ Riak 2.0 marks the beginning of the end for several features. See also
   [Erlang MapReduce](http://docs.basho.com/riak/2.0.0/dev/advanced/mapreduce/)
   documentation to assist with the transition.
 * Riak Search 1.0 is being phased out in favor of the new Solr-based
-  [Riak Search 2.0](http://docs.basho.com/riak/2.0.0/dev/advanced/search/). Version
-  1.0 will not work if security is enabled.
+  [Riak Search 2.0](http://docs.basho.com/riak/2.0.0/dev/advanced/search/).
+  Version 1.0 will not work if security is enabled.
 * v2 replication (a component of Riak Enterprise) has been superseded
   by v3 and will be removed in the future.
 * Legacy gossip (Riak's original gossip mechanism, replaced in 1.0)
@@ -270,9 +297,9 @@ Riak 2.0 marks the beginning of the end for several features. See also
 
 ## Client libraries
 
-Most
-[Basho-supported client libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
-have been updated for 2.0: Java, Python, Ruby, and Erlang.
+Most [Basho-supported client
+libraries](http://docs.basho.com/riak/latest/dev/using/libraries/) have
+been updated for 2.0: Java, Python, Ruby, and Erlang.
 
 The PHP library has not been updated, and will not be soon. Its future
 is uncertain.
@@ -280,20 +307,25 @@ is uncertain.
 ### HTTP API
 
 Historically Basho libraries have supported both HTTP and Protocol
-Buffers for access to Riak. Until recently, HTTP had an edge in
-support for all of Riak's features.
+Buffers for access to Riak. Until recently, HTTP had an edge in support
+for all of Riak's features.
 
 Now that Protocol Buffers have reached feature parity, and because
 Protocol Buffers are generally faster, Basho is removing HTTP support
-**from the client libraries** only. There are no plans to remove the HTTP API
-from the database.
+**from the client libraries** only. There are no plans to remove the
+HTTP API from the database.
 
-The Python client retains HTTP support, but Java, Ruby, and Erlang do not.
+The Python client retains HTTP support, but Java, Ruby, and Erlang do
+not.
 
 ## Known Issues
 
-* Related to [riak_kv#782](https://github.com/basho/riak_kv/pull/782), in clusters that have downgraded from 2.0, objects written with DVV enabled will break JavaScript MapReduce and precommit hooks.
-* [riak_ee-issues#14](https://github.com/basho/riak_ee-issues/issues/14) - Realtime replication processes are left running after realtime replication has been stopped and disabled.
+* Related to [riak_kv#782](https://github.com/basho/riak_kv/pull/782),
+  in clusters that have downgraded from 2.0, objects written with DVV
+  enabled will break JavaScript MapReduce and precommit hooks.
+* [riak_ee-issues#14](https://github.com/basho/riak_ee-issues/issues/14)
+  --- Realtime replication processes are left running after realtime
+  replication has been stopped and disabled.
 * node_package/150: [Bad SOLR temp directory on FreeBSD 10](https://github.com/basho/node_package/issues/150)
 * [eleveldb#121](https://github.com/basho/eleveldb/issues/121) There is a rare condition where 2i (iterator) query finish can cause a system crash.
 * [eleveldb#118](https://github.com/basho/eleveldb/issues/118) There is the potential for the system to crash on shutdown if a leveldb compaction is active.
@@ -309,11 +341,21 @@ The Python client retains HTTP support, but Java, Ruby, and Erlang do not.
 ## Upgrade Notes
 
 #### Configuration Files
- There is no automated way to upgrade from the 1.4 and previous configuration (`app.config` and `vm.args`) to the new configuration system in 2.0 (`riak.conf`).  Previous configurations will still work as long as your `app.config` and `vm.args` files are in the configuration directory, but we recommend converting your customizations into the `riak.conf` and `advanced.config` files to make configuration easier for you moving forward.
+
+There is no automated way to upgrade from the 1.4 and previous
+configuration (`app.config` and `vm.args`) to the new configuration
+system in 2.0 (`riak.conf`).  Previous configurations will still work as
+long as your `app.config` and `vm.args` files are in the configuration
+directory, but we recommend converting your customizations into the
+`riak.conf` and `advanced.config` files to make configuration easier for
+you moving forward.
 
 ## Bugfixes / Changes since 1.4.x
 
-The list below is all PRs merged between the 1.4.x series and 2.0.  It does not include the following repositories which were all added in the 2.0 cycle.  Consider all PRs from these repos in addition to the list below.
+The list below is all PRs merged between the 1.4.x series and 2.0.  It
+does not include the following repositories which were all added in the
+2.0 cycle.  Consider all PRs from these repos in addition to the list
+below.
 
 #### Added Repositories in 2.0
 
@@ -1019,4 +1061,9 @@ The list below is all PRs merged between the 1.4.x series and 2.0.  It does not 
 
 ----
 [1] http://doi.acm.org/10.1145/2332432.2332497
-Nuno Preguiça, Carlos Bauqero, Paulo Sérgio Almeida, Victor Fonte, and Ricardo Gonçalves. 2012. Brief announcement: efficient causality tracking in  distributed storage systems with dotted version vectors. In Proceedings of the 2012 ACM symposium on Principles of distributed computing (PODC '12).
+Nuno Preguiça, Carlos Bauqero, Paulo Sérgio Almeida, Victor Fonte, and
+Ricardo Gonçalves. 2012. Brief announcement: efficient causality
+tracking in  distributed storage systems with dotted version vectors. In
+Proceedings of the 2012 ACM symposium on Principles of distributed
+computing (PODC '12).
+
