@@ -349,6 +349,18 @@ Riak 2.0 marks the beginning of the end for several features. See also
 
 ## Upgrade Notes
 
+A full guide to upgrading to 2.0 can be found [in the official
+docs](http://docs.basho.com/riak/2.0.0/upgrade-v20/). The information
+below is supplementary.
+
+### Downgrading After Install
+
+**Important note**: 2.0 introduces major new features which are
+incompatible with Riak 1.x. Those features depend on [bucket
+types](http://docs.basho.com/riak/2.0.0/dev/advanced/bucket-types/);
+once *any* bucket type has been created and activated, downgrades are no
+longer possible.
+
 #### Configuration Files
 
 There is no automated way to upgrade from the 1.4 and previous
