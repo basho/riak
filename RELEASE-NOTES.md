@@ -2,6 +2,13 @@
 
 ## Major Features / Additions to 2.0
 
+A listing and explanation of new features in version 2.0, along with
+links to relevant documentation, can be found [in our official
+docs](http://docs.basho.com/riak/2.0.0/intro-v20/). You can find an
+[Upgrading to 2.0 Guide](http://docs.basho.com/riak/2.0.0/upgrade-v20/)
+there as well. The material below should be read as a more technical
+supplement to that material.
+
 ### Bucket Types
 
 Previous versions of Riak used buckets as a mechanism for logically
@@ -9,32 +16,35 @@ grouping keys and for associating configuration with certain types of
 data. Riak 2.0 adds bucket types, which associate configuration with
 groups of buckets and act as a second level of namespacing.
 
-Unlike buckets, bucket types must be explicitly created before being
-used. In addition, the following properties may not be modifiable after
-creation: `consistent` and `datatype`. Other properties may be updated.
-Buckets grouped under a bucket type inherit all of the type's
-properties. Each bucket may override individual properties but some
-properties cannot be overridden.
+Unlike buckets, bucket types must be explicitly created and activated
+before being used, so that they can be properly gossiped around the
+cluster. In addition, the following properties may not be modifiable
+after creation: `consistent` and `datatype`, corresponding to the strong
+consistency and Riak Data Types features, explained below. Other
+properties may be updated. Buckets grouped under a bucket type inherit
+all of the type's properties. Each bucket may override individual
+properties but some properties cannot be overridden.
 
 Bucket Type administration is only supported via the `riak-admin
 bucket-type` command interface. The format of this command may change in
 an upcoming patch release. This release does not include an API to
 perform these actions. However, the Bucket Properties HTTP API, Protocol
 Buffers messages, and supported clients have been updated to set and
-retrieve bucket properties for a Bucket under a given bucket type.
+retrieve bucket properties for a bucket with a given bucket type.
 
 For more details on bucket types see our [official
 documentation](http://docs.basho.com/riak/2.0.0/dev/advanced/bucket-types/).
 
-
 ### Convergent Data Types
 
-In Riak 1.4 we added an eventually consistent counter to Riak. 2.0
-builds on this work to provide more data types. These data types are
-CRDTs[1]. Data Types are a departure from Riak's usual behaviour of
-treating data stored as opaque. Riak "knows" about these data types, and
-conflicting writes to them will converge automatically without
-presenting sibling values to the user.
+In Riak 1.4, we added an eventually consistent counter to Riak. Version
+2.0 builds on this work to provide more convergent data types (we call
+them Riak Data Types for short). These data types are CRDTs[1], inspired
+by a large and growing base of theoretical research. Data Types are a
+departure from Riak's usual behaviour of treating stored stored as
+opaque. Riak "knows" about these Data Types, in particular which rules
+of convergence to apply in case of object replica conflicts. A related
+advantage of Data Types is that
 
 All data types must be stored in buckets bearing a bucket type that sets
 the `datatype` property to one of `counter`, `set`, or `map`.  Note that
@@ -47,17 +57,21 @@ more details.
 
 These Data Types are wrapped in a regular `riak_object`, so size
 constraints that apply to normal Riak values apply to Riak Data Types
-too.
+too. The following Data Types are currently available:
 
 #### Counters
 
-Counter behave much like they do in version 1.4, except that you can use
-Riak's new bucket types feature to ensure no type conflicts.
+Counters behave much like they do in version 1.4, except that you can
+use Riak's new bucket types feature to ensure no type conflicts.
+Documentation on counters can be found
+[here](http://docs.basho.com/riak/2.0.0/dev/using/data-types/#Counters).
 
 #### Sets
 
-Allows you to store multiple distinct opaque binary values against a
-key. See the documentation for more details on usage and semantics.
+Sets allow you to store multiple distinct opaque binary values against a
+key. See the
+[documentation](http://docs.basho.com/riak/2.0.0/dev/using/data-types/#Sets)
+for more details on usage and semantics.
 
 #### Maps
 
@@ -66,15 +80,16 @@ as a container for composing ad hoc data structures from multiple Data
 Types. Inside a map you may store sets, counters, flags (similar to
 booleans), registers (which store binaries according to a
 last-write-wins logic), and even other maps. Please see the
-documentation for usage and semantics.
+[documentation](http://docs.basho.com/riak/2.0.0/dev/using/data-types/#Maps)
+for usage and semantics.
 
 #### API
 
-Riak Data Types provide a further departure from Riak's usual operation,
-in that the API is operation based. Rather than fetching the data
-structure, reconciling conflicts, mutating the result, and writing it
-back, you instead tell Riak what operations to perform on the Data Type.
-Here are some example operations:
+Riak Data Types provide a further departure from Riak's usual mode of
+operation in that the API is operation based. Rather than fetching the
+data structure, reconciling conflicts, mutating the result, and writing
+it back, you instead tell Riak what operations to perform on the Data
+Type. Here are some example operations:
 
 * "increment counter by 10"
 * "add 'joe' to set",
@@ -93,7 +108,9 @@ opaque context received from a read when you:
 The basic rule is "you cannot remove something you haven't seen", and
 the context tells Riak what you've actually seen. All of the official
 Basho clients, with the exception of the Java client, handle opaque
-contexts for you. Please see the documentation for more details.
+contexts for you. Please see the
+[documentation](http://docs.basho.com/riak/2.0.0/dev/using/data-types/#Data-Types-and-Context)
+for more details.
 
 Please see **Known Issues** below for two known issues with Riak maps.
 
@@ -114,7 +131,10 @@ by Preguiça, Baquero et al that addresses this issue. By attaching
 markers for the event in which each was written (called a "dot"),
 siblings will only grow to the number of **truly concurrent** writes,
 not in relation to the number of times the object has been written,
-merged, or replicated to other clusters.
+merged, or replicated to other clusters. More information can be found
+in our [Dotted Version
+Vectors](http://docs.basho.com/riak/2.0.0/theory/concepts/dotted-version-vectors/)
+document.
 
 ### riak_control
 
@@ -123,28 +143,41 @@ merged, or replicated to other clusters.
 
 ### Search 2 (Yokozuna)
 
-The Yokozuna project [kept its own release
+The brand new and completely re-architected Riak Search, codenamed
+Yokozuna, [kept its own release
 notes](https://github.com/basho/yokozuna/blob/develop/docs/RELEASE_NOTES.md)
 while it was being developed. Please read there for the most relevant
-information about Riak 2.0's new search.
+information about Riak 2.0's new search. Additional official
+documentation can be found in the following three docs:
+
+* [Using Search](http://docs.basho.com/riak/2.0.0/dev/using/search/)
+* [Search Details](http://docs.basho.com/riak/2.0.0/dev/advanced/search/)
+* [Search Schema](http://docs.basho.com/riak/2.0.0/dev/advanced/search-schema/)
 
 ### Strong Consistency
 
-Until all of our new features are fully documented on docs.basho.com for
-2.0 final, [here is a mostly-complete description of Strong Consistency
-in Riak
-2.0](https://github.com/basho/riak_ensemble/blob/wip/riak-2.0-user-docs/riak_consistent_user_docs.md)
+Official documentation on Riak's new strong consistency feature can be
+found in the following docs:
 
-This page also contains a "Known Issues" section, so please pay
-particular attention to that.
+* [Using Strong Consistency](http://docs.basho.com/riak/2.0.0/dev/advanced/strong-consistency/)
+* [Managing Strong Consistency](http://docs.basho.com/riak/2.0.0/ops/advanced/strong-consistency)
+* [Strong Consistency](http://docs.basho.com/riak/2.0.0/theory/concepts/strong-consistency/)
+
+For more in-depth technical material, see our internal documentation
+[here](https://github.com/basho/riak_ensemble/blob/wip/riak-2.0-user-docs/riak_consistent_user_docs.md)
+and [here](https://github.com/basho/riak_ensemble/blob/wip/riak-2.0-user-docs/riak_consistent_user_docs.md).
+
+We also strongly advise you to see the list of [known
+issues](http://docs.basho.com/riak/2.0.0/ops/advanced/strong-consistency/#Known-Issues).
 
 ### Security
 
-Riak 2.0 adds authentication and authorization. This is useful to
-prevent accidental collisions between environments (e.g., pointing
-application software under active development at the production cluster)
-and offers protection against malicious attack, although Riak still
-should not be exposed directly to any unsecured network.
+Version 2.0 adds support for authentication and authorization to Riak.
+This is useful to prevent accidental collisions between environments
+(e.g., pointing application software under active development at the
+production cluster) and offers protection against malicious attack,
+although Riak still should not be exposed directly to any unsecured
+network.
 
 Basho's documentation website includes [extensive coverage of the new
 feature](http://docs.basho.com/riak/2.0.0/ops/running/authz/). Several
@@ -155,8 +188,9 @@ important caveats when enabling security:
 * Two deprecated features will not work if security is enabled: link
   walking and Riak's original full-text search tool.
 * There are restrictions on Erlang modules exposed to MapReduce jobs
-  when security is enabled.
-* Enabling security requires applications be designed to transition
+  when security is enabled. Those are documented
+  [here](http://docs.basho.com/riak/2.0.0/ops/running/authz/#Security-Checklist).
+* Enabling security requires that applications be designed to transition
   gracefully based on the server response **or** applications will
   need to be halted before security is enabled and brought back online
   with support for the new security features.
@@ -171,12 +205,8 @@ A number of platforms were added to our supported list for 2.0:
 
 Other already supported platforms have been updated from 1.4:
 
-* Fedora packages went from a Fedora 17, to Fedora 19 base
+* Fedora packages went from a Fedora 17 to Fedora 19 base
 * SmartOS continued to support 1.8 and 13.1 datasets, but dropped 1.6
-
-Finally CentOS/RHEL 7 came out post code freeze, but depending on
-feedback, we might attempt to get this support added and tested for the
-final Riak 2.0 release.
 
 ### Apt/Yum Repositories
 
@@ -185,15 +215,15 @@ but we are extremely happy to be using a service to provide this for our
 customers moving forward.
 
 **[Packagecloud](https://packagecloud.io/)** is an awesome service which
-takes much of the pain out of hosting our own apt/yum repositories as
-well as adding a lot more features for you as a user.  The most
-important feature for you, will be the universal installer they provide
-that will detect your OS/Version and install the proper repositories and
-security keys automatically.
+takes much of the pain out of hosting our own apt/yum repositories
+as well as adding a lot more features for you as a user. The most
+important feature for you, will be the universal installer they
+provide that will detect your OS/Version and install the proper
+repositories and security keys automatically.
 
 For now, 1.4 packages will remain at [apt|yum].basho.com, while 2.0
 packages will be hosted on Packagecloud. We hope the added features will
-make up for  any pain we are causing to your tooling with an update in
+make up for any pain we are causing to your tooling with an update in
 URLs. We apologize for the change, but think it is a good investment
 going forward.
 
@@ -201,7 +231,12 @@ going forward.
 
 Most [Basho-supported client
 libraries](http://docs.basho.com/riak/latest/dev/using/libraries/) have
-been updated for 2.0: Java, Python, Ruby, and Erlang.
+been updated for 2.0:
+
+* [Java](https://github.com/basho/riak-java-client)
+* [Ruby](https://github.com/basho/riak-ruby-client)
+* [Python](https://github.com/basho/riak-python-client)
+* [Erlang](https://github.com/basho/riak-erlang-client)
 
 The PHP library has not been updated, and will not be soon. Its future
 is uncertain.
@@ -233,7 +268,7 @@ is uncertain.
 
 ### HTTP API
 
-Historically Basho libraries have supported both HTTP and Protocol
+Historically, Basho libraries have supported both HTTP and Protocol
 Buffers for access to Riak. Until recently, HTTP had an edge in support
 for all of Riak's features.
 
@@ -275,10 +310,9 @@ Riak 2.0 marks the beginning of the end for several features. See also
   prevent upgrade problems in the future.
 * Some users in the past have used Riak's internal API (e.g.,
   `riak:local_client/1`); this API may change at any time, so we
-  strongly recommend using our
-  [Erlang client library](http://github.com/basho/riak-erlang-client/)
-  (or
-  [one of the other libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
+  strongly recommend using our [Erlang client
+  library](http://github.com/basho/riak-erlang-client/) (or [one of the
+  other libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
   we support) instead.
 
 ## Termination Notices
@@ -295,29 +329,6 @@ Riak 2.0 marks the beginning of the end for several features. See also
   [Configuring eLevelDB](http://docs.basho.com/riak/2.0.0/ops/advanced/backends/leveldb/#Configuring-eLevelDB)
   in our documentation.
 
-## Client libraries
-
-Most [Basho-supported client
-libraries](http://docs.basho.com/riak/latest/dev/using/libraries/) have
-been updated for 2.0: Java, Python, Ruby, and Erlang.
-
-The PHP library has not been updated, and will not be soon. Its future
-is uncertain.
-
-### HTTP API
-
-Historically Basho libraries have supported both HTTP and Protocol
-Buffers for access to Riak. Until recently, HTTP had an edge in support
-for all of Riak's features.
-
-Now that Protocol Buffers have reached feature parity, and because
-Protocol Buffers are generally faster, Basho is removing HTTP support
-**from the client libraries** only. There are no plans to remove the
-HTTP API from the database.
-
-The Python client retains HTTP support, but Java, Ruby, and Erlang do
-not.
-
 ## Known Issues
 
 * Related to [riak_kv#782](https://github.com/basho/riak_kv/pull/782),
@@ -327,8 +338,6 @@ not.
   --- Realtime replication processes are left running after realtime
   replication has been stopped and disabled.
 * node_package/150: [Bad SOLR temp directory on FreeBSD 10](https://github.com/basho/node_package/issues/150)
-* [eleveldb#121](https://github.com/basho/eleveldb/issues/121) There is a rare condition where 2i (iterator) query finish can cause a system crash.
-* [eleveldb#118](https://github.com/basho/eleveldb/issues/118) There is the potential for the system to crash on shutdown if a leveldb compaction is active.
 * [cuttlefish#158](https://github.com/basho/cuttlefish/issues/158) An erroneously formatted `advanced.config` file will cause a crash with an inscrutable error message.
 * [cuttlefish#153](https://github.com/basho/cuttlefish/issues/153) A syntax error before the end of the `riak.conf` file can result in a crash with an inscrutable error message.
 * [cuttlefish#145](https://github.com/basho/cuttlefish/issues/145) Some configuration errors are swallowed when other errors are encountered.
@@ -344,18 +353,20 @@ not.
 
 There is no automated way to upgrade from the 1.4 and previous
 configuration (`app.config` and `vm.args`) to the new configuration
-system in 2.0 (`riak.conf`).  Previous configurations will still work as
+system in 2.0 (`riak.conf`). Previous configurations will still work as
 long as your `app.config` and `vm.args` files are in the configuration
 directory, but we recommend converting your customizations into the
 `riak.conf` and `advanced.config` files to make configuration easier for
-you moving forward.
+you moving forward. More information can be found in our [configuration
+files
+documentation](http://docs.basho.com/riak/2.0.0/ops/advanced/configs/configuration-files/).
 
 ## Bugfixes / Changes since 1.4.x
 
-The list below is all PRs merged between the 1.4.x series and 2.0.  It
-does not include the following repositories which were all added in the
-2.0 cycle.  Consider all PRs from these repos in addition to the list
-below.
+The list below includes all PRs merged between the 1.4.x series and 2.0.
+It does not include the following repositories which were all added in
+the 2.0 cycle. Consider all PRs from these repos in addition to the
+list below.
 
 #### Added Repositories in 2.0
 
