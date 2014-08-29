@@ -156,7 +156,8 @@ documentation can be found in the following three docs:
 
 ### Strong Consistency
 
-Official documentation on Riak's new strong consistency feature can be
+Riak's new strong consistency feature is currently available as a
+**technical preview**. Official documentation on this feature can be
 found in the following docs:
 
 * [Using Strong Consistency](http://docs.basho.com/riak/2.0.0/dev/advanced/strong-consistency/)
@@ -331,21 +332,8 @@ Riak 2.0 marks the beginning of the end for several features. See also
 
 ## Known Issues
 
-* Related to [riak_kv#782](https://github.com/basho/riak_kv/pull/782),
-  in clusters that have downgraded from 2.0, objects written with DVV
-  enabled will break JavaScript MapReduce and precommit hooks.
-* [riak_ee-issues#14](https://github.com/basho/riak_ee-issues/issues/14)
-  --- Realtime replication processes are left running after realtime
-  replication has been stopped and disabled.
-* node_package/150: [Bad SOLR temp directory on FreeBSD 10](https://github.com/basho/node_package/issues/150)
-* [cuttlefish#158](https://github.com/basho/cuttlefish/issues/158) An erroneously formatted `advanced.config` file will cause a crash with an inscrutable error message.
-* [cuttlefish#153](https://github.com/basho/cuttlefish/issues/153) A syntax error before the end of the `riak.conf` file can result in a crash with an inscrutable error message.
-* [cuttlefish#145](https://github.com/basho/cuttlefish/issues/145) Some configuration errors are swallowed when other errors are encountered.
-* [riak_dt#98](https://github.com/basho/riak_dt/issues/98) Reset-Remove semantic not
-  fully supported for counters in Maps.
-* [riak_dt#99](https://github.com/basho/riak_dt/issues/99) Deferred operations may
-  be lost before delivery in some cases.
-
+A complete listing of known issues in version 2.0 can be found on [this
+Riak wiki page](https://github.com/basho/riak/wiki/2.0-known-issues).
 
 ## Upgrade Notes
 
