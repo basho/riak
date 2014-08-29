@@ -349,6 +349,10 @@ types](http://docs.basho.com/riak/2.0.0/dev/advanced/bucket-types/);
 once *any* bucket type has been created and activated, downgrades are no
 longer possible.
 
+Prior to downgrading to Riak 1.x, you should also see our [2.0 downgrade
+notes](https://github.com/basho/riak/wiki/2.0-downgrade-notes) page for
+more information about necessary steps.
+
 #### Configuration Files
 
 There is no automated way to upgrade from the 1.4 and previous
