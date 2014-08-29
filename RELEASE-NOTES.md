@@ -202,8 +202,8 @@ Most
 [Basho-supported client libraries](http://docs.basho.com/riak/latest/dev/using/libraries/)
 have been updated for 2.0: Java, Python, Ruby, and Erlang.
 
-The PHP library has not been updated, and will not be soon. Its future
-is uncertain.
+The PHP library has not yet been updated for 2.0. A delivery date will be
+forthcoming.
 
 ### HTTP API
 
