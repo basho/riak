@@ -99,7 +99,7 @@ perfdev : all
 	mkdir -p perfdev
 	rel/gen_dev $@ rel/vars/perf_vars.config.src rel/vars/perf_vars.config
 	(cd rel && ../rebar generate target_dir=../perfdev overlay_vars=vars/perf_vars.config)
-	$(foreach dep,$(wildcard deps/*), rm -rf perfdev/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) perfdev/lib;)
+	$(foreach dep,$(wildcard deps/*), rm -rf perfdev/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) perfdev/lib;)
 
 perf:
 	perfdev/bin/riak stop || :
@@ -109,13 +109,13 @@ perf:
 	perfdev/bin/riak stop
 
 stagedev% : dev%
-	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$^/lib;)
+	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) dev/$^/lib;)
 
 devclean: clean
 	rm -rf dev
 
 stage : rel
-	$(foreach dep,$(wildcard deps/*), rm -rf rel/riak/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) rel/riak/lib;)
+	$(foreach dep,$(wildcard deps/*), rm -rf rel/riak/lib/$(shell basename $(dep))-* && ln -sf $(abspath $(dep)) rel/riak/lib;)
 
 ##
 ## Doc targets
