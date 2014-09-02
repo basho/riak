@@ -202,6 +202,7 @@ A number of platforms were added to our supported list for 2.0:
 * FreeBSD 10, with new pkgng format
 * SUSE SLES 11.2
 * Ubuntu 14.04 ('trusty')
+* CentOS/RHEL 7
 
 Other already supported platforms have been updated from 1.4:
 
