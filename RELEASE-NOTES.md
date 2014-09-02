@@ -156,8 +156,7 @@ documentation can be found in the following three docs:
 
 ### Strong Consistency
 
-Riak's new strong consistency feature is currently available as a
-**technical preview**. Official documentation on this feature can be
+Riak's new strong consistency feature is currently open sourced and unsupported in Riak EE. Official documentation on this feature can be
 found in the following docs:
 
 * [Using Strong Consistency](http://docs.basho.com/riak/2.0.0/dev/advanced/strong-consistency/)
@@ -1081,4 +1080,3 @@ Ricardo Gonçalves. 2012. Brief announcement: efficient causality
 tracking in  distributed storage systems with dotted version vectors. In
 Proceedings of the 2012 ACM symposium on Principles of distributed
 computing (PODC '12).
-
