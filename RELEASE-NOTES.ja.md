@@ -13,8 +13,7 @@ supplement to that material.
 [公式ドキュメント](http://docs.basho.com/riak/2.0.0/intro-v20/)
 をご覧ください。関連するドキュメントへのリンクも含まれています。
 また、[Upgrading to 2.0 Guide](http://docs.basho.com/riak/2.0.0/upgrade-v20/)
-もあります。以下の記述は、それらをより技術的に補強するものですので、
-ぜひご一読下さい。
+もあります。以下は、その技術的な詳細になります。
 
 ### バケットタイプ
 
@@ -23,10 +22,10 @@ grouping keys and for associating configuration with certain types of
 data. Riak 2.0 adds bucket types, which associate configuration with
 groups of buckets and act as a second level of namespacing.
 
-Riakの以前のバージョンではキーの論理グループ機構としてバケットを利用し、
-特定データの種類とその設定を関連付けていました。Riak 2.0ではバケットタ
-イプの追加により、設定とバケットのグループを関連付けます。それにより、
-これはもうひとつの名前空間として振る舞います。
+Riakの以前のバージョンではキーを論理的にグループ化する仕組みとしてバケッ
+トを利用し、特定データの種類とその設定を関連付けていました。Riak 2.0で
+はバケットタイプの追加により、設定とバケットのグループを関連付けます。
+それにより、これはもうひとつの名前空間として振る舞います。
 
 Unlike buckets, bucket types must be explicitly created and activated
 before being used, so that they can be properly gossiped around the
