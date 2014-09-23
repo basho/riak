@@ -1,3 +1,32 @@
+# Riak 2.0.1 Release Notes
+
+## AAE Fullsync
+
+The technical preview for AAE fullsync has received some improvements as we work
+toward making it recommended for production.
+
+* AAE exchange is now pipelined to better tolerate high round trip times.
+
+* The number of vnode folds to transmit differences has been reduced to a single
+  fold, or for small numbers of differences it uses direct retrieval.
+
+* A worker pool has been added to store objects received during fullsync rather
+  than writing them serially.
+
+We expect a future 2.0.X point release to support configuration through the
+new riak.conf format (aka Cuttlefish), until then a couple of new configuration
+parameters have been added that may be set in advanced.config.  The values shown
+below are defaults and do not need to be set.
+
+```
+[{riak_repl, [{fullsync_direct_limit, 1000}, % Number of objects directly retrieved
+                                             % before folding over the vnode on the AAE source
+
+              {fssink_min_workers, 5},       % Fullsync worker pool on the AAE sink
+              {fssink_max_workers, 100}]}]   % minmum workers on stand by and maximum
+                                             % burst size.
+```
+
 # Riak 2.0.0 Release Notes
 
 ## Major Features / Additions to 2.0
