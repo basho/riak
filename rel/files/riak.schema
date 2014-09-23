@@ -14,7 +14,7 @@
 %% @doc The severity level of the console log, default is 'info'.
 {mapping, "log.console.level", "lager.handlers", [
   {default, info},
-  {datatype, {enum, [debug, info, warning, error]}}
+  {datatype, {enum, [debug, info, notice, warning, error, critical, alert, emergency, none]}}
 ]}.
 
 %% @doc When 'log.console' is set to 'file' or 'both', the file where
@@ -36,11 +36,40 @@
   {datatype, flag}
 ]}.
 
+%% @doc When set to 'on', enables log output to syslog.
+{mapping, "log.syslog.ident", "lager.handlers", [
+  {default, "riak"},
+  hidden
+]}.
+
+%% @doc Syslog facility to log entries from Riak.
+{mapping, "log.syslog.facility", "lager.handlers", [
+  {default, daemon},
+  {datatype, {enum,[kern, user, mail, daemon, auth, syslog,
+                    lpr, news, uucp, clock, authpriv, ftp,
+                    cron, local0, local1, local2, local3,
+                    local4, local5, local6, local7]}},
+  hidden
+]}.
+
+%% @doc The severity level at which to log entries to syslog, default is 'info'.
+{mapping, "log.syslog.level", "lager.handlers", [
+  {default, info},
+  {datatype, {enum, [debug, info, notice, warning, error, critical, alert, emergency, none]}},
+  hidden
+]}.
+
 {translation,
  "lager.handlers",
  fun(Conf) ->
-    SyslogHandler = [{lager_syslog_backend, ["riak", daemon, info]} ||
-                     cuttlefish:conf_get("log.syslog", Conf)],
+    SyslogHandler = case cuttlefish:conf_get("log.syslog", Conf) of
+      true ->
+        Ident = cuttlefish:conf_get("log.syslog.ident", Conf),
+        Facility = cuttlefish:conf_get("log.syslog.facility", Conf),
+        LogLevel = cuttlefish:conf_get("log.syslog.level", Conf),
+        [{lager_syslog_backend, [Ident, Facility, LogLevel]}];
+      _ -> []
+    end,
     ErrorHandler = case cuttlefish:conf_get("log.error.file", Conf) of
       undefined -> [];
       ErrorFilename -> [{lager_file_backend, [{file, ErrorFilename},
@@ -70,6 +99,7 @@
     SyslogHandler ++ ConsoleHandlers ++ ErrorHandler
   end
 }.
+
 
 %% @doc Whether to enable Erlang's built-in error logger.
 {mapping, "sasl", "sasl.sasl_error_logger", [
