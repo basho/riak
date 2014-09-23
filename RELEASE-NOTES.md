@@ -27,6 +27,19 @@ below are defaults and do not need to be set.
                                              % burst size.
 ```
 
+There are some important restrictions when testing.
+
+* Using AAE fullsync with SSL is not currently recommended.  The
+  improvements in this release generate higher throughput and can
+  cause a deadlock inside the SSL handling code.  Resolutions are
+  under investigation.
+
+* Clusters should be configured identically - with the same number of vnodes,
+  and bucket/bucket type properties should be set the same (specifically
+  n_val, bucket type).  If the buckets are configured differently (e.g.
+  replication disabled, different n-value), then unnecessary information
+  will be transmitted and discarded reducing performance.
+
 ## Merged PRs
 
 * bitcask/186: [Bugfix/key transform crash](https://github.com/basho/bitcask/pull/186)
@@ -44,7 +57,6 @@ below are defaults and do not need to be set.
 * riak_repl/618: [Added a worker pool for fullsync sinks.](https://github.com/basho/riak_repl/pull/618)
 * riak_repl/619: [Small user experience fixes.](https://github.com/basho/riak_repl/pull/619)
 * riak_repl/620: [Improved AAE fullsync integration/2.0 pull request](https://github.com/basho/riak_repl/pull/620)
-
 
 # Riak 2.0.0 Release Notes
 
