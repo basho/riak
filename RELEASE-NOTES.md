@@ -1,5 +1,13 @@
 # Riak 2.0.1 Release Notes
 
+## Client certificate authentication
+
+As of the recently release of 2.0, authentication and authorization
+are now available in Riak.
+
+Under 2.0.0, it was possible that malformed client certificates would
+be accepted. This bug has been corrected with 2.0.1.
+
 ## Merged PRs
 
 * bitcask/186: [Bugfix/key transform crash](https://github.com/basho/bitcask/pull/186)
