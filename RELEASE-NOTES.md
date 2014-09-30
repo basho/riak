@@ -5,17 +5,17 @@
 The technical preview for AAE fullsync has received some improvements as we work
 toward making it recommended for production.
 
-* AAE exchange is now pipelined to better tolerate high round trip times.
+* AAE exchange is now pipelined to better tolerate long round trip times
 
-* The number of vnode folds to transmit differences has been reduced to a single
-  fold, or for small numbers of differences it uses direct retrieval.
+* The number of vnode folds needed to transmit differences has been reduced to a single
+  fold, and for small numbers of differences it now uses direct retrieval
 
 * A worker pool has been added to store objects received during fullsync rather
-  than writing them serially.
+  than writing them serially
 
-We expect a future 2.0.X point release to support configuration through the
-new riak.conf format (aka Cuttlefish), until then a couple of new configuration
-parameters have been added that may be set in advanced.config.  The values shown
+We expect a future 2.0.x point release to support configuration through the
+new `riak.conf` format (aka Cuttlefish). Until then, a few new configuration
+parameters have been added that may be set in `advanced.config`.  The values shown
 below are defaults and do not need to be set.
 
 ```
@@ -29,20 +29,20 @@ below are defaults and do not need to be set.
 
 There are some important restrictions when testing.
 
-* Using AAE fullsync with SSL is not currently recommended.  The
+* Using AAE fullsync with SSL is not currently recommended. The
   improvements in this release generate higher throughput and can
-  cause a deadlock inside the SSL handling code.  Resolutions are
+  cause a deadlock inside the SSL handling code. Resolutions are
   under investigation.
 
-* Clusters should be configured identically - with the same number of vnodes,
+* Clusters should be configured identically, i.e. with the same number of vnodes,
   and bucket/bucket type properties should be set the same (specifically
-  n_val, bucket type).  If the buckets are configured differently (e.g.
-  replication disabled, different n-value), then unnecessary information
-  will be transmitted and discarded reducing performance.
+  `n_val`). If buckets are configured differently, e.g.
+  replication is disabled, different `n_val`s, etc., then unnecessary information
+  will be transmitted and discarded, reducing performance.
 
 ## Client certificate authentication
 
-As of the recently released 2.0, authentication and authorization
+As of the recently released version 2.0, authentication and authorization
 are now available in Riak.
 
 Under 2.0.0, it was possible that malformed client certificates would
