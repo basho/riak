@@ -40,6 +40,14 @@ There are some important restrictions when testing.
   replication disabled, different n-value), then unnecessary information
   will be transmitted and discarded reducing performance.
 
+## Client certificate authentication
+
+As of the recently released 2.0, authentication and authorization
+are now available in Riak.
+
+Under 2.0.0, it was possible that malformed client certificates would
+be accepted. This bug has been corrected with 2.0.1.
+
 ## Merged PRs
 
 * bitcask/186: [Bugfix/key transform crash](https://github.com/basho/bitcask/pull/186)
