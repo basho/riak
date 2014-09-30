@@ -2,7 +2,7 @@
 
 ## Client certificate authentication
 
-As of the recently release of 2.0, authentication and authorization
+As of the recently released 2.0, authentication and authorization
 are now available in Riak.
 
 Under 2.0.0, it was possible that malformed client certificates would
