@@ -1,3 +1,62 @@
+# Riak 2.0.1 リリースノート
+
+## AAE Fullsync
+
+AAE fullsyncのテクニカルプレビュー版は本番環境での利用へ向け、いくつかの改善を取り込みました。
+
+* AAE exchange は今回、長いラウンドトリップ時間をうまく処理するためにパイプライン化されました。
+
+* 差分通知に要する vnode fold の回数を１回へ減らしました。また少数の差分は直接参照するようになります。
+
+* fullsync中に受信したオブジェクトは順次書き込まずに worker pool に任せます。
+
+今後の 2.0.x リリースでは新しい`riak.conf`フォーマット(Cuttlefish)の設定ファイルがサポートされる予定です。
+それまでの間は、新しい設定パラメータは`advanced.config`で設定ができます。下記の設定値は設定する必要のないデフォルト値です。
+
+```
+[{riak_repl, [{fullsync_direct_limit, 1000}, % Number of objects directly retrieved
+                                             % before folding over the vnode on the AAE source
+
+              {fssink_min_workers, 5},       % Fullsync worker pool on the AAE sink
+              {fssink_max_workers, 100}]}]   % minmum workers on stand by and maximum
+                                             % burst size.
+```
+
+AAE fullsyncの検証をする際、注意すべき重要な制限事項がいくつかあります。
+
+* AAE fullsync と SSL の併用は非推奨です。本リリースでの改善はスループットを向上させるものですが、
+  同時にSSL 処理内のデッドロックを引き起こす可能性があります。この問題は現在、調査中です。
+
+* 各クラスターは同じ設定にしてください。つまりはvnode数が同じで、
+  バケット／バケットタイプのプロパティが同じ設定になっているべきです（特に`n_val`）。
+  バケットが異なる設定になっていると（例：レプリケーションの無効化、`n_val`が異なる）、
+  不必要な情報の転送、破棄によってパフォーマンスが劣化します。
+
+## クライアント証明書による認証
+
+先日リリースされた2.0以降、Riakでは認証と認可の機能が利用できるようになりました。
+
+2.0.0では誤ったクライアント証明書が受け付けられていましたが、
+この問題は2.0.1で修正されました。
+
+#### マージ済PR
+
+* bitcask/186: [Bugfix/key transform crash](https://github.com/basho/bitcask/pull/186)
+* bitcask/189: [Refresh efile port if gone](https://github.com/basho/bitcask/pull/189)
+* bitcask/190: [Fix scan error deadlock](https://github.com/basho/bitcask/pull/190)
+* bitcask/192: [Fix remove expired on read race](https://github.com/basho/bitcask/pull/192)
+* bitcask/197: [Fix extra tombstones on update](https://github.com/basho/bitcask/pull/197)
+* bitcask/198: [Fix race listing readable files](https://github.com/basho/bitcask/pull/198)
+* riak_kv/1008: [Use SC bucket types and buckets to know ensembles](https://github.com/basho/riak_kv/pull/1008)
+* riak_kv/1026: [Update to use new breadth-first AAE exchange](https://github.com/basho/riak_kv/pull/1026)
+* riak_core/626: [Allow handoff sender to abort handoff by throw'ing from fold fun](https://github.com/basho/riak_core/pull/626)
+* riak_core/627: [Handoff sender sends sync periodically](https://github.com/basho/riak_core/pull/627)
+* riak_core/629: [Add breadth-first AAE exchange](https://github.com/basho/riak_core/pull/629)
+* riak_api/66: [Do not treat errors as success](https://github.com/basho/riak_api/pull/66)
+* riak_repl/618: [Added a worker pool for fullsync sinks.](https://github.com/basho/riak_repl/pull/618)
+* riak_repl/619: [Small user experience fixes.](https://github.com/basho/riak_repl/pull/619)
+* riak_repl/620: [Improved AAE fullsync integration/2.0 pull request](https://github.com/basho/riak_repl/pull/620)
+
 # Riak 2.0.0 リリースノート
 
 ## 2.0の主な機能と改善
