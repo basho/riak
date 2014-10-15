@@ -74,6 +74,28 @@ override_schema_test() ->
     cuttlefish_unit:assert_config(Config, "vm_args.-setcookie", "tyktorp"),
     ok.
 
+custom_syslog_test() ->
+    Conf = [{["log", "syslog"], on},
+            {["log","syslog","ident"], "VeryCool"},
+            {["log","syslog","facility"], local4},
+            {["log","syslog","level"], warning}],
+    Config = cuttlefish_unit:generate_templated_config(
+               ["../../../rel/files/riak.schema"], Conf, context(), predefined_schema()),
+    cuttlefish_unit:assert_config(Config, "lager.handlers",
+                                  [{lager_syslog_backend, ["VeryCool", local4, warning]},
+                                   {lager_file_backend, [{file, "./log/console.log"},
+                                                         {level, info},
+                                                         {size, 10485760},
+                                                         {date, "$D0"},
+                                                         {count, 5}]},
+                                   {lager_file_backend, [{file, "./log/error.log"},
+                                                         {level, error},
+                                                         {size, 10485760},
+                                                         {date, "$D0"},
+                                                         {count, 5}]}
+                                  ]),
+    ok.
+
 crash_log_test() ->
     Conf = [{["log", "crash"], off}],
     Config = cuttlefish_unit:generate_templated_config(
