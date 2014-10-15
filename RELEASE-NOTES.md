@@ -283,8 +283,12 @@ not.
 
 ### Deprecation Notices
 
-Riak 2.0 marks the beginning of the end for several features. See also
-**Termination Notices** below.
+Riak 2.0 marks the beginning of the end for several features. These
+features are still available in version 2.0 but will be disabled in a
+future version. **We do not recommend using these features in version
+2.0**.  In addition to these soon-to-be-terminated features, there are a
+few features that have already been removed in Riak 2.0. A listing can
+be found in the **Termination Notices** section below.
 
 * [Link Walking](http://docs.basho.com/riak/latest/dev/using/link-walking/)
   is deprecated and will not work if security is enabled.
