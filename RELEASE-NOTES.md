@@ -1,3 +1,13 @@
+# Riak 2.0.2 Release Notes
+
+## VM Args
+Restore "+scl false", omitted accidentally
+
+## Merged PRs
+* riak_ee/276: [Add '+sfwi 500' and '+scl false' to riak.conf via cuttlefish](https://github.com/basho/riak_ee/pull/276)
+* riak_ee/282: [Added known restrictions to AAE fullsync.](https://github.com/basho/riak_ee/pull/282)
+* riak_ee/283: [Client certificate fix for 2.0.1](https://github.com/basho/riak_ee/pull/283)
+
 # Riak 2.0.1 Release Notes
 
 ## AAE Fullsync
