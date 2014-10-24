@@ -373,6 +373,8 @@ if [ 1 -eq $get_syscmds ]; then
 
     # Dump files
     [ -f /etc/release ] && dump release cat /etc/release
+    [ -f /etc/default/riak ] && dump etc_default_riak cat /etc/default/riak
+    [ ! -f /etc/default/riak ] && dump etc_default_riak echo "error: /etc/default/riak missing"
     [ -f /etc/redhat-release ] && dump redhat_release cat /etc/redhat-release
     [ -f /etc/debian_version ] && dump debian_version cat /etc/debian_version
     [ -f /etc/security/limits.conf ] && dump limits.conf cat /etc/security/limits.conf
