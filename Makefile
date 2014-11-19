@@ -6,6 +6,12 @@ ERLANG_BIN       = $(shell dirname $(shell which erl))
 REBAR           ?= $(BASE_DIR)/rebar
 OVERLAY_VARS    ?=
 
+RIAK_CORE_STAT_PREFIX = riak
+export RIAK_CORE_STAT_PREFIX
+
+EXOMETER_PACKAGES = "(basic), +afunix"
+export EXOMETER_PACKAGES
+
 $(if $(ERLANG_BIN),,$(warning "Warning: No Erlang found in your path, this will probably not work"))
 
 .PHONY: rel stagedevrel deps
