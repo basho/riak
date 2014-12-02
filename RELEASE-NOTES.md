@@ -1,3 +1,9 @@
+# Riak 2.0.3 Release Notes
+
+## Merged PRs
+* riak_ee/291: [Introduce exometer metrics into 2.0](https://github.com/basho/riak_ee/pull/291)
+* riak_ee/293: [Remove afunix references](https://github.com/basho/riak_ee/pull/293)
+
 # Riak 2.0.2 Release Notes
 
 ## VM Args
