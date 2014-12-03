@@ -1051,6 +1051,11 @@ case "$1" in
         node_up_check
         exec $NODETOOL rpc riak_core_console command $SCRIPT $@
         ;;
+    describe)
+        # New pattern for command line. Use nodetool for RPC
+        node_up_check
+        exec $NODETOOL rpc riak_core_console command $SCRIPT $@
+        ;;
     transfer[_-]limit)
         if [ $# -gt 3 ]; then
             echo "Usage: $SCRIPT $1"
