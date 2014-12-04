@@ -1,3 +1,11 @@
+# Riak 1.4.12 Release Notes
+
+This is a bugfix release on the 1.4 series of Riak.
+
+## Issues / PR's Resolved
+
+* riak_kv/1047: [Fix bogus sibling generation on handoff](https://github.com/basho/riak_kv/pull/1047)
+
 # Riak 1.4.10 Release Notes
 
 This is a bugfix release on the 1.4 series of Riak.
