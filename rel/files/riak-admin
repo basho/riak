@@ -535,6 +535,10 @@ search_admin()
 
             $NODETOOL rpc yz_console switch_to_new_search "$@"
             ;;
+        schema)
+            shift
+            search_schema_admin "$@"
+            ;;
         *)
 echo "\
 Usage: $SCRIPT search <command>
@@ -543,6 +547,99 @@ Available commands:
 
     aae-status
     switch-to-new-search
+    schema
+"
+   esac
+}
+
+search_schema_admin()
+{
+    case "$1" in
+        create)
+            if [ $# -ne 3 ]; then
+                echo "Usage: $SCRIPT search schema create <name> <path>"
+                exit 1
+            fi
+            # Make sure the local node is running
+            node_up_check
+            $NODETOOL rpc yz_console create_schema "$2" "$3"
+            ;;
+        show)
+            if [ $# -ne 2 ]; then
+                echo "Usage: $SCRIPT search schema show <name>"
+                exit 1
+            fi
+            # Make sure the local node is running
+            node_up_check
+            $NODETOOL rpc yz_console show_schema "$2"
+            ;;
+        *)
+            SCHEMA="$1"
+            case "$2" in
+                add)
+                    shift
+                    search_schema_add_admin "$SCHEMA" "$@"
+                    ;;
+                remove)
+                    shift
+                    if [ $# -ne 2 ]; then
+                        echo "Usage: $SCRIPT search schema $SCHEMA remove <fieldname>"
+                        exit 1
+                    fi
+                    # Make sure the local node is running
+                    node_up_check
+                    $NODETOOL rpc yz_console remove_from_schema "$SCHEMA" "$2"
+                    ;;
+                *)
+
+echo "\
+Usage: $SCRIPT search schema <command>
+
+Available commands:
+
+create
+show
+<name> add
+<name> remove
+"
+            esac;;
+    esac
+}
+
+search_schema_add_admin()
+{
+    SCHEMA="$1"
+    case "$3" in
+        field)
+            shift
+            if [ $# -lt 3 ]; then
+                echo "Usage: $SCRIPT search schema $SCHEMA add field <fieldname> [<option>=<value> [...]]"
+                exit 1
+            fi
+            shift
+            # Make sure the local node is running
+            node_up_check
+            $NODETOOL rpc yz_console add_to_schema "$SCHEMA" "$@"
+            ;;
+        dynamicfield)
+            shift
+            if [ $# -lt 3 ]; then
+                echo "Usage: $SCRIPT search schema $SCHEMA add dynamicfield <fieldname> [<option>=<value> [...]]"
+                exit 1
+            fi
+            shift
+            # Make sure the local node is running
+            node_up_check
+            $NODETOOL rpc yz_console add_to_schema "$SCHEMA" "$@"
+            ;;
+        *)
+echo "\
+Usage: $SCRIPT search schema $SCHEMA add
+
+Available commands:
+
+    field
+    dynamicfield
 "
     esac
 }
