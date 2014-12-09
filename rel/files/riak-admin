@@ -325,48 +325,47 @@ The following commands stage changes to cluster membership. These commands
 do not take effect immediately. After staging a set of changes, the staged
 plan must be committed to take effect:
 
-   join <node>                    Join node to the cluster containing <node>
-   leave                          Have this node leave the cluster and shutdown
-   leave <node>                   Have <node> leave the cluster and shutdown
+   join <node>                     Join node to the cluster containing <node>
+   leave                           Have this node leave the cluster and shutdown
+   leave <node>                    Have <node> leave the cluster and shutdown
 
-   force-remove <node>            Remove <node> from the cluster without
-                                  first handing off data. Designed for
-                                  crashed, unrecoverable nodes
+   force-remove <node>             Remove <node> from the cluster without
+                                   first handing off data. Designed for
+                                   crashed, unrecoverable nodes
 
-   replace <node1> <node2>        Have <node1> transfer all data to <node2>,
-                                  and then leave the cluster and shutdown
+   replace <node1> <node2>         Have <node1> transfer all data to <node2>,
+                                   and then leave the cluster and shutdown
 
-   force-replace <node1> <node2>  Reassign all partitions owned by <node1> to
-                                  <node2> without first handing off data, and
-                                  remove <node1> from the cluster.
+   force-replace <node1> <node2>   Reassign all partitions owned by <node1> to
+                                   <node2> without first handing off data, and
+                                   remove <node1> from the cluster.
 
 Staging commands:
-   plan                           Display the staged changes to the cluster
-   commit                         Commit the staged changes
-   clear                          Clear the staged changes
+   plan                            Display the staged changes to the cluster
+   commit                          Commit the staged changes
+   clear                           Clear the staged changes
 
 Status and information commands:
-   status                         Display a concise summary of node membership
-                                  availability and ring ownership.
+   status                          Display a concise summary of node membership
+                                   availability and ring ownership.
 
-   members [--all]                Print each valid cluster member nodename.
-                                  If '--all' print all members regardless of
-                                  current status.
+   members [--all]                 Print each valid cluster member nodename.
+                                   If '--all' print all members regardless of
+                                   current status.
 
-   partitions [--node=<node>]     Print primary, secondary and stopped
-                                  partition indices and ids for the current
-                                  node, or for the specified node.
+   partitions [--node=<node>]      Print primary, secondary and stopped
+                                   partition indices and ids for the current
+                                   node, or for the specified node.
 
-   partition-count
-              [--node=<node>]     Print the cluster-wide number of partitions
-                                  or the number of partitions on the specified
-                                  node.
+   partition-count [--node=<node>] Print the cluster-wide number of
+                                   partitions or the number of partitions
+                                   on the specified node.
 
-   partition id=<id>
-             index=<index>        Convert the given partition id or index
-                                  into the appropriate index or id.
-                                  (Also displays the node that currently
-                                  owns the given partition.)
+   partition id=<id>               Convert the given partition id to the
+                                   matching index.
+
+   partition index=<index>         Convert the given partition index to
+                                   the matching id.
 
 "
     esac
