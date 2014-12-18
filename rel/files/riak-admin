@@ -29,7 +29,7 @@ usage() {
     echo "                    aae-status | diag | stat | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
-    echo "                    search | services | ensemble-status }"
+    echo "                    search | services | ensemble-status | handoff }"
 }
 
 stat_admin()
@@ -308,7 +308,7 @@ cluster_admin()
             node_up_check
             $NODETOOL rpc riak_core_console command $SCRIPT cluster status
             ;;
-        partitions|members|partition)
+        partitions|partition)
             node_up_check
             $NODETOOL rpc riak_core_console command $SCRIPT cluster $@
             ;;
@@ -348,10 +348,6 @@ Staging commands:
 Status and information commands:
    status                          Display a concise summary of node membership
                                    availability and ring ownership.
-
-   members [--all]                 Print each valid cluster member nodename.
-                                   If '--all' print all members regardless of
-                                   current status.
 
    partitions [--node=<node>]      Print primary, secondary and stopped
                                    partition indices and ids for the current
