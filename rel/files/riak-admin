@@ -29,7 +29,8 @@ usage() {
     echo "                    aae-status | diag | stat | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
-    echo "                    search | services | ensemble-status | handoff }"
+    echo "                    search | services | ensemble-status | handoff | set |"
+    echo "                    show | describe }"
 }
 
 stat_admin()
