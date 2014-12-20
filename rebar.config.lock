@@ -8,8 +8,8 @@
 {eunit_opts,[verbose]}.
 {erlydtl_opts,[{compiler_options,[report,return,debug_info]}]}.
 {deps,[{node_package,".*",
-                     {git,"git://github.com/basho/node_package.git",
-                          "a829631eccebe3c1d7657a0075584f55bf342977"}},
+                     {git,"https://github.com/basho/node_package.git",
+                          "7d60ed665d56e65fbee779c5670c9155a8d88423"}},
        {goldrush,".*",
                  {git,"git://github.com/DeadZen/goldrush.git",
                       "71e63212f12c25827e0c1b4198d37d5d018a7fec"}},
