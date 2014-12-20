@@ -1,3 +1,13 @@
+# Riak 2.0.4 Release Notes
+
+## Merged PRs
+* riak_ee/296: [use exometer_core](https://github.com/basho/riak_ee/pull/296)
+* riak_ee/298: [rename riak_cli to clique](https://github.com/basho/riak_ee/pull/298)
+* riak_ee/300: [Specify which package to replace for Debian](https://github.com/basho/riak_ee/pull/300)
+* riak_ee/303: [Add handoff; remove cluster members](https://github.com/basho/riak_ee/pull/303)
+* riak_ee/304: [Add set, show and describe to usage](https://github.com/basho/riak_ee/pull/304)
+* riak_ee/305: [Integration/riak admin handoff team](https://github.com/basho/riak_ee/pull/305)
+
 # Riak 2.0.3 Release Notes
 
 ## Merged PRs
