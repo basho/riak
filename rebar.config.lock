@@ -9,7 +9,7 @@
 {erlydtl_opts,[{compiler_options,[report,return,debug_info]}]}.
 {deps,[{node_package,".*",
                      {git,"git://github.com/basho/node_package.git",
-                          "7c31abeb576269df11ea718c5f150b802b87546d"}},
+                          "4823f886d455d5d35ec252b08e67f607e84ac2c3"}},
        {goldrush,".*",
                  {git,"git://github.com/DeadZen/goldrush.git",
                       "71e63212f12c25827e0c1b4198d37d5d018a7fec"}},
