@@ -33,7 +33,7 @@
                        "07467d899ab90a2b719ad19ab0be0048c1c8d873"}},
        {meck,".*",
              {git,"git://github.com/basho/meck.git",
-                  "2b25a30a8688f94106d07f23a9f1fb523ac00f08"}},
+                  "1286aba1cb6bbd6c9fc3f817740758b224843ee7"}},
        {getopt,".*",
                {git,"git://github.com/jcomellas/getopt.git",
                     "659a28f4145bc9843598972854299dc4ea77e4cb"}},
