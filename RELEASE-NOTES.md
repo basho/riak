@@ -1,6 +1,125 @@
 # Riak 2.0.4 Release Notes
 
-## Merged PRs
+## Changes
+
+* Improve AAE fullsync by estimating total number of keys. This allows
+    for better sizing of the bloom filter when performing a
+    bloom-fold-based exchange and enhances the adaptive exchange logic
+    that was added previously in Riak 2.0.1. In that version, the new
+    `riak_repl.fullsync_direct_percentage_limit` setting was added,
+    which allowed the limit to be specified as a percentage of total
+    keys rather than as a fixed number.
+  * [riak_repl/623](https://github.com/basho/riak_repl/pull/623)
+  * [riak_core/633](https://github.com/basho/riak_core/pull/633)
+  * [riak_kv/1030](https://github.com/basho/riak_kv/pull/1030)
+* Added `last_fullsync_complete` stat tracking [riak_repl/642](https://github.com/basho/riak_repl/pull/642)
+* Expose AAE tree status in the logs
+    [riak_kv/1056](https://github.com/basho/riak_kv/pull/1056)
+* Improve AAE fullsync by using breadth-first exchange
+  * [riak_kv/1026](https://github.com/basho/riak_kv/pull/1026)
+  * [riak_core/629](https://github.com/basho/riak_core/pull/629)
+* Riak now uses Exometer for collecting metrics and has an improved CLI
+    for finding and displaying them
+  * [riak/651](https://github.com/basho/riak/pull/651)
+  * [riak_api/70](https://github.com/basho/riak_api/pull/70)
+  * [riak_api/71](https://github.com/basho/riak_api/pull/71)
+  * [riak_api/72](https://github.com/basho/riak_api/pull/72)
+  * [riak_core/650](https://github.com/basho/riak_core/pull/650)
+  * [riak_core/654](https://github.com/basho/riak_core/pull/654)
+  * [riak_core/655](https://github.com/basho/riak_core/pull/655)
+  * [riak_core/663](https://github.com/basho/riak_core/pull/663)
+  * [riak_core/665](https://github.com/basho/riak_core/pull/665)
+  * [riak_core/668](https://github.com/basho/riak_core/pull/650)
+  * [riak_kv/1044](https://github.com/basho/riak_kv/pull/1044)
+  * [riak_kv/1048](https://github.com/basho/riak_kv/pull/1048)
+  * [riak_kv/1050](https://github.com/basho/riak_kv/pull/1050)
+  * [riak_kv/1058](https://github.com/basho/riak_kv/pull/1058)
+  * [riak_kv/1059](https://github.com/basho/riak_kv/pull/1059)
+  * [riak_kv/1067](https://github.com/basho/riak_kv/pull/1067)
+  * [riak_pipe/89](https://github.com/basho/riak_pipe/pull/89)
+  * [riak_pipe/90](https://github.com/basho/riak_pipe/pull/90)
+  * [riak_pipe/91](https://github.com/basho/riak_pipe/pull/91)
+  * [riak_search/168](https://github.com/basho/riak_search/pull/168)
+  * [riak_search/169](https://github.com/basho/riak_search/pull/169)
+  * [riak_search/172](https://github.com/basho/riak_search/pull/172)
+  * [yokozuna/434](https://github.com/basho/yokozuna/pull/434)
+  * [yokozuna/435](https://github.com/basho/yokozuna/pull/435)
+  * [yokozuna/440](https://github.com/basho/yokozuna/pull/440)
+  * [yokozuna/441](https://github.com/basho/yokozuna/pull/441)
+  * [riak_ee/296](https://github.com/basho/riak_ee/pull/296)
+* Internal components can process partial configurations as if they were
+    in the global config file. This supports the handoff visibility
+    changes.
+  * [cuttlefish/174](https://github.com/basho/cuttlefish/pull/174)
+* Riak now uses [Clique](https://github.com/basho/clique) for managing
+    CLI commands. The initial commands covered exist to increase
+    visibility into the handoff process and provide Cuttlefish config
+    support from the CLI.
+  * [riak_core/669](https://github.com/basho/riak_core/pull/669)
+  * [riak_core/674](https://github.com/basho/riak_core/pull/674)
+  * [riak_core/675](https://github.com/basho/riak_core/pull/675)
+  * [riak_core/677](https://github.com/basho/riak_core/pull/677)
+  * [riak_core/678](https://github.com/basho/riak_core/pull/678)
+  * [riak_core/679](https://github.com/basho/riak_core/pull/679)
+  * [riak_core/680](https://github.com/basho/riak_core/pull/680)
+  * [riak_core/681](https://github.com/basho/riak_core/pull/681)
+  * [riak_core/682](https://github.com/basho/riak_core/pull/682)
+  * [riak_core/685](https://github.com/basho/riak_core/pull/685)
+  * [riak_core/686](https://github.com/basho/riak_core/pull/686)
+  * [riak_core/692](https://github.com/basho/riak_core/pull/692)
+  * [riak_kv/1068](https://github.com/basho/riak_kv/pull/1068)
+  * [riak_core/695](https://github.com/basho/riak_core/pull/695)
+  * [riak/654](https://github.com/basho/riak/pull/654)
+  * [riak/655](https://github.com/basho/riak/pull/655)
+  * [riak/656](https://github.com/basho/riak/pull/656)
+  * [riak/657](https://github.com/basho/riak/pull/657)
+  * [riak_ee/298](https://github.com/basho/riak_ee/pull/298)
+  * [riak_ee/303](https://github.com/basho/riak_ee/pull/303)
+  * [riak_ee/304](https://github.com/basho/riak_ee/pull/304)
+  * [riak_ee/305](https://github.com/basho/riak_ee/pull/305)
+
+## Fixes
+
+* Fix stats process crash if no leader
+    [riak_repl/645](https://github.com/basho/riak_repl/pull/645)
+* Address some minor bugs around establishing SSL connections
+    [riak_repl/644](https://github.com/basho/riak_repl/pull/644)
+* 2.0 port of AAE transient filesystem failures
+    [riak_repl/640](https://github.com/basho/riak_repl/pull/640)
+* Fix error/retry exit counts on location down messages
+    [riak_repl/639](https://github.com/basho/riak_repl/pull/639)
+* Fix deadlock when performing AAE fullsync over SSL (Erlang VM patch)
+* Prevent servers from accepting SSLv3 connections (Erlang VM patch)
+* The map Data Type is now more efficient when merging
+  * [riak_dt/110](https://github.com/basho/riak_dt/pull/110)
+  * [riak_kv/1063](https://github.com/basho/riak_kv/pull/1063)
+  * [riak_kv/1065](https://github.com/basho/riak_kv/pull/1065)
+* Fix a case in which sibling explosion could occur during handoff
+  * [riak_core/672](https://github.com/basho/riak_core/pull/672)
+  * [riak_kv/1062](https://github.com/basho/riak_kv/pull/1062)
+* Special handling for the `net_ticktime` setting in admin scripts
+    [node_package/166](https://github.com/basho/node_package/pull/166)
+* Add a missing function clause in `riak_kv_node` that could result in
+    crashes [riak_core/693](https://github.com/basho/riak_core/pull/693)
+* Avoid timeouts when handoff sender is folding over a large number of
+    keys [riak_core/627](https://github.com/basho/riak_core/pull/627)
+* No more extra work for handoff sender after TCP error makes that work
+    useless [riak_core/626](https://github.com/basho/riak_core/pull/626)
+* Report error when failing to open file instead of crashing when
+    calling `riak_core_util:replace_file/2`
+    [riak_core/646](https://github.com/basho/riak_core/pull/646)
+* Debian package fixes
+  * [node_package/173](https://github.com/basho/node_package/pull/173)
+  * [riak_ee/300](https://github.com/basho/riak_ee/pull/300)
+* Ensure creation of ensembles when strongly consistent bucket types
+    with different `n_val`s from default bucket type do not yet have
+    buckets [riak_kv/1008](https://github.com/basho/riak_kv/pull/1008)
+* Avoid SSL deadlocks that occur when sending data bidirectionally using
+    Erlang SSL sockets. The fix is a patch to the Erlang VM shipped with
+    the build.
+
+## Merged Pull Requests
+
 * bitcask/202: [Unpin cuttlefish from tag](https://github.com/basho/bitcask/pull/202)
 * node_package/166: [add support for custom exit codes to nodetool rpc & friends](https://github.com/basho/node_package/pull/166)
 * node_package/170: [Handle net_ticktime argument specially. Resolves RIAK-1281](https://github.com/basho/node_package/pull/170)
@@ -77,6 +196,31 @@
 * riak_pipe/89: [Introduce exometer metrics into 2.0](https://github.com/basho/riak_pipe/pull/89)
 * riak_pipe/90: [Remove afunix from EXOMETER_PACKAGES.](https://github.com/basho/riak_pipe/pull/90)
 * riak_pipe/91: [Use exometer_core & exometer aliases](https://github.com/basho/riak_pipe/pull/91)
+
+## Added Repositories
+
+* [Clique](https://github.com/basho/clique)
+* [Exometer](https://github.com/basho/exometer_core)
+
+## Known Issues
+
+* Clique can't handle config values with Cuttlefish transformations
+
+## Download
+
+Please see our [downloads](http://docs.basho.com/riak/latest/downloads/)
+page.
+
+## Feedback
+
+We would love to hear from you. You can reach us at any of the following
+links:
+
+* http://lists.basho.com/mailman/listinfo/riak-users_lists.basho.com
+* https://github.com/basho/basho_docs
+* https://github.com/basho/riak
+
+Or via email at **info@basho.com**.
 
 # Riak 2.0.3 Release Notes
 
