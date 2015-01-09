@@ -78,6 +78,41 @@
   * [riak_ee/304](https://github.com/basho/riak_ee/pull/304)
   * [riak_ee/305](https://github.com/basho/riak_ee/pull/305)
 
+## AAE Fullsync Performance Improvements
+
+In version 2.0.4, a number of improvements to the AAE fullsync feature
+were added, improvements that were initially introduced in Riak version
+1.4.12 but had not yet been introduced into Riak 2.0.x. The following
+improvements have been introduced:
+
+* Data transfers are now pipelined instead of individually acknowledged,
+    in the name of maximizing throughput
+* The code now avoids redundant scans of replcated data. For a
+    replication factor of, say, 3 (i.e. an `n_val` of 3), only a third
+    of the relevant vnodes are scanned.
+* The algorithm is now smarter about small differences
+
+Performing an AAE fullsync operation between two identical clusters is
+very fast. The time it takes to finish an AAE fullsync is much closer to
+linear on the number of differences between the clusters. Below are the
+results of one of our benchmarks. Two 8-node clusters were used, each
+with the following characteristics:
+
+* Each node has 630 GB of SSD storage
+* Each node is running only two vnodes (16-partition ring)
+* 23 million objects per vnode
+* 99% of objects are 8 KB
+* 1% of objects are a mix of 8 KB to 40 MB outliers
+* 450 GB of data on disk per server
+
+The results for each stage of fullsync:
+
+* Empty cluster to empty cluster: 6 seconds
+* Full cluster to empty cluster: 14 hours, 40 minutes
+* 10% changes: 3 hours, 45 minutes
+* 1% changes: 40.5 minutes
+* No changes: 42.5 seconds
+
 ## Fixes
 
 * Fix stats process crash if no leader
