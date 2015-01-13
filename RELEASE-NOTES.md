@@ -347,10 +347,9 @@ In Riak 1.4, we added an eventually consistent counter to Riak. Version
 2.0 builds on this work to provide more convergent data types (we call
 them Riak Data Types for short). These data types are CRDTs[1], inspired
 by a large and growing base of theoretical research. Data Types are a
-departure from Riak's usual behaviour of treating stored stored as
-opaque. Riak "knows" about these Data Types, in particular which rules
-of convergence to apply in case of object replica conflicts. A related
-advantage of Data Types is that
+departure from Riak's usual behaviour of treating stored as opaque. Riak
+"knows" about these Data Types, in particular which rules of convergence
+to apply in case of object replica conflicts.
 
 All data types must be stored in buckets bearing a bucket type that sets
 the `datatype` property to one of `counter`, `set`, or `map`.  Note that
