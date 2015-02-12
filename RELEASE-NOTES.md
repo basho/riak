@@ -81,6 +81,7 @@ Although undocumented, versions of Riak prior to 2.0 did not prevent the use of 
 * riak_dt/111: [Make map/set interoperable with previous versions ](https://github.com/basho/riak_dt/pull/111)
 * riak_repl/651: [Enhance/krab/cluster realtime rebalance rebase 2.0](https://github.com/basho/riak_repl/pull/651)
 * riak_repl/653: [Issue Riak-1338](https://github.com/basho/riak_repl/pull/653)
+* riak_repl/657: [core_connection exit abnormally on socket closed](https://github.com/basho/riak_repl/pull/657)
 
 
 
