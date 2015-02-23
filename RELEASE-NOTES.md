@@ -33,7 +33,6 @@
 
 * Fixed parsing of global flags by delegating parsing to clique instead of riak-admin script
   * [riak/pull/665](https://github.com/basho/riak/pull/665)
-  * [riak_ee/pull/307](https://github.com/basho/riak_ee/pull/307)
 
 * Reduce overload of sink nodes by balancing inbound connections across all nodes, including nodes not up due to network partition.
   * [riak_repl/pull/651](https://github.com/basho/riak_repl/pull/651)
