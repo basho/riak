@@ -24,6 +24,19 @@
 * Riak-1479 - node_get_fsm_time and node_put_fsm_time stats are incorrect. node_get_fsm_time and node_put_fsm_time values are an order of magnitude smaller than 2.0.2
   * [riak_kv/pull/1075](https://github.com/basho/riak_kv/pull/1075)
 
+* Add a log message for when a pipe fitting fails during a map reduce job
+  * [riak_kv/pull/1073](https://github.com/basho/riak_kv/pull/1073)
+  * [riak_pipe/pull/92](https://github.com/basho/riak_pipe/pull/92)
+
+* Fix erroneous tag syntax in rebar.conf for erlydtl depedency of riak_control
+  * [riak_control/pull/183](https://github.com/basho/riak_control/pull/183)
+
+* Fixed parsing of global flags by delegating parsing to clique instead of riak-admin script
+  * [riak/pull/665](https://github.com/basho/riak/pull/665)
+  * [riak_ee/pull/307](https://github.com/basho/riak_ee/pull/307)
+
+* Reduce overload of sink nodes by balancing inbound connections across all nodes, including nodes not up due to network partition.
+  * [riak_repl/pull/651](https://github.com/basho/riak_repl/pull/651)
 
 ## RIAK-1482 - Maps and sets incompatibility in 2.0.4
 
@@ -79,6 +92,7 @@ Start each node in your cluster.
 * clique/50: [Fix regression that broke --help and --format](https://github.com/basho/clique/pull/50)
 * cuttlefish/180: [Rework error handling to turn errors into smarter nested tuples](https://github.com/basho/cuttlefish/pull/180)
 * riak_dt/111: [Make map/set interoperable with previous versions ](https://github.com/basho/riak_dt/pull/111)
+* riak_repl/653: [Cleanup riak_repl tests to prevent spurious errors](https://github.com/basho/riak_repl/pull/653)
 
 
 # Riak 2.0.4 Release Notes
