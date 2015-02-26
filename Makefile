@@ -71,7 +71,7 @@ test: deps compile testclean
 ##
 ## Release targets
 ##
-rel: lock-deps compile generate
+rel: locked-deps compile generate
 
 relclean:
 	rm -rf rel/riak
