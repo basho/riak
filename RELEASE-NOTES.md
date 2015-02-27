@@ -60,7 +60,8 @@ Upgrade to 2.0.5 in a rolling fashion as recommended by our documentation.
   * [riak_kv/pull/1076](https://github.com/basho/riak_kv/pull/1076)
 
 ## Known Issues
-None
+
+(Updated 02/27/2015) Yokozuna’s Active Anti-Entropy encounters `badarg` errors when decoding entropy data containing Riak keys that include spaces, documented in Github issues [450](https://github.com/basho/yokozuna/issues/450) and [436](https://github.com/basho/yokozuna/issues/436). The workaround, currently, is to avoid using keys with spaces if you’re using Yokozuna. This issue has been confirmed, and we are working on a patch for affected users.
 
 ## Notes on upgrading
 
