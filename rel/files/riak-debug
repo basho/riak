@@ -25,6 +25,17 @@
 # If you start to think "We should execute some Erlang in here", then go work
 # on Riaknostic, which is called with `riak-admin diag` below.
 
+# /bin/sh on Solaris is not a POSIX compatible shell, but /usr/bin/ksh is.
+if [ `uname -s` = 'SunOS' -a "${POSIX_SHELL}" != "true" ]; then
+    POSIX_SHELL="true"
+    export POSIX_SHELL
+    # To support 'whoami' add /usr/ucb to path
+    PATH=/usr/ucb:$PATH
+    export PATH
+    exec /usr/bin/ksh $0 "$@"
+fi
+unset POSIX_SHELL # clear it so if we invoke other scripts, they run as ksh as well
+
 ###
 ### Function declarations
 ###
@@ -67,7 +78,12 @@ dump () {
     if [ 0 -eq $retval ]; then
         printf '.' 1>&2
     else
-        printf 'E' 1>&2
+        if [ $verbose_output -gt 0 ]; then
+            printf 'Command '\'"$*"\'' failed. Continuing.' 1>&2
+            echo '' 1>&2 # Cheap, easy, guaranteed newline.
+        else
+            printf 'E' 1>&2
+        fi
     fi
 
     return $retval
@@ -77,19 +93,38 @@ usage () {
 cat << 'EOF'
 riak-debug: Gather info from a node for troubleshooting. See 'man riak-debug'.
 
-Usage: riak-debug [-c] [-l] [-r] [-s] [-e] [FILENAME | -]
+Usage: riak-debug [-c] [-l] [-r] [-s] [-e] [-v] [FILENAME | -]
 
--c, --cfgs      Gather Riak configuration information.
+-c, --cfgs      Gather Riak configuration information (includes everything in
+                platform_etc_dir).
+                Please see the Privacy Note below.
+    --ssl-certs Do not skip the capture of *potentially private* SSL
+                certificates.
+                By default files in the platform_etc_dir with the following
+                extensions are not included in the riak-debug archive: .pfx,
+                .p12, .csr, .sst, .sto, .stl, .pem, .key.
+                Please see the Privacy Note below.
 -l, --logs      Gather Riak logs.
+-p, --patches   Gather the contents of the basho-patches directory.
 -r, --riakcmds  Gather Riak information and command output.
 -s, --syscmds   Gather general system commands.
+-v, --verbose   Print verbose failure messages to stdout
 -e, --extracmds Gather extra command output. These commands are too intense to
                 run on all nodes in a cluster but appropriate for a single node.
 FILENAME        Output filename for the tar.gz archive. Use - to specify stdout.
 
-Defaults: Get configs, logs, riak commands, and system commands.
+Defaults: Get configs, logs, patches, riak commands, and system commands.
           Output in current directory to NODE_NAME-riak-debug.tar.gz or
           HOSTNAME-riak-debug.tar.gz if NODE_NAME cannot be found.
+
+Privacy Note: When the -c flag is set (included in the defaults) every file in
+              the specified in Riak's `platform_etc_dir` will be copied into the
+              generated debug archive with the exceptions noted above. If there
+              are additional files that you wish to keep out of the archive, the
+              enviroment variable RIAK_EXCLUDE may be filled with a space
+              separated list of file patterns that will be passed into a `find
+              -name`. Any matches will be excluded from the generated archive.
+              E.g. `RIAK_EXCLUDE="'*.key' mySecretFile.txt" riak-debug`
 EOF
 exit
 }
@@ -105,10 +140,18 @@ riak_bin_dir={{runner_script_dir}}
 riak_etc_dir={{runner_etc_dir}}
 
 get_cfgs=0
+get_ssl_certs=0
 get_logs=0
+get_patches=0
 get_riakcmds=0
 get_syscmds=0
 get_extracmds=0
+verbose_output=0
+
+## Use riak config generate to set $riak_app_config and
+## $riak_vm_args
+riak_app_config="${riak_etc_dir}"/app.config
+riak_vm_args="${riak_etc_dir}"/vm.args
 
 ###
 ### Parse options
@@ -122,8 +165,14 @@ while [ -n "$1" ]; do
         -c|--cfgs)
             get_cfgs=1
             ;;
+           --ssl-certs)
+            get_ssl_certs=1
+            ;;
         -l|--logs)
             get_logs=1
+            ;;
+        -p|--patches)
+            get_patches=1
             ;;
         -r|--riakcmds)
             get_riakcmds=1
@@ -133,6 +182,9 @@ while [ -n "$1" ]; do
             ;;
         -e|--extracmds)
             get_extracmds=1
+            ;;
+        -v|--verbose)
+            verbose_output=`expr 1 + $verbose_output`
             ;;
         -)
             # If truly specifying stdout as the output file, it should be last
@@ -154,7 +206,7 @@ while [ -n "$1" ]; do
 
             # The filename shouldn't start with a '-'. The single character '-'
             # is handled as a special case above.
-            if [ '-' =  `echo "$1" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+            if [ '-' =  `echo "$1" | cut -c1` ]; then
                 echoerr "Unrecognized option $1. Aborting"
                 echoerr "See 'riak-debug -h' and manpage for help."
                 exit 1
@@ -162,30 +214,36 @@ while [ -n "$1" ]; do
 
             if [ $# -gt 1 ]; then
                 echoerr "Trailing options following filename $1. Aborting."
-                echoerr "See 'riak-debug -h' and manpage for help." 
+                echoerr "See 'riak-debug -h' and manpage for help."
                 exit 1
             fi
-            
+
             outfile="$1"
             ;;
     esac
     shift
 done
 
+if [ 0 -eq $get_cfgs  -a  1 -eq $get_ssl_certs ]; then
+    echoerr "The --ssl-certs option is meaningless without --cfg. Ignoring."
+    get_ssl_certs=0
+fi
+
 ###
 ### Finish setting up variables and overrides
 ###
 
-if [ 0 -eq $(( $get_cfgs + $get_logs + $get_riakcmds + $get_syscmds + $get_extracmds )) ]; then
+if [ 0 -eq $(( $get_cfgs + $get_logs + $get_patches + $get_riakcmds + $get_syscmds + $get_extracmds )) ]; then
     # Nothing specific was requested, so get everything except extracmds
     get_cfgs=1
     get_logs=1
+    get_patches=1
     get_riakcmds=1
     get_syscmds=1
     get_extracmds=0
 fi
 
-if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
+if [ 0 -ne $(( $get_cfgs + $get_logs + $get_patches + $get_riakcmds + $get_extracmds )) ]; then
     # Information specific to Riak requested. Need app_epath.sh and must have
     # valid base and etc paths defined.
 
@@ -199,7 +257,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
 
     if [ ! -f "$epath_file" ]; then
         echoerr "Required file app_epath.sh not found. Expected here:"
-        echoerr "$epath_file" 
+        echoerr "$epath_file"
         echoerr "See 'riak-debug -h' and manpage for help."
         exit 1
     fi
@@ -208,9 +266,9 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
     # Allow overriding riak_base_dir and riak_etc_dir from the environment
     if [ -n "$RIAK_BASE_DIR" ]; then
         riak_base_dir="$RIAK_BASE_DIR"
-        if [ "/" != "`echo "$riak_base_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
+        if [ "/" != "`echo "$riak_base_dir" | cut -c1`" ]; then
             echoerr "Riak base directory should be an absolute path."
-            echoerr "$riak_base_dir" 
+            echoerr "$riak_base_dir"
             echoerr "See 'riak-debug -h' and manpage for help."
             exit 1
         fi
@@ -218,9 +276,9 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
 
     if [ -n "$RIAK_BIN_DIR" ]; then
         riak_bin_dir="$RIAK_BIN_DIR"
-        if [ "/" != "`echo "$riak_bin_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
+        if [ "/" != "`echo "$riak_bin_dir" | cut -c1`" ]; then
             echoerr "Riak bin directory should be an absolute path."
-            echoerr "$riak_bin_dir" 
+            echoerr "$riak_bin_dir"
             echoerr "See 'riak-debug -h' and manpage for help."
             exit 1
         fi
@@ -228,17 +286,18 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_riakcmds + $get_extracmds )) ]; then
 
     if [ -n "$RIAK_ETC_DIR" ]; then
         riak_etc_dir="$RIAK_ETC_DIR"
-        if [ "/" != "`echo "$riak_etc_dir" | awk 'BEGIN {FS=""} {print $1}'`" ]; then
+        if [ "/" != "`echo "$riak_etc_dir" | cut -c1`" ]; then
             echoerr "Riak etc directory should be an absolute path."
-            echoerr "$riak_etc_dir" 
+            echoerr "$riak_etc_dir"
             echoerr "See 'riak-debug -h' and manpage for help."
             exit 1
         fi
     fi
 fi
 
-if [ -f "${riak_etc_dir}"/vm.args ]; then
-    node_name="`egrep '^\-s?name' "${riak_etc_dir}"/vm.args 2>/dev/null | cut -d ' ' -f 2`"
+
+if [ -f "${riak_vm_args}" ]; then
+    node_name="`egrep '^\-s?name' "${riak_vm_args}" 2>/dev/null | cut -d ' ' -f 2`"
 fi
 
 if [ -z "$node_name" ]; then
@@ -259,7 +318,7 @@ debug_dir="${node_name}-riak-debug"
 
 if [ -d "${start_dir}"/"${debug_dir}" ]; then
     echoerr "Temporary directory already exists. Aborting."
-    echoerr "${start_dir}"/"${debug_dir}" 
+    echoerr "${start_dir}"/"${debug_dir}"
     exit 1
 fi
 
@@ -270,7 +329,7 @@ fi
 
 if [ '-' != "$outfile" ] && [ -f "$outfile" ]; then
     echoerr "Output file already exists. Aborting."
-    echoerr "$outfile" 
+    echoerr "$outfile"
     exit 1
 fi
 
@@ -290,7 +349,7 @@ if [ 1 -eq $get_syscmds ]; then
     dump uname uname -a
     dump lsb_release lsb_release
     dump ps ps aux
-    dump vmstat vmstat
+    dump vmstat vmstat 1 5
     dump free free -m
     dump df df
     dump df_i df -i
@@ -307,12 +366,25 @@ if [ 1 -eq $get_syscmds ]; then
     dump netstat_rn netstat -rn
     dump pfctl_rules pfctl -s rules
     dump pfctl_nat pfctl -s nat
+    dump java_version java -version
+    dump zfs_list zfs list
+    dump zpool_list zpool list
 
     # If swapctl exists, prefer it over swapon
     if [ -n "`command -v swapctl`" ]; then
         dump swapctl swapctl -s
     else
         dump swapon swapon -s
+    fi
+
+    BLOCKDEV=/sbin/blockdev
+    if [ -e $BLOCKDEV ]; then
+        for mount_point in `mount | egrep '^/' | awk '{print $1}'`; do
+            flat_point=`echo $mount_point | sed 's:/:_:g'`
+            dump blockdev.$flat_point $BLOCKDEV --getra $mount_point
+        done
+    else
+        dump blockdev._ echo $BLOCKDEV is not available
     fi
 
     # Running iptables commands if the module is not loaded can automatically
@@ -350,6 +422,7 @@ if [ 1 -eq $get_syscmds ]; then
     [ -f /etc/security/limits.conf ] && dump limits.conf cat /etc/security/limits.conf
     [ -f /var/log/messages ] && dump messages cat /var/log/messages
     [ -f /var/log/syslog ] && dump messages cat /var/log/syslog
+    [ -f /var/log/kern.log ] && dump messages cat /var/log/kern.log
     [ -f /proc/diskstats ] && dump diskstats cat /proc/diskstats
     [ -f /proc/cpuinfo ] && dump cpuinfo cat /proc/cpuinfo
     [ -f /proc/meminfo ] && dump meminfo cat /proc/meminfo
@@ -363,7 +436,8 @@ if [ 1 -eq $get_syscmds ]; then
     # A bit more complicated, but let's get all of limits.d if it's there
     if [ -d /etc/security/limits.d ]; then
         # check to ensure there is at least something to get
-        if [ -n "`find /etc/security/limits.d -maxdepth 1 -name '*.conf' -print -quit`" ]; then
+        ls -1 /etc/security/limits.d | grep ".conf"
+        if [ 0 -eq $? ]; then
             mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/limits.d
 
             # Mirror the directory, only copying files that match the pattern
@@ -398,14 +472,21 @@ if [ 1 -eq $get_riakcmds ]; then
     dump riak_diag "$riak_bin_dir"/riak-admin diag
     dump riak_repl_status "$riak_bin_dir"/riak-repl status
 
+    # Make a flat, easily searchable version of the app.config settings
+    riak_epaths=`make_app_epaths "${riak_app_config}"`
+
+    # Get one http listener (epath might output a newline-separated list).
+    riak_api_http="`epath 'riak_core http' "$riak_epaths" | sed -e 's/^"//' -e 's/" /:/' | head -n1`"
+
+    # Dump the output of the /stats HTTP endpoint.
+    dump riak_http_stats curl -s "http://$riak_api_http/stats"
+
     # Get the latest ring file
     mkdir_or_die "${start_dir}"/"${debug_dir}"/ring/.info
     cd "${start_dir}"/"${debug_dir}"/ring
 
-    # Make a flat, easily searchable version of the app.config settings
-    riak_epaths=`make_app_epaths "${riak_etc_dir}/app.config"`
     ring_dir="`epath 'riak_core ring_state_dir' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
-    if [ '.' = `echo "$ring_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+    if [ '/' != `echo "$ring_dir" | cut -c1` ]; then
         # relative path. prepend base dir
         ring_dir="$riak_base_dir"/"$ring_dir"
     fi
@@ -437,6 +518,12 @@ if [ 1 -eq $get_extracmds ]; then
     mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/.info
     cd "${start_dir}"/"${debug_dir}"/commands
     dump riak_vnode_status "$riak_bin_dir"/riak-admin vnode-status
+
+    CI=`pwd`/cluster-info.html
+    touch $CI
+    chmod 666 $CI
+    dump cluster-info riak-admin cluster-info $CI local
+    chmod 444 $CI
 fi
 
 ###
@@ -448,10 +535,10 @@ if [ 1 -eq $get_logs ]; then
     cd "${start_dir}"/"${debug_dir}"/logs
 
     # if not already made, make a flat, searchable version of the app.config
-    [ -z "$riak_epaths" ] && riak_epaths=`make_app_epaths "${riak_etc_dir}/app.config"`
+    [ -z "$riak_epaths" ] && riak_epaths=`make_app_epaths "${riak_app_config}"`
 
     log_dir="`epath 'riak_core platform_log_dir' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
-    if [ '.' = `echo "$log_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+    if [ '/' != `echo "$log_dir" | cut -c1` ]; then
         # relative path. prepend base dir
         log_dir="$riak_base_dir"/"$log_dir"
     fi
@@ -462,7 +549,8 @@ if [ 1 -eq $get_logs ]; then
     # Get any logs in the platform_log_dir
     if [ -d "${log_dir}" ]; then
         # check to ensure there is at least something to get
-        if [ -n "`find "${log_dir}" -maxdepth 1 -name '*log*' -print -quit`" ]; then
+        ls -1 "${log_dir}" | grep -q "log"
+        if [ 0 -eq $? ]; then
             mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/platform_log_dir
 
             # Mirror the directory, only copying files that match the pattern
@@ -475,13 +563,16 @@ if [ 1 -eq $get_logs ]; then
     fi
 
     # Lager info and error files
-    for lager_level in info error; do
-        lager_path="`epath 'lager handlers lager_file_backend' "$riak_epaths" \
-                             | grep $lager_level | sed -e 's/^"//' -e 's/".*$//'`"
-
+    new_format_lager_files="`epath 'lager handlers lager_file_backend file' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
+    if [ -z "$new_format_lager_files" ]; then
+        lager_files="`epath 'lager handlers lager_file_backend' "$riak_epaths" | cut -d' ' -f 1 | sed -e 's/^"//' -e 's/".*$//'`"
+    else
+        lager_files=$new_format_lager_files
+    fi
+    for lager_path in $lager_files; do
         # Get lager logs if they weren't in platform_log_dir
         if [ -n "$lager_path" ]; then
-            if [ '.' = `echo "$lager_path" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+            if [ '/' != `echo "$lager_path" | cut -c1` ]; then
                 # relative path. prepend base dir
                 lager_path="$riak_base_dir"/"$lager_path"
             fi
@@ -489,7 +580,8 @@ if [ 1 -eq $get_logs ]; then
             lager_file="`echo $lager_path | awk -F/ '{print $NF}'`"
             lager_dir="`echo $lager_path | awk -F/$lager_file '{print $1}'`"
             if [ "$log_dir" != "$lager_dir" ]; then
-                if [ -n "`find "${lager_dir}" -maxdepth 1 -name "${lager_file}*" -print -quit`" ]; then
+                ls -1 "${lager_dir}" | grep -q "${lager_file}"
+                if [ 0 -eq $? ]; then
                     mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/lager_${lager_level}
                     cp "${lager_path}"* "${start_dir}"/"${debug_dir}"/logs/lager_${lager_level}
                 fi
@@ -497,12 +589,12 @@ if [ 1 -eq $get_logs ]; then
         fi
     done
 
-    # Get leveldb logs
+    # Gather backend logs, listing, sizing information, etc..
     backend=`epath 'riak_kv storage_backend' "$riak_epaths"`
     if [ 'riak_kv_eleveldb_backend' = "$backend" ]; then
         leveldb_dir="`epath 'eleveldb data_root' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
 
-        if [ '.' = `echo "$leveldb_dir" | awk 'BEGIN {FS=""} {print $1}'` ]; then
+        if [ '/' != `echo "$leveldb_dir" | cut -c1` ]; then
             # relative path. prepend base dir
             leveldb_dir="$riak_base_dir"/"$leveldb_dir"
         fi
@@ -513,48 +605,163 @@ if [ 1 -eq $get_logs ]; then
             exit 1
         fi
 
-        mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/leveldb
+        mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/leveldb/.info
+        cd "${start_dir}"/"${debug_dir}"/logs/leveldb
+
+        # Take a listing of the leveldb directory for reference
+        dump ls_leveldb_dir ls -lhR "$leveldb_dir"
+
+        # Take a du listing of the leveldb directory for size checking.
+        # This info is included in the ls, but parsing ls is not recommended.
+        dump du_leveldb_dir du "$leveldb_dir"/*
 
         # Mirror the directory, only copying files that match the pattern
         cd "$leveldb_dir"
-        find . -type f -name 'LOG' -exec sh -c '
+        find . -type f -name 'LOG*' -exec sh -c '
             mkdir -p "$0/${1%/*}";
             cp "$1" "$0/$1"
             ' "${start_dir}"/"${debug_dir}"/logs/leveldb {} \;
 
+    elif [ 'riak_kv_bitcask_backend' = "$backend" ]; then
+        bitcask_dir="`epath 'bitcask data_root' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
+
+        if [ '/' != `echo "$bitcask_dir" | cut -c1` ]; then
+            # relative path. prepend base dir
+            bitcask_dir="$riak_base_dir"/"$bitcask_dir"
+        fi
+
+        if [ ! -d "$bitcask_dir" ]; then
+            echoerr "Unable to locate Bitcask data directory. Aborting."
+            echoerr "Using bitcask data_root: $bitcask_dir"
+            exit 1
+        fi
+
+        mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/bitcask/.info
+        cd "${start_dir}"/"${debug_dir}"/logs/bitcask
+
+        # Take a listing of the bitcask directory for reference
+        dump ls_bitcask_dir ls -lhR "$bitcask_dir"
+
+        # Take a du listing of the bitcask directory for size checking.
+        # This info is included in the ls, but parsing ls is not recommended.
+        dump du_bitcask_dir du "$bitcask_dir"/*
+
+    # Walk multi-backends and collect whatever information is there to collect.
     elif [ 'riak_kv_multi_backend' = "$backend" ] ||
          [ 'riak_cs_kv_multi_backend' = "$backend" ] ; then
-        # Get leveldb logs for any leveldb multi-backends
         for b in `epath 'riak_kv multi_backend' "$riak_epaths" | cut -d ' ' -f 1 | uniq`; do
             backend="`epath "riak_kv multi_backend $b" "$riak_epaths" | cut -d ' ' -f 1 | uniq`"
-            if [ 'riak_kv_eleveldb_backend' != "$backend" ]; then
-                # Not leveldb. Keep looping.
-                continue;
+            if [ 'riak_kv_eleveldb_backend' = "$backend" ]; then
+                dr="`epath "riak_kv multi_backend $b riak_kv_eleveldb_backend data_root" "$riak_epaths" |
+                    sed -e 's/^"//' -e 's/".*$//'`"
+
+                if [ '/' != `echo "$dr" | cut -c1` ]; then
+                    # relative path. prepend base dir
+                    dr="$riak_base_dir"/"$dr"
+                fi
+
+                if [ ! -d "${dr}" ]; then
+                    echoerr "Unable to locate $b LevelDB data directory. Aborting."
+                    echoerr "Using riak_kv_eleveldb_backend data_root: $dr"
+                    exit 1
+                fi
+
+                mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/leveldb-${b}/.info
+                cd "${start_dir}"/"${debug_dir}"/logs/leveldb-${b}
+
+                # Take a listing of the leveldb directory for reference
+                dump ls_leveldb_dir ls -lhR "$dr"
+
+                # Take a du listing of the leveldb directory for size checking.
+                # This info is included in the ls, but parsing ls is not recommended.
+                dump du_leveldb_dir du "$dr"/*
+
+                # Mirror the directory, only copying files that match the pattern
+                cd "$dr"
+                find . -type f -name 'LOG*' -exec sh -c '
+                    mkdir -p "$0/${1%/*}";
+                    cp "$1" "$0/$1"
+                    ' "${start_dir}"/"${debug_dir}"/logs/leveldb-${b} {} \;
+
+            elif [ 'riak_kv_bitcask_backend' = "$backend" ]; then
+                dr="`epath "riak_kv multi_backend $b riak_kv_bitcask_backend data_root" "$riak_epaths" |
+                    sed -e 's/^"//' -e 's/".*$//'`"
+
+                if [ '/' != `echo "$dr" | cut -c1` ]; then
+                    # relative path. prepend base dir
+                    dr="$riak_base_dir"/"$dr"
+                fi
+
+                if [ ! -d "${dr}" ]; then
+                    echoerr "Unable to locate $b Bitcask data directory. Aborting."
+                    echoerr "Using riak_kv_bitcask_backend data_root: $dr"
+                    exit 1
+                fi
+
+                mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/bitcask-${b}/.info
+                cd "${start_dir}"/"${debug_dir}"/logs/bitcask-${b}
+
+                # Take a listing of the bitcask directory for reference
+                dump ls_bitcask_dir ls -lhR "$dr"
+
+                # Take a du listing of the bitcask directory for size checking.
+                # This info is included in the ls, but parsing ls is not recommended.
+                dump du_bitcask_dir du "$dr"/*
             fi
-
-            dr="`epath "riak_kv multi_backend $b riak_kv_eleveldb_backend data_root" "$riak_epaths" |
-                sed -e 's/^"//' -e 's/".*$//'`"
-
-            if [ '.' = `echo "$dr" | awk 'BEGIN {FS=""} {print $1}'` ]; then
-                # relative path. prepend base dir
-                dr="$riak_base_dir"/"$dr"
-            fi
-
-            if [ ! -d "${dr}" ]; then
-                echoerr "Unable to locate $b LevelDB data directory. Aborting."
-                echoerr "Using riak_kv_eleveldb_backend data_root: $dr"
-                exit 1
-            fi
-
-            mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/leveldb-${b}
-
-            # Mirror the directory, only copying files that match the pattern
-            cd "$dr"
-            find . -type f -name 'LOG' -exec sh -c '
-                mkdir -p "$0/${1%/*}";
-                cp "$1" "$0/$1"
-                ' "${start_dir}"/"${debug_dir}"/logs/leveldb-${b} {} \;
         done
+    fi
+
+    # Gather AAE logs, listing, sizing information, etc..
+    # Calling `epath 'riak_kv anti_entropy' "$riak_epaths. . .` will result in
+    # an empty variable regardless of the value set in the configuration
+    # settings. We're going to grab the `anti_entropy_data_dir` instead, and
+    # assume it's presence on disk indicates activity.
+    anti_entropy_dir="`epath 'riak_kv anti_entropy_data_dir' "$riak_epaths" | sed -e 's/^"//' -e 's/".*$//'`"
+
+    if [ '/' != `echo "$anti_entropy_dir" | cut -c1` ]; then
+        # relative path. prepend base dir
+        anti_entropy_dir="$riak_base_dir"/"$anti_entropy_dir"
+    fi
+
+    if [ -d "$anti_entropy_dir" ]; then
+        mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/anti_entropy/.info
+        cd "${start_dir}"/"${debug_dir}"/logs/anti_entropy
+
+        # Take a listing of the anti_entropy_dir directory for reference
+        dump ls_anti_entropy_dir ls -lhR "$anti_entropy_dir"
+
+        # Take a du listing of the anti_entropy_dir directory for size checking.
+        # This info is included in the ls, but parsing ls is not recommended.
+        dump du_anti_entropy_dir du "$anti_entropy_dir"/*
+
+        # Mirror the directory, only copying files that match the pattern
+        cd "$anti_entropy_dir"
+        find . -type f -name 'LOG*' -exec sh -c '
+            mkdir -p "$0/${1%/*}";
+            cp "$1" "$0/$1"
+            ' "${start_dir}"/"${debug_dir}"/logs/anti_entropy {} \;
+    fi
+fi
+
+###
+### Gather Riak's basho-patches directory
+###
+
+if [ 1 -eq $get_patches ]; then
+    mkdir_or_die "${start_dir}"/"${debug_dir}"/basho-patches/.info
+    cd "${start_dir}"/"${debug_dir}"/basho-patches
+
+    # As per the below link, this patch should be based off the base_dir.
+    # http://docs.basho.com/riakee/latest/cookbooks/Rolling-Upgrade-to-Enterprise/#Basho-Patches
+    riak_lib_dir="${riak_base_dir}/lib/basho-patches"
+
+    # Use dump to execute the copy. This will provide a progress dot and
+    # capture any error messages.
+    dump cp_basho_patches cp -R "$riak_lib_dir"/* .
+
+    # If the copy succeeded, then the output will be empty and it is unneeded.
+    if [ 0 -eq $? ]; then
+        rm -f cp_basho_patches
     fi
 fi
 
@@ -564,6 +771,39 @@ fi
 
 if [ 1 -eq $get_cfgs ]; then
     mkdir_or_die "${start_dir}"/"${debug_dir}"/config/.info
+
+    # Capture the needed files from the `riak_etc_dir` directory.
+    cd $riak_etc_dir
+
+    # Convert the list of file blobs to a list of `"! -name <blob> `.
+    # For example if `RIAK_EXCLUDE="*.key mySecretFile"`, this will set
+    # `exclude="! -name *.key ! -name mySecretFile"`.
+    exclude=""
+    for i in `echo $RIAK_EXCLUDE`; do
+        exclude="${exclude}! -name $i "
+    done
+    if [ 0 -eq $get_ssl_certs ]; then
+        for i in `echo "'*.pfx' '*.p12' '*.csr' '*.sst' '*.sto' '*.stl' '*.pem' '*.key'"`; do
+            exclude="${exclude}! -name $i "
+        done
+    fi
+
+    # Compose the `find` command that will exclude the above list of files,
+    # being aware that an empty `\( \)` will cause a failure in the `find`.
+    if [ -n $exclude ]; then
+        run="find . -type f -exec sh -c '
+                mkdir -p \"\$0/\${1%/*}\";
+                cp \"\$1\" \"\$0/\$1\"
+            ' \"\${start_dir}\"/\"\${debug_dir}\"/config {} \;"
+    else
+        run="find . -type f \\( $exclude \\) -exec sh -c '
+                mkdir -p \"\$0/\${1%/*}\";
+                cp \"\$1\" \"\$0/\$1\"
+            ' \"\${start_dir}\"/\"\${debug_dir}\"/config {} \;"
+    fi
+    eval $run
+
+    # Copy the generated configurations into the archive.
     cd "${start_dir}"/"${debug_dir}"/config
 
     # Use dump to execute the copy. This will provide a progress dot and
@@ -600,4 +840,3 @@ rm -rf "${debug_dir}"
 
 # keep things looking pretty
 echoerr ""
-
