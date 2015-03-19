@@ -10,6 +10,9 @@ OVERLAY_VARS    ?=
 
 $(if $(ERLANG_BIN),,$(warning "Warning: No Erlang found in your path, this will probably not work"))
 
+EXOMETER_PACKAGES = "(basic)"
+export EXOMETER_PACKAGES
+
 .PHONY: rel stagedevrel deps
 
 all: deps compile
