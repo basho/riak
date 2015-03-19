@@ -9,7 +9,7 @@
 {erlydtl_opts,[{compiler_options,[report,return,debug_info]}]}.
 {deps,[{node_package,".*",
                      {git,"git://github.com/basho/node_package.git",
-                          "b3b8ee38ee295f7315bef9c1fe97e9fa2b09ff70"}},
+                          "39e3e50be49d091e3b0a698ad3c3743ac315a099"}},
        {goldrush,".*",
                  {git,"git://github.com/DeadZen/goldrush.git",
                       "71e63212f12c25827e0c1b4198d37d5d018a7fec"}},
@@ -24,7 +24,7 @@
                           "fa2e7e3daee0d0a59dadb820fd3381eac4a65770"}},
        {cluster_info,".*",
                      {git,"git://github.com/basho/cluster_info.git",
-                          "1fae829ea639c8fcfeeb080aad02da01ff49b218"}},
+                          "39624cc3e10cb00573b550977933359e77397b7a"}},
        {sidejob,".*",
                 {git,"git://github.com/basho/sidejob.git",
                      "c5aabba2d7daa80c340e110902bbcfcb552ccdcf"}},
@@ -93,7 +93,7 @@
                     "3af4db8ea0f74aca42f6713446dcd5915c795a74"}},
        {riak_core,".*",
                   {git,"git://github.com/basho/riak_core.git",
-                       "b2103c25da94c592912b3c231865608c0a7e2121"}},
+                       "bbd7758d3bc1de6a0945d92a7fefc0c9100a885c"}},
        {riak_pipe,".*",
                   {git,"git://github.com/basho/riak_pipe.git",
                        "c8fc8da4ce21230af899922594df3e8737e8d73a"}},
@@ -123,7 +123,7 @@
                               "96b6ced4d45ba641cbf2c8a8ae9b350dd300bc10"}},
        {riak_kv,".*",
                 {git,"git://github.com/basho/riak_kv.git",
-                     "d3194a2a3d6baf44261b97b36cd64d30e0a192e7"}},
+                     "757111c847f5b67b98836632d806d92a4901dc05"}},
        {merge_index,".*",
                     {git,"git://github.com/basho/merge_index.git",
                          "b701dde5c28956c3b629411e5ff7e50cbb5cb4b3"}},
@@ -153,6 +153,6 @@
                             "9ae39fe562fd61a14f3406247a5fda1b2a806576"}},
        {rebar_lock_deps_plugin,".*",
                                {git,"git://github.com/seth/rebar_lock_deps_plugin.git",
-                                    "2a8d2e803f8a110cac2f13e6f013b4d8e4b06c60"}}]}.
+                                    "7a5835029c42b8138325405237ea7e8516a84800"}}]}.
 {plugins,[rebar_lock_deps_plugin]}.
 
