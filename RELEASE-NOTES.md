@@ -1,3 +1,240 @@
+# Riak 2.0.5 Release Notes
+
+## Changes
+
+* RIAK-1431 - Adding --format=csv to allow some administrative commands to be output as csv files
+  * [clique/pull/42](https://github.com/basho/clique/pull/42)
+  * [clique/pull/45](https://github.com/basho/clique/pull/45)
+
+* Riak-1477 - Sequential tuning
+  Improving leveldb for when a single database (vnode) receives a large write volume. This situation commonly occurs during a Riak handoff operation.
+  * [leveldb/pull/146](https://github.com/basho/leveldb/pull/146)
+
+* Riak-1493 Add optional timeout for handle_handoff_data callback and improve logging
+  * [riak_core/pull/642](https://github.com/basho/riak_core/pull/642)
+
+## Fixes
+* RIAK-1127 - L0 Realtime connection balancing. N v3 repl realtime connections are chosen randomly which can lead to large imbalances. Previous implementations did a better job of ensuring there was good balance. The goal of this work is to bring that back to v3 realtime replication.
+  * [riak/issues/625](https://github.com/basho/riak/issues/625)
+
+
+* Riak-1455 - If Solr complains that the index exists, update Riak's metadata to reflect it
+  * [yokozuna/pull/444](https://github.com/basho/yokozuna/pull/444)
+
+* Riak-1479 - node_get_fsm_time and node_put_fsm_time stats are incorrect. node_get_fsm_time and node_put_fsm_time values are an order of magnitude smaller than 2.0.2
+  * [riak_kv/pull/1075](https://github.com/basho/riak_kv/pull/1075)
+
+* Add a log message for when a pipe fitting fails during a map reduce job
+  * [riak_kv/pull/1073](https://github.com/basho/riak_kv/pull/1073)
+  * [riak_pipe/pull/92](https://github.com/basho/riak_pipe/pull/92)
+
+* Fix erroneous tag syntax in rebar.conf for erlydtl depedency of riak_control
+  * [riak_control/pull/183](https://github.com/basho/riak_control/pull/183)
+
+* Fixed parsing of global flags by delegating parsing to clique instead of riak-admin script
+  * [riak/pull/665](https://github.com/basho/riak/pull/665)
+  * [riak_ee/pull/307](https://github.com/basho/riak_ee/pull/307)
+
+* Reduce overload of sink nodes by balancing inbound connections across all nodes, including nodes not up due to network partition.
+  * [riak_repl/pull/651](https://github.com/basho/riak_repl/pull/651)
+
+## RIAK-1482 - Maps and sets incompatibility in 2.0.4
+
+There was an internal format incompatibility introduced in Riak 2.0.4 such that Map and Set datatypes were unreadable if upgraded from 2.0.2 or earlier. Similarly, datatypes modified on a 2.0.4 node would be unreadable by a 2.0.2 or earlier nodes. Clusters in a rolling upgrade state and MDC setups where the source and sink clusters had different versions would also be affected.
+
+Riak 2.0.5 introduces a negotiated capability and manual feature switch so that clusters with mixed versions and MDC setups can continue to operate with different internal representations. When all nodes are upgraded to 2.0.5, the operator can change the feature switch to enable the new format. The feature switch is only necessary in MDC setup; non-replicated clusters can simply do a rolling upgrade.
+
+New 2.0.5 clusters and MDC setups will operate unaffected by this problem using the new internal format.
+
+Instructions for upgrade of MDC setups:
+
+1. On all 2.0.2 or earlier nodes, add the following to the advanced.config file (according to its syntax rules):  
+`[{riak_kv, [{mdc_crdt_epoch, 1}]}].`
+
+2. All nodes can remain up while this change is made. It does not need to take effect until the node is restarted under 2.0.5.
+Upgrade to 2.0.5 in a rolling fashion as recommended by our documentation. 
+3. When all nodes in all datacenters are at version 2.0.5 or later, remove the configuration from advanced.config and execute this snippet on a single node via riak attach:  
+`riak> rpc:multicall(application, set_env, [riak_kv, mdc_crdt_epoch, 2]).`
+
+  * [riak_dt/pull/111](https://github.com/basho/riak_dt/pull/111)
+  * [riak_test/pull/728](https://github.com/basho/riak_test/pull/728)
+  * [riak_kv/pull/1076](https://github.com/basho/riak_kv/pull/1076)
+
+## Known Issues
+None
+
+## Notes on upgrading
+
+Although undocumented, versions of Riak prior to 2.0 did not prevent the use of the Erlang VM's -sname configuration parameter. As of 2.0 this is no longer permitted. Permitted in 2.0 are nodename in riak.conf and -name in vm.args. If you are upgrading from a previous version of Riak to 2.0 and are using -sname in your vm.args, the below steps are required to migrate away from -sname.  
+
+1. Upgrade to Riak 1.4.12.
+2. Back up the ring directory on each node, typically located in /var/lib/riak/ring.
+3. Stop all nodes in your cluster.
+4. Run `riak-admin reip <old_nodename> <new_nodename>|riak-admin Command Line#reip` on each node in your cluster, for each node in your cluster. For example, in a 5 node cluster this will be run 25 total times, 5 times on each node. The <old_nodename> is the current shortname, and the <new_nodename> is the new fully qualified hostname.
+5. Change riak.conf or vm.args, depending on which configuration system you're using, to use the new fully qualified hostname on each node.
+6. Start each node in your cluster.
+
+## Merged Pull Requests
+* riak_kv/1071: [Reflect error-handling changes in cuttlefish](https://github.com/basho/riak_kv/pull/1071)
+* riak_kv/1075: [The aliases for [riak_kv,vnode,gets|puts,...] were wrong](https://github.com/basho/riak_kv/pull/1075)
+* riak_kv/1076: [Add capability and env_var to control binary format of map/set (riak#667)](https://github.com/basho/riak_kv/pull/1076)
+* eleveldb/132: [Move spec to correct line so we can gen docs](https://github.com/basho/eleveldb/pull/132)
+* riak_core/642: [Add optional timeout for handle_handoff_data callback and improve logging [JIRA: RIAK-1493]](https://github.com/basho/riak_core/pull/642)
+* riak_core/696: [Bump clique to 0.2.5](https://github.com/basho/riak_core/pull/696)
+* yokozuna/438: [Compile bb before misc/bench compile](https://github.com/basho/yokozuna/pull/438)
+* yokozuna/444: [Deal with a Solr Core / Riak Index metadata mismatch](https://github.com/basho/yokozuna/pull/444)
+* clique/37: [Add config formatter support to clique](https://github.com/basho/clique/pull/37)
+* clique/39: [Track pending changes to cuttlefish error handling](https://github.com/basho/clique/pull/39)
+* clique/40: [Allow registration of functions as usage](https://github.com/basho/clique/pull/40)
+* clique/42: [Add CSV formatter and support for other custom formats in general](https://github.com/basho/clique/pull/42)
+* clique/45: [Introduce spec record for args and flags, datatypes, and validators.](https://github.com/basho/clique/pull/45)
+* clique/46: [Print alerts to stderr when using the CSV writer](https://github.com/basho/clique/pull/46)
+* clique/50: [Fix regression that broke --help and --format](https://github.com/basho/clique/pull/50)
+* cuttlefish/180: [Rework error handling to turn errors into smarter nested tuples](https://github.com/basho/cuttlefish/pull/180)
+* riak_dt/111: [Make map/set interoperable with previous versions ](https://github.com/basho/riak_dt/pull/111)
+* riak_repl/651: [Enhance/krab/cluster realtime rebalance rebase 2.0](https://github.com/basho/riak_repl/pull/651)
+* riak_repl/653: [Issue Riak-1338](https://github.com/basho/riak_repl/pull/653)
+* riak_repl/657: [core_connection exit abnormally on socket closed](https://github.com/basho/riak_repl/pull/657)
+* riak_repl/653: [Cleanup riak_repl tests to prevent spurious errors](https://github.com/basho/riak_repl/pull/653)
+
+
+# Riak 2.0.4 Release Notes
+
+## Merged PRs
+* node_package/173: [Fixes for debian control template](https://github.com/basho/node_package/pull/173)
+* riak_dt/110: [Swap orddict for dict in orswot and map](https://github.com/basho/riak_dt/pull/110)
+* riak_kv/1030: [Implement key count estimation via AAE trees](https://github.com/basho/riak_kv/pull/1030)
+* riak_kv/1056: [Expose logs about AAE tree status.](https://github.com/basho/riak_kv/pull/1056)
+* riak_kv/1058: [Use exometer_core](https://github.com/basho/riak_kv/pull/1058)
+* riak_kv/1059: [add missing aliases](https://github.com/basho/riak_kv/pull/1059)
+* riak_kv/1062: [Fixes sibling explosion bug caused by forwarding coordination](https://github.com/basho/riak_kv/pull/1062)
+* riak_kv/1063: [Bugfix for precondition_context test failures.](https://github.com/basho/riak_kv/pull/1063)
+* riak_kv/1065: [Fix bug related to riak_dt#110 serialization changes](https://github.com/basho/riak_kv/pull/1065)
+* riak_kv/1067: [Make read-repair stats be 'proplist' instead of 'value'](https://github.com/basho/riak_kv/pull/1067)
+* riak_kv/1068: [Set schema dirs for riak_core in riak_kv_test_util](https://github.com/basho/riak_kv/pull/1068)
+* riak_kv/1071: [Reflect error-handling changes in cuttlefish](https://github.com/basho/riak_kv/pull/1071)
+* riak_core/633: [Implement key count estimation via AAE trees](https://github.com/basho/riak_core/pull/633)
+* riak_core/663: [use exometer_core instead of exometer](https://github.com/basho/riak_core/pull/663)
+* riak_core/665: [add missing aliases](https://github.com/basho/riak_core/pull/665)
+* riak_core/668: [Replaces feuerlabs/exometer with basho/exometer](https://github.com/basho/riak_core/pull/668)
+* riak_core/669: [Add transfer_limit config callback to handoff_cli](https://github.com/basho/riak_core/pull/669)
+* riak_core/672: [Fixes sibling explosion bug caused by forwarding coordination requests d...](https://github.com/basho/riak_core/pull/672)
+* riak_core/674: [Feature/revised/riak cli handoff status 1239](https://github.com/basho/riak_core/pull/674)
+* riak_core/675: [rename riak_cli to clique](https://github.com/basho/riak_core/pull/675)
+* riak_core/677: [Standardize usage/command registration](https://github.com/basho/riak_core/pull/677)
+* riak_core/678: [Integration/riak admin handoff team](https://github.com/basho/riak_core/pull/678)
+* riak_core/679: [Handle down nodes consistently](https://github.com/basho/riak_core/pull/679)
+* riak_core/680: [Make riak_core_status:active_partitions safe if a node is down.](https://github.com/basho/riak_core/pull/680)
+* riak_core/681: [Cleanup after review](https://github.com/basho/riak_core/pull/681)
+* riak_core/682: [add riak-admin handoff config support](https://github.com/basho/riak_core/pull/682)
+* riak_core/685: [Improve handoff enable/disable config naming](https://github.com/basho/riak_core/pull/685)
+* riak_core/686: [add whitelisted config variables to riak_core_handoff_cli](https://github.com/basho/riak_core/pull/686)
+* riak_core/692: [Allow schema loading with an environment variable](https://github.com/basho/riak_core/pull/692)
+* riak_core/693: [mod_set_forwarding crashes [JIRA: RIAK-1459]](https://github.com/basho/riak_core/pull/693)
+* riak_core/695: [change git url for clique to fix PR #694 [JIRA: RIAK-1460]](https://github.com/basho/riak_core/pull/695)
+* riak_api/72: [Use exometer_core & exometer aliases](https://github.com/basho/riak_api/pull/72)
+* yokozuna/440: [Use exometer_core & exometer aliases](https://github.com/basho/yokozuna/pull/440)
+* yokozuna/441: [minor alias typo](https://github.com/basho/yokozuna/pull/441)
+* riak_search/172: [Fix dep error in rebar.config](https://github.com/basho/riak_search/pull/172)
+* riak_ee/296: [use exometer_core](https://github.com/basho/riak_ee/pull/296)
+* riak_ee/298: [rename riak_cli to clique](https://github.com/basho/riak_ee/pull/298)
+* riak_ee/300: [Specify which package to replace for Debian](https://github.com/basho/riak_ee/pull/300)
+* riak_ee/303: [Add handoff; remove cluster members](https://github.com/basho/riak_ee/pull/303)
+* riak_ee/304: [Add set, show and describe to usage](https://github.com/basho/riak_ee/pull/304)
+* riak_ee/305: [Integration/riak admin handoff team](https://github.com/basho/riak_ee/pull/305)
+* cuttlefish/180: [Rework error handling to turn errors into smarter nested tuples](https://github.com/basho/cuttlefish/pull/180)
+* riak_repl/623: [Improve AAE fullsync by estimating number of keys](https://github.com/basho/riak_repl/pull/623)
+* riak_repl/640: [2.0 port of AAE transient FS failures](https://github.com/basho/riak_repl/pull/640)
+* riak_repl/642: [Added last_fullsync_completed stat tracking.](https://github.com/basho/riak_repl/pull/642)
+* riak_repl/644: [Address some minor bugs around establishing SSL connections](https://github.com/basho/riak_repl/pull/644)
+* riak_repl/645: [Added test and fix to coord_serv not giving list for status.](https://github.com/basho/riak_repl/pull/645)
+* riak_repl/648: [Remove partition from purgatory when giving up](https://github.com/basho/riak_repl/pull/648)
+* riak_pipe/91: [Use exometer_core & exometer aliases](https://github.com/basho/riak_pipe/pull/91)
+
+# Riak 2.0.3 Release Notes
+
+## Merged PRs
+* riak_ee/291: [Introduce exometer metrics into 2.0](https://github.com/basho/riak_ee/pull/291)
+* riak_ee/293: [Remove afunix references](https://github.com/basho/riak_ee/pull/293)
+
+# Riak 2.0.2 Release Notes
+
+## VM Args
+Restore "+scl false", omitted accidentally
+
+## Merged PRs
+* riak_ee/276: [Add '+sfwi 500' and '+scl false' to riak.conf via cuttlefish](https://github.com/basho/riak_ee/pull/276)
+* riak_ee/282: [Added known restrictions to AAE fullsync.](https://github.com/basho/riak_ee/pull/282)
+* riak_ee/283: [Client certificate fix for 2.0.1](https://github.com/basho/riak_ee/pull/283)
+
+# Riak 2.0.1 Release Notes
+
+## AAE Fullsync
+
+The technical preview for AAE fullsync has received some improvements as we work
+toward making it recommended for production.
+
+* AAE exchange is now pipelined to better tolerate long round trip times
+
+* The number of vnode folds needed to transmit differences has been reduced to a single
+  fold, and for small numbers of differences it now uses direct retrieval
+
+* A worker pool has been added to store objects received during fullsync rather
+  than writing them serially
+
+We expect a future 2.0.x point release to support configuration through the
+new `riak.conf` format (aka Cuttlefish). Until then, a few new configuration
+parameters have been added that may be set in `advanced.config`.  The values shown
+below are defaults and do not need to be set.
+
+```
+[{riak_repl, [{fullsync_direct_limit, 1000}, % Number of objects directly retrieved
+                                             % before folding over the vnode on the AAE source
+
+              {fssink_min_workers, 5},       % Fullsync worker pool on the AAE sink
+              {fssink_max_workers, 100}]}]   % minmum workers on stand by and maximum
+                                             % burst size.
+```
+
+There are some important restrictions when testing.
+
+* Using AAE fullsync with SSL is not currently recommended. The
+  improvements in this release generate higher throughput and can
+  cause a deadlock inside the SSL handling code. Resolutions are
+  under investigation.
+
+* Clusters should be configured identically, i.e. with the same number of vnodes,
+  and bucket/bucket type properties should be set the same (specifically
+  `n_val`). If buckets are configured differently, e.g.
+  replication is disabled, different `n_val`s, etc., then unnecessary information
+  will be transmitted and discarded, reducing performance.
+
+## Client certificate authentication
+
+As of the recently released version 2.0, authentication and authorization
+are now available in Riak.
+
+Under 2.0.0, it was possible that malformed client certificates would
+be accepted. This bug has been corrected with 2.0.1.
+
+## Merged PRs
+
+* bitcask/186: [Bugfix/key transform crash](https://github.com/basho/bitcask/pull/186)
+* bitcask/189: [Refresh efile port if gone](https://github.com/basho/bitcask/pull/189)
+* bitcask/190: [Fix scan error deadlock](https://github.com/basho/bitcask/pull/190)
+* bitcask/192: [Fix remove expired on read race](https://github.com/basho/bitcask/pull/192)
+* bitcask/197: [Fix extra tombstones on update](https://github.com/basho/bitcask/pull/197)
+* bitcask/198: [Fix race listing readable files](https://github.com/basho/bitcask/pull/198)
+* riak_kv/1008: [Use SC bucket types and buckets to know ensembles](https://github.com/basho/riak_kv/pull/1008)
+* riak_kv/1026: [Update to use new breadth-first AAE exchange](https://github.com/basho/riak_kv/pull/1026)
+* riak_core/626: [Allow handoff sender to abort handoff by throw'ing from fold fun](https://github.com/basho/riak_core/pull/626)
+* riak_core/627: [Handoff sender sends sync periodically](https://github.com/basho/riak_core/pull/627)
+* riak_core/629: [Add breadth-first AAE exchange](https://github.com/basho/riak_core/pull/629)
+* riak_api/66: [Do not treat errors as success](https://github.com/basho/riak_api/pull/66)
+* riak_repl/618: [Added a worker pool for fullsync sinks.](https://github.com/basho/riak_repl/pull/618)
+* riak_repl/619: [Small user experience fixes.](https://github.com/basho/riak_repl/pull/619)
+* riak_repl/620: [Improved AAE fullsync integration/2.0 pull request](https://github.com/basho/riak_repl/pull/620)
+
 # Riak 2.0.0 Release Notes
 
 ## Major Features / Additions to 2.0
