@@ -1,3 +1,19 @@
+# Riak 2.1.0 Release Notes
+
+## Changes
+
+* node_package/179: [Make sure that locked deps are obeyed for packaging](https://github.com/basho/node_package/pull/179)
+* riak_kv/1072: [Optimize mapreduce by replacing listkeys+get with 2i query](https://github.com/basho/riak_kv/pull/1072)
+* riak_core/713: [Only refuse same common name if CommonName isnt a wildcard CN.](https://github.com/basho/riak_core/pull/713)
+* riak/676: [riak-debug update](https://github.com/basho/riak/pull/676)
+* riak/693: [Make sure that locked deps are obeyed for packaging](https://github.com/basho/riak/pull/693)
+* riak/698: [One more loose end on obeying locked deps](https://github.com/basho/riak/pull/698)
+* riak/707: [Always start xmerl](https://github.com/basho/riak/pull/707)
+* cluster_info/15: [Remove dependency on riak_core](https://github.com/basho/cluster_info/pull/15)
+* cluster_info/16: [Cleanup makefile, delete unused files, update tools.mk, etc.](https://github.com/basho/cluster_info/pull/16)
+* cluster_info/17: [Update formatter for pretty print](https://github.com/basho/cluster_info/pull/17)
+
+
 # Riak 2.0.5 Release Notes
 
 ## Changes
