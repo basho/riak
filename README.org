@@ -36,6 +36,8 @@ strategies, and more, please visit our docs at http://docs.basho.com/.
 
 ** Building Riak
 
+   Note: the `develop` branch currently only supports Erlang R16B02.
+
    Assuming you have a working Erlang (R14B02 or later) installation,
    building Riak should be as simple as:
 
