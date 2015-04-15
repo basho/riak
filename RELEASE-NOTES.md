@@ -80,6 +80,7 @@ Updates the Riak API with an operation to GET, e.g. `/types/Type/buckets/Bucket/
 ## Known Issues
 
 * [yokozuna/issues/481](https://github.com/basho/yokozuna/issues/481) - Search loses entries when Search AAE trees expire. We are currently investigating this issue.
+* [riak/issues/727](https://github.com/basho/riak/issues/727) - Users upgrading from 1.4.x to 2.1.x that choose to use the traditional `app.config` for configuration should be aware that the default settings for `allow_mult` and `dvv_enabled` have changed from `false` to `true` between these versions.  If your application depends on these being set to 'false', you must explicitly define this by adding `{default_bucket_props, [{allow_mult, false}, {dvv_enabled, false}]},` to the `riak_core` section of your `app.config` file to maintain backwards compatibility.
 
 
 ## Notes on upgrading
