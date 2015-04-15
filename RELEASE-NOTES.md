@@ -2,6 +2,10 @@
 
 ## New Features
 
+### Performance Improvements
+
+The introduction of Write Once Buckets allows users to experience up to a 2x performance improvement for write-heavy write-once workloads.  More details on implementing Write Once Buckets are available below.
+
 ### Write Once Bucket Type
 
 Riak 2.1.0 introduces the concept of Write Once Buckets, buckets whose entries are intended to be written exactly once and never updated or overwritten. Since objects are intended to only be written once, Riak does not perform the usual “get, merge, update” cycle which reduces IOPs and improves throughput and latency.
@@ -16,7 +20,7 @@ Limitations:
  * Large object warnings and limits are not enforced.
  * All nodes must be upgraded before enabling `write_once` - usage in mixed clusters will crash vnodes.
  * Riak Enterprise: There is no support for real-time replication with Write Once Buckets.  Full Synchronization is supported with `write_once` bucket types.
- 
+
 ## Changes
 
 * [Issue kv679](https://github.com/basho/riak_kv/issues/679) - Applies fix to most causes of data loss from repeated causal history. A monotonic counter is fsynced to disk when the vnode starts. Thus starting/re-starting a vnode has a cost associated that was not there before. 
