@@ -73,11 +73,11 @@ Updates the Riak API with an operation to GET, e.g. `/types/Type/buckets/Bucket/
   * [yokozuna/pull/470](https://github.com/basho/yokozuna/pull/470)
 
 * [riak_core/issues/698](https://github.com/basho/riak_core/issues/698): SSL connections from peers with matching wildcard name are always rejected.
-  * [riak_core/pull/718](https://github.com/basho/riak_core/pull/718) 
+  * [riak_core/pull/718](https://github.com/basho/riak_core/pull/718)
 
 ## Known Issues
 
-* [yokozuna/issues/481](https://github.com/basho/yokozuna/issues/481) - Yokozuna loses entries when yz AAE trees expire. We are currently investigating this issue.
+* [yokozuna/issues/481](https://github.com/basho/yokozuna/issues/481) - Search loses entries when Search AAE trees expire. We are currently investigating this issue.
 
 
 ## Notes on upgrading
