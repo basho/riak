@@ -80,4 +80,5 @@ Riak は通常の get、merge、updateというサイクルをおこないませ
 ## 既知の問題
 
 * [yokozuna/issues/481](https://github.com/basho/yokozuna/issues/481) - YZ AAEツリーが期限切れの際にYokozunaがエントリーを失う。現在調査中。
+* [riak/issues/727](https://github.com/basho/riak/issues/727) - 1.4.x から 2.1.x へアップグレードするユーザーが `app.config` を利用する場合、`allow_mult` と `dvv_enabled` のデフォルト設定が `false` から `true` へ変更されることに注意。これらの設定が `false` であることにアプリケーションが依存している場合、後方互換を維持するために、明示的な設定 `{default_bucket_props, [{allow_mult, false}, {dvv_enabled, false}]},` を `app.config` の `riak_core` セクションへ設定する必要がある。
 
