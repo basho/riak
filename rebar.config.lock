@@ -114,7 +114,7 @@
                         "7677c240f4a7ed020f4bab48278224966bb42311"}},
        {riak_api,".*",
                  {git,"git://github.com/basho/riak_api.git",
-                      "94a9485ac1eae9a6f72e1e308067cb043d473aab"}},
+                      "3f09915abb234e3403b7e949a680ab810932cd5d"}},
        {riak_dt,".*",
                 {git,"git://github.com/basho/riak_dt.git",
                      "a2986bccd1cc42facdfe739495c6d13762ae0f37"}},
