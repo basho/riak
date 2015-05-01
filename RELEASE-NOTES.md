@@ -1,13 +1,13 @@
 # Riak 2.1.1 Release Notes
+*NOTE: Riak 2.1.1 has replaced Riak 2.1.0*
 
-## Critical Fixes
+## Fixes
+Riak 2.1.0 introduced a bug that has been fixed in Riak 2.1.1. The default configuration for handoff.ip caused vnodes marked for transfer during handoff to be removed without transferring data to their new destination nodes. A mandatory change to configuration (riak.conf) mitigates this issue for 2.1.0 users. While not all users were impacted by this issue, we recommend that all 2.1.0 users upgrade to 2.1.1.
 
-* Default IP address for inbound handoff connections (riak.conf setting handoff.ip) has been
-  reverted to 0.0.0.0.  The 2.1.0 release picked up a setting intended for devrel clusters
-  only.
+Detailed information on the issue is available in the Basho Documentation [Product Advisories](http://docs.basho.com/riak/latest/community/product-advisories/210-dataloss/).
 
-  This resolves Basho Product Advisory - Riak 2.1.0: Default Configuration For Handoff
-  May Cause Data Loss
+* Make default `handoff_ip` value 0.0.0.0 in vars.config.
+  * [riak/pull/734](https://github.com/basho/riak/pull/734)
 
 # Riak 2.1.0 Release Notes
 
@@ -15,22 +15,22 @@
 
 ### Performance Improvements
 
-The introduction of Write Once Buckets allows users to experience up to a 2x performance improvement for write-heavy write-once workloads.  More details on implementing Write Once Buckets are available below.
+The introduction of write-once buckets allows users to experience up to a 2x performance improvement for write-heavy, write-once workloads.  More details on implementing write-once buckets are available below.
 
-### Write Once Bucket Type
+### Write-Once Bucket Type
 
-Riak 2.1.0 introduces the concept of Write Once Buckets, buckets whose entries are intended to be written exactly once and never updated or overwritten. Since objects are intended to only be written once, Riak does not perform the usual “get, merge, update” cycle which reduces IOPs and improves throughput and latency.
+Riak 2.1.0 introduces the concept of write-once buckets, buckets whose entries are intended to be written exactly once and never updated or overwritten. Since objects are intended to only be written once, Riak does not perform the usual “get, merge, update” cycle which reduces IOPs and improves throughput and latency.
 
 It is still possible for multiple entries to be written to a single key -- through mis-use of the API, network partitions, simultaneous writes, etc.. In these cases, Riak will always resolve siblings using an algorithm based on the SHA-1 hashes of the conflicting objects. While this algorithm is repeatable and deterministic at the database level, it will have the appearance to the user of “random write wins”.
 
-The `write_once` property is a boolean value applied to a bucket type and may only be set at bucket creation time. Once a bucket type has been set and activated with the `write_once` property, the property may not be modified.
+The `write_once` property is a boolean value applied to a bucket type and may only be set at bucket creation time. Once a bucket type has been set and activated with the `write_once` property, the property may not be modified
 
 Limitations:
 
  * Pre/Post-commit hooks are not supported.
  * Large object warnings and limits are not enforced.
  * All nodes must be upgraded before enabling `write_once` - usage in mixed clusters will crash vnodes.
- * Riak Enterprise: There is no support for real-time replication with Write Once Buckets.  Full Synchronization is supported with `write_once` bucket types.
+ * Riak Enterprise: There is no support for real-time replication with write-once buckets.  Full Synchronization is supported with `write_once` bucket types.
 
 ## Changes
 
@@ -96,8 +96,8 @@ Updates the Riak API with an operation to GET, e.g. `/types/Type/buckets/Bucket/
 
 ## Notes on upgrading
 
-* Write Once Buckets
-  * If you make use of Write Once Buckets, you must upgrade all of your Riak nodes in a cluster to 2.1.0.  There is no support for Write Once Buckets in a cluster with mixed Riak versions.
-  * Riak Enterprise: There is no support for real-time replication with Write Once Buckets.  Full Synchronization is supported with `write_once` bucket types.
+* Write-Once Buckets
+  * If you make use of write-once buckets, you must upgrade all of your Riak nodes in a cluster to 2.1.0.  There is no support for write-once buckets in a cluster with mixed Riak versions.
+  * Riak Enterprise: There is no support for real-time replication with write-once buckets.  Full Synchronization is supported with `write_once` bucket types.
   * Pre/Post-commit hooks are not supported.
-  * Large object warnings and limits are not enforced.
+  * Large object warnings and limits are not enforced
