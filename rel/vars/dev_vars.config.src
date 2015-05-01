@@ -17,6 +17,7 @@
 {cluster_manager_ip,   "127.0.0.1"}.
 {cluster_manager_port,  @CM_PORT@}.
 {web_port,          @WEBPORT@}.
+{handoff_ip,        "127.0.0.1"}.
 {handoff_port,      @HANDOFFPORT@}.
 {pb_ip,             "127.0.0.1"}.
 {pb_port,           @PBPORT@}.
