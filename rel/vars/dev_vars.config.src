@@ -15,6 +15,7 @@
 %%
 {web_ip,            "127.0.0.1"}.
 {web_port,          @WEBPORT@}.
+{handoff_ip,        "127.0.0.1"}.
 {handoff_port,      @HANDOFFPORT@}.
 {pb_ip,             "127.0.0.1"}.
 {pb_port,           @PBPORT@}.
