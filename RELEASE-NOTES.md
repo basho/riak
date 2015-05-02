@@ -1,3 +1,14 @@
+# Riak 2.1.1 Release Notes
+
+## Critical Fixes
+
+* Default IP address for inbound handoff connections (riak.conf setting handoff.ip) has been
+  reverted to 0.0.0.0.  The 2.1.0 release picked up a setting intended for devrel clusters
+  only.
+
+  This resolves Basho Product Advisory - Riak 2.1.0: Default Configuration For Handoff
+  May Cause Data Loss
+
 # Riak 2.1.0 Release Notes
 
 ## New Features
