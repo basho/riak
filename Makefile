@@ -96,7 +96,7 @@ SEQ = $(shell awk 'BEGIN { for (i = 1; i < '$(DEVNODES)'; i++) printf("%i ", i);
 $(eval stagedevrel : $(foreach n,$(SEQ),stagedev$(n)))
 $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
-dev% : locked-all
+dev% : all
 	mkdir -p dev
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
 	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
@@ -291,5 +291,5 @@ package: distdir/$(PKG_ID).tar.gz
 export PKG_VERSION PKG_ID PKG_BUILD BASE_DIR ERLANG_BIN REBAR OVERLAY_VARS RELEASE
 
 # Package up a devrel to save time later rebuilding it
-pkg-devrel: devrel
+pkg-devrel: locked-deps devrel
 	tar -czf $(PKG_ID)-devrel.tar.gz dev/
