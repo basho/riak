@@ -860,7 +860,7 @@ if [ 1 -eq $get_cfgs ]; then
 
     # Compose the `find` command that will exclude the above list of files,
     # being aware that an empty `\( \)` will cause a failure in the `find`.
-    if [ -n $exclude ]; then
+    if [ -n "$exclude" ]; then
         run="find . -type f -exec sh -c '
                 mkdir -p \"\$0/\${1%/*}\";
                 cp \"\$1\" \"\$0/\$1\"
