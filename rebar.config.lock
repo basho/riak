@@ -24,7 +24,7 @@
                      "760928ec8870da02eb11bccb501e2700925d06c6"}},
        {cuttlefish,".*",
                    {git,"git://github.com/basho/cuttlefish.git",
-                        "4edddb785884d953ac63a82375c90e0477fce650"}},
+                        "1f82923b5407a17bb50a93d677061e233fd450ca"}},
        {syslog,".*",
                {git,"git://github.com/Vagabond/erlang-syslog.git",
                     "918c9b453e0811b24f2c99b35b712b0ef9f29c7e"}},
