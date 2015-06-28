@@ -14,7 +14,7 @@ This is a bugfix release addressing minor issues and making some improvements fo
 * [[Issue #437](https://github.com/basho/yokozuna/issues/437)/[PR #458](https://github.com/basho/yokozuna/pull/458)] - `yz_events:handle_info` called with bad arguments.
 * [[Issue #402](https://github.com/basho/yokozuna/pull/402)/[PR #463](https://github.com/basho/yokozuna/pull/463) & [PR #476](https://github.com/basho/yokozuna/pull/476) & [PR #515](https://github.com/basho/yokozuna/pull/515) & [PR #509](https://github.com/basho/yokozuna/pull/509)] - When creating a new search index via HTTP, HTTP responded before the index was available. Now you can change timeout via `index_put_timeout_ms` in the yokozuna section of advanced config.
 * [Zendesk issue/[PR #487](https://github.com/basho/yokozuna/pull/487)] - Stops index creation loop on bad data.
-* [PR#732](https://github.com/basho/riak_core/pull/732)] - Handle long_schedule messages about ports correctly.
+* [[PR#732](https://github.com/basho/riak_core/pull/732)] - Handle long_schedule messages about ports correctly.
 * [[Issue #1103](https://github.com/basho/riak_kv/issues/1103)/[PR #1143](https://github.com/basho/riak_kv/pull/1143)] - Corrupted or truncated KV vnode status files prevented nodes from starting up.
 * **Riak Multi-Datacenter Replication** - A race condition bug was causing load testing log to show "Heartbeat is misconfigured..." error when no issue was present.
 * **Riak Multi-Datacenter Replication** - When the provider process got stuck for an extended period of time, it would be sent a large amount of keep alive messages. Now, the keepalive timer is only reset upon receiving a keepalive request, and only one keepalive timer will ever be active.
