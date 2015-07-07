@@ -1,3 +1,37 @@
+# Riak 2.0.6 リリースノート
+
+2015/07/30 リリース
+
+これはバグフィックスとパフォーマンス改善を含むリリースです。
+
+## バグ修正
+
+* **Riakマルチデータセンターレプリケーション** - 競合状態により、負荷テストをおこなうと"Heartbeat is misconfigured..." というエラーが意味もなく出力される。
+* **Riakマルチデータセンターレプリケーション** - providerプロセスが長時間にわたって詰まると、多くのkeepaliveメッセージが送信される。現在、keepaliveタイマーは受け取ったkeepaliveリクエスト上のみでリセットされ、ひとつのkeepaliveタイマーしか起動しない。
+* [[Issue #481](https://github.com/basho/yokozuna/issues/481)/[PR #486](https://github.com/basho/yokozuna/pull/486)] - デフォルトbucket-typeにおいて 検索インデックスのentropy dataが実際にputされたデータと合っていなかった。
+* [[Issue #723](https://github.com/basho/riak/issues/723)/[PR #482](https://github.com/basho/yokozuna/pull/482) & [PR #773](https://github.com/basho/riak_test/pull/773)] - `map` が設定された `bucket-type` におけるインデキシングで、Riak Searchが整合しない結果を返す。set がレスポンスで返るように `default_schema` のstored設定を一部変更。
+* [[Issue #70](https://github.com/basho/riak_ensemble/issues/70)/[PR #75](https://github.com/basho/riak_ensemble/pull/75)] - leveldb synctree内のensembleピアのブロックによりensembleが起動できない。現在、leveldb synctreeのロックはローカルノードに限定されている。
+* [[Issue #450](https://github.com/basho/yokozuna/issues/450)/[PR #459](https://github.com/basho/yokozuna/pull/459)] - キー、バケット、バケットタイプにスペースが含まれるとRiak Search AAEでエラーが発生。
+* [[Issue #469](https://github.com/basho/yokozuna/pull/469)/[PR #470](https://github.com/basho/yokozuna/pull/470)] - Yokozuna statにおける誤字 'throughtput' を 'throughput' に修正。
+* [[Issue #437](https://github.com/basho/yokozuna/issues/437)/[PR #458](https://github.com/basho/yokozuna/pull/458)] - `yz_events:handle_info` が誤った引数で呼ばれていた。
+* [[Issue #402](https://github.com/basho/yokozuna/pull/402)/[PR #463](https://github.com/basho/yokozuna/pull/463) & [PR #476](https://github.com/basho/yokozuna/pull/476) & [PR #515](https://github.com/basho/yokozuna/pull/515) & [PR #509](https://github.com/basho/yokozuna/pull/509)] - HTTPで新しい検索インデックスを作成すると、インデックスが有効になる前にHTTPレスポンスが返されていた。現在、advanced.config内yokozunaセクションの`index_put_timeout_ms`でタイムアウト設定が行える。
+* [Zendesk issue/[PR #487](https://github.com/basho/yokozuna/pull/487)] - 不適切なデータに対するインデックス作成の繰返しを停止。
+* [[PR#732](https://github.com/basho/riak_core/pull/732)] - port に関する long_schedule メッセージを正しく処理する。
+* [[Issue #1103](https://github.com/basho/riak_kv/issues/1103)/[PR #1143](https://github.com/basho/riak_kv/pull/1143)] - 壊れた kv vnode statusファイルがノードの起動を妨げていた。
+
+## 改善
+
+* Extractor map の保存先をringからmochiglobalへ変更 [[PR #483](https://github.com/basho/yokozuna/pull/483)/[PR #779](https://github.com/basho/riak_test/pull/779)]
+* クエリプランのキャッシュにインデックス名ではなく`n_val`を利用するように変更 [[PR #478](https://github.com/basho/yokozuna/pull/478)]
+* SCやCRDTを利用している際に、siblingsを削除しない [[PR #452](https://github.com/basho/yokozuna/pull/452)]
+* `pb_listener`がネットワーク分断時に、確立済みコネクションを離さないため、これを回避するために `keepalive` を追加 [[PR #89](https://github.com/basho/riak_api/pull/89)]
+* Jettyの利用する一時ディレクトリ `search.temp_dir` が設定可能になった [[PR #413](https://github.com/basho/yokozuna/pull/413)]
+* デフォルト `bucket_types` を修正した新しいバージョンへ対応するため`riak_core` capability を追加  [[Issue #491](https://github.com/basho/yokozuna/issues/491)/[PR #492](https://github.com/basho/yokozuna/pull/492)]
+* LevelDBにて単一vnodeの負荷（handoffなど）を調整する write スロットルの改善、および微調整 [[PR #146](https://github.com/basho/leveldb/pull/146)]
+* 他の*nix環境でも動くようbashをshへ変更。fetchコマンドのサポート (FreeBSDでのタウンロード用途) [[PR #475](https://github.com/basho/yokozuna/pull/475)]
+* Fullsync中のhandoffでdeadlockが発生する問題への対応 [[PR #1106](https://github.com/basho/riak_kv/pull/1106)/[PR #789](https://github.com/basho/riak_test/pull/789)]
+* 管理コマンド stop, restart, reboot のログ出力追加 [[PR #184](https://github.com/basho/node_package/pull/184)]
+
 # Riak 2.0.5 リリースノート
 
 ## 変更
