@@ -1,0 +1,52 @@
+#! /bin/bash
+#
+#
+syntax() {
+    cat <<EOF
+Display all merges between two top-level release tags
+
+   all_merges [previous [next]]
+
+Will retrieve the rebar.config.lock for both releases and display
+the git-shortlog -m of changes between the two.
+
+EOF
+}
+
+
+PREV=${1:-$(git describe | sed -e 's/-[0-9]*-g[0-9a-f]*$//')}
+NEXT=${2:-HEAD}
+DEPS_TO_CSV=$(dirname $0)/rebar_deps_to_csv
+
+TMPDIR=/tmp/rcl.$$
+mkdir $TMPDIR
+
+git show $PREV:rebar.config.lock > $TMPDIR/rcl.prev.$$
+git show $NEXT:rebar.config.lock > $TMPDIR/rcl.next.$$
+
+$DEPS_TO_CSV $TMPDIR/rcl.prev.$$ > $TMPDIR/rcl.prev.csv.$$
+$DEPS_TO_CSV $TMPDIR/rcl.next.$$ > $TMPDIR/rcl.next.csv.$$
+
+join -t, $TMPDIR/rcl.prev.csv.$$ $TMPDIR/rcl.next.csv.$$ > $TMPDIR/rcl.diff.csv.$$
+
+ROOT=$(dirname $0)/..
+
+echo '# Differences between $PREV and $NEXT'
+while IFS=, read repo prevtype prevsha nexttype nextsha
+do
+    echo "## $repo"
+    echo "Prev: $prevsha<br/>"
+    echo "Next: $nextsha"
+    echo
+    if [ "$prevsha" == "$nextsha" ]
+    then
+        echo "No changes"
+    else
+        echo "\`\`\`"
+        (cd $ROOT/deps/$repo && git shortlog -m ${prevsha}..${nextsha})
+        echo "\`\`\`"
+    fi
+    echo
+    echo
+done < $TMPDIR/rcl.diff.csv.$$
+rm -rf $TMPDIR
