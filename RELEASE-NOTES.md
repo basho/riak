@@ -6,8 +6,8 @@ This is a bugfix release addressing minor issues and making some improvements fo
 
 ##Bugs Fixed
 
-* [[Issue #481](https://github.com/basho/yokozuna/issues/481)/[PR #482](https://github.com/basho/yokozuna/pull/482)] - Riak Search was losing entries when YZ AAE trees expired. To address this, `default_schema` has been updated to return sets in query responses by storing them.
-* [[Issue #723](https://github.com/basho/riak/issues/723)/[PR #482](https://github.com/basho/yokozuna/pull/482) & [PR #773](https://github.com/basho/riak_test/pull/773)] - Search did not return consistent results when indexing a `bucket-type` with `map`. Now, a check for `map` embedded fields and counts is run, and the `default_schema` has been updated to return sets in query responses by storing them.
+* [[Issue #481](https://github.com/basho/yokozuna/issues/481)/[PR #486](https://github.com/basho/yokozuna/pull/486)] - Riak Search was losing entries when YZ AAE trees expired. To address this, we fixed how we dealt with `default` bucket types when building yokozuna hashtrees.
+* [[Issue #723](https://github.com/basho/riak/issues/723)/[PR #482](https://github.com/basho/yokozuna/pull/482) & [PR #773](https://github.com/basho/riak_test/pull/773)] - Search did not return consistent results when indexing a `bucket-type` with `sets` in a `map`. Now, a check for `map` embedded fields and counts is run, and the `default_schema` has been updated to return sets in query responses by storing them.
 * [[Issue #70](https://github.com/basho/riak_ensemble/issues/70)/[PR #75](https://github.com/basho/riak_ensemble/pull/75)] - Some clusters were unable to start ensembles due to a block on ensemble peers within the leveldb synctree. Now leveldb synctree lock behavior is limited to local node.
 * [[Issue #450](https://github.com/basho/yokozuna/issues/450)/[PR #459](https://github.com/basho/yokozuna/pull/459)] - Riak Search AAE was throwing errors when one was using keys/buckets/bucket_types with spaces.
 * [[Issue #469](https://github.com/basho/yokozuna/pull/469)/[PR #470](https://github.com/basho/yokozuna/pull/470)] - Fix YZ stats name typo from 'throughtput' to 'throughput'.
