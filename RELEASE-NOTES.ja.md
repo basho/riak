@@ -1,3 +1,14 @@
+# Riak 2.1.1 リリースノート
+*注: Riak 2.1.0 は Riak 2.1.1 に置き換わりました*
+
+## 修正
+Riak 2.1.0 で混入した handoff.ip のデフォルト設定に起因するバグが、 Riak 2.1.1 で修正されました。これはhandoffにおいて、転送先ノードへのデータ転送を伴わずに、データ転送済みvnodeを削除するマークが付与される問題でした。2.1.0 のユーザーがこの問題を回避するには設定変更(riak.conf)が必須となります。全ユーザーがこの問題の影響を受けるわけではありませんが、すべての 2.1.0 ユーザーに対し、2.1.1へのアップグレードを推奨します。
+
+この問題の詳細はBasho Documentaion の [Product Advisories](http://docs.basho.com/riak/latest/community/product-advisories/210-dataloss/) で確認できます。
+
+*  vars.config内で `handoff_ip` のデフォルト値を 0.0.0.0 へ変更。
+  * [riak/pull/734](https://github.com/basho/riak/pull/734)
+
 # Riak 2.1.0 リリースノート
 
 ## 新機能
