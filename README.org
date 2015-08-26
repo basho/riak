@@ -173,8 +173,8 @@ strategies, and more, please visit our docs at http://docs.basho.com/.
    each their own source repository.  Currently, official Riak
    client language libraries include:
 
-   + Javascript
-     https://github.com/basho/riak-javascript-client
+   + NodeJS
+     https://github.com/basho/riak-nodejs-client
 
    + Python
      https://github.com/basho/riak-python-client
