@@ -40,8 +40,7 @@ Features not supported in Beta:
     * Example: Assume a default system with a 15min quanta.
     * A query of “time > 1 o’clock and time < 2 o’clock” will be fine because it covers 4 quanta.
     * A query of “time > 1 o’clock and time < 3 o’clock” will fail because it covers more than 4 quanta.
-* RTS-355 : Intermittent failure of prop quantum bounded EQC test
-  * Only occurs when using month quanta.
+* If you use monthly quanta, there may be data loss. For now, please do not use month quanta.
 
 ##What has been tested
 * Riak KV regression Tests
