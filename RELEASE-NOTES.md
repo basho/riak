@@ -18,7 +18,7 @@ Features included in Beta:
 * Near-linear scaling
 * Ability to store structured and semi-structured data
 * Operating Systems: CentOS 6 & 7, Debian 6 & 7, Ubuntu 14.04
-* Clients: Ruby, Java, and Erlang 
+* Clients: Java and Erlang 
 
 Features not supported in Beta:
 
