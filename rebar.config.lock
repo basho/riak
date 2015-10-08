@@ -153,7 +153,7 @@
                      "e8ae353c16d4f0897abb9f80025b52925b974dd1"}},
        {yokozuna,".*",
                  {git,"git://github.com/basho/yokozuna.git",
-                      "2fc951f61f856834b5a0fd6edc5b0240898c7622"}},
+                      "348682022c40b9190a10cfd393deceb8efed3d5c"}},
        {canola,".*",
                {git,"git://github.com/basho/canola.git",
                     "9bdfee88fce20b3a01b7003696b53eb21913d6fb"}},
