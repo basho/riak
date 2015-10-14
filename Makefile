@@ -1,4 +1,4 @@
-REPO            ?= riak_ee
+REPO            ?= riak_ts_ee
 # packagers need hyphens not underscores
 APP              = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
 PKG_REVISION    ?= $(shell git describe --tags)
