@@ -31,6 +31,9 @@ Features not supported in Beta:
 
 
 ##Known Issues
+* When invoking `riak-admin` to create a TS bucket type, do so as the user who
+  runs Riak (`riak` if using the Basho packages). Invoking it as another user
+  will result in shell script errors related to improper escaping of the JSON.
 * For Beta, AAE must be turned off.
 * Queries can only range over 1 to 4 quanta
   * If you write too large a range your query will generate too many sub-queries and the query system will refuse to run it.  
