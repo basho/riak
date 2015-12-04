@@ -902,9 +902,9 @@ fi
 
 if [ '-' = "$outfile" ]; then
     # So we don't get a file literally named -
-    tar zcf - "${debug_dir}"
+    tar cf - "${debug_dir}" | gzip
 else
-    tar zcf "$outfile" "${debug_dir}"
+    tar cf - "${debug_dir}" | gzip > "$outfile"
 
     # provide some indication of the output filename
     printf " $outfile" 1>&2
