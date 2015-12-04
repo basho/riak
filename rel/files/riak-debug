@@ -30,7 +30,8 @@ if [ `uname -s` = 'SunOS' -a "${POSIX_SHELL}" != "true" ]; then
     POSIX_SHELL="true"
     export POSIX_SHELL
     # To support 'whoami' add /usr/ucb to path
-    PATH=/usr/ucb:$PATH
+    # To use 'nawk' as 'awk', add /usr/xpg4/bin to path
+    PATH=/usr/xpg4/bin:/usr/ucb:$PATH
     export PATH
     exec /usr/bin/ksh $0 "$@"
 fi
