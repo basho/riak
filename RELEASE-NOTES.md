@@ -1,3 +1,10 @@
+#Riak KV 2.1.3 Release notes
+Released December 9, 2015
+
+This is a repackaging of 2.1.2 with the correct version of eleveldb/leveldb libraries included, as they were mis-packaged during our final build. 
+
+**Please note:** The required configuration changes in the Upgrading section of the 2.1.2 release notes still apply, unless you've already upgraded to 2.1.2.
+
 #Riak KV 2.1.2 Release Notes
 
 Released December 1, 2015.
