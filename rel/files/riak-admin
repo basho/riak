@@ -25,7 +25,7 @@ usage() {
     echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
     echo "                    reip | js-reload | erl-reload | wait-for-service | ringready |"
     echo "                    transfers | force-remove | down | cluster-info | member-status |"
-    echo "                    ring-status | vnode-status | aae-status | sweep-status |"
+    echo "                    ring-status | vnode-status | aae-status | sweeper |"
     echo "                    diag | stat | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
@@ -838,17 +838,10 @@ case "$1" in
         $NODETOOL rpc riak_kv_console aae_status "$@"
         ;;
 
-    sweep[_-]status)
-        if [ $# -ne 1 ]; then
-            echo "Usage: $SCRIPT $1"
-            exit 1
-        fi
-        shift
-
+    sweeper)
         # Make sure the local node is running
         node_up_check
-
-        $NODETOOL rpc riak_kv_console sweep_status "$@"
+        $NODETOOL rpc riak_kv_console command $SCRIPT "$@"
         ;;
 
     ensemble[_-]status)
