@@ -123,7 +123,7 @@
                      "a2986bccd1cc42facdfe739495c6d13762ae0f37"}},
        {riak_ql,".*",
                 {git,"git@github.com:basho/riak_ql.git",
-                     "0e798f5b10a5f3de084a63cf5690b8deb54b3152"}},
+                     "5a0d38463e384d59b0cee51b7e9021f0950363f0"}},
        {eunit_formatters,".*",
                          {git,"git://github.com/seancribbs/eunit_formatters",
                               "96b6ced4d45ba641cbf2c8a8ae9b350dd300bc10"}},
