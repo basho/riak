@@ -178,6 +178,12 @@
        {riak_auth_mods,".*",
                        {git,"git://github.com/basho/riak_auth_mods.git",
                             "31b8b30e6c215418522eaa615264ae9769a87410"}},
+       {riakc,".*",
+              {git,"git://github.com/basho/riak-erlang-client",
+                   "e50da5e877349634249ab592fe3c5d91f09c7aa7"}},
+       {riak_shell,".*",
+                   {git,"git@github.com:/basho/riak_shell.git",
+                        "670efe3db6dee489ece64576dc4ae21dbeb4d953"}},
        {rebar_lock_deps_plugin,".*",
                                {git,"git://github.com/seth/rebar_lock_deps_plugin.git",
                                     "7a5835029c42b8138325405237ea7e8516a84800"}}]}.
