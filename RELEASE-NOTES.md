@@ -13,7 +13,7 @@ Riak TS 1.2.0 introduces riak_shell, a shell that allows you to run SQL within R
 ##Changes
 
 * Aggregate and arithmetic functions can now be used together in a single value expression. [[PR #1327](https://github.com/basho/riak_kv/pull/1327), [PR #90](https://github.com/basho/riak_ql/pull/90), and [PR #95](https://github.com/basho/riak_ql/pull/95)]
-* In Riak TS 1.1, `STDDEV()` was actually an implementation of Population Standard Deviation. Since it is standard in database systems to use `STDDEV()` for implementations of Sample Standard Deviation and `STDDEV_POP()` or similar for Population Standard Deviation, `STDDEV()` has been renamed `STDDEV_POP()`. Additionally, support for `STDDEV()` (Sample Standard Deviation) has been added. [[PR #98](https://github.com/basho/riak_ql/pull/98)]
+* In Riak TS 1.1, `STDDEV()` was actually an implementation of Population Standard Deviation. Since it is standard in database systems to use `STDDEV()` for implementations of Sample Standard Deviation and `STDDEV_POP()` or similar for Population Standard Deviation, `STDDEV()` has been renamed `STDDEV_POP()`. Additionally, `STDDEV_SAMP` has been added for Sample Standard Deviation, and `STDDEV()` is now treated as Sample Standard Deviation as well. [[PR #98](https://github.com/basho/riak_ql/pull/98)]
 
 
 ##Bugfixes
