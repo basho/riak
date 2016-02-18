@@ -183,7 +183,7 @@
                    "e50da5e877349634249ab592fe3c5d91f09c7aa7"}},
        {riak_shell,".*",
                    {git,"git@github.com:/basho/riak_shell.git",
-                        "33924d48267a449d5d4e2fd57eaba56a932ecf81"}},
+                        "0537d1aecf7dbf821ecbaa71e2ae16b551ef9abe"}},
        {rebar_lock_deps_plugin,".*",
                                {git,"git://github.com/seth/rebar_lock_deps_plugin.git",
                                     "7a5835029c42b8138325405237ea7e8516a84800"}}]}.
