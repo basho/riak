@@ -31,6 +31,7 @@ distclean: clean devclean relclean ballclean
 	./rebar delete-deps
 
 generate:
+	deps/riak_shell/rel/gen_shell rel deps/riak_shell/etc/riak_shell.config.src rel/vars/riak_shell.config
 	./rebar generate $(OVERLAY_VARS)
 
 
@@ -97,6 +98,7 @@ $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 dev% : all
 	mkdir -p dev
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
+	deps/riak_shell/rel/gen_shell $(DEVNODES) deps/riak_shell/etc/riak_shell.config.src rel/vars/riak_shell.config
 	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
 
 perfdev : all
