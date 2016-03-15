@@ -1,10 +1,11 @@
 REPO            ?= riak_ee
 # packagers need hyphens not underscores
 APP              = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
+HEAD_REVISION   ?= $(shell git describe --tags --exact-match HEAD 2>/dev/null)
 PKG_REVISION    ?= $(shell git describe --tags)
 PKG_BUILD        = 1
 BASE_DIR         = $(shell pwd)
-ERLANG_BIN       = $(shell dirname $(shell which erl))
+ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
 REBAR           ?= $(BASE_DIR)/rebar
 OVERLAY_VARS    ?=
 
@@ -22,6 +23,7 @@ compile:
 	$(MAKE) -C deps/riak_jmx/java_src
 
 deps:
+	$(if $(HEAD_REVISION),$(warning "Warning: you have checked out a tag ($(HEAD_REVISION)) and should use the locked-deps target"))
 	./rebar get-deps
 
 clean: testclean
