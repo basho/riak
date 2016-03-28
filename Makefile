@@ -1,4 +1,9 @@
-REPO            ?= riak_ts
+## REPO is sort of a misnomer. What really is expected here is a product name
+## that we can determine the 'APP' from. This expects the product to be properly
+## tagged with a '-' delimiter. The form of the tag MUST be <product>-<version>.
+## The delimiter for the product name itself must be '_', ie. riak_ts_ee. A full
+## tag would then look like: riak_ts_ee-1.3.0rc7.
+REPO            ?= $(shell git describe --tags | cut -d '-' -f 1)
 PKG_REVISION    ?= $(shell git describe --tags)
 PKG_BUILD        = 1
 BASE_DIR         = $(shell pwd)
