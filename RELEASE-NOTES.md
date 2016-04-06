@@ -8,7 +8,7 @@ Riak KV 2.1.4 is a bugfix release to address two large bugs.
 ## Bugs Fixed
 
 - eleveldb has been upgraded to version 2.0.17, which contains fixes for these issues:
-    - Riak KV restarts and active anti-entropy (AAE) tree rebuilds could cause a segfault, terminating Riak KV's process. ([More info](https://github.com/basho/leveldb/wiki/mv-startup-segfault))
+    - Riak KV restarts and active anti-entropy (AAE) tree rebuilds could cause a segfault, terminating Riak KV's process. ([More info](http://docs.basho.com/riak/latest/community/product-advisories/leveldbsegfault/))
     - LevelDB's tiered storage is susceptible to data loss if Riak KV is stopped and started with less than 60 Mb stored per vnode. ([More info](https://github.com/basho/leveldb/wiki/mv-tiered-recovery-log))
     - LevelDB's recovery option does not work with tier-storage due to failed parameter passing with Riak KV. ([More info](https://github.com/basho/leveldb/wiki/mv-tiered-recovery-log))
     - Riak KV's active anti-entropy (AAE) process has potential to induce a segfault, though this issue has only been seen in new development code and not in existing releases. ([More info](https://github.com/basho/leveldb/wiki/mv-aae-segfault))
