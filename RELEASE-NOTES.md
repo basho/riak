@@ -1,3 +1,19 @@
+#Riak KV 2.1.4 Release Notes
+
+Released April 4, 2016.
+
+This is a bugfix release providing patches for the [Riak init file](http://docs.basho.com/riak/latest/community/product-advisories/codeinjectioninitfiles/) Product Advisory and the [leveldb segfault](http://docs.basho.com/riak/latest/community/product-advisories/leveldbsegfault/) Product Advisory.
+
+##Upgraded Components
+
+* LevelDB has been updated to version 2.0.15
+* node_package has been updated to version 3.0.0. [See the node_package release notes](https://github.com/basho/node_package/blob/develop/RELEASE-NOTES.md)
+
+##Bugs Fixed
+
+* [[Issue #796](https://github.com/basho/riak/issues/796)/[PR #798](https://github.com/basho/riak/pull/798) riak-debug has been updated to be compatible with Solaris systems.
+
+
 #Riak KV 2.1.2/2.1.3 Release Notes
 
 **2.1.3 - Released December 9, 2015**
