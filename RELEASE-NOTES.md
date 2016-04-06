@@ -1,3 +1,57 @@
+#Riak KV 2.1.4 Release Notes
+
+**2.1.4 - Released April 6, 2016**
+
+Riak KV 2.1.4 is a bugfix release. The two major changes in this release are:
+- An upgrade to eleveldb 2.0.17, which contains fixes for these issues:
+    - [Riak restarts and active anti-entropy (AAE) tree rebuilds could cause a segfault, terminating Riak's process.]((https://github.com/basho/leveldb/wiki/mv-startup-segfault))
+    - [leveldb's tiered storage is susceptible to data loss if Riak is stop and started with less than 60Mbytes stored per vnode.](https://github.com/basho/leveldb/wiki/mv-tiered-recovery-log)
+    - [leveldb's recovery option does not work with tier-storage due to failed parameter passing with Riak.](https://github.com/basho/leveldb/wiki/mv-tiered-recovery-log)
+    - [Riak's active anti-entropy (AAE) process has potential to induce a segfault.  However, this issue has only seen in new development code, not existing releases.](https://github.com/basho/leveldb/wiki/mv-aae-segfault)
+- [A tightening of file permissions/ownership in our packaged releases, generated
+by the `node_package` library.](https://github.com/basho/node_package/pull/196)
+- [A change in the wording of a failed node up check when using command-line tools
+to interact with Riak,  as the failure of the node up check is not always due to a down node.](https://github.com/basho/node_package/pull/199)
+
+**PLEASE NOTE:**
+If you use automated systems or scripts to deploy/manage Riak, and those tools
+depend on the textual responses from these tools rather than system-level exit codes
+you may need to update your scripts. Specifically, commands that used to fail with
+the message "Node is not running!" will now return "Node did not respond to ping!"
+
+## Upgrading
+
+### Changes to File Ownership/Permissions
+When upgrading from an older version of a  Riak , you may need to verify the following
+file ownership/permissions changes (note, the examples will be for a Centos 7-based
+Linux installation of Riak, but should illustrate the required checks for most
+operating systems and similar packages. For more details, please see the
+[node_package 3.0 release notes](https://github.com/basho/node_package/blob/develop/RELEASE-NOTES.md)):
+
+- Validate permissions on existing directories and make them owned by root:root
+  (or the appropriate user/group for your operating system) and not writable by
+  the package_install_user/group. For this example, we will list the specific
+  directories for the Centos 7 install, and then their `node_package` template
+  names in parenthesis afterward. Directories and files include:
+	- /usr/lib64/riak (`platform_lib_dir`)
+	- /etc/riak (`platform_etc_dir`)
+	- /usr/bin (`platform_bin_dir`), specifically
+		- riak
+		- riak-admin
+		- riak-debug
+		- riak-repl
+		- search-cmd
+	- /etc/init.d/riak (`platform_etc_dir`/init.d/`package_install_name`)
+- Validate the home directory of the `platform_install_user` user is set to the
+  `platform_data_dir`, in the case of Riak on Centos 7 this should be the `riak`
+  user and the `/var/lib/riak` directory, and not `/usr/lib64/riak`. If
+  necessary, change the home directory of the `riak` (`package_install_user`)
+  user to point to `/var/lib/riak` (`platform_data_dir`).
+- Validate any automated scripts using Riak-provided command line tools
+  do not depend upon the textual "Node is not running!" message returned by those
+  tools by either using OS exit codes or by changing scripts to match the text
+  "Node did not respond to ping!"
+
 #Riak KV 2.1.2/2.1.3 Release Notes
 
 **2.1.3 - Released December 9, 2015**
