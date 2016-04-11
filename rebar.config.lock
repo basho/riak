@@ -132,13 +132,13 @@
                   "8f704c5236f8aa126bbb3c5b57478f64477457c0"}},
        {riak_ql,".*",
                 {git,"git@github.com:basho/riak_ql.git",
-                     "da3bc9e7b272df7c9b935bbcc8d2a6a1ad19fdc0"}},
+                     "c24c157983c8efa2a2f876349fe0aff860794bf2"}},
        {eunit_formatters,".*",
                          {git,"git://github.com/seancribbs/eunit_formatters",
                               "96b6ced4d45ba641cbf2c8a8ae9b350dd300bc10"}},
        {riak_kv,".*",
                 {git,"git@github.com:basho/riak_kv.git",
-                     "ca275696417730e47302ace8ca6053b5e3fdef1c"}},
+                     "89139ff4b1b8ae8ae739f85fcdd809ee9e36b86b"}},
        {erlydtl,".*",
                 {git,"git://github.com/erlydtl/erlydtl.git",
                      "d20b53f04837a1053ed18987f645cb60eae82453"}},
@@ -171,6 +171,6 @@
                    "6178fc1cb7f179ff35a5d20b2d36457ee29cb8de"}},
        {riak_shell,".*",
                    {git,"git@github.com:/basho/riak_shell.git",
-                        "63fd463d9f0806f97ddee94f1947bcd9863fd78e"}}]}.
+                        "eef110cdbf21f9c9a99aeedf772bdb95ec62c1d4"}}]}.
 {plugins,[rebar_lock_deps_plugin]}.
 
