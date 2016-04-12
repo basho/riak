@@ -138,7 +138,7 @@
                               "96b6ced4d45ba641cbf2c8a8ae9b350dd300bc10"}},
        {riak_kv,".*",
                 {git,"git@github.com:basho/riak_kv.git",
-                     "89139ff4b1b8ae8ae739f85fcdd809ee9e36b86b"}},
+                     "be80109a24073ee3dc00368313a85427ecfdc306"}},
        {erlydtl,".*",
                 {git,"git://github.com/erlydtl/erlydtl.git",
                      "d20b53f04837a1053ed18987f645cb60eae82453"}},
@@ -168,7 +168,7 @@
                             "31b8b30e6c215418522eaa615264ae9769a87410"}},
        {riakc,".*",
               {git,"git://github.com/basho/riak-erlang-client",
-                   "6178fc1cb7f179ff35a5d20b2d36457ee29cb8de"}},
+                   "106853a3960f0f567653fd3611265da88a26bdc0"}},
        {riak_shell,".*",
                    {git,"git@github.com:/basho/riak_shell.git",
                         "eef110cdbf21f9c9a99aeedf772bdb95ec62c1d4"}}]}.
