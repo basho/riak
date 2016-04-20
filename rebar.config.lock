@@ -9,7 +9,7 @@
 {erlydtl_opts,[{compiler_options,[report,return,debug_info]}]}.
 {deps,[{node_package,".*",
                      {git,"git://github.com/basho/node_package.git",
-                          "fb028057a97ad2ea86a4002403aaeb71a6adc7bb"}},
+                          "c630bcb25de53d542b167a0891c32f9e47602d6a"}},
        {goldrush,".*",
                  {git,"git://github.com/DeadZen/goldrush.git",
                       "64864ba7fcf40988361340e48680b49a2c2938cf"}},
@@ -66,7 +66,7 @@
                          "cd11a7480c1e584a34d0438c2bcfde48c6f65a51"}},
        {eleveldb,".*",
                  {git,"git://github.com/basho/eleveldb.git",
-                      "0537ca9366e9b0bfa2fea0b68734d476c48a78fa"}},
+                      "973fc92364a6df01350b178f6e1d9716e1ed1a9d"}},
        {riak_ensemble,".*",
                       {git,"git://github.com/basho/riak_ensemble",
                            "1a79eed4b50eb044dc72f8a15b6ae2d9b63e3387"}},
