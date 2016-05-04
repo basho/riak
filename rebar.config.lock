@@ -131,14 +131,14 @@
              {git,"git://github.com/basho/merl.git",
                   "8f704c5236f8aa126bbb3c5b57478f64477457c0"}},
        {riak_ql,".*",
-                {git,"git@github.com:basho/riak_ql.git",
+                {git,"git://github.com/basho/riak_ql.git",
                      "a849cb08ed9a0f05fc82a7046d56eb193933768f"}},
        {eunit_formatters,".*",
                          {git,"git://github.com/seancribbs/eunit_formatters",
                               "96b6ced4d45ba641cbf2c8a8ae9b350dd300bc10"}},
        {riak_kv,".*",
                 {git,"git@github.com:basho/riak_kv.git",
-                     "90f614df1d7e86b192c3f62d81051ad72f4d2b10"}},
+                     "72431a3130bcff256bbba174da58fc5f850f2485"}},
        {erlydtl,".*",
                 {git,"git://github.com/erlydtl/erlydtl.git",
                      "d20b53f04837a1053ed18987f645cb60eae82453"}},
@@ -170,7 +170,7 @@
               {git,"git://github.com/basho/riak-erlang-client",
                    "e9fcec34f5d86c69ac93ea6f54fbd65db4ca3074"}},
        {riak_shell,".*",
-                   {git,"git@github.com:/basho/riak_shell.git",
-                        "ab073b7b01abf858a18aaf9c0759a2c4c64f35ca"}}]}.
+                   {git,"git://github.com/basho/riak_shell.git",
+                        "f276882d77708476fa8269794c8651f569fb5627"}}]}.
 {plugins,[rebar_lock_deps_plugin]}.
 
