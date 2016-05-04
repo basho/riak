@@ -1,3 +1,6 @@
+#Riak TS 1.3.0 Release Notes
+* http://docs.basho.com/riak/ts/1.3.0/releasenotes/
+
 
 #Riak TS 0.9 (Beta) Release Notes
 
