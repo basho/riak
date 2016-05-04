@@ -1,3 +1,6 @@
+#Riak TS 1.3.0 Release Notes
+* http://docs.basho.com/riak/ts/1.3.0/releasenotes/
+
 #Riak TS 1.2.0 Release Notes
 
 Released February 23, 2016.
