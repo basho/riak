@@ -300,3 +300,6 @@ export PKG_VERSION PKG_ID PKG_BUILD BASE_DIR ERLANG_BIN REBAR OVERLAY_VARS RELEA
 # Package up a devrel to save time later rebuilding it
 pkg-devrel: locked-deps devrel
 	tar -czf $(PKG_ID)-devrel.tar.gz dev/
+
+pkg-rel: locked-deps rel
+	tar -czf $(PKG_ID)-rel.tar.gz rel/
