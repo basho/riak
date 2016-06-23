@@ -1,3 +1,6 @@
+#Riak 2.0.7 Release Notes
+* http://docs.basho.com/riak/kv/2.0.7/release-notes/
+
 #Riak 2.0.6 Release Notes
 
 Released June 30th, 2015.
