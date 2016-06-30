@@ -4,10 +4,11 @@
 ## The delimiter for the product name itself must be '_', ie. riak_ts_ee. A full
 ## tag would then look like: riak_ts_ee-1.3.0rc7.
 REPO            ?= $(shell git describe --tags | cut -d '-' -f 1)
-PKG_REVISION    ?= $(shell git describe --tags)
+HEAD_REVISION   ?= $(shell git describe --tags --exact-match HEAD 2>/dev/null)
+PKG_REVISION    ?= $(shell git describe --tags 2>/dev/null)
 PKG_BUILD        = 1
 BASE_DIR         = $(shell pwd)
-ERLANG_BIN       = $(shell dirname $(shell which erl))
+ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
 REBAR           ?= $(BASE_DIR)/rebar
 OVERLAY_VARS    ?=
 
@@ -27,6 +28,7 @@ compile:
 	./rebar compile
 
 deps:
+	$(if $(HEAD_REVISION),$(warning "Warning: you have checked out a tag ($(HEAD_REVISION)) and should use the locked-deps target"))
 	./rebar get-deps
 
 clean: testclean
@@ -75,7 +77,7 @@ test: deps compile testclean
 ##
 ## Release targets
 ##
-rel: deps compile generate
+rel: locked-deps compile generate
 
 relclean:
 	rm -rf rel/riak
@@ -237,7 +239,7 @@ get_dist_deps = mkdir distdir && \
                 git clone . distdir/$(CLONEDIR) && \
                 cd distdir/$(CLONEDIR) && \
                 git checkout $(REPO_TAG) && \
-                $(MAKE) deps && \
+                $(MAKE) locked-deps && \
                 echo "- Dependencies and their tags at build time of $(REPO) at $(REPO_TAG)" > $(MANIFEST_FILE) && \
                 for dep in deps/*; do \
                     cd $${dep} && \

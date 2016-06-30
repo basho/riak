@@ -1,0 +1,41 @@
+#! /usr/bin/env escript 
+%% -*- erlang -*-
+%%
+%% Convert rebar git dependencies hash/tag/branch to CSV
+
+main([]) ->
+    io:format("rebar_deps_to_csv path/to/rebar.config\n"),
+    ok;
+main([File | _]) ->
+    decode_ver(File).
+
+decode_ver(File) ->
+    case file:consult(File) of
+    	{ok, Config} ->
+            Deps = lists:sort(proplists:get_value(deps, Config)),
+            lists:foldl(
+              fun({Lib, _WC, {git,_Repo, {branch, Branch}}}, _Acc) ->
+                      io:format("~s,branch,~s\n",[Lib,Branch]);
+                 ({Lib, _WC, {git,_Repo, {tag, Tag}}}, _Acc) ->
+                      io:format("~s,tag,~s\n",[Lib,Tag]);
+                 ({Lib, _WC, {git,_Repo, Other}}, _Acc) ->
+                      case probably_sha(Other) of
+                          true ->
+                              io:format("~s,sha,~s\n",[Lib,Other]);
+                          _ ->
+                              io:format("~s,other,~s\n",[Lib,Other])
+                      end
+              end, undefined, Deps),
+            ok;
+        ER ->
+            io:format("~p\n", [ER])
+    end.
+
+probably_sha(Thing) ->
+    lists:all(fun(C) when ($0 =< C andalso C =< $9) orelse
+                          ($a =< C andalso C =< $f) ->
+                      true;
+                 (_C) ->
+                      false
+              end, Thing) andalso
+        length(Thing) == 40.
