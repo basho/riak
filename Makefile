@@ -7,7 +7,7 @@ REPO            ?= $(shell git describe --tags | cut -d '-' -f 1)
 # packagers need hyphens not underscores
 APP              = $(shell echo "$(REPO)" | sed -e 's/_/-/g')
 HEAD_REVISION   ?= $(shell git describe --tags --exact-match HEAD 2>/dev/null)
-PKG_REVISION    ?= $(shell git describe --tags)
+PKG_REVISION    ?= $(shell git describe --tags 2>/dev/null)
 PKG_BUILD        = 1
 BASE_DIR         = $(shell pwd)
 ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
