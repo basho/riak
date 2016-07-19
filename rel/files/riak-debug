@@ -630,6 +630,8 @@ if [ 1 -eq $get_logs ]; then
                 mkdir -p "$0/${1%/*}";
                 cp "$1" "$0/$1"
                 ' "${start_dir}"/"${debug_dir}"/logs/platform_log_dir {} \;
+            # Grab the head of any crash dumps
+            if [ -f "erl_crash.dump" ]; then head erl_crash.dump > "${start_dir}"/"${debug_dir}"/logs/platform_log_dir/erl_crash.dump; fi
         fi
     fi
 
