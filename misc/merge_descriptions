@@ -1,0 +1,71 @@
+#! /bin/bash
+# 
+#
+syntax() {
+    cat <<EOF
+Display all merges between two top-level release tags
+
+   mergedescriptions user api_token [previous [next]]
+
+Will retrieve the rebar.config.lock for both releases and display
+the git-shortlog -m of changes between the two.
+
+To filter the list to only merges happening after a particular start date, set the 
+START_DATE environment variable
+
+EOF
+}
+
+USER=$1
+API_TOKEN=$2
+PREV=${3:-$(git describe | sed -e 's/-[0-9]*-g[0-9a-f]*$//')}
+NEXT=${4:-HEAD}
+DEPS_TO_CSV=$(dirname $0)/rebar_deps_to_csv
+
+TMPDIR=/tmp/rcl.$$
+mkdir $TMPDIR
+
+git show $PREV:rebar.config.lock > $TMPDIR/rcl.prev.$$
+git show $NEXT:rebar.config.lock > $TMPDIR/rcl.next.$$
+
+$DEPS_TO_CSV $TMPDIR/rcl.prev.$$ > $TMPDIR/rcl.prev.csv.$$
+$DEPS_TO_CSV $TMPDIR/rcl.next.$$ > $TMPDIR/rcl.next.csv.$$
+
+join -t, $TMPDIR/rcl.prev.csv.$$ $TMPDIR/rcl.next.csv.$$ > $TMPDIR/rcl.diff.csv.$$
+
+ROOT=$(dirname $0)/..
+
+echo "# Differences between $PREV and $NEXT"
+while IFS=, read repo prevtype prevsha nexttype nextsha
+do
+    echo "## $repo"
+    echo "Prev: $prevsha<br/>"
+    echo "Next: $nextsha"
+    echo
+    if [ "$prevsha" == "$nextsha" ]
+    then
+        echo "No changes"
+    else
+        (cd $ROOT/deps/$repo
+        REMOTE=`git config --get remote.origin.url | sed -n -e 's/git.*github\.com:\{0,1\}\///p' | sed -e 's/\.git//'`
+        PRS=`git log --grep "pull request" --oneline ${prevsha}..${nextsha} | sed -n "s/.*Merge pull request #\(.*\) from.*/\1/p"`
+        for pr in $PRS; 
+            do
+                API_URL="https://api.github.com/repos/$REMOTE/pulls/$pr"
+                URL="https://github.com/$REMOTE/pull/$pr"
+                PR=`curl -u $USER:$API_TOKEN -s $API_URL`
+                PR_DATE=`echo $PR | jq -r -M ".merged_at"`
+                if [[ $PR_DATE > $START_DATE ]];
+                then
+                    echo
+                    echo "### [$REMOTE/$pr]($URL) `echo $PR | jq -r ".title?"`"
+                    echo
+                    echo $PR | jq -r ".body?"
+                fi
+            done
+        )
+    fi
+    echo
+    echo
+done < $TMPDIR/rcl.diff.csv.$$
+rm -rf $TMPDIR
