@@ -1092,7 +1092,7 @@ case "$1" in
     timezone)
         if [ $# -gt 2 ]; then
             echo "Usage: $SCRIPT $1"
-            echo "       $SCRIPT $1 <+-HHMM>"
+            echo "       $SCRIPT $1 <{+|-}HHMM>"
             exit
         fi
         node_up_check
