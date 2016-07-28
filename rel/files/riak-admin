@@ -30,7 +30,7 @@ usage() {
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
     echo "                    search | services | ensemble-status | handoff | set |"
-    echo "                    show | describe }"
+    echo "                    timezone | show | describe }"
 }
 
 stat_admin()
@@ -1088,6 +1088,16 @@ case "$1" in
         # New pattern for command line. Use nodetool for RPC
         node_up_check
         exec $NODETOOL rpc riak_core_console command $SCRIPT $@
+        ;;
+    timezone)
+        if [ $# -gt 2 ]; then
+            echo "Usage: $SCRIPT $1"
+            echo "       $SCRIPT $1 <{+|-}HHMM>"
+            exit
+        fi
+        node_up_check
+        shift
+        $NODETOOL rpc riak_core_console timezone "$@"
         ;;
     transfer[_-]limit)
         if [ $# -gt 3 ]; then
