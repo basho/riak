@@ -556,6 +556,18 @@ search_admin()
 
             $NODETOOL rpc yz_console aae_status "$@"
             ;;
+        dist[_-]query)
+            if [ $# -lt 1 ]; then
+                echo "Usage: $SCRIPT search $1 [enable|disable]"
+                exit 1
+            fi
+            shift
+
+            # Make sure the local node is running
+            node_up_check
+
+            $NODETOOL rpc yz_console dist_query "$@"
+            ;;
         switch[_-]to[_-]new[_-]search)
             if [ $# -ne 1 ]; then
                 echo "Usage: $SCRIPT search $1"
@@ -575,6 +587,7 @@ Usage: $SCRIPT search <command>
 Available commands:
 
     aae-status
+    dist-query [on|off]
     switch-to-new-search
 "
     esac
