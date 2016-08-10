@@ -105,7 +105,7 @@
                     "0063cbe2c97aa3f00c1cb289678482cbc5524bc1"}},
        {riak_core,".*",
                   {git,"git://github.com/basho/riak_core.git",
-                       "2ec65c10110ecec840723365b12f572ffbaf4070"}},
+                       "68f4501fb6d9f3754aea7e29b04403765bbb981d"}},
        {riak_pipe,".*",
                   {git,"git://github.com/basho/riak_pipe.git",
                        "0156228a5e9041b3019c07b6748324fde9a7c87e"}},
