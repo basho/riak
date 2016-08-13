@@ -12,7 +12,7 @@
                                     "7a5835029c42b8138325405237ea7e8516a84800"}},
        {node_package,".*",
                      {git,"git@github.com:basho/node_package.git",
-                          "c630bcb25de53d542b167a0891c32f9e47602d6a"}},
+                          "2a8bf3f8f7c244e11bf040059f9e9bf021c991db"}},
        {goldrush,".*",
                  {git,"git://github.com/DeadZen/goldrush.git",
                       "64864ba7fcf40988361340e48680b49a2c2938cf"}},
@@ -150,7 +150,7 @@
                               "96b6ced4d45ba641cbf2c8a8ae9b350dd300bc10"}},
        {riak_kv,".*",
                 {git,"git@github.com:basho/riak_kv.git",
-                     "7fb894571972e35f4251455737fb4b6b0599694b"}},
+                     "01a5169f6b15523c007c770ae9367c93a02f9588"}},
        {erlydtl,".*",
                 {git,"git://github.com/erlydtl/erlydtl.git",
                      "d20b53f04837a1053ed18987f645cb60eae82453"}},
@@ -186,6 +186,6 @@
                    "621d09b0e5a82f37f1d0162cf024fb88a9e708ad"}},
        {riak_shell,".*",
                    {git,"git://github.com/basho/riak_shell.git",
-                        "69e3eecaa0c72606e5b0f64763330c98a369c1d9"}}]}.
+                        "27d5b64de86904c78969137f1a8a4a1acec414de"}}]}.
 {plugins,[rebar_lock_deps_plugin]}.
 
