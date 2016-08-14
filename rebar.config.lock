@@ -144,7 +144,7 @@
                               "96b6ced4d45ba641cbf2c8a8ae9b350dd300bc10"}},
        {riak_kv,".*",
                 {git,"git://github.com/basho/riak_kv.git",
-                     "01a5169f6b15523c007c770ae9367c93a02f9588"}},
+                     "1f74efe6905c1c8643dfa3e1865eb4964fe8331a"}},
        {merge_index,".*",
                     {git,"git://github.com/basho/merge_index.git",
                          "e71bfd0545b698b2213d4e710894a330251cc11a"}},
