@@ -150,7 +150,7 @@
                               "96b6ced4d45ba641cbf2c8a8ae9b350dd300bc10"}},
        {riak_kv,".*",
                 {git,"git@github.com:basho/riak_kv.git",
-                     "1f74efe6905c1c8643dfa3e1865eb4964fe8331a"}},
+                     "da36b22b53fe409396c6beaba460ea93283661b4"}},
        {erlydtl,".*",
                 {git,"git://github.com/erlydtl/erlydtl.git",
                      "d20b53f04837a1053ed18987f645cb60eae82453"}},
@@ -185,7 +185,7 @@
               {git,"git://github.com/basho/riak-erlang-client",
                    "621d09b0e5a82f37f1d0162cf024fb88a9e708ad"}},
        {riak_shell,".*",
-                   {git,"git://github.com/basho/riak_shell.git",
-                        "27d5b64de86904c78969137f1a8a4a1acec414de"}}]}.
+                   {git,"git://github.com/javajolt/riak_shell.git",
+                        "b37404b5c16bb86b4f73bbeecd5d19b2c3e8f50c"}}]}.
 {plugins,[rebar_lock_deps_plugin]}.
 
