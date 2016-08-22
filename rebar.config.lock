@@ -75,7 +75,7 @@
                      "2834fb1b4bf42123e3ff0d95df3696f1dcc69cab"}},
        {eleveldb,".*",
                  {git,"git://github.com/basho/eleveldb.git",
-                      "ee6fc9586dc53ad4ed481a71d17c4b3c9e3337e8"}},
+                      "c97355f25a687188a6621a0f67ca8b8839bc3e0d"}},
        {riak_ensemble,".*",
                       {git,"git://github.com/basho/riak_ensemble",
                            "a19d35efa74bc7160a1747fe546077897ee751ea"}},
