@@ -15,7 +15,7 @@
                       "64864ba7fcf40988361340e48680b49a2c2938cf"}},
        {lager,".*",
               {git,"git://github.com/basho/lager.git",
-                   "f65dde85523b6aa6a259db1c93518187ae366515"}},
+                   "8187757388c9adc915379caaab36a2f2ca26e944"}},
        {syslog,".*",
                {git,"git://github.com/Vagabond/erlang-syslog",
                     "e24c9ee8f7bb3f066ec152c210af10c2c712759a"}},
