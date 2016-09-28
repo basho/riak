@@ -1,0 +1,19 @@
+language: erlang
+otp_release:
+- R16B03
+cache:
+  directories:
+  - "$HOME/otp-basho"
+addons:
+  apt:
+    packages:
+    - libpam0g-dev
+before_script:
+- ./.travis.sh
+script:
+  - source "$HOME/otp-basho/activate"
+  - make stagedevrel DEVNODES=3
+  - ./.travis-test.sh "$TRAVIS_BUILD_DIR"
+notifications:
+  slack:
+    secure: CsnR4hd427mH+ST5u5FItN8qUEl+1N7yTSfH3pVr1oKsmsr15uvU7xB65ui+hQqlPVKXlWumA+ZLZ0P9Q95+iFd4qAv7hy6xkimvMC72+FY9fOpNppc9sMB1mq+UCEXgA0yNtJSoimFxW7OyI6I04OC8MBa/BvJQytRMHnqwkq8=
