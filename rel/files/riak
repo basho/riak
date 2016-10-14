@@ -149,12 +149,12 @@ case "$1" in
             Linux|Darwin|FreeBSD|DragonFly|NetBSD|OpenBSD)
                 # PID COMMAND
                 PID=`ps ax -o pid= -o command=|\
-                    grep "$RUNNER_BASE_DIR/.*/[b]eam"|awk '{print $1}'`
+                    grep "\-config\ $RUNNER_ETC_DIR/app.config"|awk '{print $1}'`
                 ;;
             SunOS)
                 # PID COMMAND
                 PID=`ps -ef -o pid= -o args=|\
-                    grep "$RUNNER_BASE_DIR/.*/[b]eam"|awk '{print $1}'`
+                    grep "\-config\ $RUNNER_ETC_DIR/app.config"|awk '{print $1}'`
                 ;;
         esac
         $NODETOOL stop
