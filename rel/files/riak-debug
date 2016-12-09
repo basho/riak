@@ -482,12 +482,6 @@ if [ 1 -eq $get_riakcmds ]; then
     dump riak_diag "$riak_bin_dir"/riak-admin diag
     dump riak_repl_status "$riak_bin_dir"/riak-repl status
 
-    CI=`pwd`/cluster-info.html
-    touch $CI
-    chmod 666 $CI
-    dump cluster-info riak-admin cluster-info $CI local
-    chmod 444 $CI
-
     # Make a flat, easily searchable version of the app.config settings
     riak_epaths=`make_app_epaths "${riak_app_config}"`
 
@@ -630,6 +624,8 @@ if [ 1 -eq $get_logs ]; then
                 mkdir -p "$0/${1%/*}";
                 cp "$1" "$0/$1"
                 ' "${start_dir}"/"${debug_dir}"/logs/platform_log_dir {} \;
+            # Grab the head of any crash dumps
+            if [ -f "erl_crash.dump" ]; then head erl_crash.dump > "${start_dir}"/"${debug_dir}"/logs/platform_log_dir/erl_crash.dump; fi
         fi
     fi
 
