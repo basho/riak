@@ -19,19 +19,19 @@ $(if $(ERLANG_BIN),,$(warning "Warning: No Erlang found in your path, this will 
 all: deps compile
 
 compile:
-	./rebar compile
+	$(REBAR) compile
 
 deps:
-	./rebar get-deps
+	$(REBAR) get-deps
 
 clean: testclean
-	./rebar clean
+	$(REBAR) clean
 
 distclean: clean devclean relclean ballclean
-	./rebar delete-deps
+	$(REBAR) delete-deps
 
 generate:
-	./rebar generate $(OVERLAY_VARS)
+	$(REBAR) generate $(OVERLAY_VARS)
 
 
 ##
@@ -39,13 +39,13 @@ generate:
 ##
 ##  see https://github.com/seth/rebar_lock_deps_plugin
 lock: deps compile
-	./rebar lock-deps
+	$(REBAR) lock-deps
 
 locked-all: locked-deps compile
 
 locked-deps:
 	@echo "Using rebar.config.lock file to fetch dependencies"
-	./rebar -C rebar.config.lock get-deps
+	$(REBAR) -C rebar.config.lock get-deps
 
 ##
 ## Test targets
@@ -58,9 +58,9 @@ testclean:
 test: deps compile testclean
 	@$(foreach dep, \
             $(wildcard deps/*), \
-               (cd $(dep) && ../../rebar eunit deps_dir=.. skip_deps=true)  \
+               (cd $(dep) && $(REBAR) eunit deps_dir=.. skip_deps=true)  \
                || echo "Eunit: $(notdir $(dep)) FAILED" >> $(TEST_LOG_FILE);)
-	./rebar eunit skip_deps=true
+	$(REBAR) eunit skip_deps=true
 	@if test -s $(TEST_LOG_FILE) ; then \
              cat $(TEST_LOG_FILE) && \
              exit `wc -l < $(TEST_LOG_FILE)`; \
@@ -97,14 +97,14 @@ $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 dev% : all
 	mkdir -p dev
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
-	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
+	(cd rel && $(REBAR) generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
 
 perfdev : all
 	perfdev/bin/riak stop || :
 	rm -rf perfdev
 	mkdir -p perfdev
 	rel/gen_dev $@ rel/vars/perf_vars.config.src rel/vars/perf_vars.config
-	(cd rel && ../rebar generate target_dir=../perfdev overlay_vars=vars/perf_vars.config)
+	(cd rel && $(REBAR) generate target_dir=../perfdev overlay_vars=vars/perf_vars.config)
 	$(foreach dep,$(wildcard deps/*), rm -rf perfdev/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) perfdev/lib;)
 
 perf:
@@ -127,7 +127,7 @@ stage : rel
 ## Doc targets
 ##
 docs:
-	./rebar skip_deps=true doc
+	$(REBAR) skip_deps=true doc
 	@cp -R apps/riak_core/doc doc/riak_core
 	@cp -R apps/riak_kv/doc doc/riak_kv
 
