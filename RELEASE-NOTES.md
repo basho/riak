@@ -1,3 +1,6 @@
+#Riak TS 1.5.1 Release Notes
+* http://docs.basho.com/riak/ts/1.5.1/releasenotes/
+
 #Riak TS 1.5.0 Release Notes
 * http://docs.basho.com/riak/ts/1.5.0/releasenotes/
 
