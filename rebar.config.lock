@@ -155,7 +155,7 @@
                 {git,"git://github.com/cmullaparthi/ibrowse.git",
                      "e8ae353c16d4f0897abb9f80025b52925b974dd1"}},
        {fuse,".*",
-             {git,"git@github.com:jlouis/fuse.git",
+             {git,"git://github.com/jlouis/fuse.git",
                   "21c6e52ced3af294f2fe636039106068da12eeeb"}},
        {yokozuna,".*",
                  {git,"git://github.com/basho/yokozuna.git",
