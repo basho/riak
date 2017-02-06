@@ -26,4 +26,4 @@ echoerr "** The search-cmd tool is for a deprecated version of Riak Search."
 echoerr "** Please upgrade to the new version of Riak Search."
 echoerr ""
 node_up_check
-$NODETOOL rpc_infinity riak_search_cmd command $ORIGINAL_DIR "$@"
+NODETOOL rpc_infinity riak_search_cmd command $ORIGINAL_DIR "$@"
