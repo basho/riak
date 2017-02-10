@@ -9,7 +9,7 @@
 {erlydtl_opts,[{compiler_options,[report,return,debug_info]}]}.
 {deps,[{node_package,".*",
                      {git,"git://github.com/basho/node_package.git",
-                          "6295abed21c2451b35b46e479e4145eaa614c861"}},
+                          "83f5944456466231f4b77a27c59322dcbb7b13ff"}},
        {getopt,".*",
                {git,"git://github.com/jcomellas/getopt.git",
                     "659a28f4145bc9843598972854299dc4ea77e4cb"}},

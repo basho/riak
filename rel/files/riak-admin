@@ -1033,13 +1033,9 @@ case "$1" in
             *)
                  node_up_check
 
-                # Setup command to run riaknostic
-                RIAKNOSTIC="NODETOOL rpc riaknostic main \
-                    --etc $RUNNER_ETC_DIR --base $RUNNER_BASE_DIR"
-
                 shift
 
-                $RIAKNOSTIC "$@"
+                NODETOOL rpc riaknostic main --etc "$RUNNER_ETC_DIR" --base "$RUNNER_BASE_DIR" "$@"
         esac
         ;;
     top)
