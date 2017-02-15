@@ -26,7 +26,7 @@ usage() {
     echo "                    reip | js-reload | erl-reload | wait-for-service | ringready |"
     echo "                    transfers | force-remove | down | cluster-info | member-status |"
     echo "                    ring-status | vnode-status | aae-status | sweeper |"
-    echo "                    diag | stat | status | transfer-limit | reformat-indexes |"
+    echo "                    diag | stat | status | transfer-limit |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
     echo "                    search | services | ensemble-status | handoff | set |"
@@ -1105,18 +1105,6 @@ case "$1" in
         node_up_check
         shift
         $NODETOOL rpc riak_core_console transfer_limit "$@"
-        ;;
-    reformat[_-]indexes)
-        if [ $# -gt 4 ]; then
-            echo "Usage: $SCRIPT $1"
-            echo "       $SCRIPT $1 --downgrade"
-            echo "       $SCRIPT $1 <concurrency> [--downgrade]"
-            echo "       $SCRIPT $1 <concurrency> <batch size> [--downgrade]"
-            exit 1
-        fi
-        node_up_check
-        shift
-        $NODETOOL rpc riak_kv_console reformat_indexes "$@"
         ;;
     downgrade[_-]objects)
         if [ $# -lt 2 ]; then
