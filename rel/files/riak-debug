@@ -355,7 +355,7 @@ if [ 1 -eq $get_syscmds ]; then
     dump last last
     dump hostname hostname
     dump uname uname -a
-    dump lsb_release lsb_release
+    dump lsb_release lsb_release -a
     dump ps ps aux
     dump vmstat vmstat 1 5
     dump free free -m
