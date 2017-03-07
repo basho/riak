@@ -1,3 +1,6 @@
+#Riak KV 2.2.1 Release Notes
+http://docs.basho.com/riak/kv/2.2.1/release-notes/
+
 #Riak KV 2.1.2 Release Notes
 
 Released December 1, 2015.
