@@ -24,10 +24,52 @@
   {datatype, file}
 ]}.
 
+%% @doc The schedule on which to rotate the console log.  For more
+%% information see:
+%% https://github.com/basho/lager/blob/master/README.md#internal-log-rotation
+{mapping, "log.console.rotation", "lager.handlers", [
+  {default, "$D0"}
+]}.
+
+%% @doc Maximum size of the console log in bytes, before it is rotated
+{mapping, "log.console.size", "lager.handlers", [
+  {default, "10MB"},
+  {datatype, bytesize}
+]}.
+
+%% @doc The number of rotated console log files to keep. When set to
+%% 'current', only the current open log file is kept.
+{mapping, "log.console.rotation.keep", "lager.handlers", [
+  {default, 5},
+  {datatype, [integer, {atom, current}]},
+  {validators, ["rotation_count"]}
+]}.
+
 %% @doc The file where error messages will be logged.
 {mapping, "log.error.file", "lager.handlers", [
   {default, "$(platform_log_dir)/error.log"},
   {datatype, file}
+]}.
+
+%% @doc The schedule on which to rotate the error log.  For more
+%% information see:
+%% https://github.com/basho/lager/blob/master/README.md#internal-log-rotation
+{mapping, "log.error.rotation", "lager.handlers", [
+  {default, "$D0"}
+]}.
+
+%% @doc Maximum size of the error log in bytes, before it is rotated
+{mapping, "log.error.size", "lager.handlers", [
+  {default, "10MB"},
+  {datatype, bytesize}
+]}.
+
+%% @doc The number of rotated error log files to keep. When set to
+%% 'current', only the current open log file is kept.
+{mapping, "log.error.rotation.keep", "lager.crash_log_count", [
+  {default, 5},
+  {datatype, [integer, {atom, current}]},
+  {validators, ["rotation_count"]}
 ]}.
 
 %% @doc When set to 'on', enables log output to syslog.
@@ -70,25 +112,48 @@
         [{lager_syslog_backend, [Ident, Facility, LogLevel]}];
       _ -> []
     end,
+    ErrorSize = case cuttlefish:conf_get("log.error.size", Conf) of
+      undefined -> [];
+      ErrSize -> [{size, ErrSize}]
+    end,
+    ErrorRotation = case cuttlefish:conf_get("log.error.rotation", Conf) of
+      undefined -> [];
+      ErrRotation -> [{date, ErrRotation}]
+    end,
+    ErrorKeep = case cuttlefish:conf_get("log.error.rotation.keep", Conf) of
+      undefined -> [];
+      ErrKeep -> [{count, ErrKeep}]
+    end,
     ErrorHandler = case cuttlefish:conf_get("log.error.file", Conf) of
       undefined -> [];
       ErrorFilename -> [{lager_file_backend, [{file, ErrorFilename},
-                                              {level, error},
-                                              {size, 10485760},
-                                              {date, "$D0"},
-                                              {count, 5}]}]
+                                              {level, error}] ++
+                                              ErrorSize ++
+                                              ErrorRotation ++
+                                              ErrorKeep }]
     end,
 
     ConsoleLogLevel = cuttlefish:conf_get("log.console.level", Conf),
     ConsoleLogFile = cuttlefish:conf_get("log.console.file", Conf),
 
     ConsoleHandler = {lager_console_backend, ConsoleLogLevel},
+    ConsoleSize = case cuttlefish:conf_get("log.console.size", Conf) of
+      undefined -> [];
+      ConSize -> [{size, ConSize}]
+    end,
+    ConsoleRotation = case cuttlefish:conf_get("log.console.rotation", Conf) of
+      undefined -> [];
+      ConRotation -> [{date, ConRotation}]
+    end,
+    ConsoleKeep = case cuttlefish:conf_get("log.console.rotation.keep", Conf) of
+      undefined -> [];
+      ConKeep -> [{count, ConKeep}]
+    end,
     ConsoleFileHandler = {lager_file_backend, [{file, ConsoleLogFile},
-                                               {level, ConsoleLogLevel},
-                                               {size, 10485760},
-                                               {date, "$D0"},
-                                               {count, 5}]},
-
+                                               {level, ConsoleLogLevel}] ++
+                                               ConsoleSize ++
+                                               ConsoleRotation ++
+                                               ConsoleKeep},
     ConsoleHandlers = case cuttlefish:conf_get("log.console", Conf) of
       off -> [];
       file -> [ConsoleFileHandler];
@@ -96,6 +161,7 @@
       both -> [ConsoleHandler, ConsoleFileHandler];
       _ -> []
     end,
+
     SyslogHandler ++ ConsoleHandlers ++ ErrorHandler
   end
 }.
