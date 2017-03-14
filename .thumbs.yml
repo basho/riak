@@ -1,0 +1,6 @@
+minimum_reviewers: 1
+build_steps:
+ - make
+merge: false
+org_mode: true
+timeout: 1790
