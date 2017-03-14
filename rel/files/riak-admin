@@ -841,7 +841,7 @@ case "$1" in
     sweeper)
         # Make sure the local node is running
         node_up_check
-        $NODETOOL rpc riak_kv_console command $SCRIPT "$@"
+        NODETOOL rpc riak_kv_console command $SCRIPT "$@"
         ;;
 
     ensemble[_-]status)
