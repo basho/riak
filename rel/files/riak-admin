@@ -1069,22 +1069,22 @@ case "$1" in
     handoff)
         # New pattern for command line. Use nodetool for RPC
         node_up_check
-        exec NODETOOL rpc riak_core_console command $SCRIPT $@
+        NODETOOL rpc riak_core_console command $SCRIPT $@
         ;;
     set)
         # New pattern for command line. Use nodetool for RPC
         node_up_check
-        exec NODETOOL rpc riak_core_console command $SCRIPT $@
+        NODETOOL rpc riak_core_console command $SCRIPT $@
         ;;
     show)
         # New pattern for command line. Use nodetool for RPC
         node_up_check
-        exec NODETOOL rpc riak_core_console command $SCRIPT $@
+        NODETOOL rpc riak_core_console command $SCRIPT $@
         ;;
     describe)
         # New pattern for command line. Use nodetool for RPC
         node_up_check
-        exec NODETOOL rpc riak_core_console command $SCRIPT $@
+        NODETOOL rpc riak_core_console command $SCRIPT $@
         ;;
     transfer[_-]limit)
         if [ $# -gt 3 ]; then
