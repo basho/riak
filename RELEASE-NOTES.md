@@ -1,5 +1,8 @@
+#Riak 2.0.9 Release Notes
+* http://docs.basho.com/riak/kv/2.0.9/release-notes/
+
 #Riak 2.0.8 Release Notes
-*http://docs.basho.com/riak/kv/2.0.8/release-notes/
+* http://docs.basho.com/riak/kv/2.0.8/release-notes/
 
 #Riak 2.0.7 Release Notes
 * http://docs.basho.com/riak/kv/2.0.7/release-notes/
