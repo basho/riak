@@ -1,3 +1,6 @@
+#Riak KV 2.2.2 Release Notes
+http://docs.basho.com/riak/kv/2.2.2/release-notes/
+
 #Riak KV 2.2.1 Release Notes
 http://docs.basho.com/riak/kv/2.2.1/release-notes/
 
