@@ -1044,7 +1044,7 @@ case "$1" in
 
         shift
 
-        RAND=$(($(($RANDOM % 1000)) + 1))
+        RAND=$(($(($$ % 1000)) + 1))
         NODE_NAME=${NAME_ARG#* }
         # Using np_etop instead of riak_etop to follow node_package convention
         $ERTS_PATH/erl -noshell -noinput \
