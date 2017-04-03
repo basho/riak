@@ -66,7 +66,7 @@
 
 %% @doc The number of rotated error log files to keep. When set to
 %% 'current', only the current open log file is kept.
-{mapping, "log.error.rotation.keep", "lager.crash_log_count", [
+{mapping, "log.error.rotation.keep", "lager.handlers", [
   {default, 5},
   {datatype, [integer, {atom, current}]},
   {validators, ["rotation_count"]}
