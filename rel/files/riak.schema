@@ -55,8 +55,7 @@
 %% @doc The severity level at which to log entries to syslog, default is 'info'.
 {mapping, "log.syslog.level", "lager.handlers", [
   {default, info},
-  {datatype, {enum, [debug, info, notice, warning, error, critical, alert, emergency, none]}},
-  hidden
+  {datatype, {enum, [debug, info, notice, warning, error, critical, alert, emergency, none]}}
 ]}.
 
 {translation,
