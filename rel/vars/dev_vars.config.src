@@ -17,6 +17,7 @@
 {web_port,          @WEBPORT@}.
 {handoff_ip,        "127.0.0.1"}.
 {handoff_port,      @HANDOFFPORT@}.
+{handoff_ip,        "127.0.0.1"}.
 {pb_ip,             "127.0.0.1"}.
 {pb_port,           @PBPORT@}.
 {storage_backend,   "bitcask"}.
