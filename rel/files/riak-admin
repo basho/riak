@@ -224,6 +224,7 @@ case "$1" in
         node_up_check
 
         $NODETOOL rpc riak_kv_console status $@
+        $NODETOOL rpc riak_core_console status $@
         ;;
 
     vnode[_-]status)
