@@ -641,6 +641,14 @@ btype_admin()
                 NODETOOL rpc riak_kv_console bucket_type_update "$two" "$three"
             fi
             ;;
+        reset)
+            if [ $# -ne 2 ]; then
+                echo "Usage: $SCRIPT bucket-type reset <type>"
+                exit 1
+            fi
+            node_up_check
+            $NODETOOL rpc riak_kv_console bucket_type_reset "$2"
+            ;;
         list)
             if [ $# -ne 1 ]; then
                 echo "Usage: $SCRIPT bucket-type list"
@@ -653,13 +661,15 @@ btype_admin()
             echo "\
 Usage: $SCRIPT bucket-type <command>
 
-The follow commands can be used to manage bucket types for the cluster:
+The following commands can be used to manage bucket types for the cluster:
 
    list                           List all bucket types and their activation status
    status <type>                  Display the status and properties of a type
    activate <type>                Activate a type
    create <type> <json>           Create or modify a type before activation
    update <type> <json>           Update a type after activation
+   reset <type>                   Reset a type to it's default value (non-standard
+                                  keys are kept)
 "
     esac
 }
