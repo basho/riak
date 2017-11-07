@@ -18,6 +18,7 @@ NUMBER=${NAME##dev}
 BASE=$((10000 + 10 * $NUMBER))
 YZSOLRJMXPORT=$(($BASE + 3))
 YZSOLRPORT=$(($BASE + 4))
+CM_PORT=$(($BASE + 6))
 PBPORT=$(($BASE + 7))
 WEBPORT=$(($BASE + 8))
 HANDOFFPORT=$(($BASE + 9))
@@ -28,4 +29,5 @@ sed -e "s/@NODE@/$NODE/" \
     -e "s/@YZSOLRPORT@/$YZSOLRPORT/" \
     -e "s/@PBPORT@/$PBPORT/" \
     -e "s/@WEBPORT@/$WEBPORT/" \
+	-e "s/@CM_PORT@/$CM_PORT/" \
     -e "s/@HANDOFFPORT@/$HANDOFFPORT/" < $TEMPLATE > $VARFILE
