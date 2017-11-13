@@ -22,6 +22,7 @@ all: deps compile
 
 compile:
 	./rebar compile
+	$(MAKE) -C deps/riak_jmx/java_src
 
 deps:
 	$(if $(HEAD_REVISION),$(warning "Warning: you have checked out a tag ($(HEAD_REVISION)) and should use the locked-deps target"))
