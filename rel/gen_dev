@@ -9,28 +9,24 @@ NAME=$1
 TEMPLATE=$2
 VARFILE=$3
 
-## Allocate 10 ports per node
+## Allocate some ports per node
 ##   .
 ##   .7 - http
 NODE="$NAME@127.0.0.1"
 
 NUMBER=${NAME##dev}
 BASE=$((10000 + 10 * $NUMBER))
-SNMPPORT=$(($BASE))
 YZSOLRJMXPORT=$(($BASE + 3))
 YZSOLRPORT=$(($BASE + 4))
-JMXPORT=$(($BASE + 5))
 CM_PORT=$(($BASE + 6))
 PBPORT=$(($BASE + 7))
 WEBPORT=$(($BASE + 8))
 HANDOFFPORT=$(($BASE + 9))
 
-echo "Generating $NAME - node='$NODE' yzsolrjmx=$YZSOLRJMXPORT yzsolr=$YZSOLRPORT snmp=$SNMPPORT pbc=$PBPORT http=$WEBPORT handoff=$HANDOFFPORT"
+echo "Generating $NAME - node='$NODE' yzsolrjmx=$YZSOLRJMXPORT yzsolr=$YZSOLRPORT pbc=$PBPORT http=$WEBPORT handoff=$HANDOFFPORT"
 sed -e "s/@NODE@/$NODE/" \
-    -e "s/@SNMPPORT@/$SNMPPORT/" \
     -e "s/@YZSOLRJMXPORT@/$YZSOLRJMXPORT/" \
     -e "s/@YZSOLRPORT@/$YZSOLRPORT/" \
-    -e "s/@JMXPORT@/$JMXPORT/" \
     -e "s/@PBPORT@/$PBPORT/" \
     -e "s/@WEBPORT@/$WEBPORT/" \
 	-e "s/@CM_PORT@/$CM_PORT/" \

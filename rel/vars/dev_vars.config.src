@@ -22,12 +22,9 @@
 {pb_ip,             "127.0.0.1"}.
 {pb_port,           @PBPORT@}.
 {storage_backend,   "bitcask"}.
-{jmx_port,          @JMXPORT@}.
 {sasl_error_log,    "{{platform_log_dir}}/sasl-error.log"}.
 {sasl_log_dir,      "{{platform_log_dir}}/sasl"}.
 {repl_data_root,    "{{platform_data_dir}}/riak_repl/"}.
-{snmp_agent_conf,   "{{platform_etc_dir}}/snmp/agent/conf"}.
-{snmp_db_dir,       "{{platform_data_dir}}/snmp/agent/db"}.
 
 %% lager
 {console_log_default, both}.
@@ -55,11 +52,6 @@
 {pipe_dir,           "/tmp/$RUNNER_BASE_DIR/"}.
 {runner_user,        ""}.
 {runner_wait_process, "riak_core_node_watcher"}.
-
-%%
-%% etc/snmp/agent.conf
-%%
-{snmp_agent_port, @SNMPPORT@}.
 
 %%
 %% cuttlefish
