@@ -156,7 +156,7 @@
                    "d300bf25859122daaaebac597bfbd5be534623f4"}},
        {yokozuna,".*",
                  {git,"git://github.com/nhs-riak/yokozuna.git",
-                      "5553c03e418bdb79aca2d497cfe22b99793310ae"}},
+                      "24aba90cee980ea8bdc500ca16f883b9731a57bd"}},
        {canola,".*",
                {git,"git://github.com/basho/canola.git",
                     "9bdfee88fce20b3a01b7003696b53eb21913d6fb"}},
