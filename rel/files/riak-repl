@@ -1,0 +1,652 @@
+#!/bin/sh
+# -*- tab-width:4;indent-tabs-mode:nil -*-
+# ex: ts=4 sw=4 et
+
+# Pull environment for this install
+. "{{runner_base_dir}}/lib/env.sh"
+
+# Make sure the user running this script is the owner and/or su to that user
+check_user $@
+ES=$?
+if [ "$ES" -ne 0 ]; then
+    exit $ES
+fi
+
+# Keep track of where script was invoked
+ORIGINAL_DIR=$(pwd)
+
+# Make sure CWD is set to runner run dir
+cd $RUNNER_BASE_DIR
+
+# Identify the script name
+SCRIPT=`basename $0`
+
+V2REPLDEP="DEPRECATION NOTICE: The replication protocol you are currently using in this cluster has been deprecated and will be unsupported and removed some time after the Riak Enterprise 2.1 release. Please upgrade to the latest replication protocol as soon as possible. If you need assistance migrating contact Basho Client Services or follow the instructions in our documentation ( http://docs.basho.com/riakee/latest/cookbooks/Multi-Data-Center-Replication-UpgradeV2toV3/ )."
+
+# Check the first argument for instructions
+case "$1" in
+    status)
+        # Make sure the local node is running
+        node_up_check
+
+        shift
+
+        NODETOOL rpc riak_repl_console status $@
+        ;;
+
+    add-listener)
+        echo $V2REPLDEP
+        ACTION=$1
+        shift
+        if [ $# -lt 3 ]; then
+            echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port>"
+            exit 1
+        fi
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console add_listener $1 $2 $3
+        ;;
+
+    add-nat-listener)
+        echo $V2REPLDEP
+        ACTION=$1
+        shift
+        if [ $# -lt 5 ]; then
+            echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port> <public_ip> <public_port>"
+            exit 1
+        fi
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console add_nat_listener $1 $2 $3 $4 $5
+        ;;
+
+
+    del-listener)
+        echo $V2REPLDEP
+        ACTION=$1
+        shift
+        if [ $# -lt 3 ]; then
+            echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port>"
+            exit 1
+        fi
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console del_listener $1 $2 $3
+        ;;
+
+    add-site)
+        echo $V2REPLDEP
+        ACTION=$1
+        shift
+        if [ $# -lt 3 ]; then
+            echo "Usage: $SCRIPT $ACTION <ipaddr> <portnum> <sitename>"
+            exit 1
+        fi
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console add_site $1 $2 $3
+        ;;
+   del-site)
+        echo $V2REPLDEP
+        ACTION=$1
+        shift
+        if [ $# -lt 1 ]; then
+            echo "Usage: $SCRIPT $ACTION <sitename>"
+            exit 1
+        fi
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console del_site $1
+        ;;
+    start-fullsync)
+        echo $V2REPLDEP
+        ACTION=$1
+        shift
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console start_fullsync
+        ;;
+    cancel-fullsync)
+        echo $V2REPLDEP
+        ACTION=$1
+        shift
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console cancel_fullsync
+        ;;
+    pause-fullsync)
+        echo $V2REPLDEP
+        ACTION=$1
+        shift
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console pause_fullsync
+        ;;
+    resume-fullsync)
+        echo $V2REPLDEP
+        ACTION=$1
+        shift
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console resume_fullsync
+        ;;
+#
+# Repl2 Commands
+#
+    clusterstats)
+        ACTION=$1
+
+        # Make sure the local node is running
+        node_up_check
+
+        shift
+        if [ $# -lt 1 ]; then
+            NODETOOL rpc riak_repl_console $ACTION
+        else
+            NODETOOL rpc riak_repl_console $ACTION $1
+        fi
+        ;;
+    clustername)
+        ACTION=$1
+        shift
+        if [ $# -gt 1 ]; then
+            echo "Usage: $SCRIPT $ACTION [clustername]"
+            exit 1
+        fi
+
+        # Make sure the local node is running
+        node_up_check
+
+        if [ $# -lt 1 ]; then
+            NODETOOL rpc riak_repl_console $ACTION
+        else
+            NODETOOL rpc riak_repl_console $ACTION $1
+        fi
+        ;;
+    connections|clusters)
+        ACTION=$1
+        shift
+        if [ $# -gt 0 ]; then
+            echo "Usage: $SCRIPT $ACTION"
+            exit 1
+        fi
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console $ACTION
+        ;;
+    connect|disconnect)
+        ACTION=$1
+        CMD=`echo $ACTION | sed 's/-/_/'`
+        shift
+        if [ $# -lt 1 ]; then
+            case $ACTION in
+                connect)
+                    echo "Usage: $SCRIPT $ACTION  <host:port>"
+                    ;;
+                disconnect)
+                    echo "Usage: $SCRIPT $ACTION {<host:port> | <clustername>}"
+                    ;;
+            esac
+            exit 1
+        fi
+
+        # Make sure the local node is running
+        node_up_check
+
+        if [ $# -lt 2 ]; then
+            # by clustername or ip:port
+            NODETOOL rpc riak_repl_console $CMD $1
+        else
+            # by IP/Port
+            NODETOOL rpc riak_repl_console $CMD $1 $2
+        fi
+        ;;
+
+  modes)
+        CMD=$1
+        shift
+
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console $CMD $@
+        ;;
+    realtime|fullsync)
+        ACTION=$1
+        shift
+
+        # Make sure the local node is running
+        node_up_check
+
+        if [ $# -lt 1 ]; then
+            echo "Usage: $SCRIPT $ACTION enable <clustername> |"
+            echo "                       disable <clustername> |"
+            echo "                       start [<clustername>] |"
+            echo "                       stop [<clustername>] |"
+            echo "                       cascades [ always | never ] | (realtime only)"
+            echo "                       max_fssource_node [<value>] | (fullsync only)"
+            echo "                       max_fssource_cluster [<value>] | (fullsync only)"
+            echo "                       max_fssink_node [<value>] (fullsync only)"
+            exit 1
+        fi
+        SUB_CMD=$1
+        shift
+        case $SUB_CMD in
+            enable|disable)
+                if [ $# -lt 1 ]; then
+                    echo "Usage: $SCRIPT $ACTION {enable|disable} <clustername>"
+                    exit 1
+                fi
+                NODETOOL rpc riak_repl_console $ACTION $SUB_CMD $1
+                ;;
+            start|stop)
+                if [ $# -lt 1 ]; then
+                    NODETOOL rpc riak_repl_console $ACTION $SUB_CMD
+                    exit 1
+                else
+                    NODETOOL rpc riak_repl_console $ACTION $SUB_CMD $1
+                fi
+                ;;
+            max_fssource_node)
+              if [ "$ACTION" != "fullsync" ]; then
+                echo "max_fssource_node is only available for fullsync"
+                exit 1
+              fi
+              NEWVAL=$1
+
+              # Make sure the local node is running
+              node_up_check
+
+              NODETOOL rpc riak_repl_console $SUB_CMD $@
+              ;;
+            cascades)
+              if [ "$ACTION" != "realtime" ]; then
+                echo "cascades is only available for realtime"
+                exit 1
+              fi
+              NEWVAL=$1
+              RES=`NODETOOL ping`
+              if [ "$RES" != "pong" ]; then
+                echo "Node is not running!"
+                exit 1
+              fi
+              NODETOOL rpc riak_repl_console realtime_cascades $@
+              ;;
+            max_fssource_cluster)
+              if [ "$ACTION" != "fullsync" ]; then
+                echo "max_fssource_cluster is only available for fullsync"
+                exit 1
+              fi
+              NEWVAL=$1
+
+              # Make sure the local node is running
+              node_up_check
+
+              NODETOOL rpc riak_repl_console $SUB_CMD $@
+              ;;
+            max_fssink_node)
+              if [ "$ACTION" != "fullsync" ]; then
+                echo "max_fssink_node is only available for fullsync"
+                exit 1
+              fi
+              NEWVAL=$1
+
+              # Make sure the local node is running
+              node_up_check
+
+              NODETOOL rpc riak_repl_console $SUB_CMD $@
+              ;;
+            *)
+                echo "Usage: $SCRIPT $ACTION realtime start [clustername] |"
+                echo "                       realtime stop [clustername]"
+                exit 1
+                ;;
+        esac
+        ;;
+
+
+    proxy_get)
+        ACTION=$1
+        shift
+
+        # Make sure the local node is running
+        node_up_check
+
+        if [ $# -ne 2 ]; then
+            echo "Usage: $SCRIPT $ACTION enable <clustername> |"
+            echo "                       disable <clustername> |"
+            exit 1
+        fi
+        SUB_CMD=$1
+        shift
+        case $SUB_CMD in
+            enable|disable)
+                if [ $# -lt 1 ]; then
+                    echo "Usage: $SCRIPT $ACTION {enable|disable} <clustername>"
+                    exit 1
+                fi
+                NODETOOL rpc riak_repl_console $ACTION $SUB_CMD $1
+                ;;
+        esac
+        ;;
+
+    nat-map)
+        ACTION=$1
+        shift
+        # Make sure the local node is running
+        RES=`NODETOOL ping`
+        if [ "$RES" != "pong" ]; then
+            echo "Node is not running!"
+            exit 1
+        fi
+        if [ $# -lt 1 -o $# -gt 3 ]; then
+            echo "Usage: $SCRIPT $ACTION show |"
+            echo "                       add <externalip>[:port] <internalip> |"
+            echo "                       del <externalip>[:port] <internalip>"
+            exit 1
+        fi
+        SUB_CMD=$1
+        shift
+        case $SUB_CMD in
+            show)
+                if [ $# -ne 0 ]; then
+                    echo "Usage: $SCRIPT $ACTION $SUB_CMD"
+                    exit 1
+                fi
+                NODETOOL rpc riak_repl_console show_nat_map
+                ;;
+            add)
+                if [ $# -ne 2 ]; then
+                    echo "Usage: $SCRIPT $ACTION $SUB_CMD <externalip>[:port] <internalip>"
+                    exit 1
+                fi
+                NODETOOL rpc riak_repl_console add_nat_map $1 $2
+                ;;
+            del)
+                if [ $# -ne 2 ]; then
+                    echo "Usage: $SCRIPT $ACTION $SUB_CMD <externalip>[:port] <internalip>"
+                    exit 1
+                fi
+                NODETOOL rpc riak_repl_console del_nat_map $1 $2
+                ;;
+            *)
+                echo "Usage: $SCRIPT $ACTION show |"
+                echo "                       add <externalip>[:port] <internalip> |"
+                echo "                       del <externalip>[:port] <internalip>"
+                exit 1
+        esac
+        ;;
+    add-block-provider-redirect)
+        CMD=$1
+        shift
+        if [ $# -ne 2 ]; then
+            echo "Usage: $SCRIPT $ACTION show |"
+            echo "                       block-provider-redirect <from-cluster> <to-cluster>"
+            exit 1
+        fi
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console add_block_provider_redirect $1 $2
+        ;;
+    show-block-provider-redirect)
+        CMD=$1
+        shift
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT $ACTION show |"
+            echo "                       show-block-provider-redirect <from-cluster>"
+            exit 1
+        fi
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console show_block_provider_redirect $1
+        ;;
+    delete-block-provider-redirect)
+        CMD=$1
+        shift
+        if [ $# -ne 1 ]; then
+            echo "Usage: $SCRIPT $ACTION show |"
+            echo "                       delete-block-provider-redirect <from-cluster>"
+            exit 1
+        fi
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console delete_block_provider_redirect $1
+        ;;
+    show-local-cluster-id)
+        CMD=$1
+        shift
+        if [ $# -ne 0 ]; then
+            echo "Usage: $SCRIPT $ACTION show |"
+            echo "                       show-local-cluster-id"
+            exit 1
+        fi
+        # Make sure the local node is running
+        node_up_check
+
+        NODETOOL rpc riak_repl_console show_local_cluster_id
+        ;;
+    *)
+
+
+ echo "\
+Usage: $SCRIPT <command>
+
+===============================================================================
+Version 3 MDC replication:
+
+   Connection setup:
+
+      clustername [localname]
+
+             Without a parameter, returns the current name of the cluster.
+             With a parameter, names the current cluster.
+
+      connect <host:port>
+
+             Establish communications between clusters using the host:port of
+             the remote cluster_mgr value. Connection information will be
+             persisted across Riak restarts.
+
+      disconnect {<host:port> | clustername}
+
+             Disconnect from a remote cluster using either host:port of the
+             remote cluster_mgr, or the name of the remote cluster.
+
+      connections
+
+             Display a list of connections between source and sink clusters.
+
+
+   Operations:
+
+      realtime enable <clustername>
+      realtime disable <clustername>
+
+             Enable or disable realtime replication to a named sink cluster.
+
+
+      realtime start <clustername>
+      realtime stop <clustername>
+
+             Start or stop realtime replication to a named sink cluster.
+             Realtime repliction for a cluster must first be enabled before
+             it is started.
+
+      fullsync enable <clustername>
+      fullsync disable <clustername>
+
+             Enable or disable fullsync replication to a named sink cluster.
+
+      fullsync start <clustername>
+      fullsync stop <clustername>
+
+             Start or stop fullsync replication to a named sink cluster.
+             Fullsync repliction for a cluster must first be enabled before
+             it is started.
+
+      proxy_get enable <clustername>
+      proxy_get disable <clustername>
+
+             Allow a connected sink cluster to request Riak CS blocks in
+             realtime from *this* source cluster.
+
+      clusterstats [{<ip:-port> | <protocol-id>}]
+             protocol-id = cluster_mgr | rt_repl | fs_repl
+
+             Displays current cluster stats using an optional ip:port as well as
+             an optional protocol.
+
+      modes [<modelist>]
+
+             modelist is one or both of mode_repl12, mode_repl13 separated by
+             spaces. Changes the behavior of the realtime replication bucket hooks.
+
+      add-block-provider-redirect [<from-cluster-id> <to-cluster-id>]
+
+             provide a redirection to the <to-cluster-id> for proxy_get if
+             the original cluster is going to be put out of service
+
+      show-block-provider-redirect [<from-cluster-id>]
+             show the mapping for a given cluster-id redirect
+
+      delete-block-provider-redirect [<from-cluster-id>]
+
+             delete a pre-existing redirect such that proxy_gets go
+             again to the original provider cluster id.
+
+      show-local-cluster-id []
+
+             display this cluster's cluster-id tuple, for use with the *-block-provider-redirect
+             commands
+
+   Performance Tuning:
+
+      realtime cascades [ always | never ]
+
+             Enables or disables cascading realtime replication writes to
+             realtime sink clusters. When set to never, no writes are
+             cascaded. When set to always, when this cluster is a sink and
+             receives a realtime write, it will forword that write (cascade)
+             to any started sink clusters as well. If omitted, the current
+             value is displayed.
+
+      fullsync max_fssource_node [value]
+
+             Limits the number of fullsync workers that will be running on
+             each individual node in a source cluster. If the value is
+             omitted, the current max_fxsource_node value is displayed.
+
+
+      fullsync max_fssource_cluster [value]
+
+             The hard limit of fullsync workers that will be running on the
+             source side of a cluster across all nodes on that cluster for a
+             fullsync to a sink cluster. If the value is omitted, the current
+             max_fssource_cluster value is displayed.
+
+      fullsync max_fssink_node [value]
+
+             Limits the number of fullsync workers allowed to run on each
+             individual node in a sink cluster. If the value is omitted, the
+             current max_fssink_node value is displayed.
+
+   NAT Configuration:
+
+     nat-map show
+
+            Displays the current NAT mapping table.
+
+     nat-map add <externalip>[:port] <internalip>
+
+            Add a NAT map from the external IP, with an optional port, to
+            an internal IP.
+
+     nat-map del <externalip>[:port] <internalip>
+
+            Delete a specific NAT map entry.
+
+===============================================================================
+Version 2 MDC replication:
+
+   $V2REPLDEP
+
+   Connection setup:
+
+      add-listener <nodename> <listen_ip> <port>
+
+            Adds a listener (source) for version 2
+            replication.
+
+      add-nat-listener <nodename> <listen_ip> <port> <public_ip> <public_port>
+
+            Adds a listener (source)capable of listening
+            on both an internal listen_ip:port as well as an
+            external public_ip:port.
+
+      del-listener <nodename> <listen_ip> <port>
+
+            Deletes an established listener or nat-listener
+            on nodename and listener_ip:port.
+
+      add-site <ipaddr> <portnum> <sitename>
+
+            Adds a named replication site at ipaddr:portnum.
+
+      del-site <sitename>
+
+            Deletes a named replication site.
+
+   Operations:
+
+      status
+
+            Displays replication status and statistics.
+
+      start-fullsync
+
+            Start fullsync replication between a listener
+            (source) and a site (sink).
+
+      cancel-fullsync
+
+            Cancels a running fullsync replication process.
+            The next fullsync will start over from scratch.
+
+      pause-fullsync
+
+            Pauses a running fullsync replication process.
+            Once resumed, continue fullsync where the process was
+            paused.
+
+      resume-fullsync
+
+            Continue fullsync if it was previously paused.
+
+
+"
+exit 1
+;;
+esac
