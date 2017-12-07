@@ -1,3 +1,6 @@
+#Riak KV 2.2.4 Release Notes
+Including riak_repl as a dep of open-source Riak. No changes other than the inclusion of the dependency and updating the release config.
+
 #Riak KV 2.2.3 Release Notes
 http://docs.basho.com/riak/kv/2.2.3/release-notes/
 

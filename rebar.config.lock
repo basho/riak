@@ -139,6 +139,7 @@
        {riak_control,".*",
                      {git,"git://github.com/basho/riak_control.git",
                           "8ac83f12e16010f8034f2a2b4a07329628973367"}},
+
        {riaknostic,".*",
                    {git,"git://github.com/basho/riaknostic.git",
                         "dad8939d0ef32fbf435d13697720223293195282"}},
