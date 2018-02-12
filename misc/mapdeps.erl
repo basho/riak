@@ -68,6 +68,15 @@ map_dir(BaseDir) ->
             exit(-1)
     end.
 
+
+% Obtain a nice version string to use in the label
+ver({tag,T}) ->
+   io_lib:format("tag:~s", [T]);
+ver({branch, B} ) ->
+   io_lib:format("branch:~s", [B]);
+ver(R) -> 
+   io_lib:format("ref:~s", [R]).
+
 %% Read a rebar file. Find any `deps' option. Accumulate tuples of the
 %% form `{App, Dep}' for each element in this deps list.  Recurse and
 %% attempt to read the rebar.config for each dep.
@@ -76,9 +85,10 @@ map_rebar(BaseDir, Path, Acc) ->
         {ok, Opts} ->
             Deps = proplists:get_value(deps, Opts, []),
             lists:foldl(
-              fun({DepName, _, _}, A) ->
+              fun({DepName, _, {_,_,V}  }, A) ->
                       From = app_name(Path),
-                      To = atom_to_list(DepName),
+                      VerStr = ver(V),
+                      To = {atom_to_list(DepName), VerStr},
                       case ordsets:is_element({To, From}, A) of
                           true ->
                               %% we've already seen the other side,
@@ -92,7 +102,9 @@ map_rebar(BaseDir, Path, Acc) ->
                                            atom_to_list(DepName),
                                            "rebar.config"]),
                               map_rebar(BaseDir, DepPath, NA)
-                      end
+                      end;
+                 ({_DepName, _, {_,_,_}  }, A) ->  
+                    A
               end,
               Acc,
               Deps);
@@ -110,5 +122,5 @@ file_start() ->
 file_end() ->
     io:format(standard_io, "}~n", []).
 
-file_edge(From, To) ->
-    io:format(standard_io, " \"~s\" -> ~s;~n", [From, To]).
+file_edge(From, {To,V} ) ->
+    io:format(standard_io, " \"~s\" -> ~s [ label=\"~s\" ];~n", [From, To,V]).
