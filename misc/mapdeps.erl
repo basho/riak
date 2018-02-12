@@ -102,9 +102,7 @@ map_rebar(BaseDir, Path, Acc) ->
                                            atom_to_list(DepName),
                                            "rebar.config"]),
                               map_rebar(BaseDir, DepPath, NA)
-                      end;
-                 ({_DepName, _, {_,_,_}  }, A) ->  
-                    A
+                      end
               end,
               Acc,
               Deps);
