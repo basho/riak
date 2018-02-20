@@ -59,8 +59,8 @@ map_dir(BaseDir) ->
     case filelib:is_regular(RebarPath) of
         true ->
             file_start(),
-            Map = map_rebar(BaseDir, RebarPath, orddict:new()),
-            [ file_edge(From, To, Vsn) || {{From, To}, Vsn} <- orddict:to_list(Map) ],
+            Map = map_rebar(BaseDir, RebarPath, ordsets:new()),
+            [ file_edge(From, To) || {From, To} <- Map ],
             file_end();
         false ->
             io:format(standard_error, "~p not found.", [RebarPath]),
@@ -76,17 +76,17 @@ map_rebar(BaseDir, Path, Acc) ->
         {ok, Opts} ->
             Deps = proplists:get_value(deps, Opts, []),
             lists:foldl(
-              fun({DepName, _, {_Engine, _URI, Vsn}}, A) ->
+              fun({DepName, _, _}, A) ->
                       From = app_name(Path),
                       To = atom_to_list(DepName),
-                      case orddict:is_key({To, From}, A) of
+                      case ordsets:is_element({To, From}, A) of
                           true ->
                               %% we've already seen the other side,
                               %% recursing would just put us in a loop
                               %% TODO: warning color
-                              orddict:store({From, To}, Vsn, A);
+                              ordsets:add_element({From, To}, A);
                           false ->
-                              NA = orddict:store({From, To}, Vsn, A),
+                              NA = ordsets:add_element({From, To}, A),
                               DepPath = filename:join(
                                           [BaseDir, "deps",
                                            atom_to_list(DepName),
@@ -110,11 +110,5 @@ file_start() ->
 file_end() ->
     io:format(standard_io, "}~n", []).
 
-file_edge(From, To, Vsn) ->
-    io:format(standard_io, " \"~s\" -> ~s[ label=\"~p\"];~n", [From, To, vsn_to_term(Vsn)]).
-
-
-vsn_to_term({Type, Tag}) when is_list(Tag), is_atom(Type) ->
-    {Type, list_to_atom(Tag)};
-vsn_to_term(Vsn) when is_list(Vsn) ->
-    list_to_atom(Vsn).
+file_edge(From, To) ->
+    io:format(standard_io, " \"~s\" -> ~s;~n", [From, To]).
