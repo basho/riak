@@ -9,7 +9,7 @@ NAME=$1
 TEMPLATE=$2
 VARFILE=$3
 
-## Allocate 10 ports per node
+## Allocate some ports per node
 ##   .
 ##   .7 - http
 NODE="$NAME@127.0.0.1"

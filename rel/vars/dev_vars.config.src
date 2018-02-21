@@ -26,9 +26,6 @@
 {sasl_log_dir,      "{{platform_log_dir}}/sasl"}.
 {repl_data_root,    "{{platform_data_dir}}/riak_repl/"}.
 
-%% riak_search
-{merge_index_data_root,  "{{platform_data_dir}}/merge_index"}.
-
 %% lager
 {console_log_default, both}.
 
