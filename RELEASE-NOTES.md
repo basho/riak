@@ -1,3 +1,38 @@
+# Riak KV 2.2.5 Release Notes
+
+* riak_pipe/113: [Some flappy test failure fixes](https://github.com/basho/riak_pipe/pull/113)
+* riak_kv/1657: [Intermittent test failure fixes](https://github.com/basho/riak_kv/pull/1657)
+* riak_kv/1658: [ Move schedule_timeout to execute in put_fsm](https://github.com/basho/riak_kv/pull/1658)
+* riak_kv/1663: [Add bucket property `node_confirms` for physical diversity](https://github.com/basho/riak_kv/pull/1663)
+* riak_kv/1664: [Add  option 'participate_in_2i_coverage' with default 'enabled'](https://github.com/basho/riak_kv/pull/1664)
+* riak_kv/1665: [enable gset support](https://github.com/basho/riak_kv/pull/1665)
+* riak_kv/1666: [Fix schema paths for make test](https://github.com/basho/riak_kv/pull/1666)
+* eleveldb/243: [Add a 10% fuzz factor to the resident memory calc (intermittent test failure "fixes")](https://github.com/basho/eleveldb/pull/243)
+* riak_core/911: [Fix brops intermittent test failures](https://github.com/basho/riak_core/pull/911)
+* riak_core/913: [ Fix claim tail violations and unbalanced rings](https://github.com/basho/riak_core/pull/913)
+* riak_core/915: [Add `node_confirms` default bucket props](https://github.com/basho/riak_core/pull/915)
+* riak_core/917: [Add participate_in_2i_coverage riak option](https://github.com/basho/riak_core/pull/917)
+* sidejob/18: [Address some intermittent test failures](https://github.com/basho/sidejob/pull/18)
+* riak_pb/228: [Add `node_confirms` option to write messages](https://github.com/basho/riak_pb/pull/228)
+* riak_pb/229: [add gsets support](https://github.com/basho/riak_pb/pull/229)
+* basho_stats/13: [Non-deterministic test needs a little ?SOMETIMES](https://github.com/basho/basho_stats/pull/13)
+* basho_stats/4: [Add Makefile](https://github.com/basho/basho_stats/pull/4)
+* exometer_core/17: [Fix failing test with correct tuple entry](https://github.com/basho/exometer_core/pull/17)
+* yokozuna/741: [Fix broken eqc test](https://github.com/basho/yokozuna/pull/741)
+* yokozuna/746: [remove -XX:+UseStringCache](https://github.com/basho/yokozuna/pull/746)
+* yokozuna/747: [Remove jvm directive from test too](https://github.com/basho/yokozuna/pull/747)
+* clique/81: [Fix failing test on some environments](https://github.com/basho/clique/pull/81)
+* riak_dt/121: [doc related fix & explanation](https://github.com/basho/riak_dt/pull/121)
+* riak_dt/127: [bring develop-2.2 up-to-date with develop](https://github.com/basho/riak_dt/pull/127)
+* riak_dt/129: [Add gset support](https://github.com/basho/riak_dt/pull/129)
+* riak_dt/135: [Fix `equal/2` bug around unordered dict usage](https://github.com/basho/riak_dt/pull/135)
+* riak_repl/772: [Soft retry limits - AAE fullsync](https://github.com/basho/riak_repl/issues/772)
+* riak_repl/776: [Fix bug when passing utc timestamps into httpd_util:rfc1123/1.](https://github.com/basho/riak_repl/pull/776)
+* riak_repl/777: [Fix badarg in binary construction for args to ebloom](https://github.com/basho/riak_repl/pull/777)
+* riak_repl/779: [Sticking plaster fix for basho/riak_repl#772](https://github.com/basho/riak_repl/pull/779)
+* riak_repl/780: [Fix sometime failing test](https://github.com/basho/riak_repl/pull/780)
+* riak_repl/782: [Change ETS queue table permissions to protected](https://github.com/basho/riak_repl/pull/782)
+
 #Riak KV 2.2.4 Release Notes
 Including riak_repl as a dep of open-source Riak. No changes other than the inclusion of the dependency and updating the release config.
 
