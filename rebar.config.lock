@@ -153,7 +153,7 @@
                   "21c6e52ced3af294f2fe636039106068da12eeeb"}},
        {riakc,".*",
               {git,"git://github.com/basho/riak-erlang-client",
-                   "9fe221072e3cb33a57aae1b7ccfc80954bfc8dc0"}},
+                   "ab91dfc11a6bcda0966eb662e9c6e5875ecfc3dc"}},
        {yokozuna,".*",
                  {git,"git://github.com/basho/yokozuna.git",
                       "61f364533e868bcf290d97fbf04ebe3709a5c679"}},
