@@ -8,10 +8,10 @@ website running, the documents site, the mailing list (after tiot.jp
 initially mirrored the docs in the interim.) They did a huge amount to
 provide continuity to the community.
 
-The development work on this release of Riak has been primarily funded
-by NHS Digital, who depend on Riak for Spine II, and other critical
-services. Thanks also to ESL, tiot.jp, and all the other individuals
-and organizations involved.
+The development work on this release of Riak has received significant
+funding from NHS Digital, who depend on Riak for Spine II, and other
+critical services. Thanks also to ESL, tiot.jp, and all the other
+individuals and organizations involved.
 
 This release of Riak is based on the last known-good release of Riak,
 riak-2.2.3. There is good work in the `develop` branches of many Basho
