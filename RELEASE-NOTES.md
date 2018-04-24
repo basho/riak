@@ -34,6 +34,11 @@
 * riak_repl/780: [Fix sometime failing test](https://github.com/basho/riak_repl/pull/780)
 * riak_repl/782: [Change ETS queue table permissions to protected](https://github.com/basho/riak_repl/pull/782)
 
+### Known issues
+
+If you are *upgrading* to Riak 2.2.5 from an earlier version *and* you are enabling [MDC](http://docs.basho.com/riak/kv/2.2.3/configuring/v3-multi-datacenter/) replication you will need to provide an appropriate configuration as the defaults do not place the MDC replication `data_root` directory in the correct location - you must set it explicitly. More details can be found [here](https://github.com/basho/riak/issues/940). A sensible default configuration file is provided in [this](https://github.com/basho/riak/issues/940#issuecomment-383921904) comment. 
+
+
 #Riak KV 2.2.4 Release Notes
 Including riak_repl as a dep of open-source Riak. No changes other than the inclusion of the dependency and updating the release config.
 
