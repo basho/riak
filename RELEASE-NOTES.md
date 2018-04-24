@@ -1,4 +1,5 @@
 # Riak KV 2.2.5 Release Notes
+#### This release is dedicated to the memory of Andy Gross. Thank you and RIP.
 
 * riak_pipe/113: [Some flappy test failure fixes](https://github.com/basho/riak_pipe/pull/113)
 * riak_kv/1657: [Intermittent test failure fixes](https://github.com/basho/riak_kv/pull/1657)
