@@ -24,9 +24,50 @@ replication. The rest of the changes are fixes (riak-core claim,
 repl), new features (gsets, participate in coverage, node-confirms),
 and fixes to tests and the build/development process.
 
-### Know Issues
+### Known Issues
 
-@TODO
+#### Advanced.config changes
+
+With the inclusion of MDC in riak-2.2.5 there are additional
+`advanced.config` parameters. If you have an existing
+`advanced.config` you must merge it with the new one from the install
+of riak-2.2.5. Some package installs will simply replace the old with
+new (e.g. .deb), others may leave the old file unchanged. YOU MUST
+make sure that the `advanced.config` contains valid `riak_repl`
+entries.
+
+Example default entries to add to your existing advanced.config:
+
+```
+{riak_core,
+  [
+   {cluster_mgr, {"0.0.0.0", 9080 } }
+  ]},
+ {riak_repl,
+  [
+   {data_root, "/var/lib/riak/riak_repl/"},
+   {max_fssource_cluster, 5},
+   {max_fssource_node, 1},
+   {max_fssink_node, 1},
+   {fullsync_on_connect, true},
+   {fullsync_interval, 30},
+   {rtq_max_bytes, 104857600},
+   {proxy_get, disabled},
+   {rt_heartbeat_interval, 15},
+   {rt_heartbeat_timeout, 15},
+   {fullsync_use_background_manager, true}
+  ]},
+```
+
+Read more about configuring
+[MDC](http://docs.basho.com/riak/kv/2.2.3/configuring/v3-multi-datacenter/)
+replication.
+
+More details about the issue can be found
+[here](https://github.com/basho/riak/issues/940). A sensible default
+configuration file is provided in
+[this](https://github.com/basho/riak/issues/940#issuecomment-383921904)
+comment.
 
 Full details below:
 
@@ -62,10 +103,6 @@ Full details below:
 * riak_repl/779: [Sticking plaster fix for basho/riak_repl#772](https://github.com/basho/riak_repl/pull/779)
 * riak_repl/780: [Fix sometime failing test](https://github.com/basho/riak_repl/pull/780)
 * riak_repl/782: [Change ETS queue table permissions to protected](https://github.com/basho/riak_repl/pull/782)
-
-### Known issues
-
-If you are *upgrading* to Riak 2.2.5 from an earlier version *and* you are enabling [MDC](http://docs.basho.com/riak/kv/2.2.3/configuring/v3-multi-datacenter/) replication you will need to provide an appropriate configuration as the defaults do not place the MDC replication `data_root` directory in the correct location - you must set it explicitly. More details can be found [here](https://github.com/basho/riak/issues/940). A sensible default configuration file is provided in [this](https://github.com/basho/riak/issues/940#issuecomment-383921904) comment. 
 
 
 #Riak KV 2.2.4 Release Notes
