@@ -57,7 +57,7 @@ Released December 1, 2015.
 
 This is a bugfix release, incorporating bugfixes from the Riak KV 2.0 series into our 2.1 series. It also includes general updates and additions to improve performance and incorporate patches developed since the release of 2.1.1.
 
-##Upgrading
+## Upgrading
 If you are upgrading from previous 2.1 releases or from Riak KV 2.0.6, you will need to double check your default bucket properties. KV 2.1.2 has a small, subtle change in the way that default bucket properties work. If your `advanced.config` file contains a section for `default_bucket_props` under the `riak_core` section, you will need to ensure you specify the settings for ALL default bucket properties that you expect to differ from the hard-coded defaults. 
 
 For example, if your advanced.config file has a section similar to:
@@ -84,7 +84,7 @@ If you have been depending on this behavior unintentionally, learn more about wh
 For more information about this change, please see [issue #727](https://github.com/basho/riak/issues/727).
 
 
-##Changes
+## Changes
 
 * Search now works with write-once buckets. A modification has been made to the `yz_kv:index` function to support passing both the bucket and key. Passing a bucket is needed for the write-once PUT path, where there is no (decoded) Riak object. [[riak_kv PR #1159](https://github.com/basho/riak_kv/pull/1159)]
 * A Bitcask downgrade script has been added to downgrade Bitcask data files to the format used before version 1.7.0. [[Bitcask PR #215](https://github.com/basho/bitcask/pull/215)]
@@ -96,7 +96,7 @@ For more information about this change, please see [issue #727](https://github.c
 * Under a heavy IO load on the sink side, transferred objects can get stuck in the sink queue and consume infinite memory. A metric has been added so you can monitor memory performance before things collapse. [[riak_repl PR #674](https://github.com/basho/riak_repl/pull/674)]
 
 
-##Bugs Fixed
+## Bugs Fixed
 
 * [[riak_core PR #764](https://github.com/basho/riak_core/pull/764)] A node can no longer join the cluster during staged joins if the node is still launching. A race condition was identified where, when nodes are being joined quickly during automated testing, nodes which are still busy starting applications can lead to divergent rings; and a node can transition from being a member of a ring back to joining status with resulting deadlock. The race condition only manifested during staged joins, so this change checks the joining node's `init` status and blocks the join if the node is starting (or stopping).
 * [[Issue #663](https://github.com/basho/riak_repl/issues/663 )/[riak_repl PR #707](https://github.com/basho/riak_repl/pull/707) & [riak_repl PR #665](https://github.com/basho/riak_repl/pull/665)] AAE fullsync now works with bucket types. `encode_obj_msg` has been updated to support the w2wire protocol. The AAE sink has also been changed to use an updated `decode_obj_msg` function which can now properly handle bucket type property hashes.
@@ -137,7 +137,7 @@ For more information about this change, please see [issue #727](https://github.c
 * [[yokozuna PR #487](https://github.com/basho/yokozuna/pull/487)] The index creation loop on bad data has been stopped.
 
 
-##Upgraded Components
+## Upgraded Components
 
 * syslog has been upgraded to version 1.0.3
 * goldrush has been upgraded to version 0.1.7
