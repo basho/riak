@@ -69,7 +69,7 @@ configuration file is provided in
 [this](https://github.com/basho/riak/issues/940#issuecomment-383921904)
 comment.
 
-Full details below:
+### Changes in this release
 
 * riak_pipe/113: [Some flappy test failure fixes](https://github.com/basho/riak_pipe/pull/113)
 * riak_kv/1657: [Intermittent test failure fixes](https://github.com/basho/riak_kv/pull/1657)
