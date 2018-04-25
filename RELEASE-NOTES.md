@@ -24,11 +24,49 @@ replication. The rest of the changes are fixes (riak-core claim,
 repl), new features (gsets, participate in coverage, node-confirms),
 and fixes to tests and the build/development process.
 
-### Know Issues
+### Known Issues
 
-@TODO
+#### Advanced.config changes
 
-Full details below:
+With the inclusion of Multi-Datacentre Replication in riak-2.2.5 there
+are additional `advanced.config` parameters. If you have an existing
+`advanced.config` you must merge it with the new one from the install
+of riak-2.2.5. Some package installs will simply replace the old with
+new (e.g. .deb), others may leave the old file unchanged. YOU MUST
+make sure that the `advanced.config` contains valid `riak_repl`
+entries.
+
+Example default entries to add to your existing advanced.config:
+
+```
+{riak_core,
+  [
+   {cluster_mgr, {"0.0.0.0", 9080 } }
+  ]},
+ {riak_repl,
+  [
+   {data_root, "/var/lib/riak/riak_repl/"},
+   {max_fssource_cluster, 5},
+   {max_fssource_node, 1},
+   {max_fssink_node, 1},
+   {fullsync_on_connect, true},
+   {fullsync_interval, 30},
+   {rtq_max_bytes, 104857600},
+   {proxy_get, disabled},
+   {rt_heartbeat_interval, 15},
+   {rt_heartbeat_timeout, 15},
+   {fullsync_use_background_manager, true}
+  ]},
+```
+
+Read more about configuring
+[MDC](http://docs.basho.com/riak/kv/2.2.3/configuring/v3-multi-datacenter/)
+replication.
+
+More details about the issue can be found in riak\_repl/782: [2.2.5 - \[enoent\] - riak_repl couldn't create log dir
+"data/riak_repl/logs"](https://github.com/basho/riak/issues/940)
+
+### Changes in this release
 
 * riak_pipe/113: [Some flappy test failure fixes](https://github.com/basho/riak_pipe/pull/113)
 * riak_kv/1657: [Intermittent test failure fixes](https://github.com/basho/riak_kv/pull/1657)
@@ -56,31 +94,26 @@ Full details below:
 * riak_dt/127: [bring develop-2.2 up-to-date with develop](https://github.com/basho/riak_dt/pull/127)
 * riak_dt/129: [Add gset support](https://github.com/basho/riak_dt/pull/129)
 * riak_dt/135: [Fix `equal/2` bug around unordered dict usage](https://github.com/basho/riak_dt/pull/135)
-* riak_repl/772: [Soft retry limits - AAE fullsync](https://github.com/basho/riak_repl/issues/772)
 * riak_repl/776: [Fix bug when passing utc timestamps into httpd_util:rfc1123/1.](https://github.com/basho/riak_repl/pull/776)
 * riak_repl/777: [Fix badarg in binary construction for args to ebloom](https://github.com/basho/riak_repl/pull/777)
 * riak_repl/779: [Sticking plaster fix for basho/riak_repl#772](https://github.com/basho/riak_repl/pull/779)
 * riak_repl/780: [Fix sometime failing test](https://github.com/basho/riak_repl/pull/780)
 * riak_repl/782: [Change ETS queue table permissions to protected](https://github.com/basho/riak_repl/pull/782)
 
-### Known issues
 
-If you are *upgrading* to Riak 2.2.5 from an earlier version *and* you are enabling [MDC](http://docs.basho.com/riak/kv/2.2.3/configuring/v3-multi-datacenter/) replication you will need to provide an appropriate configuration as the defaults do not place the MDC replication `data_root` directory in the correct location - you must set it explicitly. More details can be found [here](https://github.com/basho/riak/issues/940). A sensible default configuration file is provided in [this](https://github.com/basho/riak/issues/940#issuecomment-383921904) comment. 
-
-
-#Riak KV 2.2.4 Release Notes
+# Riak KV 2.2.4 Release Notes
 Including riak_repl as a dep of open-source Riak. No changes other than the inclusion of the dependency and updating the release config.
 
-#Riak KV 2.2.3 Release Notes
+# Riak KV 2.2.3 Release Notes
 http://docs.basho.com/riak/kv/2.2.3/release-notes/
 
-#Riak KV 2.2.2 Release Notes
+# Riak KV 2.2.2 Release Notes
 http://docs.basho.com/riak/kv/2.2.2/release-notes/
 
-#Riak KV 2.2.1 Release Notes
+# Riak KV 2.2.1 Release Notes
 http://docs.basho.com/riak/kv/2.2.1/release-notes/
 
-#Riak KV 2.1.2 Release Notes
+# Riak KV 2.1.2 Release Notes
 
 Released December 1, 2015.
 
