@@ -28,8 +28,8 @@ and fixes to tests and the build/development process.
 
 #### Advanced.config changes
 
-With the inclusion of MDC in riak-2.2.5 there are additional
-`advanced.config` parameters. If you have an existing
+With the inclusion of Multi-Datacentre Replication in riak-2.2.5 there
+are additional `advanced.config` parameters. If you have an existing
 `advanced.config` you must merge it with the new one from the install
 of riak-2.2.5. Some package installs will simply replace the old with
 new (e.g. .deb), others may leave the old file unchanged. YOU MUST
