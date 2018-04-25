@@ -97,7 +97,6 @@ Full details below:
 * riak_dt/127: [bring develop-2.2 up-to-date with develop](https://github.com/basho/riak_dt/pull/127)
 * riak_dt/129: [Add gset support](https://github.com/basho/riak_dt/pull/129)
 * riak_dt/135: [Fix `equal/2` bug around unordered dict usage](https://github.com/basho/riak_dt/pull/135)
-* riak_repl/772: [Soft retry limits - AAE fullsync](https://github.com/basho/riak_repl/issues/772)
 * riak_repl/776: [Fix bug when passing utc timestamps into httpd_util:rfc1123/1.](https://github.com/basho/riak_repl/pull/776)
 * riak_repl/777: [Fix badarg in binary construction for args to ebloom](https://github.com/basho/riak_repl/pull/777)
 * riak_repl/779: [Sticking plaster fix for basho/riak_repl#772](https://github.com/basho/riak_repl/pull/779)
