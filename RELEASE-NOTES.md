@@ -1,6 +1,35 @@
 # Riak KV 2.2.5 Release Notes
 #### This release is dedicated to the memory of Andy Gross. Thank you and RIP.
 
+This is the first full community release of Riak, post-Basho's
+collapse into bankruptcy. A lot has happened. bet365 bought Basho's
+assets and donated the code to the community. They kept the Basho
+website running, the documents site, the mailing list (after tiot.jp
+initially mirrored the docs in the interim.) They did a huge amount to
+provide continuity to the community.
+
+The development work on this release of Riak has received significant
+funding from NHS Digital, who depend on Riak for Spine II, and other
+critical services. Thanks also to ESL, tiot.jp, and all the other
+individuals and organizations involved.
+
+This release of Riak is based on the last known-good release of Riak,
+riak-2.2.3. There is good work in the `develop` branches of many Basho
+repos, but since much of it was unfinished, unreleased, untested, or
+just status-unknown, we decided as a community to go forward based on
+riak-2.2.3.
+
+This is the first release with open source multi-data-centre
+replication. The rest of the changes are fixes (riak-core claim,
+repl), new features (gsets, participate in coverage, node-confirms),
+and fixes to tests and the build/development process.
+
+### Know Issues
+
+@TODO
+
+Full details below:
+
 * riak_pipe/113: [Some flappy test failure fixes](https://github.com/basho/riak_pipe/pull/113)
 * riak_kv/1657: [Intermittent test failure fixes](https://github.com/basho/riak_kv/pull/1657)
 * riak_kv/1658: [ Move schedule_timeout to execute in put_fsm](https://github.com/basho/riak_kv/pull/1658)
