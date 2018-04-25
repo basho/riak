@@ -39,13 +39,13 @@ and [fixes to tests](#developer-improvements) and the build/development process.
 
 #### Multi Datacentre Replication
 
-Previously a paid for enterprise addition to Riak as part of the RiakEE product,
-this release includes Multi-Datacentre Replication (MDC). There is no
-longer a RiakEE product. All development is in the open on Open Source
-Riak going forward. Please consult the existing documentation for
+Previously a paid for enterprise addition to Riak as part of the Riak
+EE product, this release includes Multi-Datacentre Replication
+(MDC). There is no longer a Riak EE product. All is now Open
+Source. Please consult the existing documentation for
 [MDC](http://docs.basho.com/riak/kv/2.2.3/configuring/v3-multi-datacenter/). Again,
-many thanks to bet365 Technology for this addition. See also [Known
-Issues](#known-issues) below.
+many thanks to bet365 Technology for this addition. See also
+[Known Issues](#known-issues) below.
 
 #### Core Claim Fixes
 
