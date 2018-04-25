@@ -105,19 +105,19 @@ Full details below:
 * riak_repl/782: [Change ETS queue table permissions to protected](https://github.com/basho/riak_repl/pull/782)
 
 
-#Riak KV 2.2.4 Release Notes
+# Riak KV 2.2.4 Release Notes
 Including riak_repl as a dep of open-source Riak. No changes other than the inclusion of the dependency and updating the release config.
 
-#Riak KV 2.2.3 Release Notes
+# Riak KV 2.2.3 Release Notes
 http://docs.basho.com/riak/kv/2.2.3/release-notes/
 
-#Riak KV 2.2.2 Release Notes
+# Riak KV 2.2.2 Release Notes
 http://docs.basho.com/riak/kv/2.2.2/release-notes/
 
-#Riak KV 2.2.1 Release Notes
+# Riak KV 2.2.1 Release Notes
 http://docs.basho.com/riak/kv/2.2.1/release-notes/
 
-#Riak KV 2.1.2 Release Notes
+# Riak KV 2.1.2 Release Notes
 
 Released December 1, 2015.
 
