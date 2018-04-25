@@ -24,6 +24,61 @@ replication. The rest of the changes are fixes (riak-core claim,
 repl), new features (gsets, participate in coverage, node-confirms),
 and fixes to tests and the build/development process.
 
+#### Multi Datacentre Replication
+
+Previously a paid for enterprise addition to Riak, as part of RiakEE,
+this release includes Multi-Datacentre Replication (MDC). There is no
+longer a RiakEE product. All development is in the open on Open Source
+Riak going forward. Please consult the existing documentation for
+[MDC](http://docs.basho.com/riak/kv/2.2.3/configuring/v3-multi-datacenter/). Again,
+many thanks to bet365 Technology for this addition. See also "Known
+Issues" below.
+
+#### Core Claim Fixes
+
+Prior to this release, in some scenarios, multiple partitions from the
+same preflist could be stored on the same node, potentially leading to
+data loss. [This write up](https://github.com/basho/riak_core/blob/c9c924ef006af1121b7eec04c7e1eefe54f4cf26/docs/claim-fixes.md)
+explains the fixes in detail, and links to
+[another post](https://github.com/infinityworks/riak_core/blob/ada7030a2b2c3463d6584f1d8b20e2c4bc5ac3d8/docs/ring_claim.md)
+that gives a deep examination of riak-core-ring and the issues fixed
+in this release.
+
+#### Node Confirms
+
+This feature adds a new bucket property, and write-option of
+`node_confirms`. Unlike `w` and `pw` that are tunables for
+consistency, `node_confirms` is a tunable for durability. When
+operating in a failure state, Riak will store replicas in fallback
+vnodes, and in some case multiple fallbacks may be on the same
+physical node. `node_confirms` is an option that specifies how many
+distinct physical nodes must acknowledge a write for it to be
+considered successful. There is a
+[detailed write up here](https://github.com/ramensen/riak_kv/blob/30b0e50374196d9a8cfef37871955a5f5b2bb472/docs/Node-Diversity.md),
+and more in the documentation.
+
+#### Participate In 2i
+
+This feature was added to bring greater consistency to 2i query
+results. When a node has just been joined to a riak cluster it may not
+have any, or at least up-to-date, data. However the joined node is
+immediately in the ring and able to take part in coverage queries,
+which can lead to incomplete results. This change adds an operator
+flag to a node's configuration that will exclude it from coverage
+plans. When all transfers are complete, the operator can remove the
+flag. See documentation for more details.
+
+#### GSets
+
+This release adds another Riak Data Type, the GSet CRDT. The GSet is a
+grow only set, and has simpler semantics and better merge performance
+than the existing Riak Set. See documentation for details.
+
+#### Developer Improvments
+
+The tests didn't pass. Now they do. More details
+[here](https://github.com/russelldb/russelldb.github.io/blob/b228eacd4fd3246b4eb7f8d0b98c6bed747e2514/make_test.md)
+
 ### Known Issues
 
 #### Advanced.config changes
