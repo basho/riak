@@ -63,11 +63,8 @@ Read more about configuring
 [MDC](http://docs.basho.com/riak/kv/2.2.3/configuring/v3-multi-datacenter/)
 replication.
 
-More details about the issue can be found
-[here](https://github.com/basho/riak/issues/940). A sensible default
-configuration file is provided in
-[this](https://github.com/basho/riak/issues/940#issuecomment-383921904)
-comment.
+More details about the issue can be found in riak\_repl/782: [2.2.5 - \[enoent\] - riak_repl couldn't create log dir
+"data/riak_repl/logs"](https://github.com/basho/riak/issues/940)
 
 ### Changes in this release
 
