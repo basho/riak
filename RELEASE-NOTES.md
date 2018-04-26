@@ -3,26 +3,20 @@
 > This release is dedicated to the memory of Andy Gross. Thank you and RIP.
 
 ## Overview
+This is the first full community release of Riak since Basho, Riak's original creator, ceased business operations. A lot has happened to help bring us to this point; [bet365](https://twitter.com/bet365Tech) bought Basho's assets and donated the code to the community. They kept the Basho website running, the documents site and the mailing list (after [TI Tokyo](https://www.tiot.jp/en/) had helpfully mirrored the docs in the interim). They did a huge amount to provide continuity to the community.
 
-This is the first full community release of Riak, post-Basho's
-collapse into bankruptcy. A lot has happened, in particular [bet365](https://twitter.com/bet365Tech) bought Basho's
-assets and donated the code to the community. They kept the Basho
-website running, the documents site, the mailing list (after tiot.jp
-had helpfully mirrored the docs in the interim), and have done a huge amount to
-provide continuity to the community.
-
-The development work on this release of Riak has received significant
+The development work on this release of Riak KV has received significant
 funding from [NHS Digital](https://twitter.com/NHSDigital), who depend on Riak for Spine II, and other
-critical services. Thanks also to [ESL](https://twitter.com/ErlangSolutions), [tiot.jp](https://www.tiot.jp/), and all the other
+critical services. Thanks also to [ESL](https://twitter.com/ErlangSolutions), [TI Tokyo](https://www.tiot.jp/en/), and all the other
 individuals and organisations involved.
 
-This release of Riak is based on the last known-good release of Riak,
+This release of Riak KV is based on the last known-good release of Riak KV,
 riak-2.2.3. There is good work in the `develop` branches of many Basho
 repos, but since much of it was unfinished, unreleased, untested, or
 just status-unknown, we decided as a community to go forward based on
 riak-2.2.3.
 
-This is the first release with open source multi-data-centre
+This is the first release with open source Multi-Data-Centre
 replication. The rest of the changes are fixes ([riak-core claim](#core-claim-fixes),
 repl), new features ([gsets](#gsets), [participate in coverage](#participate-in-2i), [node-confirms](#node-confirms)),
 and [fixes to tests](#developer-improvements) and the build/development process.
