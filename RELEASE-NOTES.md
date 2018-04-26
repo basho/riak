@@ -7,13 +7,13 @@
 This is the first full community release of Riak, post-Basho's
 collapse into bankruptcy. A lot has happened, in particular [bet365](https://twitter.com/bet365Tech) bought Basho's
 assets and donated the code to the community. They kept the Basho
-website running, the documents site, the mailing list (after tiot.jp
+website running, the documents site, the mailing list (after [TI Tokyo](https://www.tiot.jp/)
 had helpfully mirrored the docs in the interim), and have done a huge amount to
 provide continuity to the community.
 
 The development work on this release of Riak has received significant
 funding from [NHS Digital](https://twitter.com/NHSDigital), who depend on Riak for Spine II, and other
-critical services. Thanks also to [ESL](https://twitter.com/ErlangSolutions), [tiot.jp](https://www.tiot.jp/), and all the other
+critical services. Thanks also to [ESL](https://twitter.com/ErlangSolutions), [TI Tokyo](https://www.tiot.jp/), and all the other
 individuals and organisations involved.
 
 This release of Riak is based on the last known-good release of Riak,
