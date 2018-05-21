@@ -156,7 +156,7 @@
                    "ab91dfc11a6bcda0966eb662e9c6e5875ecfc3dc"}},
        {yokozuna,".*",
                  {git,"git://github.com/basho/yokozuna.git",
-                      "61f364533e868bcf290d97fbf04ebe3709a5c679"}},
+                      "a14d4001bf6011d0cfec46c67abbd96f651f65de"}},
        {canola,".*",
                {git,"git://github.com/basho/canola.git",
                     "9bdfee88fce20b3a01b7003696b53eb21913d6fb"}},
@@ -174,7 +174,7 @@
                               "7ab150053eabfbc9353c6cdb6d4f5f0af0404e4f"}},
        {riak_repl,".*",
                   {git,"git://github.com/basho/riak_repl.git",
-                       "93c478117171beb124d15c26a7461ac1317d7aff"}},
+                       "82e637d4bc03bec7f22b247e1fc688d7113e44ec"}},
        {rebar_lock_deps_plugin,".*",
                                {git,"https://github.com/basho/rebar_lock_deps_plugin.git",
                                     "8816f45ff38cd04d5c7741bd39166af58116dd44"}}]}.
