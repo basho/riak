@@ -156,7 +156,7 @@
                    "ab91dfc11a6bcda0966eb662e9c6e5875ecfc3dc"}},
        {yokozuna,".*",
                  {git,"https://github.com/Sentenai/yokozuna.git",
-                      "f53313645bb79ae3331406f0f706899ff0316b0a"}},
+                      "1843107e6568c4f34df262f7e8746242fbd7d920"}},
        {canola,".*",
                {git,"git://github.com/basho/canola.git",
                     "9bdfee88fce20b3a01b7003696b53eb21913d6fb"}},
