@@ -3,6 +3,7 @@
 {sub_dirs,["rel","apps/riak"]}.
 {require_otp_vsn,"R16|17"}.
 {cover_enabled,true}.
+{recursive_cmds,[xref]}.
 {lib_dirs,["apps/riak"]}.
 {erl_opts,[debug_info,fail_on_warning]}.
 {eunit_opts,[verbose]}.
@@ -156,7 +157,7 @@
                    "ab91dfc11a6bcda0966eb662e9c6e5875ecfc3dc"}},
        {yokozuna,".*",
                  {git,"https://github.com/Sentenai/yokozuna.git",
-                      "119e30fbf4aff3f695f1ac622be34c3beec27b10"}},
+                      "6c789d7165421adee732f6bf5c78df8d47dc44c3"}},
        {canola,".*",
                {git,"git://github.com/basho/canola.git",
                     "9bdfee88fce20b3a01b7003696b53eb21913d6fb"}},
@@ -178,5 +179,6 @@
        {rebar_lock_deps_plugin,".*",
                                {git,"https://github.com/basho/rebar_lock_deps_plugin.git",
                                     "8816f45ff38cd04d5c7741bd39166af58116dd44"}}]}.
+{plugin_dir,"deps"}.
 {plugins,[rebar_lock_deps_plugin]}.
 
