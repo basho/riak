@@ -7,7 +7,6 @@ ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
 REBAR           ?= $(BASE_DIR)/rebar
 OVERLAY_VARS    ?=
 SPECIAL_DEPS	?= meck hamcrest riak_ensemble webmachine
-TEST_IGNORE     ?=
 
 RIAK_CORE_STAT_PREFIX = riak
 export RIAK_CORE_STAT_PREFIX
@@ -61,12 +60,11 @@ testclean:
 # Test each dependency individually in its own VM
 test : deps compile testclean
 	@$(foreach dep, \
-		$(filter-out $(TEST_IGNORE), \
-			$(filter-out $(SPECIAL_DEPS), $(patsubst deps/%, %, $(wildcard deps/*)))), \
+		$(filter-out $(SPECIAL_DEPS), $(patsubst deps/%, %, $(wildcard deps/*))), \
 			(cd deps/$(dep) && REBAR_DEPS_DIR=$(BASE_DIR)/deps/ ../../rebar eunit deps_dir=.. skip_deps=true)  \
 			|| echo "Eunit: $(dep) FAILED" >> $(TEST_LOG_FILE);)
 	@$(foreach special, \
-		$(filter-out $(TEST_IGNORE), $(SPECIAL_DEPS)), \
+		$(SPECIAL_DEPS), \
 			(cd deps/$(special) && make test)  \
 			|| echo "Eunit: $(special) FAILED" >> $(TEST_LOG_FILE);)
 	./rebar eunit skip_deps=true
