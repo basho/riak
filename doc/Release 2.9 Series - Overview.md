@@ -30,7 +30,10 @@ Release 2.9 is intended to be a stepping stone towards migrating to Release 3.0,
 
 Release 2.9 brings the following two significant, but optional, changes:
 
-- [Tictac Active Anti-Entropy](https://github.com/martinsumner/kv_index_tictactree).  This makes two fundamental changes to the way anti-entropy has historically worked in Riak.  The feature changes the nature of the construction of the Merkle Trees used in Anti-Entropy so that they can be built incrementally.  The feature also changes the nature of the underlying anti-entropy key store so that the store can now be key-ordered, whilst still allowing for acceleration of access to keys by either their Merkle tree location or by their last modified date. Previously anti-entropy had required knowledge of all elements of the tree to build the tree, and for a key store to be kept ordered based on the layout of that tree.  These changes allow for:
+
+- [Tictac Active Anti-Entropy](https://github.com/martinsumner/kv_index_tictactree).
+
+ - This makes two fundamental changes to the way anti-entropy has historically worked in Riak.  The feature changes the nature of the construction of the Merkle Trees used in Anti-Entropy so that they can be built incrementally.  The feature also changes the nature of the underlying anti-entropy key store so that the store can now be key-ordered, whilst still allowing for acceleration of access to keys by either their Merkle tree location or by their last modified date. Previously anti-entropy had required knowledge of all elements of the tree to build the tree, and for a key store to be kept ordered based on the layout of that tree.  These changes allow for:
 
  - Lower overhead internal anti-entropy based on cached trees.
 
@@ -46,7 +49,10 @@ Release 2.9 brings the following two significant, but optional, changes:
 
   - Future work on Tictac AAE is planned to handle issues arising from time-based deletion of objects.  Tictac AAE will not currently work efficiently if a significant portion of objects have automatic TTL-based expiry.
 
-- [Leveled backend](https://github.com/martinsumner/leveled).  A new database backend to Riak, written entirely in Erlang, and optimised specifically for Riak-style workloads.  Leveled is based on the same [Log Structured Merge (LSM) Tree paper](https://www.cs.umb.edu/~poneil/lsmtree.pdf) as the existing [leveldb](https://github.com/basho/leveldb/wiki) and [hanoidb](https://github.com/krestenkrab/hanoidb) backends, but making specific trade-offs to improve on throughput in some common riak uses cases:
+
+- [Leveled backend](https://github.com/martinsumner/leveled).
+
+ -  A new database backend to Riak, written entirely in Erlang, and optimised specifically for Riak-style workloads.  Leveled is based on the same [Log Structured Merge (LSM) Tree paper](https://www.cs.umb.edu/~poneil/lsmtree.pdf) as the existing [leveldb](https://github.com/basho/leveldb/wiki) and [hanoidb](https://github.com/krestenkrab/hanoidb) backends, but making specific trade-offs to improve on throughput in some common riak uses cases:
 
  - LSM-trees supporting larger objects.  Other LSM-tree based these stores have the potential to be bottle-necked by write-amplification (100 fold write amplification has bene seen on large, mature Riak stores using leveldb) when used for storing larger objects (e.g. objects over 4KB).  Leveled splits objects from headers, which was suggested as an option in the original LSM-tree paper, and further explored in the [WiscKey paper](https://www.usenix.org/node/194425) (and implemented in other stores such as Dgraph's [BadgerDB](https://github.com/dgraph-io/badger)).  The full object is stored in a sequence-ordered journal separate to the LSM-tree, which contains only Keys and their metadata.  This reduces write amplification for larger values, as the LSM tree merge events are proportionate to the size of the headers not the objects.
 
@@ -66,17 +72,20 @@ Release 2.9 brings the following two significant, but optional, changes:
 
 Release 2.9 also brings three building blocks to enable current and future improvements to the management of operational risk:
 
+
 - [Vnode Soft Limits](https://github.com/martinsumner/riak_kv/blob/mas-2.2.5-clusteraae/docs/soft-limit-vnode.md)
 
  - When Riak is in receipt of a PUT request, it must select a vnode to co-ordinate the PUT.  However, when load is high, vnodes may have work queues of varying sizes - and picking a vnode with a large queue will slow the PUT to the pace of that slow vnode.  Vnode soft limits are a resolution to this problem, providing a simple check of the sate of a vnode queue before determining that a particular vnode is a good candidate to coordinate a given PUT.
 
  - The biggest advantage seen in testing vnode soft limits is with the leveldb backend, where under soak test conditions there is a 50% reduction in the trend-line of 99th percentile PUT measure, and a 80% reduction in the peak 99th percentile PUT time.
 
+
 - [Core node worker pool](https://github.com/martinsumner/riak_core/blob/mas-2.2.5-dscpworkerpool/docs/node_worker_pool.md)
 
  - Riak-backed applications tend to make heavy use of the standard GET/PUT KV operations.  These are short-lived tasks, but sometimes longer-lives tasks are required to either provide information to the operator (e.g. what is the average object size in the store?), or detect otherwise hidden errors (e.g. AAE tree rebuilds).  Each such task has tended to evolve its own mechanism to ensure that the impact of the task can be controlled to avoid inhibiting higher priority database work.  The core node worker pool is a simple mechanism for controlling concurrency of background tasks on a per-node basis.  It allows for either a single node worker pool to manage concurrency, or a series of pools modelled on the [Differentiated Services design pattern](https://en.wikipedia.org/wiki/Differentiated_services).
 
  - There are other more sophisticated candidate methods which have been proposed in this space (e.g. riak_kv_sweeper and riak_core jobs).  A decision will be made for the Riak 3.0 release which mechanism should be the standard going forward, but the core node worker pool appears to be the simplest of all the proposals at this stage.
+
 
 - Repl API
 
