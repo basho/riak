@@ -29,6 +29,7 @@ Provide preview of overview notes for release | ongoing - mas
 Task | Status
 :-------------------------|:-------------------------:
 Access to A-D replication fixes | ongoing - bet365
+Add enterprise leveldb into the build for Riak (with hot backup feature) | unassigned
 Creation of actual develop 2.9 branch | unassigned
 Tag release candidate | unassigned
 Code and test review of get_fsm changes | unassigned
@@ -41,6 +42,7 @@ Two rounds of riak functional test on actual release candidate | unassigned
 Compatibility testing with Riak CS | unassigned
 Publish preview of release notes | unassigned
 Writing of migration guidance, wih publication of volume test results for migration | pending - mas
+Leveled configuration when in multi-backend mode | unassigned
 
 
 ## Release 2.9.0

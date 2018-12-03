@@ -22,7 +22,7 @@ There is now a plan for significant further improvements to Riak.  These improve
 
 - Release 3.0 is focused on providing a future-proof Riak, migrating to an up-to-date OTP platform, and stripping away the accidental complexity of under-used features.  Release 3.0 will also build on some of the foundation improvements in Riak 2.9, to provide for a more efficient and flexible replication solution, and allow for a richer set of query features that can be run at minimal risk to the predictability of performance for the core Key/Value workloads of Riak customers.
 
-Release 2.9 will have an initial release candidate available in early December 2018, and is expected to be generally available by the end of January 2019.  The target for Release 3.0 is to have an initial Release Candidate available in April 2019.
+Release 2.9 will have an initial private release candidate available in early December 2018, and the release is expected to be generally available by the end of January 2019.  The target for Release 3.0 is to have an initial Release Candidate available in April 2019.
 
 Release 2.9 is intended to be a stepping stone towards migrating to Release 3.0, but for users of features that will be terminated in Release 3.0, it is possible that community-led updates may continue on the 2.9 release branch for some time beyond the availability of Release 3.0.
 

@@ -83,13 +83,14 @@ pipe_all | All pass | All pass | All pass
 core_all | All pass | All pass | All pass
 rtc_all | All pass | All pass | All pass
 datatypes_all | [verify_counter_converge](#verify_counter_converge) | All pass | All pass
-repl_all | [repl_aae_fullsync](#repl_aae_fullsync), [repl_bucket_types](#repl_bucket_types) | [repl_aae_fullsync](#repl_aae_fullsync), [repl_bucket_types](#repl_bucket_types) |
+repl_all | [repl_aae_fullsync](#repl_aae_fullsync)| [repl_aae_fullsync](#repl_aae_fullsync) |
+admin_all | All pass | All pass | All pass
 yoko | n/a |  |
 ensemble | n/a |  |
-eqc_tests |  |  |
-cluster_upgrade | n/a |  |
-bitcask_only | n/a |  | n/a
-eleveldb_only | n/a | n/a |
+eqc |  |  |
+cluster_upgrade | n/a | [repl_bucket_types](#repl_bucket_types) + many others |
+bitcask_only | n/a | [verify_bitcask_tombstone2_upgrade](#verify_bitcask_tombstone2_upgrade) | n/a
+eleveldb_only | n/a | n/a | All pass
 
 
 ### Test Failures - Round 1
@@ -119,11 +120,23 @@ This test is now passing more than 90% of the time, without a change being made.
 
 #### repl_aae_fullsync
 
-Awaiting confirmation.
+This fails when validating an intercepted full-sync, in particular:
+
+`Validating intercept {riak_kv_index_hashtree, [{{get_lock,4},not_built}]} on 'dev1@127.0.0.1'`
+
+However - this does align with a known issue.  AAE full-sync fails whenever the hashtrees are not built.
 
 #### repl_bucket_types
 
-Awaiting confirmation.
+This fails at the very start of the test when waiting for the clusters to build, due to the riak_repl service not starting (the startup monitors for riak_repl, and never sees it).
+
+This looks like an issue with the switch from riak  to riak_ee.  The problem appears to be when starting a riak 2.0.5 node and waiting for riak_repl to appear.  Does riak 2.0.5 need to be riak ee not riak?
+
+Note repl_bucket_types has now been re-assigned into the cluster_upgrade group.
+
+#### verify_bitcask_tombstone2_upgrade
+
+This test is due to a `enoent` failure when switching the configuration file.
 
 ### Test Results - Round 2
 
