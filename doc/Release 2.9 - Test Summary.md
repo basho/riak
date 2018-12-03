@@ -51,7 +51,7 @@ Other key take-aways from performance testing include:
 - It is much safer to increase the transfer-limit with a transfer to a leveled backend (compared with a transfer to a leveldb backend).  A 4-fold increase in transfer-limit was tested to have a lower impact on high percentile latency.
 - Enabling flushing of every write can have a significant impact on database throughput, although the use of SSDs and FBWC can offer significant mitigation.  Setting the database to flush on every write on just the PUT co-ordinator had a measurable difference, but insufficient to justify the additional complexity of supporting this as an option.
 - The use of a GET co-ordinator (and therefore a move from n HEADs to n-1 HEAD requests), was shown to increase throughput by around 4%.  However, there was concern that relative volatility may increase during node failure, and so this option has not been pursued.
-- Without load pressure, Riak with leveldb generally has a lower median latency than Riak with the leveled backend. 
+- Without load pressure, Riak with leveldb generally has a lower median latency than Riak with the leveled backend.
 
 ## Functional Testing
 
@@ -76,18 +76,18 @@ The results of the First round of testing are:
 
 Test Suite |  Leveled backend | Bitcask backend | Eleveldb backend
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
-KV_all | 1 Failure - kv679_dataloss_fb2 | All pass | 1 Failure - kv679_dataloss_fb2
+KV_all | [kv679_dataloss_fb2](#kv679kv679_dataloss_fb2) | All pass | [kv679_dataloss_fb2](#kv679kv679_dataloss_fb2)
 2i_all | All pass | n/a | All pass
-mapred_all | All pass | All pass | 1 Failure - mapred_search_switch
+mapred_all | All pass | All pass | [mapred_search_switch](#mapred_search_switch)
 pipe_all | All pass | All pass | All pass
 core_all | All pass | All pass | All pass
 rtc_all | All pass | All pass | All pass
-datatypes_all | 1 Failure - verify_counter_converge | All pass | All pass
-repl_all | 2 Failures - repl_aae_fullsync, repl_bucket_types | 2 Failures - repl_aae_fullsync, repl_bucket_types |
-yoko_all |  |  |
-ensemble_all |  |  |
+datatypes_all | [verify_counter_converge](#verify_counter_converge) | All pass | All pass
+repl_all | [repl_aae_fullsync](#repl_aae_fullsync), [repl_bucket_types](#repl_bucket_types) | [repl_aae_fullsync](#repl_aae_fullsync), [repl_bucket_types](#repl_bucket_types) |
+yoko | n/a |  |
+ensemble | n/a |  |
 eqc_tests |  |  |
-multi_cluster | n/a |  |
+cluster_upgrade | n/a |  |
 bitcask_only | n/a |  | n/a
 eleveldb_only | n/a | n/a |
 
@@ -112,6 +112,10 @@ This test fails consistently with the leveled backend when [testing for the coun
 - Testing the C1 and C2 clients in separate lines of code (rather than folding over both in one line), with a log written of the results, leads to a consistent pass.
 
 Investigation ongoing.
+
+Update 18:00 3/2/18 -
+
+This test is now passing more than 90% of the time, without a change being made. In the small number of failures, the test is failing as a [404 is returned after the 404s had stopped being returned ](https://github.com/nhs-riak/riak_test/blob/develop-2.2.X-leveled-mas/tests/verify_counter_converge.erl#L96).  This is now on the [test of the second partition](https://github.com/nhs-riak/riak_test/blob/develop-2.2.X-leveled-mas/tests/verify_counter_converge.erl#L60) not [the first](https://github.com/nhs-riak/riak_test/blob/develop-2.2.X-leveled-mas/tests/verify_counter_converge.erl#L59).
 
 #### repl_aae_fullsync
 
