@@ -101,7 +101,7 @@ Test fails on non-bitcask backends.  The test was originally written for bitcask
 
 #### mapred_search_switch
 
-Awaiting confirmation.
+this is proving hard to replicate.  After initially seeing ti twice, both times with an eleveldb backend, since there has been ten successive runs of the test without a repeat.
 
 #### verify_counter_converge
 
