@@ -83,7 +83,7 @@ pipe_all | All pass | All pass | All pass
 core_all | All pass | All pass | All pass
 rtc_all | All pass | All pass | All pass
 datatypes_all | [verify_counter_converge](#verify_counter_converge) | All pass | All pass
-repl_all | [repl_aae_fullsync](#repl_aae_fullsync)| [repl_aae_fullsync](#repl_aae_fullsync) |
+repl_all | [repl_aae_fullsync](#repl_aae_fullsync)| [repl_aae_fullsync](#repl_aae_fullsync) | [repl_aae_fullsync](#repl_aae_fullsync)
 admin_all | All pass | All pass | All pass
 yoko | n/a |  |
 ensemble | n/a |  |
