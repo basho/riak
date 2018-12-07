@@ -95,6 +95,10 @@ eleveldb_only | n/a | n/a | All pass
 
 ### Test Failures - Round 1
 
+Round 1 of testing showed no serious issues. Test failures that did occur were either non-replicable or known causes of failure.  The `repl_aae_fullsync` failure presumably did not occur in the 2.2.3 release (the last Basho release) - however it now fails on a situation known to occur in production, so the test is simply genuine.
+
+All new features have passing tests.  There is an outstanding action to consider if test coverage of the new get_fsm/get_core code to support HEAD requests is adequate.  
+
 #### kv679_dataloss_fb2
 
 Test fails on non-bitcask backends.  The test was originally written for bitcask backends only, and so the failure may be in setting of intercepts for non-bitcask backends.  
