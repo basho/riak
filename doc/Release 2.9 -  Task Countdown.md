@@ -20,7 +20,7 @@ Complete first round of riak functional test | complete - mas
 Risk assessment following riak functional test | complete - mas
 Confirm eqc tests | complete - rdb
 Merge in hot_backup work and test | complete - mas
-Configuration guidance for exposed Leveled and Tictac AAE features | pending - mas
+Configuration guidance for exposed Leveled and Tictac AAE features | complete - mas
 Tagged release of `leveled` and `kv_index_tictactree` repos | complete - mas
 Provide preview of overview notes for release | complete - mas
 
@@ -31,7 +31,7 @@ Task | Status
 :-------------------------|:-------------------------:
 Access to A-D replication fixes | ongoing - bet365
 Add enterprise leveldb into the build for Riak (with hot backup feature) | unassigned
-Creation of actual develop 2.9 branch | unassigned
+Creation of actual develop 2.9 branch | ongoing - mas
 Tag release candidate (runs from make locked-deps) | unassigned
 Code and test review of get_fsm changes | unassigned
 Volume test showing bitcask comparison (not just leveled vs leveldb) | pending - mas
@@ -41,7 +41,7 @@ Completion of HTTP API for Cluster-wide AAE | ongoing - rdb
 Verify previous volume test results on actual release candidate | pending - mas
 Two rounds of riak functional test on actual release candidate | unassigned
 Compatibility testing with Riak CS | unassigned
-Publish preview of release notes | unassigned
+Publish preview of release notes | pending - TI Tokyo
 Writing of migration guidance, with publication of volume test results for migration | pending - mas
 Leveled configuration when in multi-backend mode | pending - mas
 

@@ -100,6 +100,41 @@ Following the general availability of Riak 2.9.0, will will continue on the 2.9 
 
 - More exposing of riak_repl features - for example a `re-replicate if` feature that will re-replicate an object based on version information that has been returned form an `aae_fold`, as well as additional `aae_fold` queries.
 
+#### Transition Configuration Guidance
+
+This section contains some initial notes to assist with planning and configuration for Transition of pre-2.9 releases to 2.9:
+
+- The leveled backend is not compatible with other backends in terms of the serialised disk format.  There is no in-place transition possible from bitcask/eleveldb/hanoidb to leveled.  Transitioning requires a node replace operation.  It is recommended to:
+
+  - First transition to 2.9 with the current backend in-place, minimising the time spent running mis-matched versions in parallel;
+
+  - Then as a second phase run a rolling series of node transfers to replace the nodes with the previous backend, with nodes with the leveled backend.
+
+  - Testing hash shown that higher transfer-limits can be sued safely when running transfers to leveled nodes, by comparison to transfers to eleveldb nodes.
+
+- If upgrading from a release prior to the introduction of version 1 hashing of AAE, and if you intend to eventually move to TictacAAE - then follow [the guidance](http://docs.basho.com/riak/kv/2.2.3/setup/upgrading/version/) to not upgrade to version 1.  This prevents CPU resource bing invested in the upgrade when it is eventually unnecessary.
+
+- Tictac AAE and Legacy AAE may be run in parallel - set both to `active` in `riak.conf`.  The cost of running Tictac AAE in parallel can be reduced by adjusting the `tictacaae_exchangetick` to a higher value.  By default this is is set to 120000 ms (2 minutes).
+
+  - When Tictac AAE has not been run from the initial loading of the node, then the AAE process will not be fully effective until all nodes have undergone an "AAE rebuild".  An increased `tictacaae_exchangetick` is recommended in this period.
+
+
+- For observability of new features, the stats output from `riak-admin status` have been extended, but also there is a greater focus on use of logs for standard events, on both exit and entry from the event.  Tictac AAE is best observed form indexing the Riak logs (both `console.*.log` and `erlang.*.log`), and `riak-admin aae-status` will no longer offer any information.
+
+- Flushing to disk on every write can be enabled in leveled using `leveled.sync_strategy`.
+
+- Leveled like levedb continuously compacts the keystore (the LSM-tree).  However, it must separately compact the value store, and compaction of the value store may be scheduled - using `leveled.compaction_runs_perday`, `leveled.compaction_low_hour`, `leveled.compaction_high_hour` and `leveled.max_run_length`.  The following log should help with tuning:
+
+  - "IC003", "Scoring of compaction runs complete with highest score=~w  with run of run_length=~w",
+
+  - If the highest score is increasing over time (and positive), then there is a backlog of compaction activity - so increase either the length of the run or the runs per day.
+
+- The size of the journal files can be changed to align with the size of the objects.  Set the configuration parameter `leveled.journal_size` to be approximately the size of around 100 thousand objects.
+
+- Leveled compression can be either `native` or `lz4`.  lz4 has improved performance in most volume tests, but unless the performance improvement is significant for a use case, sticking with `native` compression is recommended, as this does not create a dependency on an external library. For objects which are already compressed, and may gain little value from compression, it is recommended switching the compression point to be `on_compact` rather than `on_receipt`.
+
+- The code contains a more complete view of startup options for [leveled](https://github.com/martinsumner/leveled/blob/master/priv/leveled.schema) and [tictac_aae](https://github.com/martinsumner/riak_kv/blob/mas-2.2.5-clusteraae/priv/riak_kv.schema#L28-L96).
+
 
 ### Release 3.0
 
