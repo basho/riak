@@ -45,6 +45,7 @@ Compatibility testing with Riak CS | unassigned
 Publish preview of release notes | pending - TI Tokyo
 Writing of migration guidance, with publication of volume test results for migration | pending - mas
 Leveled configuration when in multi-backend mode | pending - mas
+Investigate Yokozuna [abstraction PR](https://github.com/basho/riak_kv/pull/1571) | unassigned
 
 
 ## Release 2.9.0
