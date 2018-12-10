@@ -19,7 +19,7 @@ Task | Status
 Complete first round of riak functional test | complete - mas
 Risk assessment following riak functional test | complete - mas
 Confirm eqc tests | complete - rdb
-Merge in hot_backup work and test | ongoing - mas
+Merge in hot_backup work and test | complete - mas
 Configuration guidance for exposed Leveled and Tictac AAE features | pending - mas
 Tagged release of `leveled` and `kv_index_tictactree` repos | complete - mas
 Provide preview of overview notes for release | complete - mas
