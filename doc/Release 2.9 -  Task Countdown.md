@@ -31,7 +31,7 @@ Final test before declaring private RC ready | ongoing - mas
 Task | Status
 :-------------------------|:-------------------------:
 Access to A-D replication fixes | ongoing - bet365
-Add enterprise leveldb into the build for Riak (with hot backup feature) | unassigned
+Add enterprise leveldb into the build for Riak (with hot backup feature) | ongoing - mas
 Creation of actual develop 2.9 branch | ongoing - mas
 Tag release candidate (runs from make locked-deps) | unassigned
 Code and test review of get_fsm changes | unassigned
