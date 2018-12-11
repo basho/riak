@@ -23,7 +23,7 @@ Merge in hot_backup work and test | complete - mas
 Configuration guidance for exposed Leveled and Tictac AAE features | complete - mas
 Tagged release of `leveled` and `kv_index_tictactree` repos | complete - mas
 Provide preview of overview notes for release | complete - mas
-Final test before declaring private RC ready | ongoing - mas
+Final test before declaring private RC ready | complete - mas
 
 
 ## Public Release Candidate
@@ -31,7 +31,7 @@ Final test before declaring private RC ready | ongoing - mas
 Task | Status
 :-------------------------|:-------------------------:
 Access to A-D replication fixes | ongoing - bet365
-Add enterprise leveldb into the build for Riak (with hot backup feature) | ongoing - mas
+Add enterprise leveldb into the build for Riak (with hot backup feature) | complete - mas
 Creation of actual develop 2.9 branch | ongoing - mas
 Tag release candidate (runs from make locked-deps) | unassigned
 Code and test review of get_fsm changes | ongoing - rdb
