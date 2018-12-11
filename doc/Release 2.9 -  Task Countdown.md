@@ -33,11 +33,11 @@ Access to A-D replication fixes | ongoing - bet365
 Add enterprise leveldb into the build for Riak (with hot backup feature) | unassigned
 Creation of actual develop 2.9 branch | unassigned
 Tag release candidate (runs from make locked-deps) | unassigned
-Code and test review of get_fsm changes | unassigned
+Code and test review of get_fsm changes | ongoing - rdb
 Volume test showing bitcask comparison (not just leveled vs leveldb) | pending - mas
 Testing in more live-like Spine environment (with larger disks) | ongoing - nhs
 Testing in more live-like SuS environment | pending - nhs
-Completion of HTTP API for Cluster-wide AAE | ongoing - rdb
+Completion of HTTP API for Cluster-wide AAE | complete - rdb
 Verify previous volume test results on actual release candidate | pending - mas
 Two rounds of riak functional test on actual release candidate | unassigned
 Compatibility testing with Riak CS | unassigned
