@@ -121,7 +121,7 @@ This section contains some initial notes to assist with planning and configurati
 
 - For observability of new features, the stats output from `riak-admin status` have been extended, but also there is a greater focus on use of logs for standard events, on both exit and entry from the event.  Tictac AAE is best observed form indexing the Riak logs (both `console.*.log` and `erlang.*.log`), and `riak-admin aae-status` will no longer offer any information.
 
-- Flushing to disk on every write can be enabled in leveled using `leveled.sync_strategy`.
+- Flushing to disk on every write can be enabled in leveled using `leveled.sync_strategy`.  For Riak 2.9.0, the `riak_sync` mechanism must be used to enable sync, the `sync` mechanism is only valid on later versions of OTP.
 
 - Leveled like levedb continuously compacts the keystore (the LSM-tree).  However, it must separately compact the value store, and compaction of the value store may be scheduled - using `leveled.compaction_runs_perday`, `leveled.compaction_low_hour`, `leveled.compaction_high_hour` and `leveled.max_run_length`.  The following log should help with tuning:
 
