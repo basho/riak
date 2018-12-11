@@ -25,6 +25,8 @@ Tagged release of `leveled` and `kv_index_tictactree` repos | complete - mas
 Provide preview of overview notes for release | complete - mas
 Final test before declaring private RC ready | complete - mas
 
+To access the private release candidate use the branch `develop-2.9.0-PRC0` after cloning the riak repo at `https://github.com/martinsumner/riak.git`.  Locked dependencies should *NOT* be used - use `make deps` followed by `make rel` to build.
+
 
 ## Public Release Candidate
 
