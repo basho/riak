@@ -118,9 +118,13 @@ This test fails consistently with the leveled backend when [testing for the coun
 
 Investigation ongoing.
 
-Update 18:00 3/2/18 -
+Update 18:00 3/12/18 -
 
 This test is now passing more than 90% of the time, without a change being made. In the small number of failures, the test is failing as a [404 is returned after the 404s had stopped being returned ](https://github.com/nhs-riak/riak_test/blob/develop-2.2.X-leveled-mas/tests/verify_counter_converge.erl#L96).  This is now on the [test of the second partition](https://github.com/nhs-riak/riak_test/blob/develop-2.2.X-leveled-mas/tests/verify_counter_converge.erl#L60) not [the first](https://github.com/nhs-riak/riak_test/blob/develop-2.2.X-leveled-mas/tests/verify_counter_converge.erl#L59).
+
+Update 18:00 14/12/18 -
+
+I've now seen the intermittent failure again, this time on eleveldb backend.  The failure is still rare and hard to reproduce.
 
 #### repl_aae_fullsync
 
