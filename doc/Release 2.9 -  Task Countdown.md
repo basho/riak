@@ -43,7 +43,7 @@ Testing in more live-like SuS environment | pending - nhs
 Completion of HTTP API for Cluster-wide AAE | complete - rdb
 Verify previous volume test results on actual release candidate | pending - mas
 Two rounds of riak functional test on actual release candidate | unassigned
-Compatibility testing with Riak CS | unassigned
+Compatibility testing with Riak CS (note that there is no support within 'prefix_multi' backend for leveled at present) | unassigned
 Publish preview of release notes | pending - TI Tokyo
 Writing of migration guidance, with publication of volume test results for migration | pending - mas
 Leveled configuration when in multi-backend mode | ongoing - mas
