@@ -37,7 +37,7 @@ Add enterprise leveldb into the build for Riak (with hot backup feature) | compl
 Creation of actual develop 2.9 branch | ongoing - mas
 Tag release candidate (runs from make locked-deps) | unassigned
 Code and test review of get_fsm changes | ongoing - rdb
-Volume test showing bitcask comparison (not just leveled vs leveldb) | pending - mas
+Volume test showing bitcask comparison (not just leveled vs leveldb) | ongoing - mas
 Testing in more live-like Spine environment (with larger disks) | ongoing - nhs
 Testing in more live-like SuS environment | pending - nhs
 Completion of HTTP API for Cluster-wide AAE | complete - rdb
