@@ -59,6 +59,7 @@ Task | Status
 Additional independent property-based testing of leveled (focused on file-management actors) | pending - quviq
 Publication of release notes and documentation updates |  unassigned
 Acceptance of PRs into basho repo | unassigned
+Review long-standing doc issues (e.g. term_regex, bitcask sync support, 2i non-recommendation) | unassigned
 
 ## Subsequent Releases
 
