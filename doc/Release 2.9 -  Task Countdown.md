@@ -46,7 +46,6 @@ Two rounds of riak functional test on actual release candidate | unassigned
 Compatibility testing with Riak CS (note that there is no support within 'prefix_multi' backend for leveled at present) | unassigned
 Publish preview of release notes | pending - TI Tokyo
 Leveled configuration when in multi-backend mode | ongoing - mas
-Investigate Yokozuna [abstraction PR](https://github.com/basho/riak_kv/pull/1571) | unassigned
 Leveled snapshot timeouts investigation | complete - mas
 Multi-backend testing | unassigned
 
@@ -69,4 +68,5 @@ Task | Status
 :-------------------------|:-------------------------:|
 Revisit coordinator only flushes - previously when testing this didn't consider handoffs | unassigned
 Revisit non-primary read-repair | unassigned
-Add re-replicate if clock advanced feature (so clock returned form aae_fold can remain opaque to client) | unassigned
+Add re-replicate if clock advanced feature (so clock returned from aae_fold can remain opaque to client) | unassigned
+Investigate Yokozuna [abstraction PR](https://github.com/basho/riak_kv/pull/1571) | unassigned

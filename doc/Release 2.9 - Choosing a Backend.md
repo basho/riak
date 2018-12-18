@@ -110,7 +110,7 @@ The test hardware was a 7-node cluster (an odd number of nodes was chosen delibe
 
 The comparison of throughput by volume of updates was as follows:
 
-``<insert chart>``
+![](Throughput_Defaults_16KB.png)
 
 There was significant difference in the 99th percentile UPDATE times in particular:
 
