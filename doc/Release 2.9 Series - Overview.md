@@ -70,6 +70,8 @@ Release 2.9 brings the following two significant, but optional, changes:
 
   - It is expected that community interest and support in the [bitcask backend](https://github.com/basho/bitcask) within Riak will continue into Riak 3.0 and beyond, as bitcask still offers throughput advantages with some workloads, where there is no demand for secondary indexes.
 
+  - More information on [choosing a backend for Riak is available here](#Releas 2.9 Series - Backend Recommendation.md).
+
 Release 2.9 also brings three building blocks to enable current and future improvements to the management of operational risk:
 
 

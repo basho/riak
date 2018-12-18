@@ -53,7 +53,6 @@ Multi-backend testing | unassigned
 
 ## Release 2.9.0
 
-
 Task | Status
 :-------------------------|:-------------------------:|
 Additional independent property-based testing of leveled (focused on file-management actors) | pending - quviq
@@ -61,6 +60,12 @@ Publication of release notes and documentation updates |  unassigned
 Acceptance of PRs into basho repo | unassigned
 Review long-standing doc issues (e.g. term_regex, bitcask sync support, 2i non-recommendation) | unassigned
 
+
 ## Subsequent Releases
 
-To be determined.
+The main focus after release 2.9.0 will shift to Release 3.0.  The focus for Release 3.0 will be on OTP uplift and rebar3 compatibility.  There are some features which were de-prioritised during the 2.2.5 and 2.9.0 release cycles, which may yet reemerge as candidate features for 2.9.x releases:
+
+Task | Status
+:-------------------------|:-------------------------:|
+Revisit coordinator only flushes - previously when testing this didn't consider handoffs | unassigned
+Revisit non-primary read-repair | unassigned
