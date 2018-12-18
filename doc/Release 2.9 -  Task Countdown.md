@@ -69,3 +69,4 @@ Task | Status
 :-------------------------|:-------------------------:|
 Revisit coordinator only flushes - previously when testing this didn't consider handoffs | unassigned
 Revisit non-primary read-repair | unassigned
+Add re-replicate if clock advanced feature (so clock returned form aae_fold can remain opaque to client) | unassigned
