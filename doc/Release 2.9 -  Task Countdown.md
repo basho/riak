@@ -45,7 +45,6 @@ Verify previous volume test results on actual release candidate | pending - mas
 Two rounds of riak functional test on actual release candidate | unassigned
 Compatibility testing with Riak CS (note that there is no support within 'prefix_multi' backend for leveled at present) | unassigned
 Publish preview of release notes | pending - TI Tokyo
-Writing of migration guidance, with publication of volume test results for migration | pending - mas
 Leveled configuration when in multi-backend mode | ongoing - mas
 Investigate Yokozuna [abstraction PR](https://github.com/basho/riak_kv/pull/1571) | unassigned
 Leveled snapshot timeouts investigation | complete - mas
@@ -58,6 +57,7 @@ Task | Status
 Additional independent property-based testing of leveled (focused on file-management actors) | pending - quviq
 Publication of release notes and documentation updates |  unassigned
 Acceptance of PRs into basho repo | unassigned
+Writing of migration guidance, with publication of volume test results for migration | pending - mas
 Review long-standing doc issues (e.g. term_regex, bitcask sync support, 2i non-recommendation) | unassigned
 
 
