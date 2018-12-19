@@ -45,7 +45,7 @@ Verify previous volume test results on actual release candidate | pending - mas
 Two rounds of riak functional test on actual release candidate | unassigned
 Compatibility testing with Riak CS (note that there is no support within 'prefix_multi' backend for leveled at present) | unassigned
 Publish preview of release notes | pending - TI Tokyo
-Leveled configuration when in multi-backend mode | ongoing - mas
+Leveled configuration when in multi-backend mode | complete - mas
 Leveled snapshot timeouts investigation | complete - mas
 Multi-backend testing | unassigned
 

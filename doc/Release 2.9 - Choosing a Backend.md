@@ -87,6 +87,8 @@ Apply *caution* when deploying `leveled` if:
 
 A 24-hour basho_bench test was run without 2i, only GET and UPDATEs, on all three backends with default configuration.  Legacy anti-entropy was used in `bitcask` and `eleveldb` testing, and Native Tictac AAE in `leveled` testing.
 
+### Test 1 - Large Objects and No Sync
+
 The test configuration was as follows:
 
 ```
@@ -110,24 +112,74 @@ The test hardware was a 7-node cluster (an odd number of nodes was chosen delibe
 
 The comparison of throughput by volume of updates was as follows:
 
-![](Throughput_Defaults_16KB.png)
+![](Throughput_16KB.png)
 
-There was significant difference in the 99th percentile UPDATE times in particular:
+For response times, there was significant difference in the 99th percentile UPDATE times in particular:
 
-``<insert chart>``
+![](Update99_16KB.png)
 
-There were issues with the volume of disk space used by bitcask, and the volatility in that utilisation:
+Some facts related to this comparison:
 
-``<insert chart>``
+- During the leveled backend test the cluster was close to disk I/O capacity but generally limited by hitting the network capacity of the test harness.
 
-Halving the object size reduced the comparative delta between the backends:
+- The dips in throughput in the bitcask test are related to merges.  With default settings, bitcask will have a tendency to merge all files in a backend in the same merge process, and run multiple merges concurrently.
 
-``<insert chart>``
+- Bitcask outside of merge windows was up against the disk I/O limit - reflecting the extra disk I/O work associated with storing larger (uncompressed objects).
 
-Some notes on the performance deltas:
+- Bitcask use of disk space was significantly higher, and much more volatile during compaction (i.e. merge) events compared to other backends.
 
-- `bitcask` throughput is impaired relative to `leveled` when not performing merges due to the use of n=3 GETs (meaning higher disk read volumes), and the extra space required due to the lack of compression.
+- Median latency for GET requests was lowest in the leveldb tests.
 
-- `bitcask` throughput and high percentile performance is badly impaired relative to other backends during merge activity - as merges are not configured to avoid overlapping between vnodes, and by default merge even when there is minimal value to be gained from the merge.  This merge action can take as much as 50% of the available disk I/O capacity.
+### Test 2 - Large Objects and Sync
 
-- `eleveldb` is generally impaired by write amplification.  Even in this short test write amplification towards the end of the test is close to 20-fold.
+Same test configuration as with Test 1, but with sync on write enabled on the backend.  There were issues confirming sync was working as expected with bitcask, and so no bitcask results were taken.
+
+The comparison of throughput by volume of updates was as follows:
+
+![](Throughput_Defaults_16KB_sync.png)
+
+For response times, there was significant difference in the 99th percentile UPDATE times in particular:
+
+![](Update99_16KB_sync.png)
+
+Some facts related to this comparison:
+
+- Enabling flushing of writes makes disk I/O not network the bottleneck (once the on-disk size of the system outgrows the cache).
+
+- The point of outgrowing the cache is later with leveldb - it manages its cache more efficiently than leveled.
+
+### Test 3 - Mid Objects, Bigger KeySpace and No Sync
+
+The test configuration was as with Test 1, but now with the object size halved but the keyspace doubled:
+
+```
+{mode, max}.
+
+{duration, 1440}.
+{report_interval, 10}.
+
+{concurrent, 100}.
+
+{driver, basho_bench_driver_riakc_pb}.
+
+{key_generator, {eightytwenty_int, 120000000}}.
+
+{value_generator, {semi_compressible, 4000, 4000, 10, 0.1}}.
+```
+
+
+The comparison of throughput by volume of updates was as follows:
+
+![]()
+
+For response times, there was significant difference in the 99th percentile UPDATE times in particular:
+
+![]()
+
+Some facts related to this comparison:
+
+### Test 4 - Immutable Objects, Insert Out of Order and No Sync
+
+
+
+### Test 5 - Immutable Objects, Insert In Order and No Sync
