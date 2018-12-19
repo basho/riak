@@ -76,7 +76,7 @@ The results of the First round of testing are:
 
 Test Suite |  Leveled backend | Bitcask backend | Eleveldb backend
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
-KV_all | [kv679_dataloss_fb2](#kv679kv679_dataloss_fb2) | All pass | [kv679_dataloss_fb2](#kv679kv679_dataloss_fb2)
+KV_all | All pass | All pass | All pass
 2i_all | All pass | n/a | All pass
 mapred_all | All pass | All pass | [mapred_search_switch](#mapred_search_switch)
 pipe_all | All pass | All pass | All pass
@@ -98,10 +98,6 @@ eleveldb_only | n/a | n/a | All pass
 Round 1 of testing showed no serious issues. Test failures that did occur were either non-replicable or known causes of failure.  The `repl_aae_fullsync` failure presumably did not occur in the 2.2.3 release (the last Basho release) - however it now fails on a situation known to occur in production, so the test is simply genuine.
 
 All new features have passing tests.  There is an outstanding action to consider if test coverage of the new get_fsm/get_core code to support HEAD requests is adequate.  
-
-#### kv679_dataloss_fb2
-
-Test fails on non-bitcask backends.  The test was originally written for bitcask backends only, and so the failure may be in setting of intercepts for non-bitcask backends.  
 
 #### mapred_search_switch
 
