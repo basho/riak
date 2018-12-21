@@ -32,7 +32,6 @@ To access the private release candidate use the branch `develop-2.9.0-PRC0` afte
 
 Task | Status
 :-------------------------|:-------------------------:
-Access to A-D replication fixes | ongoing - bet365
 Add enterprise leveldb into the build for Riak (with hot backup feature) | complete - mas
 Creation of actual develop 2.9 branch | ongoing - mas
 Tag release candidate (runs from make locked-deps) | unassigned
@@ -42,7 +41,7 @@ Testing in more live-like Spine environment (with larger disks) | ongoing - nhs
 Testing in more live-like SuS environment | pending - nhs
 Completion of HTTP API for Cluster-wide AAE | complete - rdb
 Verify previous volume test results on actual release candidate | pending - mas
-Two rounds of riak functional test on actual release candidate | unassigned
+Two rounds of riak functional test on actual release candidate | ongoing - mas
 Compatibility testing with Riak CS (note that there is no support within 'prefix_multi' backend for leveled at present) | unassigned
 Publish preview of release notes | pending - TI Tokyo
 Leveled configuration when in multi-backend mode | complete - mas
@@ -70,3 +69,4 @@ Revisit coordinator only flushes - previously when testing this didn't consider 
 Revisit non-primary read-repair | unassigned
 Add re-replicate if clock advanced feature (so clock returned from aae_fold can remain opaque to client) | unassigned
 Investigate Yokozuna [abstraction PR](https://github.com/basho/riak_kv/pull/1571) | unassigned
+A-D replication fixes | ongoing - bet365

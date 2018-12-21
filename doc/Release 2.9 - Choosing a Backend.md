@@ -136,7 +136,7 @@ Same test configuration as with Test 1, but with sync on write enabled on the ba
 
 The comparison of throughput by volume of updates was as follows:
 
-![](Throughput_Defaults_16KB_sync.png)
+![](Throughput_16KB_sync.png)
 
 For response times, there was significant difference in the 99th percentile UPDATE times in particular:
 
