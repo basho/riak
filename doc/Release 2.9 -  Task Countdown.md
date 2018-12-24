@@ -33,7 +33,7 @@ To access the private release candidate use the branch `develop-2.9.0-PRC0` afte
 Task | Status
 :-------------------------|:-------------------------:
 Add enterprise leveldb into the build for Riak (with hot backup feature) | complete - mas
-Creation of actual develop 2.9 branch | ongoing - mas
+Creation of actual develop 2.9 branch | complete - mas
 Tag release candidate (runs from make locked-deps) | unassigned
 Code and test review of get_fsm changes | ongoing - rdb
 Volume test showing bitcask comparison (not just leveled vs leveldb) | ongoing - mas
@@ -42,11 +42,11 @@ Testing in more live-like SuS environment | pending - nhs
 Completion of HTTP API for Cluster-wide AAE | complete - rdb
 Verify previous volume test results on actual release candidate | pending - mas
 Two rounds of riak functional test on actual release candidate | ongoing - mas
-Compatibility testing with Riak CS (note that there is no support within 'prefix_multi' backend for leveled at present) | unassigned
+Compatibility testing with Riak CS (note that there is no support within 'prefix_multi' backend for leveled at present) | out-of-scope
 Publish preview of release notes | pending - TI Tokyo
 Leveled configuration when in multi-backend mode | complete - mas
 Leveled snapshot timeouts investigation | complete - mas
-Multi-backend testing | unassigned
+Multi-backend testing | out-of-scope
 
 ## Release 2.9.0
 

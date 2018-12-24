@@ -114,7 +114,7 @@ The comparison of throughput by volume of updates was as follows:
 
 ![](Throughput_16KB.png)
 
-For response times, there was significant difference in the 99th percentile UPDATE times in particular:
+For response times, there was significant difference in the 99th percentile UPDATE times:
 
 ![](Update99_16KB.png)
 
@@ -138,7 +138,7 @@ The comparison of throughput by volume of updates was as follows:
 
 ![](Throughput_16KB_sync.png)
 
-For response times, there was significant difference in the 99th percentile UPDATE times in particular:
+For response times, there was significant difference in the 99th percentile UPDATE times:
 
 ![](Update99_16KB_sync.png)
 
@@ -147,6 +147,8 @@ Some facts related to this comparison:
 - Enabling flushing of writes makes disk I/O not network the bottleneck (once the on-disk size of the system outgrows the cache).
 
 - The point of outgrowing the cache is later with leveldb - it manages its cache more efficiently than leveled.
+
+- There is very little relative change (between the backends) in turning on flushing of writes, however, the hardware uses FBWC that reduces the additional latency normally associated write flushing.
 
 ### Test 3 - Mid Objects, Bigger KeySpace and No Sync
 
@@ -170,13 +172,23 @@ The test configuration was as with Test 1, but now with the object size halved b
 
 The comparison of throughput by volume of updates was as follows:
 
-![]()
+![](Throughput_8KB.png)
 
 For response times, there was significant difference in the 99th percentile UPDATE times in particular:
 
-![]()
+![](ResponseTimes_8KB.png)
+
+Leveldb managed disk space most efficiently during the test:
+
+![](DiskSpace_8KB.png)
+
+The additional throughput achieved with leveled, required significant additional CPU time to achieve:
+
+![](CPU_8KB.png)
 
 Some facts related to this comparison:
+
+- Despite the change in test parameters the delta between leveldb and leveldb backends remained relatively constant - leveled achieved 6.32% more throughput in this test, compared to a 6.11% advantage in test 1.
 
 ### Test 4 - Immutable Objects, Insert Out of Order and No Sync
 
