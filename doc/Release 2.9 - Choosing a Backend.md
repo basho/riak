@@ -184,6 +184,10 @@ Leveldb managed disk space most efficiently during the test:
 
 ![](DiskSpace_8KB.png)
 
+However, this required far higher volumes of reads and writes to achieve:
+
+![](ReadWriteVol_8KB.png)
+
 The additional throughput achieved with leveled, required significant additional CPU time to achieve:
 
 ![](CPU_8KB.png)
@@ -191,6 +195,8 @@ The additional throughput achieved with leveled, required significant additional
 Some facts related to this comparison:
 
 - Despite the change in test parameters the delta between leveldb and leveldb backends remained relatively constant - leveled achieved 6.32% more throughput in this test, compared to a 6.11% advantage in test 1.
+
+- The bitcask merge process has a significant impact on throughput, but it involves lower volumes (in KB per second) of reads and writes from disk when compared with leveldb compaction.  The bitcask merge process appears to be comparatively inefficient.
 
 ### Test 4 - Immutable Objects, Insert Out of Order and No Sync
 
@@ -218,6 +224,12 @@ For all backends flushing of writes to disk was left in the control of the opera
 The comparison of throughput by accumulated volume of updates is:
 
 ![](Throughput_UniqueSkew.png)
+
+The 99th percentile times for Updates and GETs show that high percentile latency was impacted significantly with the leveldb backend by compariosn to bitcask and leveled:
+
+![](Update99_UniqueSkew.png)
+
+![](Get99_UniqueSkew.png)
 
 Some facts related to this comparison:
 
