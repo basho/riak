@@ -55,9 +55,11 @@ Apply *caution* when deploying `eleveldb` if:
 
 - Objects sizes are small, secondary indexes are needed and median latency is required to be minimised.
 
-- The platform has sufficient disk throughput to make the workload CPU bound.
+- The platform has sufficient memory and/or disk throughput to make the workload CPU bound.
 
 - Long-term historic testing of the backend in production systems is imperative.
+
+- Objects are mutated frequently, and the majority of mutating objects fit within the available memory.
 
 ## leveled
 
