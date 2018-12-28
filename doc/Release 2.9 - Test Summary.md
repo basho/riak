@@ -144,4 +144,26 @@ This test is due to a `enoent` failure when switching the configuration file.
 
 ### Test Results - Round 2
 
-Awaiting.
+This round of testing was performed on the public Release Candidate.  The results of the second round of testing are:
+
+Test Suite |  Leveled backend | Bitcask backend | Eleveldb backend
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+KV_all | [verify_conditional_postcommit](#verify_conditional_postcommit) |  |
+2i_all |  All pass | n/a |
+mapred_all | All pass |  |
+pipe_all | All pass |  |
+core_all | All pass |  |
+rtc_all |  |  |
+datatypes_all |  |  |
+repl_all |  |  |
+admin_all |  |  |
+yoko | n/a |  |
+ensemble | n/a |  |
+eqc |  |  |
+cluster_upgrade | n/a | |
+bitcask_only | n/a |  | n/a
+eleveldb_only | n/a | n/a |
+
+#### verify_conditional_postcommit
+
+Gets 999 results when expecting 1000.

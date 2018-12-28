@@ -170,7 +170,7 @@ The test configuration was as with Test 1, but now with the object size halved b
 ```
 
 
-The comparison of throughput by volume of updates was as follows:
+The comparison of throughput by accumulated volume of updates is:
 
 ![](Throughput_8KB.png)
 
@@ -192,6 +192,37 @@ Some facts related to this comparison:
 
 ### Test 4 - Immutable Objects, Insert Out of Order and No Sync
 
+The test configuration now makes sure that each object is unique, it is only inserted once and never mutated.  The keys generated are in a randomised order, so puts do not occur in sequence.  Objects can no longer be compressed by the backend (they are randomised bytes), and are a consistent 8KB in size.
 
+GET requests for the object always find a key (there are no GETs for objects which have not been inserted), but are not biased towards a portion of the keyspace - so fewer requested values will be in the backend object cache.
+
+For all backends flushing of writes to disk was left in the control of the operating system - there were no explicit flushes.
+
+```
+{mode, max}.
+
+{duration, 1440}.
+{report_interval, 10}.
+
+{concurrent, 100}.
+
+{driver, basho_bench_driver_nhs}.
+
+{unique, {8000, skew_order}}.
+
+{operations, [{get_unique, 3}, {put_unique, 1}]}.
+```
+
+The comparison of throughput by accumulated volume of updates is:
+
+![](Throughput_UniqueSkew.png)
+
+Some facts related to this comparison:
+
+- The workload is specifically suited to bitcask by comparison to leveldb.  Leveled still outperforms leveldb because of the high number of GET requests that come from outside of the backend cache (due to the non-pareto distribution of requests).
+
+- Write amplification due to the unordered nature of the insert causes significant throughput volatility with the leveldb backend.
+
+- At the start of the test, whilst all data is in memory, throughput for both bitcask and leveldb is significantly greater than for leveled.
 
 ### Test 5 - Immutable Objects, Insert In Order and No Sync
