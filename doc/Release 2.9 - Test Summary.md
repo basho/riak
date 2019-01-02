@@ -175,6 +175,7 @@ cluster_meta_rmr | fail | pass | fail
 verify_counter_converge | pass | pass | pass
 ensemble_byzantine | pass | pass | pass
 ensemble_remove_node | pass | pass | fail
+ensemble_remove_node2 | | | 
 repl_aae_fullsync_custom_n | pass | pass | fail
 repl_rt_overload | fail | pass |  fail
 
