@@ -39,13 +39,13 @@ Release 2.9 brings the following two significant, but optional, changes:
 
     - Lower overhead internal anti-entropy based on *cached trees*.
 
-    - Cluster-wide anti-entropy based on *cached trees* and without the need to pause for cluster-wide full synchronisation to be suspended for long periods while AAE trees and stores are rebuilt.
+    - Cluster-wide anti-entropy based on *cached trees* and without the need to pause for cluster-wide full synchronisation to be suspended for long periods while AAE trees and stores are rebuilt. Cached trees are kept updated in parallel to the rebuilding of trees and AAE stores.
 
     - Cross-cluster Merkle trees to be *independent of the internal layout* of the data in the cluster,
 
     - Folding anti-entropy.  The rapid and efficient production of anti-entropy Merkle *trees of subsets of the store data*, with those subsets definable at run-time based on *bucket*, *key-range* and *modified date* restrictions.  Allowing for more flexible inter-cluster comparisons (other than comparing whole stores).
 
-  - Database statistics and operator helpers.  The anti-entropy keystore stores keys and additional metadata to support potentially helpful queries, without the need to fold over the vnode object store.  This keystore can then also efficiently support ordered folds for unordered backends (e.g. bitcask).  By folding over ranges of keys and metadata, not slowed by loading in all the values off disk - administrative database queries can now be efficiently supported (e.g. object counts, find keys with siblings, find keys with large object sizes, object size histograms, calculate the average object size of items modified in last 24 hours etc).
+  - Database statistics and operator helpers.  The anti-entropy keystore stores keys and additional metadata to support potentially helpful queries, without the need to fold over the vnode object store.  This keystore can then also efficiently support ordered folds for unordered backends (e.g. bitcask).  By folding over ranges of keys and metadata, not slowed by loading in all the values off disk - [administrative database queries](https://github.com/martinsumner/riak_kv/blob/develop-2.9/src/riak_kv_clusteraae_fsm.erl#L165-L208) can now be efficiently supported (e.g. object counts, find keys with siblings, find keys with large object sizes, object size histograms, calculate the average object size of items modified in last 24 hours etc).
 
   - The Tictac AAE feature can be run in additional to or instead of traditional Riak Active Anti-Entropy mechanisms to ease migration from the existing service.
 

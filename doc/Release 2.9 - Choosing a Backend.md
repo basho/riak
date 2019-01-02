@@ -89,6 +89,9 @@ Apply *caution* when deploying `leveled` if:
 
 A 24-hour basho_bench test was run without 2i, only GET and UPDATEs, on all three backends with default configuration.  Legacy anti-entropy was used in `bitcask` and `eleveldb` testing, and Native Tictac AAE in `leveled` testing.
 
+The test hardware was a 7-node cluster (an odd number of nodes was chosen deliberately to cause some imbalance of vnode distribution).  The test hardware had a set of 8 HDD drives fronted by a 2GB FBWC to offer fast write performance.  The servers had 1MB of memory for each 5MB of available disk space.
+
+
 ### Test 1 - Large Objects and No Sync
 
 The test configuration was as follows:
@@ -110,8 +113,6 @@ The test configuration was as follows:
 
 This tests uses relatively large and compressible objects, with a 20% of the objects being subject to a reasonable degree of update churn.
 
-The test hardware was a 7-node cluster (an odd number of nodes was chosen deliberately to cause some imbalance of vnode distribution).  The test hardware had a set of 8 HDD drives fronted by a 2GB FBWC to offer fast write performance.
-
 The comparison of throughput by volume of updates was as follows:
 
 ![](Throughput_16KB.png)
@@ -131,6 +132,8 @@ Some facts related to this comparison:
 - Bitcask use of disk space was significantly higher, and much more volatile during compaction (i.e. merge) events compared to other backends.
 
 - Median latency for GET requests was lowest in the leveldb tests.
+
+- The use of an 80/20 key algorithm means that 80% of read requests were served out of memory.
 
 ### Test 2 - Large Objects and Sync
 
@@ -237,6 +240,59 @@ Some facts related to this comparison:
 
 - Write amplification due to the unordered nature of the insert causes significant throughput volatility with the leveldb backend.
 
-- At the start of the test, whilst all data is in memory, throughput for both bitcask and leveldb is significantly greater than for leveled.
+- At the start of the test, whilst all data is in memory, throughput for both bitcask and leveldb is around 10% greater than for leveled.
 
 ### Test 5 - Immutable Objects, Insert In Order and No Sync
+
+This test is similar to Test 5, except that:
+
+- Objects are inserted roughly in key order;
+
+- Objects are half the size, being only 4KB on average.
+
+```
+{mode, max}.
+
+{duration, 1440}.
+{report_interval, 10}.
+
+{concurrent, 100}.
+
+{driver, basho_bench_driver_nhs}.
+
+{unique, {4000, key_order}}.
+
+{operations, [{get_unique, 3}, {put_unique, 1}]}.
+```
+
+The comparison of throughput by accumulated volume of updates is:
+
+![](Throughput_UniqueKeyOrder4KB.png)
+
+The comparison of Mean GET Time by accumulated volume of updates is:
+
+![](MeanGetTime_UniqueKeyOrder4KB.png)
+
+The comparison of the 99th percentile Update time by accumulated volume of updates is:
+
+![](Update99_UniqueKeyOrder4KB.png)
+
+
+### Test 6 - Immutable Objects, In-Order Heavy-Write of Small Objects with No Sync
+
+This test further reduces the size of the object to just 2KB, but now makes 50% of operations PUT actions (as opposed to 25% in Tests 4 and 5).
+
+```
+{mode, max}.
+
+{duration, 1440}.
+{report_interval, 10}.
+
+{concurrent, 100}.
+
+{driver, basho_bench_driver_nhs}.
+
+{unique, {2000, key_order}}.
+
+{operations, [{get_unique, 1}, {put_unique, 1}]}.
+```
