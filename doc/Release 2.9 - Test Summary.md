@@ -163,21 +163,21 @@ cluster_upgrade | n/a | |
 bitcask_only | n/a | verify_bitcask_tombstone2_upgrade | n/a
 eleveldb_only | n/a | n/a | All pass
 
-Repeating for failed tests:
+Repeating for failed tests (3 runs per backend):
 
 Test |  Leveled backend | Bitcask backend | Eleveldb backend
 :-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
-kv679_dataloss_fb | pass | pass | pass
-verify_conditional_postcommit | pass | pass | pass
-verify_api_timeouts | pass | pass | pass
-mapred_search_switch | pass | pass | fail
-cluster_meta_rmr | fail | pass | fail
-verify_counter_converge | pass | pass | pass
-ensemble_byzantine | pass | pass | pass
-ensemble_remove_node | pass | pass | fail
-ensemble_remove_node2 | | | 
-repl_aae_fullsync_custom_n | pass | pass | fail
-repl_rt_overload | fail | pass |  fail
+kv679_dataloss_fb | All pass | All pass | All pass
+verify_conditional_postcommit | All pass | 1 fail | 2 fail
+verify_api_timeouts | All pass | All pass | All pass
+mapred_search_switch | 1 fail | All pass | 3 fail
+cluster_meta_rmr | 1 fail | All pass | 3 fail
+verify_counter_converge | All pass | 1 fail | 1 fail
+ensemble_byzantine | 1 fail | All pass | All pass
+ensemble_remove_node | All pass | 1 fail | 2 fail
+ensemble_remove_node2 | 1 fail | All pass | All pass
+repl_aae_fullsync_custom_n | All pass | 1 fail | 1 fail
+repl_rt_overload | 3 fail | 1 fail | 2 fail
 
 #### verify_conditional_postcommit
 

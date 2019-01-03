@@ -115,11 +115,11 @@ This tests uses relatively large and compressible objects, with a 20% of the obj
 
 The comparison of throughput by volume of updates was as follows:
 
-![](Throughput_16KB.png)
+![](img/Throughput_16KB.png)
 
 For response times, there was significant difference in the 99th percentile UPDATE times:
 
-![](Update99_16KB.png)
+![](img/Update99_16KB.png)
 
 Some facts related to this comparison:
 
@@ -141,11 +141,11 @@ Same test configuration as with Test 1, but with sync on write enabled on the ba
 
 The comparison of throughput by volume of updates was as follows:
 
-![](Throughput_16KB_sync.png)
+![](img/Throughput_16KB_sync.png)
 
 For response times, there was significant difference in the 99th percentile UPDATE times:
 
-![](Update99_16KB_sync.png)
+![](img/Update99_16KB_sync.png)
 
 Some facts related to this comparison:
 
@@ -177,23 +177,23 @@ The test configuration was as with Test 1, but now with the object size halved b
 
 The comparison of throughput by accumulated volume of updates is:
 
-![](Throughput_8KB.png)
+![](img/Throughput_8KB.png)
 
 For response times, there was significant difference in the 99th percentile UPDATE times in particular:
 
-![](ResponseTimes_8KB.png)
+![](img/ResponseTimes_8KB.png)
 
 Leveldb managed disk space most efficiently during the test:
 
-![](DiskSpace_8KB.png)
+![](img/DiskSpace_8KB.png)
 
 However, this required far higher volumes of reads and writes to achieve:
 
-![](ReadWriteVol_8KB.png)
+![](img/ReadWriteVol_8KB.png)
 
 The additional throughput achieved with leveled, required significant additional CPU time to achieve:
 
-![](CPU_8KB.png)
+![](img/CPU_8KB.png)
 
 Some facts related to this comparison:
 
@@ -226,13 +226,13 @@ For all backends flushing of writes to disk was left in the control of the opera
 
 The comparison of throughput by accumulated volume of updates is:
 
-![](Throughput_UniqueSkew.png)
+![](img/Throughput_UniqueSkew.png)
 
-The 99th percentile times for Updates and GETs show that high percentile latency was impacted significantly with the leveldb backend by compariosn to bitcask and leveled:
+The 99th percentile times for Updates and GETs show that high percentile latency was impacted significantly with the leveldb backend by comparison to bitcask and leveled:
 
-![](Update99_UniqueSkew.png)
+![](img/Update99_UniqueSkew.png)
 
-![](Get99_UniqueSkew.png)
+![](img/Get99_UniqueSkew.png)
 
 Some facts related to this comparison:
 
@@ -267,15 +267,15 @@ This test is similar to Test 5, except that:
 
 The comparison of throughput by accumulated volume of updates is:
 
-![](Throughput_UniqueKeyOrder4KB.png)
+![](img/Throughput_UniqueKeyOrder4KB.png)
 
 The comparison of Mean GET Time by accumulated volume of updates is:
 
-![](MeanGetTime_UniqueKeyOrder4KB.png)
+![](img/MeanGetTime_UniqueKeyOrder4KB.png)
 
 The comparison of the 99th percentile Update time by accumulated volume of updates is:
 
-![](Update99_UniqueKeyOrder4KB.png)
+![](img/Update99_UniqueKeyOrder4KB.png)
 
 
 ### Test 6 - Immutable Objects, In-Order Heavy-Write of Small Objects with No Sync
@@ -296,3 +296,16 @@ This test further reduces the size of the object to just 2KB, but now makes 50% 
 
 {operations, [{get_unique, 1}, {put_unique, 1}]}.
 ```
+
+
+The comparison of throughput by accumulated volume of updates is:
+
+![](img/Throughput_UniqueKeyOrder2KB.png)
+
+The comparison of Mean GET Time by accumulated volume of updates is:
+
+![](img/MeanGetTime_UniqueKeyOrder2KB.png)
+
+The comparison of the 99th percentile Update time by accumulated volume of updates is:
+
+![](img/Update99_UniqueKeyOrder2KB.png)
