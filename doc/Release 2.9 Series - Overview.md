@@ -33,17 +33,19 @@ Release 2.9 brings the following two significant, but optional, changes:
 
 - [Tictac Active Anti-Entropy](https://github.com/martinsumner/kv_index_tictactree).
 
-  - This makes two fundamental changes to the way anti-entropy has historically worked in Riak.  The feature changes the nature of the construction of the Merkle Trees used in Anti-Entropy so that they can be built incrementally.  The feature also changes the nature of the underlying anti-entropy key store so that the store can now be key-ordered, whilst still allowing for acceleration of access to keys by either their Merkle tree location or by their last modified date. Previously anti-entropy had required knowledge of all elements of the tree to build the tree, and for a key store to be kept ordered based on the layout of that tree.  These changes allow for:
+  - This makes two fundamental changes to the way anti-entropy has historically worked in Riak.  The feature changes the nature of the construction of the Merkle Trees used in Anti-Entropy so that they can be built incrementally.  The feature also changes the nature of the underlying anti-entropy key store so that the store can now be key-ordered, whilst still allowing for acceleration of access to keys by either their Merkle tree location or by the last modified date of the object.
 
-  - Lower overhead internal anti-entropy based on cached trees.
+  - Previously anti-entropy had required knowledge of all elements of the tree to build the tree, and for a key store to be kept ordered based on the layout of that tree.  These changes allow for:
 
-  - Previously Riak had two approaches to reconciling the state of two clusters (key-listing full-sync and AAE full-sync).  Key-listing full-sync was generally two expensive to run in production environments, AAE full-sync too unreliable.  The release of Tictac AAE also provides a new AAE-based inter-cluster reconciliation mechanism, which in testing has shown to be both more efficient and more reliable than the existing AAE full-sync.
+    - Lower overhead internal anti-entropy based on *cached trees*.
 
-  - Cross-cluster Merkle trees to be rapidly generated, independent of the internal structure of the data in the cluster, and without pausing of tree production due to tree rebuilds.  This is a general improvement in the capability to do rapid comparisons between clusters.  It specifically ads the capability to do comparisons between clusters with different partitioning and replication strategies - allowing for a safe transition path between different cluster arrangements.
+    - Cluster-wide anti-entropy based on *cached trees* and without the need to pause for cluster-wide full synchronisation to be suspended for long periods while AAE trees and stores are rebuilt. Cached trees are kept updated in parallel to the rebuilding of trees and AAE stores.
 
-  - Folding anti-entropy.  The rapid and efficient production of anti-entropy Merkle trees of subsets of the store data, with those subsets definable at run-time based on bucket, key-range and modified date restrictions.  Allowing for more flexible inter-cluster comparisons (other than comparing whole stores).
+    - Cross-cluster Merkle trees to be *independent of the internal layout* of the data in the cluster,
 
-  - Database statistics and operator helpers.  The anti-entropy keystore stores keys and additional metadata to support potentially helpful queries, without the need to fold over the vnode object store.  This keystore can then also efficiently support ordered folds for unordered backends (e.g. bitcask).  By folding over ranges of keys and metadata, not slowed by loading in all the values off disk - administrative database queries can now be efficiently supported (e.g. object counts, find keys with siblings, find keys with large object sizes, object size histograms, calculate the average object size of items modified in last 24 hours etc).
+    - Folding anti-entropy.  The rapid and efficient production of anti-entropy Merkle *trees of subsets of the store data*, with those subsets definable at run-time based on *bucket*, *key-range* and *modified date* restrictions.  Allowing for more flexible inter-cluster comparisons (other than comparing whole stores).
+
+  - Database statistics and operator helpers.  The anti-entropy keystore stores keys and additional metadata to support potentially helpful queries, without the need to fold over the vnode object store.  This keystore can then also efficiently support ordered folds for unordered backends (e.g. bitcask).  By folding over ranges of keys and metadata, not slowed by loading in all the values off disk - [administrative database queries](https://github.com/martinsumner/riak_kv/blob/develop-2.9/src/riak_kv_clusteraae_fsm.erl#L165-L208) can now be efficiently supported (e.g. object counts, find keys with siblings, find keys with large object sizes, object size histograms, calculate the average object size of items modified in last 24 hours etc).
 
   - The Tictac AAE feature can be run in additional to or instead of traditional Riak Active Anti-Entropy mechanisms to ease migration from the existing service.
 

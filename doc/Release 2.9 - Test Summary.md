@@ -101,7 +101,7 @@ All new features have passing tests.  There is an outstanding action to consider
 
 #### mapred_search_switch
 
-this is proving hard to replicate.  After initially seeing ti twice, both times with an eleveldb backend, since there has been ten successive runs of the test without a repeat.
+this is proving hard to replicate.  After initially seeing it twice, both times with an eleveldb backend, since there has been ten successive runs of the test without a repeat.
 
 #### verify_counter_converge
 
@@ -144,4 +144,55 @@ This test is due to a `enoent` failure when switching the configuration file.
 
 ### Test Results - Round 2
 
-Awaiting.
+This round of testing was performed on the public Release Candidate.  The results of the second round of testing are:
+
+Test Suite |  Leveled backend | Bitcask backend | Eleveldb backend
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+KV_all | [verify_conditional_postcommit](#verify_conditional_postcommit) | kv679_dataloss_fb verify_api_timeouts | [verify_conditional_postcommit](#verify_conditional_postcommit)
+2i_all |  All pass | n/a | All pass
+mapred_all | All pass | mapred_search_switch | mapred_search_switch
+pipe_all | All pass | All pass | All pass
+core_all | All pass | All pass | cluster_meta_rmr
+rtc_all | All pass | All pass | All pass
+datatypes_all | All pass | [verfiy_counter_converge](#verify_counter_converge) |
+repl_all | repl_aae_fullsync_custom_n | repl_aae_fullsync_custom_n | repl_rt_overload
+admin_all | All pass | All pass | All pass
+yoko | n/a |  |
+ensemble | ensemble_byzantine | ensemble_remove_node | ensemble_remove_node ensemble_remove_node2
+cluster_upgrade | n/a | |
+bitcask_only | n/a | verify_bitcask_tombstone2_upgrade | n/a
+eleveldb_only | n/a | n/a | All pass
+
+Repeating for failed tests (3 runs per backend):
+
+Test |  Leveled backend | Bitcask backend | Eleveldb backend
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+kv679_dataloss_fb | All pass | All pass | All pass
+verify_conditional_postcommit | All pass | 1 fail | 2 fail
+verify_api_timeouts | All pass | All pass | All pass
+mapred_search_switch | 1 fail | All pass | 3 fail
+cluster_meta_rmr | 1 fail | All pass | 3 fail
+verify_counter_converge | All pass | 1 fail | 1 fail
+ensemble_byzantine | 1 fail | All pass | All pass
+ensemble_remove_node | All pass | 1 fail | 2 fail
+ensemble_remove_node2 | 1 fail | All pass | All pass
+repl_aae_fullsync_custom_n | All pass | 1 fail | 1 fail
+repl_rt_overload | 3 fail | 1 fail | 2 fail
+
+#### verify_conditional_postcommit
+
+Gets 999 results when expecting 1000.  This is due to an inherent race condition in the test code itself:
+
+https://github.com/nhs-riak/riak_test/blob/develop-2.2.X-leveled-mas/tests/verify_conditional_postcommit.erl#L77-L80
+
+The get_env may fire for one PUT before the set_env has completed for another PUT - and then the count will fall 1 behind.  On failure, have confirmed through logging that all post commits have fired.  This is a test that needs fixing, but not a Riak KV code issue.
+
+#### repl_rt_overload
+
+
+#### cluster_meta_rmr
+
+
+#### mapred_search_switch
+
+As this is Yokozuna related, there is no immediate intention to troubleshoot this intermittent failure.
