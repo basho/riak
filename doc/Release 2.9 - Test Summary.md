@@ -154,7 +154,7 @@ mapred_all | All pass | mapred_search_switch | mapred_search_switch
 pipe_all | All pass | All pass | All pass
 core_all | All pass | All pass | cluster_meta_rmr
 rtc_all | All pass | All pass | All pass
-datatypes_all | All pass | [verfiy_counter_converge](#verify_counter_converge) |
+datatypes_all | All pass | [verfiy_counter_converge](#verify_counter_converge) | All pass
 repl_all | repl_aae_fullsync_custom_n | repl_aae_fullsync_custom_n | repl_rt_overload
 admin_all | All pass | All pass | All pass
 yoko | n/a |  |
@@ -187,11 +187,14 @@ https://github.com/nhs-riak/riak_test/blob/develop-2.2.X-leveled-mas/tests/verif
 
 The get_env may fire for one PUT before the set_env has completed for another PUT - and then the count will fall 1 behind.  On failure, have confirmed through logging that all post commits have fired.  This is a test that needs fixing, but not a Riak KV code issue.
 
+
 #### repl_rt_overload
 
+No longer able to replicate when running as a single test.
 
 #### cluster_meta_rmr
 
+This appears to be as a result of running the test with ulimit set too low.  Having increased ulimit this test now consistently passes.
 
 #### mapred_search_switch
 
