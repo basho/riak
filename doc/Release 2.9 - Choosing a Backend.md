@@ -242,6 +242,7 @@ Some facts related to this comparison:
 
 - At the start of the test, whilst all data is in memory, throughput for both bitcask and leveldb is around 10% greater than for leveled.
 
+
 ### Test 5 - Immutable Objects, Insert In Order and No Sync
 
 This test is similar to Test 5, except that:
@@ -280,7 +281,7 @@ The comparison of the 99th percentile Update time by accumulated volume of updat
 
 ### Test 6 - Immutable Objects, In-Order Heavy-Write of Small Objects with No Sync
 
-This test further reduces the size of the object to just 2KB, but now makes 50% of operations PUT actions (as opposed to 25% in Tests 4 and 5).
+This test further reduces the size of the object used in Test 5 to just 2KB, but now makes 50% of operations PUT actions (as opposed to 25% in Tests 4 and 5).  The change in PUT vs GET rate is necessary in part to drive the volume of data over the cache-size within the 24-hour window of the test.
 
 ```
 {mode, max}.
@@ -309,3 +310,15 @@ The comparison of Mean GET Time by accumulated volume of updates is:
 The comparison of the 99th percentile Update time by accumulated volume of updates is:
 
 ![](img/Update99_UniqueKeyOrder2KB.png)
+
+Re-running the same test but with 200 test workers (not 100), changes the relative profile in the early stages of test:
+
+![](img/Throughput_UniqueKeyOrder2KB_200W.png)
+
+Some facts related to this comparison:
+
+- During the first period of the test, whilst the whole database sits in RAM, the mean GET and PUT response times are higher with the leveled backend, and this leads to significantly lower throughput.
+
+- By increasing the number of clients generating work in the test, the gap between the backends when not subject to resource constraints is closed.  In an under-utilised cluster, leveled can achieve roughly the same throughput - but only with greater client-side concurrency.
+
+- Having a higher proportion of PUTs reduces the relative throughput of leveldb by comparison to other backends (i.e. comparing this test to Test 5).  Even with the inputs being in key order, five-fold write amplification is still experienced with the leveldb backend by comparison to the bitcask backend.  For leveled there is 2-fold write amplification by comparison with bitcask.

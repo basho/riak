@@ -181,4 +181,8 @@ repl_rt_overload | 3 fail | 1 fail | 2 fail
 
 #### verify_conditional_postcommit
 
-Gets 999 results when expecting 1000.
+Gets 999 results when expecting 1000.  This is due to an inherent race condition in the test code itself:
+
+https://github.com/nhs-riak/riak_test/blob/develop-2.2.X-leveled-mas/tests/verify_conditional_postcommit.erl#L77-L80
+
+The get_env may fire for one PUT before the set_env has completed for another PUT - and then the count will fall 1 behind.  On failure, have confirmed through logging that all post commits have fired.  This is a test that needs fixing, but not a Riak KV code issue.
