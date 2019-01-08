@@ -27,7 +27,7 @@ Apply *caution* when deploying `bitcask` if:
 
 - There is a risk that the cluster cannot be sufficiently scaled horizontally so that all keys fit in memory.
 
-- Objects can be compressed using standard algorithms, but there is no capacity to manage the compression in the application.  as bitcask doesn't compress objects before storage, this may have an impact on both disk utilisation and busyness.
+- Objects can be compressed using standard algorithms, but there is no capacity to manage the compression in the application.  Bitcask doesn't compress objects before storage, this may have an impact on both disk utilisation and busyness.
 
 *Prefer* deploying `bitcask` if:
 
@@ -45,11 +45,11 @@ Apply *caution* when deploying `bitcask` if:
 
 Apply *caution* when deploying `eleveldb` if:
 
-- Object sizes are large (e.g. o(10KB) or higher), and a significant proportion of load is PUT traffic (e.g. 20% or more).  Write amplification may have a significant impact on database throughput.  This point is especially true if writes are to be sync-flushed to disk
+- Object sizes are large (e.g. o(10KB) or higher), a significant proportion of load is PUT traffic (e.g. 20% or more) and those writes will not all be in key order.  Write amplification may have a significant impact on database throughput.  This point is especially true if writes are to be sync-flushed to disk
 
 - There is concern over the capability to resolve in-house any problems that arise in the a management of complex software packages written in C++.
 
-- There is a need for rsync-style backup strategies.
+- There is a need for rsync-style backup strategies.  This point is especially true if writes are not made in key order.
 
 *Prefer* deploying `eleveldb` if:
 
@@ -83,7 +83,7 @@ Apply *caution* when deploying `leveled` if:
 
 - There is a preference for managing support risk by maintaining Riak as single language (Erlang) solution.
 
-- Managing response time volatility is critical, minimising the 99the percentile and maximum response times in comparison to the mean response time.
+- Managing response time volatility is critical, minimising the 99th percentile and maximum response times in comparison to the mean response time.
 
 ## Sample Volume Test results
 
