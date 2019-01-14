@@ -159,8 +159,8 @@ repl_all | repl_aae_fullsync_custom_n | repl_aae_fullsync_custom_n | repl_rt_ove
 admin_all | All pass | All pass | All pass
 yoko | n/a |  |
 ensemble | ensemble_byzantine | ensemble_remove_node | ensemble_remove_node ensemble_remove_node2
-cluster_upgrade | n/a | |
-bitcask_only | n/a | verify_bitcask_tombstone2_upgrade | n/a
+cluster_upgrade | n/a | open_source_replication replication_upgrade replication2_upgrade verify_kv1356 verify_membackend verify_riak_object_reformat | [verify_kv1356](#verify_kv1356) [verify_membackend](#verify_membackend) [verify_riak_object_reformat](#verify_riak_object_reformat)
+bitcask_only | n/a | All pass | n/a
 eleveldb_only | n/a | n/a | All pass
 
 Repeating for failed tests (3 runs per backend):
@@ -199,3 +199,17 @@ This appears to be as a result of running the test with ulimit set too low.  Hav
 #### mapred_search_switch
 
 As this is Yokozuna related, there is no immediate intention to troubleshoot this intermittent failure.
+
+#### verify_riak_object_reformat
+
+Test was failing as it was being run using the `spine_ee` profile not the `spine`, and hit the issue of copying `jmx` configuration into the current version which is no longer supported.  Switched to the `spine` profile and test now passes.
+
+#### verify_kv1356
+
+Test was failing as it sets a particular path which it assumes exists (And doesn't on the test machine).  Using default settings (and a proper wait) the test passes.  Will remove test from group going forward, as it appears to add no value - just a throwaway starter before writing a fix.
+
+#### verify_membackend
+
+This fails when measuring the change in memory caused by re-putting the same new object over an existing object - https://github.com/basho/riak_test/blob/develop/tests/verify_membackend.erl#L174-L178.  The difference between the memory used and baseline is 26 bytes and not less than 3.
+
+It is unclear what the value of this test is, or the reasoning why the delta should be less than 3 bytes.  Further, the use of the memory backend is not recommended for production environments.  This test failure should be ignored.
