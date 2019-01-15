@@ -153,10 +153,10 @@ KV_all | [verify_conditional_postcommit](#verify_conditional_postcommit) | [veri
 mapred_all | All pass | All pass | mapred_search_switch | mapred_search_switch
 pipe_all | All pass | All pass | All pass | All pass
 core_all | All pass | All pass | All pass | cluster_meta_rmr
-rtc_all | All pass |  | All pass | All pass
-datatypes_all | All pass |  | [verfiy_counter_converge](#verify_counter_converge) | All pass
-repl_all | repl_aae_fullsync_custom_n |  | repl_aae_fullsync_custom_n | repl_rt_overload
-admin_all | All pass |  | All pass | All pass
+rtc_all | All pass | All pass | All pass | All pass
+datatypes_all | All pass | All pass | [verfiy_counter_converge](#verify_counter_converge) | All pass
+repl_all | repl_aae_fullsync_custom_n | repl_aae_fullsync_custom_n | repl_aae_fullsync_custom_n | repl_rt_overload
+admin_all | All pass | All pass | All pass | All pass
 yoko | n/a |  |  |
 ensemble | ensemble_byzantine |  | ensemble_remove_node | ensemble_remove_node ensemble_remove_node2
 cluster_upgrade | n/a | n/a | n/a | [verify_kv1356](#verify_kv1356) [verify_membackend](#verify_membackend) [verify_riak_object_reformat](#verify_riak_object_reformat)
