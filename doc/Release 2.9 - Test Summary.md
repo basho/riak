@@ -146,22 +146,22 @@ This test is due to a `enoent` failure when switching the configuration file.
 
 This round of testing was performed on the public Release Candidate.  The results of the second round of testing are:
 
-Test Suite |  Leveled backend | Bitcask backend | Eleveldb backend
-:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
-KV_all | [verify_conditional_postcommit](#verify_conditional_postcommit) | kv679_dataloss_fb verify_api_timeouts | [verify_conditional_postcommit](#verify_conditional_postcommit)
-2i_all |  All pass | n/a | All pass
-mapred_all | All pass | mapred_search_switch | mapred_search_switch
-pipe_all | All pass | All pass | All pass
-core_all | All pass | All pass | cluster_meta_rmr
-rtc_all | All pass | All pass | All pass
-datatypes_all | All pass | [verfiy_counter_converge](#verify_counter_converge) |
-repl_all | repl_aae_fullsync_custom_n | repl_aae_fullsync_custom_n | repl_rt_overload
-admin_all | All pass | All pass | All pass
-yoko | n/a |  |
-ensemble | ensemble_byzantine | ensemble_remove_node | ensemble_remove_node ensemble_remove_node2
-cluster_upgrade | n/a | |
-bitcask_only | n/a | verify_bitcask_tombstone2_upgrade | n/a
-eleveldb_only | n/a | n/a | All pass
+Test Suite |  Leveled (0.9.9) | Leveled (0.9.10) | Bitcask | Eleveldb
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+KV_all | [verify_conditional_postcommit](#verify_conditional_postcommit) | [verify_conditional_postcommit](#verify_conditional_postcommit) | kv679_dataloss_fb verify_api_timeouts | [verify_conditional_postcommit](#verify_conditional_postcommit)
+2i_all |  All pass | All pass | n/a | All pass
+mapred_all | All pass | All pass | mapred_search_switch | mapred_search_switch
+pipe_all | All pass | All pass | All pass | All pass
+core_all | All pass | All pass | All pass | cluster_meta_rmr
+rtc_all | All pass | All pass | All pass | All pass
+datatypes_all | All pass | All pass | [verfiy_counter_converge](#verify_counter_converge) | All pass
+repl_all | repl_aae_fullsync_custom_n | repl_aae_fullsync_custom_n | repl_aae_fullsync_custom_n | repl_rt_overload
+admin_all | All pass | All pass | All pass | All pass
+yoko | n/a |  |  |
+ensemble | ensemble_byzantine |  | ensemble_remove_node | ensemble_remove_node ensemble_remove_node2
+cluster_upgrade | n/a | n/a | n/a | [verify_kv1356](#verify_kv1356) [verify_membackend](#verify_membackend) [verify_riak_object_reformat](#verify_riak_object_reformat)
+bitcask_only | n/a | n/a | All pass | n/a
+eleveldb_only | n/a | n/a | n/a | All pass
 
 Repeating for failed tests (3 runs per backend):
 
@@ -187,12 +187,29 @@ https://github.com/nhs-riak/riak_test/blob/develop-2.2.X-leveled-mas/tests/verif
 
 The get_env may fire for one PUT before the set_env has completed for another PUT - and then the count will fall 1 behind.  On failure, have confirmed through logging that all post commits have fired.  This is a test that needs fixing, but not a Riak KV code issue.
 
+
 #### repl_rt_overload
 
+No longer able to replicate when running as a single test.
 
 #### cluster_meta_rmr
 
+This appears to be as a result of running the test with ulimit set too low.  Having increased ulimit this test now consistently passes.
 
 #### mapred_search_switch
 
 As this is Yokozuna related, there is no immediate intention to troubleshoot this intermittent failure.
+
+#### verify_riak_object_reformat
+
+Test was failing as it was being run using the `spine_ee` profile not the `spine`, and hit the issue of copying `jmx` configuration into the current version which is no longer supported.  Switched to the `spine` profile and test now passes.
+
+#### verify_kv1356
+
+Test was failing as it sets a particular path which it assumes exists (And doesn't on the test machine).  Using default settings (and a proper wait) the test passes.  Will remove test from group going forward, as it appears to add no value - just a throwaway starter before writing a fix.
+
+#### verify_membackend
+
+This fails when measuring the change in memory caused by re-putting the same new object over an existing object - https://github.com/basho/riak_test/blob/develop/tests/verify_membackend.erl#L174-L178.  The difference between the memory used and baseline is 26 bytes and not less than 3.
+
+It is unclear what the value of this test is, or the reasoning why the delta should be less than 3 bytes.  Further, the use of the memory backend is not recommended for production environments.  This test failure should be ignored.

@@ -322,3 +322,13 @@ Some facts related to this comparison:
 - By increasing the number of clients generating work in the test, the gap between the backends when not subject to resource constraints is closed.  In an under-utilised cluster, leveled can achieve roughly the same throughput - but only with greater client-side concurrency.
 
 - Having a higher proportion of PUTs reduces the relative throughput of leveldb by comparison to other backends (i.e. comparing this test to Test 5).  Even with the inputs being in key order, five-fold write amplification is still experienced with the leveldb backend by comparison to the bitcask backend.  For leveled there is 2-fold write amplification by comparison with bitcask.
+
+### Comparison Charts
+
+The following charts show the comparison across the 6 tests for each backend:
+
+![](img/Bitcask_TestCompare.png)
+
+![](img/Leveldb_TestCompare.png)
+
+![](img/Leveled_TestCompare.png)
