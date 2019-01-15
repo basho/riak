@@ -146,22 +146,22 @@ This test is due to a `enoent` failure when switching the configuration file.
 
 This round of testing was performed on the public Release Candidate.  The results of the second round of testing are:
 
-Test Suite |  Leveled backend | Bitcask backend | Eleveldb backend
-:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
-KV_all | [verify_conditional_postcommit](#verify_conditional_postcommit) | kv679_dataloss_fb verify_api_timeouts | [verify_conditional_postcommit](#verify_conditional_postcommit)
-2i_all |  All pass | n/a | All pass
-mapred_all | All pass | mapred_search_switch | mapred_search_switch
-pipe_all | All pass | All pass | All pass
-core_all | All pass | All pass | cluster_meta_rmr
-rtc_all | All pass | All pass | All pass
-datatypes_all | All pass | [verfiy_counter_converge](#verify_counter_converge) | All pass
-repl_all | repl_aae_fullsync_custom_n | repl_aae_fullsync_custom_n | repl_rt_overload
-admin_all | All pass | All pass | All pass
-yoko | n/a |  |
-ensemble | ensemble_byzantine | ensemble_remove_node | ensemble_remove_node ensemble_remove_node2
-cluster_upgrade | n/a | open_source_replication replication_upgrade replication2_upgrade verify_kv1356 verify_membackend verify_riak_object_reformat | [verify_kv1356](#verify_kv1356) [verify_membackend](#verify_membackend) [verify_riak_object_reformat](#verify_riak_object_reformat)
-bitcask_only | n/a | All pass | n/a
-eleveldb_only | n/a | n/a | All pass
+Test Suite |  Leveled (0.9.9) | Leveled (0.9.10) | Bitcask | Eleveldb
+:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:|:-------------------------:
+KV_all | [verify_conditional_postcommit](#verify_conditional_postcommit) | [verify_conditional_postcommit](#verify_conditional_postcommit) | kv679_dataloss_fb verify_api_timeouts | [verify_conditional_postcommit](#verify_conditional_postcommit)
+2i_all |  All pass | All pass | n/a | All pass
+mapred_all | All pass | All pass | mapred_search_switch | mapred_search_switch
+pipe_all | All pass | All pass | All pass | All pass
+core_all | All pass | All pass | All pass | cluster_meta_rmr
+rtc_all | All pass |  | All pass | All pass
+datatypes_all | All pass |  | [verfiy_counter_converge](#verify_counter_converge) | All pass
+repl_all | repl_aae_fullsync_custom_n |  | repl_aae_fullsync_custom_n | repl_rt_overload
+admin_all | All pass |  | All pass | All pass
+yoko | n/a |  |  |
+ensemble | ensemble_byzantine |  | ensemble_remove_node | ensemble_remove_node ensemble_remove_node2
+cluster_upgrade | n/a | n/a | n/a | [verify_kv1356](#verify_kv1356) [verify_membackend](#verify_membackend) [verify_riak_object_reformat](#verify_riak_object_reformat)
+bitcask_only | n/a | n/a | All pass | n/a
+eleveldb_only | n/a | n/a | n/a | All pass
 
 Repeating for failed tests (3 runs per backend):
 
