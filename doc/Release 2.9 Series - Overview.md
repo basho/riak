@@ -72,17 +72,19 @@ Release 2.9 brings the following two significant, but optional, changes:
 
   - It is expected that community interest and support in the [bitcask backend](https://github.com/basho/bitcask) within Riak will continue into Riak 3.0 and beyond, as bitcask still offers throughput advantages with some workloads, where there is no demand for secondary indexes.
 
+  - Some [performance testing results and guidance for choosing a backend have been made available to assist with this decision](https://github.com/martinsumner/riak_testing_notes/blob/master/Release%202.9%20-%20Choosing%20a%20Backend.md).  The optimal decision though is driven by too many variables (e.g. object size, number of keys, distribution of requests to keys, mutability of objects, physical server configuration, feature requirements and levels of application concurrency) to make an optimal decision obvious in most uses cases - realistic use-case specific testing is always recommended.
+
 Release 2.9 also brings three building blocks to enable current and future improvements to the management of operational risk:
 
 
-- [Vnode Soft Limits](https://github.com/martinsumner/riak_kv/blob/mas-2.2.5-clusteraae/docs/soft-limit-vnode.md)
+- [Vnode Soft Limits](https://github.com/martinsumner/riak_kv/blob/develop-2.9/docs/soft-limit-vnode.md)
 
   - When Riak is in receipt of a PUT request, it must select a vnode to co-ordinate the PUT.  However, when load is high, vnodes may have work queues of varying sizes - and picking a vnode with a large queue will slow the PUT to the pace of that slow vnode.  Vnode soft limits are a resolution to this problem, providing a simple check of the sate of a vnode queue before determining that a particular vnode is a good candidate to coordinate a given PUT.
 
   - The biggest advantage seen in testing vnode soft limits is with the leveldb backend, where under soak test conditions there is a 50% reduction in the trend-line of 99th percentile PUT measure, and a 80% reduction in the peak 99th percentile PUT time.
 
 
-- [Core node worker pool](https://github.com/martinsumner/riak_core/blob/mas-2.2.5-dscpworkerpool/docs/node_worker_pool.md)
+- [Core node worker pool](https://github.com/martinsumner/riak_core/blob/develop-2.9/docs/node_worker_pool.md)
 
   - Riak-backed applications tend to make heavy use of the standard GET/PUT KV operations.  These are short-lived tasks, but sometimes longer-lives tasks are required to either provide information to the operator (e.g. what is the average object size in the store?), or detect otherwise hidden errors (e.g. AAE tree rebuilds).  Each such task has tended to evolve its own mechanism to ensure that the impact of the task can be controlled to avoid inhibiting higher priority database work.  The core node worker pool is a simple mechanism for controlling concurrency of background tasks on a per-node basis.  It allows for either a single node worker pool to manage concurrency, or a series of pools modelled on the [Differentiated Services design pattern](https://en.wikipedia.org/wiki/Differentiated_services).
 
@@ -101,6 +103,8 @@ Following the general availability of Riak 2.9.0, will will continue on the 2.9 
 - Fixes and improvements to riak real-time replication that have already been proven in production with bet365;
 
 - More exposing of riak_repl features - for example a `re-replicate if` feature that will re-replicate an object based on version information that has been returned form an `aae_fold`, as well as additional `aae_fold` queries.
+
+Release [task lists](https://github.com/martinsumner/riak_testing_notes/blob/master/Release%202.9%20-%20%20Task%20Countdown.md), and [test progress](https://github.com/martinsumner/riak_testing_notes/blob/master/Release%202.9%20-%20Test%20Summary.md) are tracked online.
 
 #### Transition Configuration Guidance
 
@@ -135,7 +139,7 @@ This section contains some initial notes to assist with planning and configurati
 
 - Leveled compression can be either `native` or `lz4`.  lz4 has improved performance in most volume tests, but unless the performance improvement is significant for a use case, sticking with `native` compression is recommended, as this does not create a dependency on an external library. For objects which are already compressed, and may gain little value from compression, it is recommended switching the compression point to be `on_compact` rather than `on_receipt`.
 
-- The code contains a more complete view of startup options for [leveled](https://github.com/martinsumner/leveled/blob/master/priv/leveled.schema) and [tictac_aae](https://github.com/martinsumner/riak_kv/blob/mas-2.2.5-clusteraae/priv/riak_kv.schema#L28-L96).
+- The code contains a more complete view of startup options for [leveled](https://github.com/martinsumner/leveled/blob/master/priv/leveled.schema) and [tictac_aae](https://github.com/martinsumner/riak_kv/blob/develop-2.9/priv/riak_kv.schema#L28-L96).
 
 
 ### Release 2.9.1
