@@ -48,7 +48,7 @@
                      "5ebe895c03d8a042584f8e2ff352171de7d7c414"}},
        {eper,".*",
              {git,"git://github.com/basho/eper.git",
-                  "fc165bf4072ecb9ce5648aab86db2baad12122f5"}},
+                  "7222ecaebceb5422e74a9c1503043bbc6036f6b7"}},
        {edown,".*",
               {git,"git://github.com/uwiger/edown.git",
                    "d62ec85281e451a46ba30045917c119d65b72a84"}},
