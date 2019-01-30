@@ -158,7 +158,7 @@ These features are:
 
 ### Release 3.0
 
-Work on Release 3.0 will initially focus entirely on ensuring the OTP uplift is completed, so that Riak can be run on OTP 20 (and preferably also OTP 21).  As part of doing this, under-used features will be removed - with Yokozuna and riak_ensemble unlikely to be available beyond Riak 2.9.  It requires significant work to maintain features through new releases, and reducing accidental complexity is an important goal for the Riak community to ensure we can in the future continue to safely maintain the codebase.
+Work on Release 3.0 will initially focus entirely on ensuring the OTP uplift is completed, so that Riak can be run on OTP 20 (and preferably also OTP 21).  As part of doing this, under-used features may be removed if insufficient community interest and time is available to maintain them - this may impact the availability of Yokozuna and riak_ensemble beyond Riak 2.9.  It requires significant work to maintain features through new releases, and reducing accidental complexity is an important goal for the Riak community to ensure we can in the future continue to safely manage the codebase.
 
 The initial release of 3.0 is unlikely to contain further features beyond that of the OTP uplift.  However, there are some areas of feature growth expected within the Riak 3.0 release cycle:
 
