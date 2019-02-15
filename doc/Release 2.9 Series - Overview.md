@@ -106,6 +106,31 @@ Following the general availability of Riak 2.9.0, will will continue on the 2.9 
 
 Release [task lists](https://github.com/martinsumner/riak_testing_notes/blob/master/Release%202.9%20-%20%20Task%20Countdown.md), and [test progress](https://github.com/martinsumner/riak_testing_notes/blob/master/Release%202.9%20-%20Test%20Summary.md) are tracked online.
 
+#### Release 2.9.1 RC1
+
+[Release Notice.](http://lists.basho.com/pipermail/riak-users_lists.basho.com/2019-January/039316.html)
+
+#### Release 2.9.2 RC2
+
+Release Candidate 2 has the following changes:
+
+- Customer testing exposed that a mochiweb change made in Riak 2.1.x had altered the [behaviour when handling large headers](https://github.com/basho/riak_api/issues/123) (e.g. PUTs to riak with large index entries).  In Riak 2.0.x headers could be of arbitrary size, but since 2.1 these headers have been restricted to the size of the receive buffer (default 8KB).  Mochiweb and webmachine have now been updated to make the receive buffer configurable, to allow for a workaround should a customer hit this limit.  The receive buffer size is now configurable via the `advanced.config` - adding a stanza like:
+
+``{webmachine,
+   [{recbuf, 65536}]},``
+
+- As part of the change above, mochiweb has been brought up-to-date with the mainstream mochi repository.  This brings through all [changes since 2.9.0](https://github.com/basho/mochiweb/blob/master/CHANGES.md).  Users of the HTTP API should consider these changes when testing the release.
+
+- Log level with the leveled backend can now be set through riak.conf, and the log format has been changed to make the logs easier to index.
+
+- An issue discovered in property-based testing (by [Quviq](http://www.quviq.com/)) with object folds in sqn_order has been resolved.
+
+- The process of closing down leveled has been refactored to stop process leaks discovered in property-based testing (by [Quviq](http://www.quviq.com/)).
+
+- A workaround to an issue running a leveled unit test in riak `make test` was leading to a `make test` failure.
+
+- A Protocol Buffers API change made as part of the object touch repl changes was missing from RC1, and this has now been picked up in RC2.
+
 #### Transition Configuration Guidance
 
 This section contains some initial notes to assist with planning and configuration for Transition of pre-2.9 releases to 2.9:
@@ -158,7 +183,7 @@ These features are:
 
 ### Release 3.0
 
-Work on Release 3.0 will initially focus entirely on ensuring the OTP uplift is completed, so that Riak can be run on OTP 20 (and preferably also OTP 21).  As part of doing this, under-used features will be removed - with Yokozuna and riak_ensemble unlikely to be available beyond Riak 2.9.  It requires significant work to maintain features through new releases, and reducing accidental complexity is an important goal for the Riak community to ensure we can in the future continue to safely maintain the codebase.
+Work on Release 3.0 will initially focus entirely on ensuring the OTP uplift is completed, so that Riak can be run on OTP 20 (and preferably also OTP 21).  As part of doing this, under-used features may be removed if insufficient community interest and time is available to maintain them - this may impact the availability of Yokozuna and riak_ensemble beyond Riak 2.9.  It requires significant work to maintain features through new releases, and reducing accidental complexity is an important goal for the Riak community to ensure we can in the future continue to safely manage the codebase.
 
 The initial release of 3.0 is unlikely to contain further features beyond that of the OTP uplift.  However, there are some areas of feature growth expected within the Riak 3.0 release cycle:
 
