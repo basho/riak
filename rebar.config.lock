@@ -108,7 +108,7 @@
                  "6bc5efe93bab327788bcde24374f16044b549dd8"}},
        {leveled,".*",
                 {git,"https://github.com/martinsumner/leveled",
-                     "5799f06452331031d727e1033e17fc7806bb8236"}},
+                     "aea20de4b9db75351a1ad9ceaa65559779de86c9"}},
        {kv_index_tictactree,".*",
                             {git,"https://github.com/martinsumner/kv_index_tictactree.git",
                                  "4c392e4a6ecfacf0c5bf8c0949416d1887db1e52"}},
