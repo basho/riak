@@ -188,4 +188,3 @@
                                {git,"https://github.com/basho/rebar_lock_deps_plugin.git",
                                     "8816f45ff38cd04d5c7741bd39166af58116dd44"}}]}.
 {plugins,[rebar_lock_deps_plugin]}.
-
