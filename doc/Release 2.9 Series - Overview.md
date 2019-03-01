@@ -106,11 +106,11 @@ Following the general availability of Riak 2.9.0, will will continue on the 2.9 
 
 Release [task lists](https://github.com/martinsumner/riak_testing_notes/blob/master/Release%202.9%20-%20%20Task%20Countdown.md), and [test progress](https://github.com/martinsumner/riak_testing_notes/blob/master/Release%202.9%20-%20Test%20Summary.md) are tracked online.
 
-#### Release 2.9.1 RC1
+#### Release 2.9.0 RC1
 
 [Release Notice.](http://lists.basho.com/pipermail/riak-users_lists.basho.com/2019-January/039316.html)
 
-#### Release 2.9.2 RC2
+#### Release 2.9.0 RC2
 
 Release Candidate 2 has the following changes:
 
@@ -130,6 +130,22 @@ Release Candidate 2 has the following changes:
 - A workaround to an issue running a leveled unit test in riak `make test` was leading to a `make test` failure.
 
 - A Protocol Buffers API change made as part of the object touch repl changes was missing from RC1, and this has now been picked up in RC2.
+
+#### Release 2.9.0 RC3
+
+Please ignore this release candidate.
+
+#### Release 2.9.0 RC4
+
+The RC4 changes only have an impact on the behaviour of Riak when used with a leveled backend:
+
+- There are corrections to the Leveled fixes made in RC2 to ensure that the full cache index situation is handed safely, and a potential deadlock on shutdown between the penciller and an individual sst file is resolved.
+
+- The Riak KV default cache size for leveled is reduced to the leveled default, the maximum size the cache can grow to (via jitter/returned) is reduced, and the number of cache line sis reduced.  This means that in a stalled penciller, the next L0 file is constrained to be an order of magnitude smaller than in RC2.  This may prevent bad behaviour under heavy handoff load.
+
+- The riak_kv_leveled_backend will now pause the vnode in response to a stalling leveled backend.
+
+- The riak_kv_leveled_backend will support v1 objects only, the riak_kv_vnode will never try to write an object as v0 into leveled.
 
 #### Transition Configuration Guidance
 
