@@ -139,9 +139,9 @@ Please ignore this release candidate.
 
 The RC4 changes only have an impact on the behaviour of Riak when used with a leveled backend:
 
-- There are corrections to the Leveled fixes made in RC2 to ensure that the full cache index situation is handed safely, and a potential deadlock on shutdown between the penciller and an individual sst file is resolved.
+- There are corrections to the Leveled fixes made in RC2 to ensure that the full cache-index situation is handled safely, and a potential deadlock on shutdown between the penciller and an individual sst file is resolved.
 
-- The Riak KV default cache size for leveled is reduced to the leveled default, the maximum size the cache can grow to (via jitter/returned) is reduced, and the number of cache line sis reduced.  This means that in a stalled penciller, the next L0 file is constrained to be an order of magnitude smaller than in RC2.  This may prevent bad behaviour under heavy handoff load.
+- The Riak KV default cache size for leveled is reduced to the leveled default, the maximum size the cache can grow to (via jitter/returned) is reduced, and the number of cache lines are reduced.  This means that in a stalled penciller, the next L0 file is constrained to be an order of magnitude smaller than in RC2.  This may prevent bad behaviour under heavy handoff load.
 
 - The riak_kv_leveled_backend will now pause the vnode in response to a stalling leveled backend.
 
