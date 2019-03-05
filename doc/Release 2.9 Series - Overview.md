@@ -149,7 +149,7 @@ The RC4 changes only have an impact on the behaviour of Riak when used with a le
 
 #### Release 2.9.0 RC5
 
-The primary RC5 change is again leveled related.  It was discovered in handoff scenarios in a leveled backend, Riak consumed much more memory than expected.  This was caused by "switched" Level 0 files in the Penciller.  These files have a small emory footprint was garbage collected, but a large footprint uncollected.  Each file process now does `garbage_collect/1` on self at the switch to free this memory immediately.
+The primary RC5 change is again leveled related.  It was discovered in handoff scenarios in a leveled backend, Riak consumed much more memory than expected.  This was caused by "switched" Level 0 files in the Penciller.  These files have a small memory footprint when garbage collected, but a large footprint uncollected - there is a legacy of all the data being on the LoopState in the `starting` state (but not the `reader` state).  Each file process now does `garbage_collect/1` on self at the point of the switch to free this memory immediately.
 
 There is also a small fix to poolboy to prevent a crash log from appearing on shutdown.
 
