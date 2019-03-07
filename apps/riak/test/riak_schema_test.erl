@@ -2,9 +2,12 @@
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
 
+-define(riak_schema, "rel/files/riak.schema").
+-define(eleveldb_schema, "_build/test/lib/eleveldb/priv/eleveldb.schema").
+
 basic_schema_test() ->
     Config = cuttlefish_unit:generate_templated_config(
-               ["../../../rel/files/riak.schema"], [], context(), predefined_schema()),
+               [?riak_schema], [], context(), predefined_schema()),
 
     cuttlefish_unit:assert_config(Config, "lager.handlers",
                                   [
@@ -47,7 +50,7 @@ override_schema_test() ->
             {["distributed_cookie"], "tyktorp"}],
 
     Config = cuttlefish_unit:generate_templated_config(
-               ["../../../rel/files/riak.schema"], Conf, context(), predefined_schema()),
+               [?riak_schema], Conf, context(), predefined_schema()),
 
     cuttlefish_unit:assert_config(Config, "lager.handlers",
                                   [{lager_syslog_backend, ["riak", daemon, info]},
@@ -80,7 +83,7 @@ custom_syslog_test() ->
             {["log","syslog","facility"], local4},
             {["log","syslog","level"], warning}],
     Config = cuttlefish_unit:generate_templated_config(
-               ["../../../rel/files/riak.schema"], Conf, context(), predefined_schema()),
+               [?riak_schema], Conf, context(), predefined_schema()),
     cuttlefish_unit:assert_config(Config, "lager.handlers",
                                   [{lager_syslog_backend, ["VeryCool", local4, warning]},
                                    {lager_file_backend, [{file, "./log/console.log"},
@@ -99,22 +102,22 @@ custom_syslog_test() ->
 crash_log_test() ->
     Conf = [{["log", "crash"], off}],
     Config = cuttlefish_unit:generate_templated_config(
-               ["../../../rel/files/riak.schema"], Conf, context(), predefined_schema()),
+               [?riak_schema], Conf, context(), predefined_schema()),
     cuttlefish_unit:assert_config(Config, "lager.crash_log", undefined),
     ok.
 
 devrel_test() ->
     RelConfig = cuttlefish_unit:generate_templated_config(
-                  ["../../../rel/files/riak.schema",
-                  "../../../deps/eleveldb/priv/eleveldb.schema"],
+                  [?riak_schema,
+                  ?eleveldb_schema],
                   [], context(), predefined_schema()),
 
     cuttlefish_unit:assert_config(RelConfig, "eleveldb.limited_developer_mem", false),
     cuttlefish_unit:assert_not_configured(RelConfig, "vm_args.-shutdown_time"),
 
     DevRelConfig = cuttlefish_unit:generate_templated_config(
-                     ["../../../rel/files/riak.schema",
-                      "../../../deps/eleveldb/priv/eleveldb.schema"], [],
+                     [?riak_schema,
+                      ?eleveldb_schema], [],
                      lists:keyreplace(devrel, 1, context(), {devrel, true}), predefined_schema()),
 
     cuttlefish_unit:assert_config(DevRelConfig, "eleveldb.limited_developer_mem", true),
