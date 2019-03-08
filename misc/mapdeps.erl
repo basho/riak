@@ -123,7 +123,10 @@ app_name(Path) ->
     filename:basename(filename:dirname(Path)).
 
 file_start() ->
-    io:format(standard_io, "digraph {~n", []).
+    io:format(standard_io,
+              "digraph {~n"
+              "  graph [ overlap=scale ]~n~n",
+              []).
 
 file_end() ->
     io:format(standard_io, "}~n", []).
