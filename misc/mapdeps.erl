@@ -85,11 +85,16 @@ map_rebar(BaseDir, Path, Acc) ->
         {ok, Opts} ->
             Deps = proplists:get_value(deps, Opts, []),
             lists:foldl(
-              fun({DepName, _, Info}, A) ->
-                      VerStr = case Info of
-                                   {_,_,V} -> ver(V);
-                                   {_,_V}   -> "HEAD"
-                               end,
+              fun(Dep, A) ->
+                      {DepName,VerStr} =
+                          case Dep of
+                              {N,    {_,_,V}} -> {N, ver(V)};
+                              {N,    {_,_}  } -> {N, "HEAD"};
+                              {N, _, {_,_,V}} -> {N, ver(V)};
+                              {N, _, {_,_}  } -> {N, "HEAD"};
+                              {N, _} when is_atom(N) -> {N, "'hex'"};
+                              N when is_atom(N)      -> {N, "'hex'"}
+                          end,
                       From = app_name(Path),
                       To = {atom_to_list(DepName), VerStr},
                       case ordsets:is_element({To, From}, A) of
