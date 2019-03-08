@@ -4,10 +4,12 @@ PKG_REVISION    ?= $(shell git describe --tags 2>/dev/null)
 PKG_BUILD        = 1
 BASE_DIR         = $(shell pwd)
 ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
-REBAR           ?= $(BASE_DIR)/rebar
+REBAR           ?= $(BASE_DIR)/rebar3
 OVERLAY_VARS    ?=
-SPECIAL_DEPS	?= meck hamcrest riak_ensemble webmachine
 TEST_IGNORE     ?=
+TEST_DEPS_DIR		?= _build/test/lib
+DEPS						 = $(patsubst $(TEST_DEPS_DIR)/%, %, $(wildcard $(TEST_DEPS_DIR)/*))
+TEST_DEPS				 = $(filter-out $(TEST_IGNORE), $(DEPS))
 
 RIAK_CORE_STAT_PREFIX = riak
 export RIAK_CORE_STAT_PREFIX
@@ -22,34 +24,24 @@ $(if $(ERLANG_BIN),,$(warning "Warning: No Erlang found in your path, this will 
 all: deps compile
 
 compile:
-	./rebar compile
+	$(REBAR) compile
 
 deps:
 	$(if $(HEAD_REVISION),$(warning "Warning: you have checked out a tag ($(HEAD_REVISION)) and should use the locked-deps target"))
-	./rebar get-deps
+	$(REBAR) get-deps
 
 clean: testclean
-	./rebar clean
+	$(REBAR) clean
 
 distclean: clean devclean relclean ballclean
-	./rebar delete-deps
+	@rm -rf _build
 
 generate:
-	./rebar generate $(OVERLAY_VARS)
-
-
-##
-## Lock Targets
-##
-##  see https://github.com/seth/rebar_lock_deps_plugin
-lock: deps compile
-	./rebar lock-deps
-
-locked-all: locked-deps compile
+	@echo "Todo: migrate to relx"
+	# ./rebar generate $(OVERLAY_VARS)
 
 locked-deps:
-	@echo "Using rebar.config.lock file to fetch dependencies"
-	./rebar -C rebar.config.lock get-deps
+	$(REBAR) upgrade
 
 ##
 ## Test targets
@@ -58,22 +50,28 @@ TEST_LOG_FILE := eunit.log
 testclean:
 	@rm -f $(TEST_LOG_FILE)
 
+TMP_CONFIG=rebar.config.tmp
+
+# Tricking rebar3 to use the dependencies from the top-level _build directory.
+testdep-% :
+	@echo "--- Running EUnit tests for $* ---"
+	@rm -rf _build/deptest+test _build/deptest
+	@(cd $(TEST_DEPS_DIR)/$* && \
+	 cp rebar.config $(TMP_CONFIG) && \
+	 echo "" >> $(TMP_CONFIG) && \
+	 echo '{profiles, [{deptest, [{base_dir, "../../.."}]}]}.' >> $(TMP_CONFIG) && \
+	 REBAR_CONFIG=$(TMP_CONFIG) $(REBAR) as deptest eunit) || echo "Eunit: $* FAILED" >> $(TEST_LOG_FILE)
+	@(cd $(TEST_DEPS_DIR)/$* && rm -f $(TMP_CONFIG))
+
+test-deps : deps compile testclean $(patsubst %, testdep-%, $(TEST_DEPS))
+
 # Test each dependency individually in its own VM
-test : deps compile testclean
-	@$(foreach dep, \
-		$(filter-out $(TEST_IGNORE), \
-			$(filter-out $(SPECIAL_DEPS), $(patsubst deps/%, %, $(wildcard deps/*)))), \
-			(cd deps/$(dep) && REBAR_DEPS_DIR=$(BASE_DIR)/deps/ ../../rebar eunit deps_dir=.. skip_deps=true)  \
-			|| echo "Eunit: $(dep) FAILED" >> $(TEST_LOG_FILE);)
-	@$(foreach special, \
-		$(filter-out $(TEST_IGNORE), $(SPECIAL_DEPS)), \
-			(cd deps/$(special) && make test)  \
-			|| echo "Eunit: $(special) FAILED" >> $(TEST_LOG_FILE);)
-	./rebar eunit skip_deps=true
+test : test-deps
+	$(REBAR) eunit
 	@if test -s $(TEST_LOG_FILE) ; then \
-             cat $(TEST_LOG_FILE) && \
-             exit `wc -l < $(TEST_LOG_FILE)`; \
-        fi
+						 cat $(TEST_LOG_FILE) && \
+						 exit `wc -l < $(TEST_LOG_FILE)`; \
+				fi
 
 ##
 ## Release targets
@@ -136,7 +134,7 @@ stage : rel
 ## Doc targets
 ##
 docs:
-	./rebar skip_deps=true doc
+	$(REBAR) doc
 	@cp -R apps/riak_core/doc doc/riak_core
 	@cp -R apps/riak_kv/doc doc/riak_kv
 
