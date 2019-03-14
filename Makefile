@@ -56,6 +56,7 @@ locked-deps:
 ##
 TEST_LOG_FILE := eunit.log
 testclean:
+	@rm -f deps/eper/.rebar/erlcinfo
 	@rm -f $(TEST_LOG_FILE)
 
 # Test each dependency individually in its own VM
