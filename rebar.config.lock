@@ -66,7 +66,7 @@
                          "0ab94b3186ff67501b833543f0c3f52be5b7ca7a"}},
        {eleveldb,".*",
                  {git,"git://github.com/basho/eleveldb.git",
-                      "3701464862fc378410887f196ad0c679f1768455"}},
+                      "72f28a1f1b8afd0ed819985ca2f06ebf0e1ed8cc"}},
        {riak_ensemble,".*",
                       {git,"https://github.com/basho/riak_ensemble",
                            "fc02cd3210128d4d40d4197210f278caeb9e8c5f"}},
