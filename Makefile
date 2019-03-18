@@ -6,7 +6,7 @@ BASE_DIR         = $(shell pwd)
 ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
 REBAR           ?= $(BASE_DIR)/rebar
 OVERLAY_VARS    ?=
-SPECIAL_DEPS	?= meck hamcrest riak_ensemble webmachine
+SPECIAL_DEPS	?= meck hamcrest riak_ensemble webmachine eper
 TEST_IGNORE     ?=
 
 RIAK_CORE_STAT_PREFIX = riak
@@ -56,6 +56,7 @@ locked-deps:
 ##
 TEST_LOG_FILE := eunit.log
 testclean:
+	@rm -f deps/eper/.rebar/erlcinfo
 	@rm -f $(TEST_LOG_FILE)
 
 # Test each dependency individually in its own VM
