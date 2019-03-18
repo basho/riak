@@ -155,7 +155,7 @@ There is also a small fix to poolboy to prevent a crash log from appearing on sh
 
 #### Release 2.9.0 RC6
 
-RC6 fixes some security issues within yokozuna, and completes a full run through of the yokozuna tests.  It resolves an issue with HTTP security features crashing Riak which was introduced as part of the RC2 mochiweb uplift to fix the 2i index changes.  It also transitions the eleveldb branch used to point back to the `basho` repository, with a fix that allows eleveldb to be deployed on recent OSX versions.  An OSX-specific issue with `make test` failing on `eper` unit tests is also resolved - although `riak_ensemble` unit tests will still fail on OSX (only).
+RC6 fixes some security issues within yokozuna, and completes a full run through of the yokozuna tests.  It resolves an issue with HTTP security features crashing Riak which was introduced as part of the RC2 mochiweb uplift to fix the 2i index changes.  It also transitions the eleveldb branch used to point back to the `basho` repository, with a fix that allows eleveldb to be deployed on recent OSX versions.  An OSX-specific issue with `make test` failing on `eper` and `riak_ensemble` unit tests is also resolved.
 
 #### Transition Configuration Guidance
 
