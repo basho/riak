@@ -157,6 +157,10 @@ There is also a small fix to poolboy to prevent a crash log from appearing on sh
 
 RC6 fixes some security issues within yokozuna, and completes a full run through of the yokozuna tests.  It resolves an issue with HTTP security features crashing Riak which was introduced as part of the RC2 mochiweb uplift to fix the 2i index changes.  It also transitions the eleveldb branch used to point back to the `basho` repository, with a fix that allows eleveldb to be deployed on recent OSX versions.  An OSX-specific issue with `make test` failing on `eper` and `riak_ensemble` unit tests is also resolved.
 
+#### Release 2.9.0 RC7
+
+A customer volume test revealed that the beam would not fully garbage collect memory held by leveled_sst file processes within leveled (leaving 4MB of unlinked memory associated with the process), in some circumstances.  This is similar to the problem partially-resolved in RC5.  A more comprehensive fix has now been added for RC7, with a process-specific GC call now made each time a non-L0 file transitions to the read state, and stays in that state for more thna 10s.
+
 #### Transition Configuration Guidance
 
 This section contains some initial notes to assist with planning and configuration for Transition of pre-2.9 releases to 2.9:
