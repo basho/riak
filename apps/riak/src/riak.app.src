@@ -1,5 +1,4 @@
 {application,riak,
              [{description,"Riak extremely-early boot items"},
-	      {applications, [kernel, stdlib, lager, sasl, public_key, ssl, exometer_core, riak_sysmon, os_mon, crypto, runtime_tools, xmerl, mochiweb, webmachine, basho_stats, bitcask, clique, riak_core, riak_pipe, riak_kv, riak_api, riak_repl, cluster_info, exometer_core, riak_auth_mods, folsom]},
-              {modules,[etop_txt]},
+	      {applications, [kernel, stdlib, lager, sasl, public_key, ssl, exometer_core, riak_sysmon, os_mon, crypto, runtime_tools, xmerl, mochiweb, webmachine, basho_stats, bitcask, clique, riak_core, riak_pipe, riak_kv, riak_api, riak_repl, cluster_info, exometer_core, riak_auth_mods, folsom, observer, yokozuna]},
               {vsn, "3.0"}]}.
