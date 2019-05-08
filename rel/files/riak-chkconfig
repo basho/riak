@@ -1,0 +1,12 @@
+#!/bin/sh
+# -*- tab-width:4;indent-tabs-mode:nil -*-
+# ex: ts=4 sw=4 et
+
+## cf_config defines the config arguments needed
+. bin/cf_config
+
+## "vm.args = $VMARGS_PATH"
+## "app.config = $CONFIG_PATH"
+
+$ERTS_DIR/bin/escript $RELEASE_ROOT_DIR/bin/check_riak_config $CONFIG_PATH
+echo $CUTTLE_CONF
