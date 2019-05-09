@@ -100,10 +100,12 @@ $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 ## need absolute path for overlay_vars due to rebar3 bug
 dev% : all
 	mkdir -p dev
+	cp rel/vars.config rel/vars.config.backup
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
 	cp rel/vars/$@_vars.config rel/vars.config
 	$(REBAR) release
 	cp -r _build/default/rel/riak/ dev/$@/
+	mv rel/vars.config.backup rel/vars.config
 
 perfdev : all
 	perfdev/bin/riak stop || :
