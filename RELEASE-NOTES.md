@@ -33,7 +33,7 @@ and [fixes to tests](#developer-improvements) and the build/development process.
 
 [Log of Changes](#change-log-for-this-release)
 
-[Previous Release Notes](RELEASE-NOTES-2_2_4.md)
+[Previous Release Notes](releasenotes/RELEASE-NOTES-2_2_4.md)
 
 ## Improvements
 
@@ -170,4 +170,4 @@ More details about the issue can be found in riak\_repl/782: [2.2.5 - \[enoent\]
 
 ## Previous Release NOTES
 
-[Full history of Riak 2.0+ release notes](RELEASE-NOTES-2_2_4.md)
+[Full history of Riak 2.0+ release notes](releasenotes/RELEASE-NOTES-2_2_4.md)
