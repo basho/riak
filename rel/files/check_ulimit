@@ -1,0 +1,10 @@
+#!/bin/sh
+
+ULIMIT_WARN=65536
+ULIMIT_F=`ulimit -n`
+
+if [ "$ULIMIT_F" -lt $ULIMIT_WARN ]; then
+    echo "!!!!"
+    echo "!!!! WARNING: ulimit -n is ${ULIMIT_F}; ${ULIMIT_WARN} is the recommended minimum."
+    echo "!!!!"
+fi
