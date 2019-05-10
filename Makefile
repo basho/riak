@@ -7,9 +7,10 @@ ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
 REBAR           ?= $(BASE_DIR)/rebar3
 OVERLAY_VARS    ?=
 TEST_IGNORE     ?=
-TEST_DEPS_DIR		?= _build/test/lib
-DEPS						 = $(patsubst $(TEST_DEPS_DIR)/%, %, $(wildcard $(TEST_DEPS_DIR)/*))
-TEST_DEPS				 = $(filter-out $(TEST_IGNORE), $(DEPS))
+TEST_DEPS_DIR   ?= _build/test/lib
+REL_DIR         ?= _build/default/rel
+DEPS             = $(patsubst $(TEST_DEPS_DIR)/%, %, $(wildcard $(TEST_DEPS_DIR)/*))
+TEST_DEPS        = $(filter-out $(TEST_IGNORE), $(DEPS))
 
 RIAK_CORE_STAT_PREFIX = riak
 export RIAK_CORE_STAT_PREFIX
@@ -35,10 +36,6 @@ clean: testclean
 
 distclean: clean devclean relclean ballclean
 	@rm -rf _build
-
-generate:
-	@echo "Todo: migrate to relx"
-	# ./rebar generate $(OVERLAY_VARS)
 
 locked-deps:
 	$(REBAR) upgrade
@@ -76,9 +73,11 @@ test : test-deps
 ##
 ## Release targets
 ##
-rel: locked-deps compile generate
+rel: locked-deps compile 
+	$(REBAR) release
 
 relclean:
+	rm -rf $(REL_DIR)
 	rm -rf rel/riak
 
 ##
@@ -101,10 +100,17 @@ SEQ = $(shell awk 'BEGIN { for (i = 1; i < '$(DEVNODES)'; i++) printf("%i ", i);
 $(eval stagedevrel : $(foreach n,$(SEQ),stagedev$(n)))
 $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
+## need absolute path for overlay_vars due to rebar3 bug
+## We want to use ./rebar3 release --overlay_vars rel/vars/$@_vars.config
+## but somehow that seems not to work
 dev% : all
 	mkdir -p dev
+	cp rel/vars.config rel/vars.config.backup
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
-	(cd rel && ../rebar generate target_dir=../dev/$@ overlay_vars=vars/$@_vars.config)
+	cp rel/vars/$@_vars.config rel/vars.config
+	$(REBAR) release
+	cp -r _build/default/rel/riak/ dev/$@/
+	mv rel/vars.config.backup rel/vars.config
 
 perfdev : all
 	perfdev/bin/riak stop || :

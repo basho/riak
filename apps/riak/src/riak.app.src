@@ -1,0 +1,25 @@
+{application, riak,
+ [{description, ""},
+   {vsn, "3.0"},
+   {registered, []},
+   {modules, [etop_txt]},
+   {applications, [
+       kernel,
+       stdlib,
+       lager,
+       sasl,
+       public_key,
+       ssl,
+       os_mon,
+       crypto,
+       riak,
+       cuttlefish,
+       runtime_tools,
+       lager_syslog,
+       cluster_info,
+       riak_kv,
+       riak_repl,
+       riak_auth_mods
+       ]},
+   {env, []}
+  ]}.

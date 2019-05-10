@@ -2,7 +2,7 @@
 -include_lib("eunit/include/eunit.hrl").
 -compile(export_all).
 
--define(riak_schema, "rel/files/riak.schema").
+-define(riak_schema, "priv/riak.schema").
 -define(eleveldb_schema, "_build/test/lib/eleveldb/priv/eleveldb.schema").
 
 basic_schema_test() ->
