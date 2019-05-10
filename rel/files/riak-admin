@@ -1071,3 +1071,6 @@ case "$1" in
         exit 1
         ;;
 esac
+
+# No explicit exit from within script or nodetool, assumed to have succeeded.
+exit 0
