@@ -8,6 +8,7 @@ REBAR           ?= $(BASE_DIR)/rebar3
 OVERLAY_VARS    ?=
 TEST_IGNORE     ?=
 TEST_DEPS_DIR   ?= _build/test/lib
+REL_DIR         ?= _build/default/rel
 DEPS             = $(patsubst $(TEST_DEPS_DIR)/%, %, $(wildcard $(TEST_DEPS_DIR)/*))
 TEST_DEPS        = $(filter-out $(TEST_IGNORE), $(DEPS))
 
@@ -72,9 +73,11 @@ test : test-deps
 ##
 ## Release targets
 ##
-rel: locked-deps compile generate
+rel: locked-deps compile 
+	$(REBAR) release
 
 relclean:
+	rm -rf $(REL_DIR)
 	rm -rf rel/riak
 
 ##
@@ -98,6 +101,8 @@ $(eval stagedevrel : $(foreach n,$(SEQ),stagedev$(n)))
 $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
 ## need absolute path for overlay_vars due to rebar3 bug
+## We want to use ./rebar3 release --overlay_vars rel/vars/$@_vars.config
+## but somehow that seems not to work
 dev% : all
 	mkdir -p dev
 	cp rel/vars.config rel/vars.config.backup
