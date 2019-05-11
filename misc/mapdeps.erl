@@ -85,9 +85,17 @@ map_rebar(BaseDir, Path, Acc) ->
         {ok, Opts} ->
             Deps = proplists:get_value(deps, Opts, []),
             lists:foldl(
-              fun({DepName, _, {_,_,V}  }, A) ->
+              fun(Dep, A) ->
+                      {DepName,VerStr} =
+                          case Dep of
+                              {N,    {_,_,V}} -> {N, ver(V)};
+                              {N,    {_,_}  } -> {N, "HEAD"};
+                              {N, _, {_,_,V}} -> {N, ver(V)};
+                              {N, _, {_,_}  } -> {N, "HEAD"};
+                              {N, _} when is_atom(N) -> {N, "'hex'"};
+                              N when is_atom(N)      -> {N, "'hex'"}
+                          end,
                       From = app_name(Path),
-                      VerStr = ver(V),
                       To = {atom_to_list(DepName), VerStr},
                       case ordsets:is_element({To, From}, A) of
                           true ->
@@ -115,7 +123,10 @@ app_name(Path) ->
     filename:basename(filename:dirname(Path)).
 
 file_start() ->
-    io:format(standard_io, "digraph {~n", []).
+    io:format(standard_io,
+              "digraph {~n"
+              "  graph [ overlap=scale ]~n~n",
+              []).
 
 file_end() ->
     io:format(standard_io, "}~n", []).
