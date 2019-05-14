@@ -102,7 +102,7 @@ $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
 dev% : all
 	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
-	$(REBAR) as dev release -o dev/$@ --overlay_vars rel/vars/$@_vars.config
+	$(REBAR) release -o dev/$@ --overlay_vars rel/vars/$@_vars.config
 
 perfdev : all
 	perfdev/bin/riak stop || :
