@@ -101,8 +101,12 @@ $(eval stagedevrel : $(foreach n,$(SEQ),stagedev$(n)))
 $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
 dev% : all
-	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
-	$(REBAR) release -o dev/$@ --overlay_vars rel/vars/$@_vars.config
+	rel/gen_dev dev$* rel/vars/dev_vars.config.src rel/vars/$*_vars.config
+	$(REBAR) release -o dev/dev$* --overlay_vars rel/vars/$*_vars.config
+
+stagedev% : all
+	rel/gen_dev dev$* rel/vars/dev_vars.config.src rel/vars/$*_vars.config
+	$(REBAR) as dev release -o dev/dev$* --overlay_vars rel/vars/$*_vars.config
 
 perfdev : all
 	perfdev/bin/riak stop || :
@@ -118,9 +122,6 @@ perf:
 	perfdev/bin/riak-admin wait-for-service riak_kv 'perfdev@127.0.0.1'
 	escript apps/riak/src/riak_perf_smoke || :
 	perfdev/bin/riak stop
-
-stagedev% : dev%
-	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$^/lib;)
 
 devclean: clean
 	rm -rf dev
