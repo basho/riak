@@ -1,6 +1,6 @@
 # Riak KV 2.9.0 Release Notes
 
-See [here for notes on 2.9.0](#doc/Release 2.9 Series - Overview.md)
+See [here for notes on 2.9.0](doc/Release 2.9 Series - Overview.md)
 
 # Riak KV 2.2.5 Release Notes
 
