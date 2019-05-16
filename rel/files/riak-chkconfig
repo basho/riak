@@ -8,5 +8,16 @@
 ## "vm.args = $VMARGS_PATH"
 ## "app.config = $CONFIG_PATH"
 
-$ERTS_DIR/bin/escript $RELEASE_ROOT_DIR/bin/check_riak_config $CONFIG_PATH
+CODE=" try
+           {ok, _} = file:consult(\"$CONFIG_PATH\"),
+           io:format(\"config is OK\\n\"),
+           halt(0)
+       catch
+           _:_ ->
+               io:format(\"Error reading ~p\\n\", [\"$CONFIG_PATH\"]),
+               halt(1)
+       end."
+
+$BINDIR/erl -noshell -boot start_clean -eval "$CODE"
+
 echo $CUTTLE_CONF
