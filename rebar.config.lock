@@ -3,6 +3,7 @@
 {sub_dirs,["rel","apps/riak"]}.
 {require_otp_vsn,"R16|17"}.
 {cover_enabled,true}.
+{recursive_cmds,[xref]}.
 {lib_dirs,["apps/riak"]}.
 {erl_opts,[debug_info,fail_on_warning]}.
 {eunit_opts,[verbose]}.
@@ -182,8 +183,8 @@
               {git,"git://github.com/basho/riak-erlang-client",
                    "ab91dfc11a6bcda0966eb662e9c6e5875ecfc3dc"}},
        {yokozuna,".*",
-                 {git,"git://github.com/basho/yokozuna.git",
-                      "5d028e1308cb6ac100b28a2111efa4e444bab5be"}},
+                 {git,"git://github.com/Sentenai/yokozuna.git",
+                      "fdeffe7cd6f1ed80fd61df4e5d7f7b76785e54bc"}},
        {rebar_lock_deps_plugin,".*",
                                {git,"https://github.com/basho/rebar_lock_deps_plugin.git",
                                     "8816f45ff38cd04d5c7741bd39166af58116dd44"}}]}.
