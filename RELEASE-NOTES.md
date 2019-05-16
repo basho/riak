@@ -1,3 +1,7 @@
+# Riak KV 2.9.0 Release Notes
+
+See [here for notes on 2.9.0](doc/Release%202.9%20Series%20-%20Overview.md)
+
 # Riak KV 2.2.5 Release Notes
 
 > This release is dedicated to the memory of Andy Gross. Thank you and RIP.
