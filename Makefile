@@ -74,7 +74,7 @@ test : test-deps
 ## Release targets
 ##
 rel: locked-deps compile 
-	$(REBAR) release
+	$(REBAR) as rel release
 
 relclean:
 	rm -rf $(REL_DIR)
