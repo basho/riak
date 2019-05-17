@@ -74,7 +74,7 @@ test : test-deps
 ## Release targets
 ##
 rel: locked-deps compile 
-	$(REBAR) release
+	$(REBAR) as rel release
 
 relclean:
 	rm -rf $(REL_DIR)
@@ -100,17 +100,13 @@ SEQ = $(shell awk 'BEGIN { for (i = 1; i < '$(DEVNODES)'; i++) printf("%i ", i);
 $(eval stagedevrel : $(foreach n,$(SEQ),stagedev$(n)))
 $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
-## need absolute path for overlay_vars due to rebar3 bug
-## We want to use ./rebar3 release --overlay_vars rel/vars/$@_vars.config
-## but somehow that seems not to work
 dev% : all
-	mkdir -p dev
-	cp rel/vars.config rel/vars.config.backup
-	rel/gen_dev $@ rel/vars/dev_vars.config.src rel/vars/$@_vars.config
-	cp rel/vars/$@_vars.config rel/vars.config
-	$(REBAR) release
-	cp -r _build/default/rel/riak/ dev/$@/
-	mv rel/vars.config.backup rel/vars.config
+	rel/gen_dev dev$* rel/vars/dev_vars.config.src rel/vars/$*_vars.config
+	$(REBAR) release -o dev/dev$* --overlay_vars rel/vars/$*_vars.config
+
+stagedev% : all
+	rel/gen_dev dev$* rel/vars/dev_vars.config.src rel/vars/$*_vars.config
+	$(REBAR) as dev release -o dev/dev$* --overlay_vars rel/vars/$*_vars.config
 
 perfdev : all
 	perfdev/bin/riak stop || :
@@ -126,9 +122,6 @@ perf:
 	perfdev/bin/riak-admin wait-for-service riak_kv 'perfdev@127.0.0.1'
 	escript apps/riak/src/riak_perf_smoke || :
 	perfdev/bin/riak stop
-
-stagedev% : dev%
-	  $(foreach dep,$(wildcard deps/*), rm -rf dev/$^/lib/$(shell basename $(dep))* && ln -sf $(abspath $(dep)) dev/$^/lib;)
 
 devclean: clean
 	rm -rf dev
