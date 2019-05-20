@@ -47,17 +47,16 @@ TEST_LOG_FILE := eunit.log
 testclean:
 	@rm -f $(TEST_LOG_FILE)
 
-TMP_CONFIG=rebar.config.tmp
+TMP_CONFIG=rebar.config.deptest
 
 # Tricking rebar3 to use the dependencies from the top-level _build directory.
 testdep-% :
 	@echo "--- Running EUnit tests for $* ---"
 	@rm -rf _build/deptest+test _build/deptest
-	@(cd $(TEST_DEPS_DIR)/$* && \
-	 cp rebar.config $(TMP_CONFIG) && \
-	 echo "" >> $(TMP_CONFIG) && \
-	 echo '{profiles, [{deptest, [{base_dir, "../../.."}]}]}.' >> $(TMP_CONFIG) && \
-	 REBAR_CONFIG=$(TMP_CONFIG) $(REBAR) as deptest eunit) || echo "Eunit: $* FAILED" >> $(TEST_LOG_FILE)
+	@(cd $(TEST_DEPS_DIR)/$* \
+	  && escript ../../../../misc/deptest.escript rebar.config $(TMP_CONFIG) \
+	  && REBAR_CONFIG=$(TMP_CONFIG) $(REBAR) as deptest eunit) \
+               || echo "Eunit: $* FAILED" >> $(TEST_LOG_FILE)
 	@(cd $(TEST_DEPS_DIR)/$* && rm -f $(TMP_CONFIG))
 
 test-deps : deps compile testclean $(patsubst %, testdep-%, $(TEST_DEPS))
