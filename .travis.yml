@@ -1,4 +1,5 @@
 language: erlang
+sudo: true
 otp_release:
   - 20.3.8
 script:
