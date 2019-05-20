@@ -3,7 +3,10 @@
 %% A hack for running dependencies test, see Makefile#deptest
 
 main([FileIn,FileOut]) ->
-    {ok,Conf0} = file:consult(FileIn),
+    Conf0 = case file:consult(FileIn) of
+                {ok,C} -> C;
+                _ -> []          % no rebar.config! amazing
+            end,
     Conf = lists:ukeymerge(1, lists:keysort(1,Conf0), [{profiles,[]}]),
     [Profiles] = [ P || {profiles,P} <- Conf ],
     
