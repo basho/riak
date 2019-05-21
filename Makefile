@@ -8,9 +8,10 @@ REBAR           ?= $(BASE_DIR)/rebar3
 OVERLAY_VARS    ?=
 TEST_IGNORE     ?=
 TEST_DEPS_DIR   ?= _build/test/lib
+DEPS_DIR        ?= _build/default/lib
 REL_DIR         ?= _build/default/rel
-DEPS             = $(patsubst $(TEST_DEPS_DIR)/%, %, $(wildcard $(TEST_DEPS_DIR)/*))
-TEST_DEPS        = $(filter-out $(TEST_IGNORE), $(DEPS))
+DEPS            = $(patsubst $(DEPS_DIR)/%, %, $(wildcard $(DEPS_DIR)/*))
+TEST_DEPS       = $(filter-out $(TEST_IGNORE), $(DEPS))
 
 RIAK_CORE_STAT_PREFIX = riak
 export RIAK_CORE_STAT_PREFIX
@@ -49,21 +50,29 @@ testclean:
 
 TMP_CONFIG=rebar.config.deptest
 
+TEST_IGNORE += riak
+
 # Tricking rebar3 to use the dependencies from the top-level _build directory.
 testdep-% :
 	@echo "--- Running EUnit tests for $* ---"
-	@rm -rf _build/deptest+test _build/deptest
+	@rm -rf _build/deptest+test
 	@(cd $(TEST_DEPS_DIR)/$* \
 	  && escript ../../../../misc/deptest.escript rebar.config $(TMP_CONFIG) \
 	  && REBAR_CONFIG=$(TMP_CONFIG) $(REBAR) as deptest eunit) \
                || echo "Eunit: $* FAILED" >> $(TEST_LOG_FILE)
 	@(cd $(TEST_DEPS_DIR)/$* && rm -f $(TMP_CONFIG))
 
-test-deps : deps compile testclean $(patsubst %, testdep-%, $(TEST_DEPS))
+TEST_DEPS_RULES = $(patsubst %, testdep-%, $(TEST_DEPS))
+
+
+test-deps : deps compile testclean $(TEST_DEPS_RULES)
+
+test-riak:
+	$(REBAR) eunit
+
 
 # Test each dependency individually in its own VM
-test : test-deps
-	$(REBAR) eunit
+test : test-riak test-deps
 	@if test -s $(TEST_LOG_FILE) ; then \
 						 cat $(TEST_LOG_FILE) && \
 						 exit `wc -l < $(TEST_LOG_FILE)`; \

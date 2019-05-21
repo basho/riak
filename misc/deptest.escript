@@ -1,12 +1,14 @@
 #!/usr/bin/env escript
 
-%% A hack for running dependencies test, see Makefile#deptest
+%% A hack for running dependencies test, see Makefile#deptest.  Adds riak’s _build as
+%% a base_dir to the test profile, renames test profile to deptest
 
+%% E. g. FileIn=rebar.config, FileOut=rebar.config.deptest
 main([FileIn,FileOut]) ->
-    Conf0 = case file:consult(FileIn) of
-                {ok,C} -> C;
-                _ -> []          % no rebar.config! amazing
-            end,
+    case file:consult(FileIn) of
+        {ok,Conf0} -> ok;
+        _ -> Conf0=[]          % no rebar.config! amazing
+    end,
     Conf = lists:ukeymerge(1, lists:keysort(1,Conf0), [{profiles,[]}]),
     [Profiles] = [ P || {profiles,P} <- Conf ],
     
