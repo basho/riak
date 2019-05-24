@@ -1,3 +1,7 @@
+# Riak KV 2.9.0 Release Notes - Patch 1
+
+An [issue](https://github.com/basho/riak_kv/issues/1699) was discovered whereby leveled would leak file descriptors under heavy write pressure (e.g. handoffs).
+
 # Riak KV 2.9.0 Release Notes
 
 See [here for notes on 2.9.0](doc/Release%202.9%20Series%20-%20Overview.md)
