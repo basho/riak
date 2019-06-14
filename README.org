@@ -18,3 +18,5 @@ Welcome to Riak.
         - man/riak.1.gz: manual page for the riak(1) command
         - man/riak-admin.1.gz manual page for the riak-admin(1) command
         - raw-http-howto.txt: using the Riak HTTP interface
+
+Archived Branches: https://github.com/basho-archive/riak
