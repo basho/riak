@@ -1,3 +1,7 @@
+# Riak KV 2.9.0 Release Notes - Patch 2
+
+An [issue](https://github.com/martinsumner/leveled/issues/285) with leveled holding references to binaries whatcould cause severe memory depletion, when a consecutive series of very large objects are received by a vnode.
+
 # Riak KV 2.9.0 Release Notes - Patch 1
 
 An [issue](https://github.com/basho/riak_kv/issues/1699) was discovered whereby leveled would leak file descriptors under heavy write pressure (e.g. handoffs).
