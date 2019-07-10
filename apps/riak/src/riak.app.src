@@ -13,6 +13,7 @@
        os_mon,
        crypto,
        riak,
+       riak_stat,
        cuttlefish,
        runtime_tools,
        lager_syslog,
