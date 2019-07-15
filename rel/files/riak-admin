@@ -28,23 +28,93 @@ stat_admin()
     case "$1" in
         show)
             shift
-            relx_nodetool rpc riak_core_console stat_show "$*"
+            node_up_check
+            NODETOOL rpc riak_core_console stat_enabled "$*"
             ;;
-       info)
+        show-disabled)
             shift
-            relx_nodetool rpc riak_core_console stat_info "$*"
+            node_up_check
+            NODETOOL rpc riak_core_console stat_disabled "$*"
+            ;;
+        show-0)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console stat_0 "$*"
+            ;;
+        disable-0)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console stat_disable_0 "$*"
+            ;;
+        info)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console stat_info "$*"
             ;;
         enable)
             shift
-            relx_nodetool rpc riak_core_console stat_enable "$*"
+            node_up_check
+            NODETOOL rpc riak_core_console stat_enable "$*"
             ;;
         disable)
             shift
-            relx_nodetool rpc riak_core_console stat_disable "$*"
+            node_up_check
+            NODETOOL rpc riak_core_console stat_disable "$*"
             ;;
         reset)
             shift
-            relx_nodetool rpc riak_core_console stat_reset "$*"
+            node_up_check
+            NODETOOL rpc riak_core_console stat_reset "$*"
+            ;;
+        load-profile)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console load_profile "$*"
+            ;;
+        save-profile)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console add_profile "$*"
+            ;;
+        remove-profile)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console remove_profile "$*"
+            ;;
+        reset-profile)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console reset_profile "$*"
+            ;;
+        enable-udp)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console enable_udp "$*"
+            ;;
+        enable-http)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console enable_http "$*"
+            ;;
+        disable-udp)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console disable_udp "$*"
+            ;;
+        disable-http)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console disable_http "$*"
+            ;;
+        change-port)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console change_port "$*"
+            ;;
+        restart-port)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console restart_port "$*"
             ;;
         help)
             shift
@@ -69,6 +139,7 @@ stat_admin()
             stat_help
     esac
 }
+
 
 stat_help()
 {
