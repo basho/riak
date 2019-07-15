@@ -12,3 +12,5 @@ RUN mkdir -p /var/src/riak
 WORKDIR /var/src/riak
 RUN yum install -y which
 RUN yum install -y rpm-build
+ADD . /var/src/riak/
+RUN sh -x ./build.sh
