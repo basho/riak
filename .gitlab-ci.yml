@@ -19,7 +19,7 @@ build:
   stage: build
   artifacts:
     paths:
-      - distdir/packages/riak*x86_64.rpm
+      - /var/src/riak/distdir/packages/riak*x86_64.rpm
   script:
     - docker pull $CONTAINER_IMAGE:latest || true
     - docker build --cache-from $CONTAINER_IMAGE:latest --tag $CONTAINER_IMAGE:$CI_COMMIT_SHA --tag $CONTAINER_IMAGE:latest .
