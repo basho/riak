@@ -116,6 +116,11 @@ stat_admin()
             node_up_check
             NODETOOL rpc riak_core_console pro_data_persist "$*"
             ;;
+        stop-persist)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console stop_persisting "$*"
+            ;;
         help)
             shift
             case $1 in
@@ -207,6 +212,8 @@ Use \`$SCRIPT stat help <command>\` for more details.
 
    data-persist-profile <entry>
                                Take the stats that are enabled for a profile and persist only those stats.
+
+   stop-persist                Stop all persistence, of profile or otherwise
 
    NOTE: Persisting stats requires a lot of memory usage and for a lot of stats can be expensive
          in memory and in time.
