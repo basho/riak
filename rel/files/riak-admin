@@ -29,12 +29,7 @@ stat_admin()
         show)
             shift
             node_up_check
-            NODETOOL rpc riak_core_console stat_enabled "$*"
-            ;;
-        show-disabled)
-            shift
-            node_up_check
-            NODETOOL rpc riak_core_console stat_disabled "$*"
+            NODETOOL rpc riak_core_console stat_show "$*"
             ;;
         show-0)
             shift
@@ -91,6 +86,11 @@ stat_admin()
             node_up_check
             NODETOOL rpc riak_core_console enable_metadata "$*"
             ;;
+        enable-exoskeleskin)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console enable_exoskeleskin "$*"
+            ;;
         disable-port)
             shift
             node_up_check
@@ -100,26 +100,6 @@ stat_admin()
             shift
             node_up_check
             NODETOOL rpc riak_core_console setup_port "$*"
-            ;;
-        enable-data-persistence)
-            shift
-            node_up_check
-            NODETOOL rpc riak_core_console yes_data_persist "$*"
-            ;;
-        disable-data-persistence)
-            shift
-            node_up_check
-            NODETOOL rpc riak_core_console no_data_persist "$*"
-            ;;
-        data-persist-profile)
-            shift
-            node_up_check
-            NODETOOL rpc riak_core_console pro_data_persist "$*"
-            ;;
-        stop-persist)
-            shift
-            node_up_check
-            NODETOOL rpc riak_core_console stop_persisting "$*"
             ;;
         help)
             shift
@@ -135,6 +115,30 @@ stat_admin()
                     ;;
                 info)
                     stat_info_help
+                    ;;
+                load-profile)
+                    stat_profile_help
+                    ;;
+                save-profile)
+                    stat_profile_help
+                    ;;
+                remove-profile)
+                    stat_profile_help
+                    ;;
+                reset-profile)
+                    stat_profile_help
+                    ;;
+                enable-metadata)
+                    stat_help
+                    ;;
+                enable-exoskeleskin)
+                    stat_exoskele_help
+                    ;;
+                disable-port)
+                    stat_exoskele_help
+                    ;;
+                setup-port)
+                    stat_exoskele_help
                     ;;
                 *)
                     stat_help
@@ -165,7 +169,6 @@ Quoting is permitted.
 Use \`$SCRIPT stat help <command>\` for more details.
 
    show <entry>                Show the value(s) of a specific entry or entries
-   show-disabled <entry>       Show the disabled value(s) of a specific entry/entries
    show-0 <entry>              Show the stats that are not updating of a specific entry
    disable-0 <entry>           Disable the stats that are not updating of an entry
    enable <entry>              Enable entry or entries
@@ -178,21 +181,6 @@ Use \`$SCRIPT stat help <command>\` for more details.
         | -options | -ref
         | -datapoints ] <entry>
 
-   Profiles :
-
-   Profiles are the specific set up of stats, whether - enabled, disabled or unregistered, it
-   is recorded in the profile upon saving, loading a profile remains persisted after a reboot,
-   saving it in the metadata so the exact profile is available to all nodes in the cluster ,
-   allowing consistency in testing and laziness in setting up.
-
-   load-profile <entry>        Loads the status configuration of stats saved under this
-                                profile
-   save-profile <entry>        Saves the current configuration of stats and their status in
-                                the metadata under <entry>
-   remove-profile <entry>      Deletes the entry from the metadata, does not affect the stats
-   reset-profile               Resets all the stats to enabled, "unloads" a profile that is loaded
-
-
    riak_stat Functions :
 
    Enable the persistence of stats and their configuration, as well as house the profiles
@@ -201,33 +189,6 @@ Use \`$SCRIPT stat help <command>\` for more details.
    enable-metadata <entry>     <entry> :: true | false
                                Enables or disables the metadata in riak_stat, disabling the
                                metadata will prevent the persistence of stats configuration
-
-   enable-data-persistence <entry>
-                               Storing all the information for stats would take up a lot of space,
-                               choosing which stats to persist helps with that
-
-   disable-data-persistence <entry>
-                               As above but removing the ability to persist data of a specific
-                               entry or entries
-
-   data-persist-profile <entry>
-                               Take the stats that are enabled for a profile and persist only those stats.
-
-   stop-persist                Stop all persistence, of profile or otherwise
-
-   NOTE: Persisting stats requires a lot of memory usage and for a lot of stats can be expensive
-         in memory and in time.
-
-   Exoskeleskin Functions :
-
-   Set up a socket to push stats to an endpoint via udp or http,
-
-   setup-port <entry>          similar to stat enable <entry>, setting up a port requires
-                                protocol type http | udp, and port number e.g. 8080
-                                <entry> :: udp.8080 for example
-                                Use setup-port to change ports as well as restarting a port
-
-   disable-port <entry>        <entry> can be same as above, closes the socket for that protocol
 
 "
 }
@@ -352,6 +313,57 @@ Usage: $SCRIPT stat reset <entry>
 Reset matching stat entries. Only enabled entries can be reset.
 "
 }
+
+stat_profile_help()
+{
+    echo"\
+Usage: $SCRIPT stat <profile-command> <entry>
+
+   Profiles are the specific set up of stats, whether - enabled, disabled or unregistered, it
+   is recorded in the profile upon saving, loading a profile remains persisted after a reboot,
+   saving it in the metadata so the exact profile is available to all nodes in the cluster,
+   allowing consistency in testing and laziness in setting up.
+
+   load-profile <entry>        Loads the status configuration of stats saved under this
+                                profile
+
+   save-profile <entry>        Saves the current configuration of stats and their status in
+                                the metadata under <entry>
+
+   remove-profile <entry>      Deletes the entry from the metadata, does not affect the stats
+
+   reset-profile               Resets all the stats to enabled, "unloads" a profile that is loaded
+
+"
+}
+
+stat_exoskele_help()
+{
+    echo"\
+
+    Exoskeleskin is the stat collector of riak_stat, setup an endpoint with http or udp in order
+    to poll the stats in exometer and send to endpoint.
+    Exoskeleskin is enabled by default.
+
+        enable-exoskeleskin  <entry> [ true | false ]
+                                     Enables or disables exoskeleskin
+
+
+       setup-port <entry> [/opts]   similar to stat enable <entry>, setting up a port requires
+                                    protocol type http | udp, and port number e.g. 8080
+                                    <entry> -> protocol=udp port=8080 sip=127.0.0.1 for example
+                                    Use setup-port to change ports as well as restarting a port
+
+                 opts :: protocol=<entry>
+                         port=<entry>
+                         instance=<entry>
+                         sip<entry>
+
+       disable-port <entry>        <entry> can be same as above, closes the socket for that protocol
+
+    "
+}
+
 
 cluster_admin()
 {
