@@ -91,16 +91,22 @@ stat_admin()
             node_up_check
             NODETOOL rpc riak_core_console enable_exoskeleskin "$*"
             ;;
-        disable-port)
+        setdown-endpoint)
             shift
             node_up_check
-            NODETOOL rpc riak_core_console disable_port "$*"
+            NODETOOL rpc riak_core_console setdown_endpoint "$*"
             ;;
-        setup-port)
+        setup-endpoint)
             shift
             node_up_check
-            NODETOOL rpc riak_core_console setup_port "$*"
+            NODETOOL rpc riak_core_console setup_endpoint "$*"
             ;;
+        collect)
+            shift
+            node_up_check
+            NODETOOL rpc riak_core_console wm_collect "$*"
+            ;;
+
         help)
             shift
             case $1 in
@@ -134,10 +140,13 @@ stat_admin()
                 enable-exoskeleskin)
                     stat_exoskele_help
                     ;;
-                disable-port)
+                setdown-endpoint)
                     stat_exoskele_help
                     ;;
-                setup-port)
+                setup-endpoint)
+                    stat_exoskele_help
+                    ;;
+                collect)
                     stat_exoskele_help
                     ;;
                 *)
@@ -345,21 +354,33 @@ stat_exoskele_help()
     to poll the stats in exometer and send to endpoint.
     Exoskeleskin is enabled by default.
 
-        enable-exoskeleskin  <entry> [ true | false ]
+       enable-exoskeleskin  <entry> [ true | false ]
                                      Enables or disables exoskeleskin
 
 
-       setup-port <entry> [/opts]   similar to stat enable <entry>, setting up a port requires
-                                    protocol type http | udp, and port number e.g. 8080
-                                    <entry> -> protocol=udp port=8080 sip=127.0.0.1 for example
-                                    Use setup-port to change ports as well as restarting a port
+       collect    <entry>            Uses webmachine to obtain stats from exometer, works in a
+                                     similar way to stat show, i.e.
+                                            riak-admin stat collect riak.riak_kv.*.gets
+                                     will return all the stats in riak_kv involving gets in that pad,
+                                     And in such a way that:
+                                            riak-admin stat collect app-stats, disk-stats
+                                     are specific aliases to fetch the stats for the app and the stats
+                                     from the disk usages. <entry> can also be 'all' to retrieve
+                                     everything.
 
-                 opts :: protocol=<entry>
-                         port=<entry>
+                  <entry> :: all | app-stats, disk-stats, <stats>
+
+       setup-endpoint <entry> [opts] similar to stat enable <entry>, setting up a port requires
+                                     the port number e.g. 8080, otherwise it can be pulled out of
+                                     config.
+                                     <entry> -> protocol=udp port=8080 sip=127.0.0.1 for example
+                                     Use setup-port to change ports as well as restarting a port
+
+                 opts :: port=<entry>
                          instance=<entry>
                          sip<entry>
 
-       disable-port <entry>        <entry> can be same as above, closes the socket for that protocol
+       setdown-endpoint <entry>      <entry> can be same as above, closes the socket for that protocol
 
     "
 }
