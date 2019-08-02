@@ -357,19 +357,6 @@ stat_exoskele_help()
        enable-exoskeleskin  <entry> [ true | false ]
                                      Enables or disables exoskeleskin
 
-
-       collect    <entry>            Uses webmachine to obtain stats from exometer, works in a
-                                     similar way to stat show, i.e.
-                                            riak-admin stat collect riak.riak_kv.*.gets
-                                     will return all the stats in riak_kv involving gets in that pad,
-                                     And in such a way that:
-                                            riak-admin stat collect app-stats, disk-stats
-                                     are specific aliases to fetch the stats for the app and the stats
-                                     from the disk usages. <entry> can also be 'all' to retrieve
-                                     everything.
-
-                  <entry> :: all | app-stats, disk-stats, <stats>
-
        setup-endpoint <entry> [opts] similar to stat enable <entry>, setting up a port requires
                                      the port number e.g. 8080, otherwise it can be pulled out of
                                      config.
