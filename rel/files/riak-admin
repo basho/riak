@@ -28,83 +28,67 @@ stat_admin()
     case "$1" in
         show)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console stat_show "$*"
+            relx_nodetool rpc riak_core_console stat_show "$*"
             ;;
         show-0)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console stat_0 "$*"
+            relx_nodetool rpc riak_core_console stat_0 "$*"
             ;;
         disable-0)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console stat_disable_0 "$*"
+            relx_nodetool rpc riak_core_console stat_disable_0 "$*"
             ;;
         info)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console stat_info "$*"
+            relx_nodetool rpc riak_core_console stat_info "$*"
             ;;
         enable)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console stat_enable "$*"
+            relx_nodetool rpc riak_core_console stat_enable "$*"
             ;;
         disable)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console stat_disable "$*"
+            relx_nodetool rpc riak_core_console stat_disable "$*"
             ;;
         reset)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console stat_reset "$*"
+            nrelx_nodetool rpc riak_core_console stat_reset "$*"
             ;;
         load-profile)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console load_profile "$*"
+            relx_nodetool rpc riak_core_console load_profile "$*"
             ;;
         save-profile)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console add_profile "$*"
+            relx_nodetool rpc riak_core_console add_profile "$*"
             ;;
         remove-profile)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console remove_profile "$*"
+            relx_nodetool rpc riak_core_console remove_profile "$*"
             ;;
         reset-profile)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console reset_profile "$*"
+            relx_nodetool rpc riak_core_console reset_profile "$*"
             ;;
         enable-metadata)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console enable_metadata "$*"
+           relx_nodetool rpc riak_core_console enable_metadata "$*"
             ;;
         enable-exoskeleskin)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console enable_exoskeleskin "$*"
+            relx_nodetool rpc riak_core_console enable_exoskeleskin "$*"
             ;;
         setdown-endpoint)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console setdown_endpoint "$*"
+            relx_nodetool rpc riak_core_console setdown_endpoint "$*"
             ;;
         setup-endpoint)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console setup_endpoint "$*"
+            relx_nodetool rpc riak_core_console setup_endpoint "$*"
             ;;
         collect)
             shift
-            node_up_check
-            NODETOOL rpc riak_core_console wm_collect "$*"
+            relx_nodetool rpc riak_core_console wm_collect "$*"
             ;;
 
         help)
