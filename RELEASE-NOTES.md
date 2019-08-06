@@ -1,6 +1,14 @@
+# Riak KV 2.9.0 Release Notes - Patch 3
+
+An [issue](https://github.com/martinsumner/leveled/issues/287) was discovered in leveled, whereby following a restart of Riak and a workload of fetch requests, the backend demanded excess amounts of binary heap references.  Underlying was an issue with the use of sub-binary references during the lazy load of slot header information after a SST file process restart.  This has been resolved, and with [greater control added](https://github.com/martinsumner/leveled/blob/0.9.18/priv/leveled.schema#L86-L93) to force the ledger contents into the page cache at startup.
+
+A further [issue](https://github.com/martinsumner/leveled/issues/289) was discovered in long-running pre-production tests whereby leveled journal compaction could enter into a loop where it would perform compaction work, that failed to release space.  This has been resolved, and some further safety checks added to ensure that memory usage does not grow excessively during the comapction process.  As part of this change, an additional [configurable limit](https://github.com/martinsumner/leveled/blob/0.9.18/priv/leveled.schema#L75-L84) has been added on the number of objects in a leveled journal (CDB) file - now a file will be considered full when it hits either the space limit (previous behaviour) or the object limit.
+
+The issues resolved in this patch impact only the use of leveled backend, either directly or via the use of Tictac AAE. 
+
 # Riak KV 2.9.0 Release Notes - Patch 2
 
-An [issue](https://github.com/martinsumner/leveled/issues/285) with leveled holding references to binaries whatcould cause severe memory depletion, when a consecutive series of very large objects are received by a vnode.
+An [issue](https://github.com/martinsumner/leveled/issues/285) with leveled holding references to binaries what could cause severe memory depletion, when a consecutive series of very large objects are received by a vnode.
 
 # Riak KV 2.9.0 Release Notes - Patch 1
 
