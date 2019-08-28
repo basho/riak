@@ -16,12 +16,56 @@ usage() {
     echo "                    reip | js-reload | erl-reload | wait-for-service | "
     echo "                    ringready | transfers | force-remove | down |"
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
-    echo "                    aae-status | diag | stat | status | transfer-limit | reformat-indexes |"
+    echo "                    aae-status | diag | stat | profile | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
     echo "                    search | services | ensemble-status | handoff | set |"
     echo "                    show | describe }"
 }
+
+profile_admin()
+{
+    case "$1" in
+        load)
+            shift
+            relx_nodetool rpc riak_core_console load_profile "$*"
+            ;;
+        save)
+            shift
+            relx_nodetool rpc riak_core_console add_profile "$*"
+            ;;
+        delete)
+            shift
+            relx_nodetool rpc riak_core_console remove_profile "$*"
+            ;;
+        reset)
+            shift
+            relx_nodetool rpc riak_core_console reset_profile "$*"
+            ;;
+        help)
+            shift
+            case "$1" in
+                    load)
+                        stat_profile_help
+                        ;;
+                    save)
+                        stat_profile_help
+                        ;;
+                    remove)
+                        stat_profile_help
+                        ;;
+                    reset)
+                        stat_profile_help
+                        ;;
+                    *)
+                        stat_profile_help
+            esac
+            ;;
+        *)
+            stat_profile_help
+    esac
+}
+
 
 stat_admin()
 {
@@ -54,22 +98,6 @@ stat_admin()
             shift
             nrelx_nodetool rpc riak_core_console stat_reset "$*"
             ;;
-        load-profile)
-            shift
-            relx_nodetool rpc riak_core_console load_profile "$*"
-            ;;
-        save-profile)
-            shift
-            relx_nodetool rpc riak_core_console add_profile "$*"
-            ;;
-        remove-profile)
-            shift
-            relx_nodetool rpc riak_core_console remove_profile "$*"
-            ;;
-        reset-profile)
-            shift
-            relx_nodetool rpc riak_core_console reset_profile "$*"
-            ;;
         enable-metadata)
             shift
            relx_nodetool rpc riak_core_console enable_metadata "$*"
@@ -96,18 +124,6 @@ stat_admin()
                     ;;
                 info)
                     stat_info_help
-                    ;;
-                load-profile)
-                    stat_profile_help
-                    ;;
-                save-profile)
-                    stat_profile_help
-                    ;;
-                remove-profile)
-                    stat_profile_help
-                    ;;
-                reset-profile)
-                    stat_profile_help
                     ;;
                 enable-metadata)
                     stat_help
@@ -294,23 +310,24 @@ Reset matching stat entries. Only enabled entries can be reset.
 
 stat_profile_help()
 {
-    echo"\
-Usage: $SCRIPT stat <profile-command> <entry>
+    echo "\
+Usage: $SCRIPT profile <entry>
 
-   Profiles are the specific set up of stats, whether - enabled, disabled or unregistered, it
-   is recorded in the profile upon saving, loading a profile remains persisted after a reboot,
-   saving it in the metadata so the exact profile is available to all nodes in the cluster,
-   allowing consistency in testing and laziness in setting up.
+Profiles are the specific set up of stats, whether - enabled,
+disabled or unregistered, it is recorded in the profile upon saving,
+loading a profile remains persisted after a reboot, saving it in
+the metadata so the exact profile is available to all nodes in the cluster,
+allowing consistency in testing and laziness in setting up.
 
-   load-profile <entry>        Loads the status configuration of stats saved under this
-                                profile
+   load <entry>     Loads the status configuration of stats saved under this
+                    profile
 
-   save-profile <entry>        Saves the current configuration of stats and their status in
-                                the metadata under <entry>
+   save <entry>     Saves the current configuration of stats and their status in
+                    the metadata under <entry>
 
-   remove-profile <entry>      Deletes the entry from the metadata, does not affect the stats
+   delete <entry>   Deletes the entry from the metadata, does not affect the stats
 
-   reset-profile               Resets all the stats to enabled, "unloads" a profile that is loaded
+   reset            Resets all the stats to enabled, unloads a profile that is loaded
 
 "
 }
@@ -1124,6 +1141,10 @@ case "$1" in
     stat)
         shift
         stat_admin "$@"
+        ;;
+    profile)
+        shift
+        profile_admin "$@"
         ;;
     bucket-type)
         shift
