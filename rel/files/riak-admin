@@ -96,7 +96,7 @@ stat_admin()
             ;;
         reset)
             shift
-            nrelx_nodetool rpc riak_core_console stat_reset "$*"
+            relx_nodetool rpc riak_core_console stat_reset "$*"
             ;;
         enable-metadata)
             shift
@@ -163,8 +163,8 @@ Quoting is permitted.
 Use \`$SCRIPT stat help <command>\` for more details.
 
    show <entry>                Show the value(s) of a specific entry or entries
-   show-0 <entry>              Show the stats that are not updating of a specific entry
-   disable-0 <entry>           Disable the stats that are not updating of an entry
+   show-0 <entry>              Show the entry or entries that are not updating
+   disable-0 <entry>           Disable the entry or entries that are not updating
    enable <entry>              Enable entry or entries
    disable <entry>             Disable entry or entries
    reset <entry>               Reset entry or entries
