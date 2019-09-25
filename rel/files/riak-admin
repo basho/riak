@@ -14,7 +14,7 @@ SCRIPT=`basename $0`
 usage() {
     echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
     echo "                    reip | js-reload | erl-reload | wait-for-service | "
-    echo "                    ringready | transfers | force-remove | down |"
+    echo "                    ringready | transfers | force-remove | down | push |"
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
     echo "                    aae-status | diag | stat | profile | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
@@ -102,14 +102,6 @@ stat_admin()
             shift
            relx_nodetool rpc riak_core_console enable_metadata "$*"
             ;;
-        setdown-endpoint)
-            shift
-            relx_nodetool rpc riak_core_console setdown_endpoint "$*"
-            ;;
-        setup-endpoint)
-            shift
-            relx_nodetool rpc riak_core_console setup_endpoint "$*"
-            ;;
         help)
             shift
             case $1 in
@@ -128,18 +120,32 @@ stat_admin()
                 enable-metadata)
                     stat_help
                     ;;
-                setdown-endpoint)
-                    stat_ep_help
-                    ;;
-                setup-endpoint)
-                    stat_ep_help
-                    ;;
                 *)
                     stat_help
             esac
             ;;
         *)
             stat_help
+    esac
+}
+
+push_admin()
+{
+    case "$1" in
+        setup)
+            shift
+            relx_nodetool rpc riak_core_console setup_endpoint "$*"
+            ;;
+        setdown)
+            shift
+            relx_nodetool rpc riak_core_console setdown_endpoint "$*"
+            ;;
+        find-info)
+            shift
+            relx_nodetool rpc riak_core_console find_push_stats "$*"
+            ;;
+        *)
+        push_help
     esac
 }
 
@@ -332,7 +338,7 @@ allowing consistency in testing and laziness in setting up.
 "
 }
 
-stat_ep_help()
+push_help()
 {
     echo"\
 
@@ -345,11 +351,16 @@ stat_ep_help()
                                      <entry> -> protocol=udp port=8080 sip=127.0.0.1 for example
                                      Use setup-port to change ports as well as restarting a port
 
-                 opts :: port=<entry>
+                 opts :: protocol= udp | tcp
+                         port=<entry>
                          instance=<entry>
                          sip<entry>
 
        setdown-endpoint <entry>      <entry> can be same as above, closes the socket for that protocol
+
+       find-info <entry>             <entry> can also be the same as above, works in a similar
+                                             way to riak stat show, to find the information based
+                                             on protocol, instance or whether it is still running etc.
 
     "
 }
@@ -1145,6 +1156,10 @@ case "$1" in
     profile)
         shift
         profile_admin "$@"
+        ;;
+    push)
+        shift
+        push_admin "$@"
         ;;
     bucket-type)
         shift
