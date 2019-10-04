@@ -345,18 +345,19 @@ push_help()
     Endpoint is the stat collector of riak_stat, setup an endpoint with udp in order
     to poll the stats in exometer and send to endpoint.
 
-       setup-endpoint <entry> [opts] similar to stat enable <entry>, setting up a port requires
-                                     the port number e.g. 8080, otherwise it can be pulled out of
-                                     config.
-                                     <entry> -> protocol=udp port=8080 sip=127.0.0.1 for example
-                                     Use setup-port to change ports as well as restarting a port
+       setup     <entry> [opts] similar to stat enable <entry>, setting up requires
+                                     the port number e.g. 8080, serverip == sip, and protocol
+                                     <entry> -> protocol=udp,port=8080,sip=127.0.0.1 for example
+                                     Use setup-port to change ports as well as restarting a port,
+                                     Specific stats can be chosen to be pushed, otherwise the
+                                     default will poll all stats in exometer.
 
                  opts :: protocol= udp | tcp
                          port=<entry>
                          instance=<entry>
                          sip<entry>
 
-       setdown-endpoint <entry>      <entry> can be same as above, closes the socket for that protocol
+       setdown   <entry>      <entry> can be same as above, closes the socket for that protocol
 
        find-info <entry>             <entry> can also be the same as above, works in a similar
                                              way to riak stat show, to find the information based
