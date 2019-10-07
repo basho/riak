@@ -144,6 +144,10 @@ push_admin()
             shift
             relx_nodetool rpc riak_core_console find_push_stats "$*"
             ;;
+        test)
+            shift
+            relx_nodetool rpc riak_core_console test_push_stats "$*"
+            ;;
         *)
         push_help
     esac
