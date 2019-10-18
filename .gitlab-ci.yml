@@ -11,6 +11,7 @@ variables:
 cache:
   paths:
     - /tmp/solr/
+    - /var/src/riak/distdir/
 
 before_script:
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
