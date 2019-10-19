@@ -7,6 +7,7 @@ variables:
   CONTAINER_IMAGE: registry.gitlab.com/$CI_PROJECT_PATH
   DOCKER_HOST: tcp://localhost:2375
   DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
 
 cache:
   paths:
@@ -20,9 +21,10 @@ build:
   stage: build
   artifacts:
     paths:
-      - "/var/src/riak/distdir/packages/*"
+      - "/tmp/packages/*.rpm"
   script:
     - docker pull $CONTAINER_IMAGE:latest || true
     - docker build --cache-from $CONTAINER_IMAGE:latest --tag $CONTAINER_IMAGE:$CI_COMMIT_SHA --tag $CONTAINER_IMAGE:latest .
+    - docker cp $(docker create $CONTAINER_IMAGE:latest):"/var/src/riak/distdir/packages/" /tmp/packages
     - docker push $CONTAINER_IMAGE:$CI_COMMIT_SHA
     - docker push $CONTAINER_IMAGE:latest
