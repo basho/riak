@@ -822,7 +822,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc_infinity riak_kv_console cluster_info "$@"
+        relx_nodetool rpc riak_kv_console cluster_info "$@"
         ;;
 
     services)
