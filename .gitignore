@@ -11,3 +11,4 @@ apps/riak/.rebar
 _build
 .DS_Store
 rel/vars/*_vars.config
+riak.png
