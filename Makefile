@@ -43,37 +43,40 @@ locked-deps:
 ##
 ## Test targets
 ##
-TEST_LOG_FILE := eunit.log
+TEST_LOG_FILE := $(shell pwd)/eunit.log
 testclean:
 	@rm -f $(TEST_LOG_FILE)
 
-TMP_CONFIG=rebar.config.tmp
+eunit: compile
+	$(REBAR) eunit
 
 # Tricking rebar3 to use the dependencies from the top-level _build directory.
+# One needs to have ran `make eunit` before we can make test-deps to find
+# directories in _build/test
 testdep-% :
 	@echo "--- Running EUnit tests for $* ---"
 	@rm -rf _build/deptest+test _build/deptest
 	@(cd $(TEST_DEPS_DIR)/$* && \
-	 cp rebar.config $(TMP_CONFIG) && \
-	 echo "" >> $(TMP_CONFIG) && \
-	 echo '{profiles, [{deptest, [{base_dir, "../../.."}]}]}.' >> $(TMP_CONFIG) && \
-	 REBAR_CONFIG=$(TMP_CONFIG) $(REBAR) as deptest eunit) || echo "Eunit: $* FAILED" >> $(TEST_LOG_FILE)
-	@(cd $(TEST_DEPS_DIR)/$* && rm -f $(TMP_CONFIG))
+	  $(REBAR) eunit && \
+	  (echo "Eunit: $* PASSED" >> $(TEST_LOG_FILE) ) ) || echo "Eunit: $* FAILED" >> $(TEST_LOG_FILE)
 
-test-deps : deps compile testclean $(patsubst %, testdep-%, $(TEST_DEPS))
+## need to make test before to get TEST_DEPS dir established
+test-deps : compile testclean $(patsubst %, testdep-%, $(TEST_DEPS))
+	echo Tested the dependencies: $(TEST_DEPS)
 
 # Test each dependency individually in its own VM
 test : test-deps
-	$(REBAR) eunit
 	@if test -s $(TEST_LOG_FILE) ; then \
-						 cat $(TEST_LOG_FILE) && \
-						 exit `wc -l < $(TEST_LOG_FILE)`; \
+						 cat $(TEST_LOG_FILE) | grep FAILED && \
+						 exit `cat $(TEST_LOG_FILE) | grep FAILED | wc -l`; \
 				fi
+	$(REBAR) eunit
+
 
 ##
 ## Release targets
 ##
-rel: locked-deps compile 
+rel: locked-deps compile
 	$(REBAR) as rel release
 
 relclean:
@@ -147,7 +150,7 @@ orgs-README:
 	@mv README.txt README
 
 APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
-	xmerl webtool snmp public_key mnesia eunit syntax_tools compiler
+	xmerl snmp public_key mnesia eunit syntax_tools compiler
 COMBO_PLT = $(HOME)/.$(REPO)_combo_dialyzer_plt
 
 check_plt: compile
