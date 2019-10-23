@@ -6,7 +6,7 @@ BASE_DIR         = $(shell pwd)
 ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
 REBAR           ?= $(BASE_DIR)/rebar3
 OVERLAY_VARS    ?=
-TEST_IGNORE     ?=
+TEST_IGNORE     ?= riak
 TEST_DEPS_DIR   ?= _build/test/lib
 REL_DIR         ?= _build/default/rel
 DEPS             = $(patsubst $(TEST_DEPS_DIR)/%, %, $(wildcard $(TEST_DEPS_DIR)/*))
@@ -71,6 +71,8 @@ test : test-deps
 						 exit `cat $(TEST_LOG_FILE) | grep FAILED | wc -l`; \
 				fi
 	$(REBAR) eunit
+
+
 
 
 ##
@@ -153,22 +155,21 @@ APPS = kernel stdlib sasl erts ssl tools os_mon runtime_tools crypto inets \
 	xmerl snmp public_key mnesia eunit syntax_tools compiler
 COMBO_PLT = $(HOME)/.$(REPO)_combo_dialyzer_plt
 
-check_plt: compile
+check_plt: build_plt
 	dialyzer --check_plt --plt $(COMBO_PLT) --apps $(APPS) \
-		deps/*/ebin
+		_build/default/lib/*/ebin
 
 build_plt: compile
 	dialyzer --build_plt --output_plt $(COMBO_PLT) --apps $(APPS) \
-		deps/*/ebin
+		_build/default/lib/*/ebin
 
-dialyzer: compile
+dialyzer: check_plt
 	@echo
 	@echo Use "'make check_plt'" to check PLT prior to using this target.
 	@echo Use "'make build_plt'" to build PLT prior to using this target.
 	@echo
 	@sleep 1
-	dialyzer -Wno_return --plt $(COMBO_PLT) deps/*/ebin | \
-	    fgrep -v -f ./dialyzer.ignore-warnings
+	dialyzer -Wno_return --plt $(COMBO_PLT) _build/default/lib/*/ebin
 
 cleanplt:
 	@echo
