@@ -153,6 +153,10 @@ push_admin()
             shift
             relx_nodetool rpc riak_core_console find_push_stats "$*"
             ;;
+        info-all)
+            shift
+            relx_nodetool rpc riak_core_console find_push_stats_all "$*"
+            ;;
         help)
             shift
             case "$1" in

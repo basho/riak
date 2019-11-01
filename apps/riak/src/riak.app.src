@@ -7,7 +7,6 @@
        kernel,
        stdlib,
        lager,
-       riak_stat,
        sasl,
        public_key,
        ssl,
@@ -19,8 +18,8 @@
        lager_syslog,
        cluster_info,
        riak_kv,
-       riak_repl,
-       riak_auth_mods
-       ]},
+   
+     riak_repl,
+       riak_auth_mods       ]},
    {env, []}
   ]}.
