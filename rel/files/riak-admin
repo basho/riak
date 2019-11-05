@@ -16,8 +16,8 @@ usage() {
     echo "                    reip | js-reload | erl-reload | wait-for-service | "
     echo "                    ringready | transfers | force-remove | down | push |"
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
-    echo "                    aae-status | diag | stat | profile | status | transfer-limit | reformat-indexes |"
-    echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
+    echo "                    aae-status | diag | stat | profile | push | status | transfer-limit |"
+    echo "                    reformat-indexes | top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
     echo "                    search | services | ensemble-status | handoff | set |"
     echo "                    show | describe }"
@@ -197,7 +197,7 @@ stat_help()
     ** - matches anything including separators.
     Quoting is permitted.
 
-    Use \`$SCRIPT stat help <command>\` for more details.
+    Use \`$SCRIPT admin stat help <command>\` for more details.
 
        show <entry>                Show the value(s) of a specific entry or entries
        show-0 <entry>              Show the entry or entries that are not updating
@@ -514,7 +514,9 @@ push_help()
 
     info      <entry>      <entry> can also be the same as above, works in a similar
                            way to riak stat show, to find the information based
-                           on protocol, instance or whether it is still running etc."
+                           on protocol, instance or whether it is still running etc.
+
+    info-all  <entry>      Used the same as above but will return information on all nodes"
 }
 
 push_setup_help()
