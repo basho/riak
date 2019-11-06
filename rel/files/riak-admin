@@ -184,7 +184,7 @@ stat_help()
 {
     echo "\
 
-    Usage: $SCRIPT stat <command>
+    Usage: $SCRIPT admin stat <command>
 
     The following commands display, enable/disable and reset statistics.
     A statistics entry is given either as a 'dotted' exometer name -
@@ -403,7 +403,7 @@ stat_metadata_help()
 
     Enable or Disable the persistence of stat options and configuration in
     the metadata. Disabling would mean the status of the stat, i.e. whether
-    it is enabled or disabled would not be persisted as well, so on reboot the
+    it is enabled or disabled would not be persisted, meaning on reboot the
     stat will be enabled as default.
 
 "
@@ -496,7 +496,7 @@ push_help()
 {
     echo "\
 
-    Setup an endpoint with udp in order to poll the stats in exometer and send to endpoint.
+    Setup an endpoint with udp or tcp in order to poll the stats in exometer and send to an endpoint.
 
     setup     <entry> [opts] similar to stat enable <entry>, setting up requires
                            the port number e.g. 8080, serverip == sip, and protocol
