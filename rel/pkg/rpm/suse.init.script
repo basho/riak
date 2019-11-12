@@ -1,0 +1,156 @@
+#!/bin/sh
+#
+# {{package_name}}
+#
+### BEGIN INIT INFO
+# Provides:          {{package_name}}
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: {{package_shortdesc}}
+# Description:       {{package_desc}}
+### END INIT INFO
+
+# Source the LSB function library.
+. /lib/lsb/init-functions
+
+RETVAL=0
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="{{package_shortdesc}}"
+NAME={{package_install_name}}
+DAEMON=/usr/{{bin_or_sbin}}/$NAME
+lockfile=/var/lock/subsys/$NAME
+pidfile=/var/run/$NAME/$NAME.pid
+
+# Check for script, config and data dirs
+[ -x /usr/{{bin_or_sbin}}/$NAME ] || exit 0
+[ -d /etc/$NAME ] || exit 0
+[ -d /var/lib/$NAME ] || exit 0
+
+# Read configuration variable file if it is present and readable
+[ -r /etc/sysconfig/$NAME ] && . /etc/sysconfig/$NAME
+
+# `service` strips all environmental VARS so
+# if no HOME was set in /etc/sysconfig/$NAME then set one here
+# to the data directory for erlexec's sake
+if [ -z "$HOME" ]; then
+    export HOME={{platform_data_dir}}
+fi
+
+# Checks the status of a node
+do_status() {
+    $DAEMON ping >/dev/null 2>&1 && return 0 || return 3
+}
+
+check_pid_status() {
+    pid=$(ps ax | grep beam.smp | grep "\-progname $NAME " | awk '{print $1}')
+    if [ "$pid" = "" ]; then
+        # prog not running?
+        return 1
+    else
+        # running
+        return 0
+    fi
+}
+
+do_start() {
+    # Start daemons.
+    echo -n $"Starting {{package_install_name}}: "
+    $DAEMON start
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ]; then
+        touch $lockfile
+        log_success_msg
+    else
+        log_failure_msg $"$NAME start"
+    fi
+    echo
+    return $RETVAL
+}
+
+do_stop() {
+    # Stop daemon.
+    echo -n $"Shutting down {{package_install_name}}: "
+    $DAEMON stop 2>/dev/null
+    for n in $(seq 1 10); do
+        sleep 1
+        check_pid_status
+        RETVAL=$?
+        if [ $RETVAL -eq 1 ]; then
+            break
+        fi
+    done
+    if [ $RETVAL -eq 1 ]; then
+        rm -f $lockfile $pidfile
+        log_success_msg
+        echo && return 0
+    else
+        log_failure_msg $"$NAME stop"
+        echo && return 1
+    fi
+}
+
+do_hardstop() {
+    echo -n $"Shutting down $NAME: "
+    su - {{package_install_user}} -c "ps -ef | grep beam.smp | grep '\-progname $NAME ' | grep -v grep | awk '{print \$2}' | xargs kill -9"
+    for n in $(seq 1 10); do
+        sleep 1
+        check_pid_status
+        RETVAL=$?
+        if [ $RETVAL -eq 1 ]; then
+            break
+        fi
+    done
+    if [ $RETVAL -eq 1 ]; then
+        rm -f $lockfile $pidfile
+        log_success_msg
+        echo && return 0
+    else
+        log_failure_msg $"$NAME hardstop"
+        echo && return 1
+    fi
+}
+
+# See how we were called.
+case "$1" in
+    start)
+        do_status && exit 0
+        do_start
+        ;;
+    stop)
+        if do_status; then
+            do_stop
+        else
+            check_pid_status
+            RETVAL=$?
+            if [ $RETVAL -eq 1 ]; then
+                rm -f $lockfile $pidfile
+            fi
+            exit 0
+        fi
+        ;;
+    restart|reload|force-reload)
+        do_status && do_stop
+        do_start
+        ;;
+    hardstop)
+        do_status || exit 0
+        do_hardstop
+        ;;
+    condrestart|try-restart)
+        do_status && do_stop || exit 0
+        do_start
+        ;;
+    status)
+        do_status && echo $"$NAME is running" && exit 0 || echo $"$NAME is stopped" && exit 3
+        ;;
+    ping)
+        $DAEMON ping || exit $?
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart|reload|force-reload|hardstop|condrestart|try-restart|status|ping}"
+        exit 1
+esac
+
+exit $?

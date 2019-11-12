@@ -1,0 +1,155 @@
+## -------------------------------------------------------------------
+##
+## Copyright (c) 2014 Basho Technologies, Inc.
+##
+## This file is provided to you under the Apache License,
+## Version 2.0 (the "License"); you may not use this file
+## except in compliance with the License.  You may obtain
+## a copy of the License at
+##
+##   http://www.apache.org/licenses/LICENSE-2.0
+##
+## Unless required by applicable law or agreed to in writing,
+## software distributed under the License is distributed on an
+## "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY
+## KIND, either express or implied.  See the License for the
+## specific language governing permissions and limitations
+## under the License.
+##
+## -------------------------------------------------------------------
+
+Name: riak
+Version: %{_version}
+Release: %{_release}%{?dist}
+License: "Apacke 2.0"
+Group: Development/Libraries
+Source: %{_tarname}
+URL: "https://riak.com"
+Vendor: "Riak"
+Packager: "Riak Package Maint" <"packaging@riak.com">
+BuildRoot: %{_tmppath}/%{name}-%{_revision}-%{release}-root
+Summary: "Riak is a distributed data store"
+Obsoletes: riak
+
+%description
+"Riak is a distributed data store"
+
+%define init_script %{_sysconfdir}/init.d/riak
+%define debug_package %{nil}
+%define __prelink_undo_cmd /bin/cat prelink library
+
+%define platform_bin_dir %{_sbindir}
+%define platform_data_dir %{_localstatedir}/lib/riak
+%define platform_etc_dir %{_sysconfdir}/riak
+%define platform_base_dir %{_libdir}/riak
+%define platform_lib_dir %{platform_base_dir}/lib
+%define platform_log_dir %{_localstatedir}/log/riak
+
+
+%prep
+%setup -q -n %{_tarname_base} -c %{_tarname_base}
+
+# Setup vars.config like other platforms, but do it inside of spec file
+cat > rpm.vars.config <<EOF
+%% Platform-specific installation paths
+{platform_bin_dir,  "%{platform_bin_dir}"}.
+{platform_data_dir, "%{platform_data_dir}"}.
+{platform_etc_dir,  "%{platform_etc_dir}"}.
+{platform_base_dir, "%{platform_base_dir}"}.
+{platform_lib_dir,  "%{platform_lib_dir}"}.
+{platform_log_dir,  "%{platform_log_dir}"}.
+EOF
+
+%build
+OVERLAY_VARS="overlay_vars=../rpm.vars.config" make rel
+
+%install
+%define relpath       %{_builddir}/%{buildsubdir}/_build/rel/rel/riak
+%define buildroot_lib %{buildroot}%{_libdir}/riak
+%define buildroot_etc %{buildroot}%{_sysconfdir}/riak
+
+mkdir -p %{buildroot_etc}
+mkdir -p %{buildroot_lib}
+mkdir -p %{buildroot}%{_localstatedir}/lib/riak
+mkdir -p %{buildroot}%{_localstatedir}/log/riak
+mkdir -p %{buildroot}%{_localstatedir}/run/riak
+
+cp -R %{relpath}/lib       %{buildroot_lib}
+cp -R %{relpath}/erts-*    %{buildroot_lib}
+cp -R %{relpath}/releases  %{buildroot_lib}
+
+mkdir -p %{buildroot}%{_sbindir}
+if [ -d %{relpath}/bin ]; then \
+   find %{relpath}/bin -type f \
+        -exec install -p -D -m 0755 {} %{buildroot}%{_sbindir}/ \; ;fi
+
+cp -R %{relpath}/etc/* %{buildroot_etc}
+
+mkdir -p %{buildroot}%{_localstatedir}/lib/riak
+cp -R %{relpath}/data/* \
+      %{buildroot}%{_localstatedir}/lib/riak
+
+mkdir -p %{buildroot}%{_sysconfdir}/init.d
+install -m755 %{_topdir}/init.script  %{buildroot}%{_sysconfdir}/init.d/riak
+
+# Needed to work around check-rpaths which seems to be hardcoded into recent
+# RPM releases
+export QA_RPATHS=3
+
+
+%pre
+# Pre-install script
+if ! getent group riak >/dev/null 2>&1; then
+   groupadd -r riak
+fi
+
+if getent passwd riak >/dev/null 2>&1; then
+   usermod -d %{_localstatedir}/lib/riak riak || true
+else
+   useradd -r -g riak \
+           --home %{_localstatedir}/lib/riak \
+           --comment "Riak User" \
+           --shell /bin/bash \
+           riak
+fi
+
+
+%post
+# Post Installation Script
+
+# For distros with SELinux (RHEL/Fedora)
+if [ `which selinuxenabled > /dev/null 2>&1` ] ; then
+   # Fixup perms for SELinux (if it is enabled)
+   selinuxenabled && find %{_localstatedir}/lib/riak -name "*.so" -exec chcon -t textrel_shlib_t {} \;
+fi
+
+# Add application to chkconfig, but default to "off"
+/sbin/chkconfig --add riak
+/sbin/chkconfig riak off
+
+
+%preun
+# Pre-uninstall script
+
+# Only on uninstall, not upgrades
+if [ "$1" = 0 ] ; then
+   /sbin/service riak stop > /dev/null 2>&1
+   /sbin/chkconfig --del riak
+fi
+exit 0
+
+
+# Man pages are optional and might be missing, read from file
+%defattr(-,riak,riak)
+%{_localstatedir}/lib/riak
+%{_localstatedir}/log/riak
+%{_localstatedir}/run/riak
+%defattr(-,root,root)
+%{_sysconfdir}/init.d/riak
+%{_sbindir}/*
+%{_libdir}/*
+%dir %{_sysconfdir}/riak
+%config(noreplace) %{_sysconfdir}/riak/*
+
+%clean
+rm -rf %{buildroot}

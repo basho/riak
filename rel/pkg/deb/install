@@ -1,0 +1,10 @@
+rel/{{package_install_name}}/lib usr/lib/{{package_install_name}}
+rel/{{package_install_name}}/erts* usr/lib/{{package_install_name}}
+rel/{{package_install_name}}/releases usr/lib/{{package_install_name}}
+
+{{#package_commands}}
+rel/{{package_install_name}}/bin/{{name}} usr/{{bin_or_sbin}}
+{{/package_commands}}
+
+rel/{{package_install_name}}/etc/* etc/{{package_install_name}}
+rel/{{package_install_name}}/data/* var/lib/{{package_install_name}}
