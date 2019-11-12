@@ -305,6 +305,9 @@ package:
 	git archive --format=tar HEAD | gzip >rel/pkg/out/riak-3.0.tar.gz
 	$(MAKE) -C rel/pkg/ -f Makefile
 
+packageclean:
+	rm -rf rel/pkg/out/*
+
 
 .PHONY: package
 export PKG_VERSION PKG_ID PKG_BUILD BASE_DIR ERLANG_BIN REBAR OVERLAY_VARS RELEASE
