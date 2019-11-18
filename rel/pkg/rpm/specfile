@@ -61,36 +61,36 @@ cat > rpm.vars.config <<EOF
 EOF
 
 %build
-OVERLAY_VARS="overlay_vars=../rpm.vars.config" make rel
+OVERLAY_VARS="--overlay_vars=rpm.vars.config" make rel
 
 %install
-%define relpath       %{_builddir}/%{buildsubdir}/_build/rel/rel/riak
+%define relpath %{_builddir}/%{buildsubdir}/_build/rel/rel/riak
 %define buildroot_lib %{buildroot}%{_libdir}/riak
 %define buildroot_etc %{buildroot}%{_sysconfdir}/riak
+%define buildroot_bin %{buildroot_lib}/bin
 
 mkdir -p %{buildroot_etc}
 mkdir -p %{buildroot_lib}
+mkdir -p %{buildroot_bin}
 mkdir -p %{buildroot}%{_localstatedir}/lib/riak
 mkdir -p %{buildroot}%{_localstatedir}/log/riak
-mkdir -p %{buildroot}%{_localstatedir}/run/riak
 
 cp -R %{relpath}/lib       %{buildroot_lib}
 cp -R %{relpath}/erts-*    %{buildroot_lib}
 cp -R %{relpath}/releases  %{buildroot_lib}
+cp -R %{relpath}/share     %{buildroot_lib}
 
-mkdir -p %{buildroot}%{_sbindir}
 if [ -d %{relpath}/bin ]; then \
-   find %{relpath}/bin -type f \
-        -exec install -p -D -m 0755 {} %{buildroot}%{_sbindir}/ \; ;fi
+   cd %{relpath}/bin
+   find . -type f -exec install -Dm 0755 {} %{buildroot_bin}/{} \;
+   cd -
+fi
 
 cp -R %{relpath}/etc/* %{buildroot_etc}
 
 mkdir -p %{buildroot}%{_localstatedir}/lib/riak
 cp -R %{relpath}/data/* \
       %{buildroot}%{_localstatedir}/lib/riak
-
-mkdir -p %{buildroot}%{_sysconfdir}/init.d
-install -m755 %{_topdir}/init.script  %{buildroot}%{_sysconfdir}/init.d/riak
 
 # Needed to work around check-rpaths which seems to be hardcoded into recent
 # RPM releases
@@ -123,33 +123,25 @@ if [ `which selinuxenabled > /dev/null 2>&1` ] ; then
    selinuxenabled && find %{_localstatedir}/lib/riak -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 fi
 
-# Add application to chkconfig, but default to "off"
-/sbin/chkconfig --add riak
-/sbin/chkconfig riak off
-
-
 %preun
 # Pre-uninstall script
 
 # Only on uninstall, not upgrades
 if [ "$1" = 0 ] ; then
    /sbin/service riak stop > /dev/null 2>&1
-   /sbin/chkconfig --del riak
 fi
 exit 0
 
 
 # Man pages are optional and might be missing, read from file
+%files
 %defattr(-,riak,riak)
 %{_localstatedir}/lib/riak
 %{_localstatedir}/log/riak
-%{_localstatedir}/run/riak
-%defattr(-,root,root)
-%{_sysconfdir}/init.d/riak
-%{_sbindir}/*
 %{_libdir}/*
+%defattr(-,root,root)
 %dir %{_sysconfdir}/riak
 %config(noreplace) %{_sysconfdir}/riak/*
 
 %clean
-rm -rf %{buildroot}
+#rm -rf %{buildroot}
