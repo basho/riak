@@ -144,7 +144,7 @@
                    "fdb62672000be1477e2c8b6d02289abe411baf91"}},
        {riak_kv,".*",
                 {git,"git://github.com/basho/riak_kv.git",
-                     "c10eb712eb0718fd2b71ce52bbb859c7ea7af2cd"}},
+                     "5281c687dc4c62f5c97ee41fc01d48b5ecefbee2"}},
        {erlydtl,".*",
                 {git,"git://github.com/erlydtl/erlydtl.git",
                      "d20b53f04837a1053ed18987f645cb60eae82453"}},

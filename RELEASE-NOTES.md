@@ -1,3 +1,17 @@
+# Riak KV 2.9.0 Release Notes - Patch 5
+
+This patch release is primarily required to improve two scenarios where leveled's handling of file-system corruption was unsatisfactory.  One scenario related to [corrupted blocks that fail CRC checks](https://github.com/martinsumner/leveled/issues/298), another related to failing to consistently check that [a file write had been flushed to disk](https://github.com/martinsumner/leveled/issues/301).
+
+The patch also removes `eper` as a dependency, instead having direct dependencies on `recon` and `redbug`.  This as a side effect, resolves the background noise of CI failures related to eper eunit test inconsistency.
+
+The patch resurrects Fred Dushin's work to [improve the isolation between Yokozuna and Riak KV](https://github.com/basho/riak_kv/pull/1721).  This, in the future will make it easier for those not wishing to carry Yokozuna as a dependency to deploy Riak without it.  Any Yokozuna users should take extra care in pre-production testing of this patch.  Testing time for Yokozuna within the Riak release cycle is currently very limited.
+
+The patch changes the handling by bitcask and eleveldb backends when file-systems are switched [into a read-only state](https://github.com/basho/riak_kv/issues/1714).  This previously might lead to zombie nodes, nodes that are unusable never actually close due to failures, and so continue to participate in the ring.
+
+The patch changes the capability request for `HEAD` to be bucket-dependent, so that [HEAD requests are supported correctly in a multi-backend configuration](https://github.com/basho/riak_kv/issues/1719).
+
+Finally, the aae_fold features of 2.9.0 were previously only available via the HTTP API.  Such folds can now also be [requested via the PB API](https://github.com/basho/riak_kv/pull/1732).
+
 # Riak KV 2.9.0 Release Notes - Patch 4
 
 There are a number of fixes in this patch:
@@ -20,7 +34,7 @@ An [issue](https://github.com/martinsumner/leveled/issues/287) was discovered in
 
 A further [issue](https://github.com/martinsumner/leveled/issues/289) was discovered in long-running pre-production tests whereby leveled journal compaction could enter into a loop where it would perform compaction work, that failed to release space.  This has been resolved, and some further safety checks added to ensure that memory usage does not grow excessively during the comapction process.  As part of this change, an additional [configurable limit](https://github.com/martinsumner/leveled/blob/0.9.18/priv/leveled.schema#L75-L84) has been added on the number of objects in a leveled journal (CDB) file - now a file will be considered full when it hits either the space limit (previous behaviour) or the object limit.
 
-The issues resolved in this patch impact only the use of leveled backend, either directly or via the use of Tictac AAE. 
+The issues resolved in this patch impact only the use of leveled backend, either directly or via the use of Tictac AAE.
 
 # Riak KV 2.9.0 Release Notes - Patch 2
 
