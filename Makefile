@@ -81,6 +81,9 @@ test : test-deps
 rel: locked-deps compile
 	$(REBAR) as rel release $(OVERLAY_VARS)
 
+rel-rpm: locked-deps compile
+	$(REBAR) as rpm release $(OVERLAY_VARS)
+
 relclean:
 	rm -rf $(REL_DIR)
 	rm -rf rel/riak
