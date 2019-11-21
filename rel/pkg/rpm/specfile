@@ -61,10 +61,10 @@ cat > rpm.vars.config <<EOF
 EOF
 
 %build
-OVERLAY_VARS="--overlay_vars=rpm.vars.config" make rel
+make rel-rpm
 
 %install
-%define relpath %{_builddir}/%{buildsubdir}/_build/rel/rel/riak
+%define relpath %{_builddir}/%{buildsubdir}/_build/rpm/rel/riak
 %define buildroot_lib %{buildroot}%{_libdir}/riak
 %define buildroot_etc %{buildroot}%{_sysconfdir}/riak
 %define buildroot_bin %{buildroot_lib}/bin
@@ -72,6 +72,7 @@ OVERLAY_VARS="--overlay_vars=rpm.vars.config" make rel
 mkdir -p %{buildroot_etc}
 mkdir -p %{buildroot_lib}
 mkdir -p %{buildroot_bin}
+mkdir -p %{buildroot}%{_bindir}
 mkdir -p %{buildroot}%{_localstatedir}/lib/riak
 mkdir -p %{buildroot}%{_localstatedir}/log/riak
 
@@ -86,6 +87,7 @@ if [ -d %{relpath}/bin ]; then \
    cd -
 fi
 
+ln -sf /usr/lib64/riak/bin/riak %{buildroot}%{_bindir}/riak 
 cp -R %{relpath}/etc/* %{buildroot_etc}
 
 mkdir -p %{buildroot}%{_localstatedir}/lib/riak
@@ -141,6 +143,7 @@ exit 0
 %{_libdir}/*
 %defattr(-,root,root)
 %dir %{_sysconfdir}/riak
+/usr/bin/*
 %config(noreplace) %{_sysconfdir}/riak/*
 
 %clean

@@ -1,0 +1,12 @@
+#!/bin/sh
+
+#COMMAND={{platform_bin_dir}}/riak
+COMMAND=/usr/lib64/riak/bin/riak
+
+if [[ $EUID -ne 0 ]]; then
+   echo "You need to be root or use sudo to run this command." 
+   exit 1
+fi
+
+#
+su - riak -c "${COMMAND} ${*}"
