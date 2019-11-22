@@ -38,10 +38,10 @@ Obsoletes: riak
 %define debug_package %{nil}
 %define __prelink_undo_cmd /bin/cat prelink library
 
-%define platform_bin_dir %{_sbindir}
 %define platform_data_dir %{_localstatedir}/lib/riak
 %define platform_etc_dir %{_sysconfdir}/riak
 %define platform_base_dir %{_libdir}/riak
+%define platform_bin_dir %{platform_base_dir}/bin
 %define platform_lib_dir %{platform_base_dir}/lib
 %define platform_log_dir %{_localstatedir}/log/riak
 
