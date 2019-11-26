@@ -25,158 +25,174 @@ usage() {
 
 profile_admin()
 {
-    case "$1" in
-        load)
-            shift
-            relx_nodetool rpc riak_core_console load_profile "$*"
-            ;;
-        save)
-            shift
-            relx_nodetool rpc riak_core_console add_profile "$*"
-            ;;
-        delete)
-            shift
-            relx_nodetool rpc riak_core_console remove_profile "$*"
-            ;;
-        reset)
-            shift
-            relx_nodetool rpc riak_core_console reset_profile "$*"
-            ;;
-        help)
-            shift
-            case "$1" in
-                    load)
-                        profile_load_help
-                        ;;
-                    save)
-                        profile_save_help
-                        ;;
-                    delete)
-                        profile_delete_help
-                        ;;
-                    reset)
-                        profile_reset_help
-                        ;;
-                    *)
-                        profile_help
-            esac
-            ;;
-        *)
-            profile_help
-    esac
+    if [ -n "$2" ]; then
+        case "$1" in
+            load)
+                shift
+                relx_nodetool rpc riak_core_console load_profile "$*"
+                ;;
+            save)
+                shift
+                relx_nodetool rpc riak_core_console add_profile "$*"
+                ;;
+            delete)
+                shift
+                relx_nodetool rpc riak_core_console remove_profile "$*"
+                ;;
+            reset)
+                shift
+                relx_nodetool rpc riak_core_console reset_profile "$*"
+                ;;
+            help)
+                shift
+                case "$1" in
+                        load)
+                            profile_load_help
+                            ;;
+                        save)
+                            profile_save_help
+                            ;;
+                        delete)
+                            profile_delete_help
+                            ;;
+                        reset)
+                            profile_reset_help
+                            ;;
+                        *)
+                            profile_help
+                esac
+                ;;
+            *)
+                profile_help
+        esac
+
+    elif [ -z "$2" ]; then
+        echo "No Argument Entered"
+    fi
+
 }
 
 
 stat_admin()
 {
-    case "$1" in
-        show)
-            shift
-            relx_nodetool rpc riak_core_console stat_show "$*"
-            ;;
-        show-0)
-            shift
-            relx_nodetool rpc riak_core_console stat_0 "$*"
-            ;;
-        disable-0)
-            shift
-            relx_nodetool rpc riak_core_console stat_disable_0 "$*"
-            ;;
-        info)
-            shift
-            relx_nodetool rpc riak_core_console stat_info "$*"
-            ;;
-        enable)
-            shift
-            relx_nodetool rpc riak_core_console stat_enable "$*"
-            ;;
-        disable)
-            shift
-            relx_nodetool rpc riak_core_console stat_disable "$*"
-            ;;
-        reset)
-            shift
-            relx_nodetool rpc riak_core_console stat_reset "$*"
-            ;;
-        metadata)
-            shift
-           relx_nodetool rpc riak_core_console stat_metadata "$*"
-            ;;
-        help)
-            shift
-            case $1 in
-                show)
-                    stat_show_help
-                    ;;
-                show-0)
-                    stat_show_0_help
-                    ;;
-                enable)
-                    stat_enable_help
-                    ;;
-                disable)
-                    stat_enable_help
-                    ;;
-                disable-0)
-                    stat_disable_0_help
-                    ;;
-                info)
-                    stat_info_help
-                    ;;
-                reset)
-                    stat_reset_help
-                    ;;
-                metadata)
-                    stat_metadata_help
-                    ;;
-                *)
-                    stat_help
-            esac
-            ;;
-        *)
-            stat_help
-    esac
+    if [ -n "$2" ]; then
+        case "$1" in
+            show)
+                shift
+                relx_nodetool rpc riak_core_console stat_show "$*"
+                ;;
+            show-0)
+                shift
+                relx_nodetool rpc riak_core_console stat_0 "$*"
+                ;;
+            disable-0)
+                shift
+                relx_nodetool rpc riak_core_console stat_disable_0 "$*"
+                ;;
+            info)
+                shift
+                relx_nodetool rpc riak_core_console stat_info "$*"
+                ;;
+            enable)
+                shift
+                relx_nodetool rpc riak_core_console stat_enable "$*"
+                ;;
+            disable)
+                shift
+                relx_nodetool rpc riak_core_console stat_disable "$*"
+                ;;
+            reset)
+                shift
+                relx_nodetool rpc riak_core_console stat_reset "$*"
+                ;;
+            metadata)
+                shift
+               relx_nodetool rpc riak_core_console stat_metadata "$*"
+                ;;
+            help)
+                shift
+                case $1 in
+                    show)
+                        stat_show_help
+                        ;;
+                    show-0)
+                        stat_show_0_help
+                        ;;
+                    enable)
+                        stat_enable_help
+                        ;;
+                    disable)
+                        stat_enable_help
+                        ;;
+                    disable-0)
+                        stat_disable_0_help
+                        ;;
+                    info)
+                        stat_info_help
+                        ;;
+                    reset)
+                        stat_reset_help
+                        ;;
+                    metadata)
+                        stat_metadata_help
+                        ;;
+                    *)
+                        stat_help
+                esac
+                ;;
+            *)
+                stat_help
+        esac
+
+    elif [ -z "$2" ]; then
+        echo "No Argument Entered"
+    fi
 }
 
 push_admin()
 {
-    case "$1" in
-        setup)
-            shift
-            relx_nodetool rpc riak_core_console setup_endpoint "$*"
-            ;;
-        setdown)
-            shift
-            relx_nodetool rpc riak_core_console setdown_endpoint "$*"
-            ;;
-        info)
-            shift
-            relx_nodetool rpc riak_core_console find_push_stats "$*"
-            ;;
-        info-all)
-            shift
-            relx_nodetool rpc riak_core_console find_push_stats_all "$*"
-            ;;
-        help)
-            shift
-            case "$1" in
-                setup)
-                    push_setup_help
-                    ;;
-                setdown)
-                    push_setdown_help
-                    ;;
-                info)
-                    push_info_help
-                    ;;
-                *)
-                    push_help
-                    ;;
-            esac
-            ;;
-        *)
-            push_help
-    esac
+    if [ -n "$2" ]; then
+         case "$1" in
+              setup)
+                  shift
+                  relx_nodetool rpc riak_core_console setup_endpoint "$*"
+                  ;;
+              setdown)
+                  shift
+                  relx_nodetool rpc riak_core_console setdown_endpoint "$*"
+                  ;;
+              info)
+                  shift
+                  relx_nodetool rpc riak_core_console find_push_stats "$*"
+                  ;;
+              info-all)
+                  shift
+                  relx_nodetool rpc riak_core_console find_push_stats_all "$*"
+                  ;;
+              help)
+                  shift
+                  case "$1" in
+                      setup)
+                          push_setup_help
+                          ;;
+                      setdown)
+                          push_setdown_help
+                          ;;
+                      info)
+                          push_info_help
+                          ;;
+                      *)
+                          push_help
+                          ;;
+                  esac
+                  ;;
+              *)
+                  push_help
+          esac
+
+    elif [ -z "$2" ]; then
+          echo "No Argument Entered"
+    fi
 }
 
 
@@ -399,7 +415,7 @@ stat_metadata_help()
 {
     echo "\
 
-    Usage $SCRIPT admin stat metadata <entry>=enable|disable
+    Usage $SCRIPT admin stat metadata <entry>=enable|disable|status
 
     Enable or Disable the persistence of stat options and configuration in
     the metadata. Disabling would mean the status of the stat, i.e. whether
