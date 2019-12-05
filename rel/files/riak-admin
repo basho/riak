@@ -23,6 +23,7 @@ usage() {
     echo "                    show | describe }"
 }
 
+# Stat Profiles see profile_help()
 profile_admin()
 {
     if [ -n "$2" ]; then
@@ -72,7 +73,7 @@ profile_admin()
 
 }
 
-
+# riak admin stat ...
 stat_admin()
 {
     if [ -n "$2" ]; then
@@ -149,6 +150,7 @@ stat_admin()
     fi
 }
 
+# Polling stats to an endpoint
 push_admin()
 {
     if [ -n "$2" ]; then
@@ -202,8 +204,8 @@ stat_help()
 
     Usage: $SCRIPT admin stat <command>
 
-    The following commands display, enable/disable and reset statistics.
-    A statistics entry is given either as a 'dotted' exometer name -
+    The following commands display, enable/disable and reset stats.
+    A stats entry is given either as a 'dotted' exometer name - with
     Identifiers separated by periods, '.', e.g. riak.riak_kv.node.gets,
     or as a 'legacy' name (same as in riak-admin status) - e.g. node_gets.
     When a legacy name is listed, the corresponding exometer name is shown as well.
@@ -228,14 +230,14 @@ stat_help()
             | -options | -ref
             | -datapoints ] <entry>
 
-       riak_stat Functions :
+       Additional Functions :
 
        Enable the persistence of stats and their configuration, as well as house the profiles
        functionality, gives more control over the use and status of all stats within riak
 
        metadata <entry>     <entry> :: enable | disable
-                                   Enables or disables the metadata in riak_stat, disabling the
-                                   metadata will prevent the persistence of stats configuration
+                            Enables or disables the use of metadata in riak_stat, disabling the
+                            metadata will prevent the persistence of stats configuration
 
 "
 }
@@ -260,7 +262,7 @@ stat_show_help()
     \$ riak admin stat show riak.riak_kv.node.gets
     [riak,riak_kv,node,gets]: [{count,0},{one,0}]
 
-    - 'Legacy name': The stat names used e.g. in \`$SCRIPT status\` can be used
+    - 'Legacy name': The stat names used e.g. in \`$SCRIPT admin status\` can be used
     here, but also with wildcard support. The corresponding Exometer name and
     datapoint will be shown as well.
 
@@ -304,7 +306,7 @@ stat_show_0_help()
 
     Shows the Stats in riak, that are not updating or have a value of 0.
 
-    See 'riak admin stat help show for the formatting of the <entry>,
+    See 'riak admin stat help show' for the formatting of the <entry>,
     this works in the same way.
 
     Example:
@@ -348,7 +350,7 @@ stat_disable_0_help()
 
     Some stats in exometer might go unused, and will not update often if
     at all. \`$SCRIPT admin stat disable-0\` disables all the stats in exometer
-    that are enabled and have not updated at all.
+    that are enabled and have not updated values at all.
 
     The same syntax can be used as in \`stat show\`. The requested action will be
     performed on the matching entries, in the same way as \`stat disable\`.
@@ -375,29 +377,33 @@ stat_info_help()
     Display Exometer meta-data for matching entries. Type of data can be controlled
     with options:
 
-       info [ -name | -type
+       info [ -name
+            | -type
             | -module
-            | -value | -cache
-            | -status | -timestamp
-            | -options | -ref
+            | -value
+            | -cache
+            | -status
+            | -timestamp
+            | -options
+            | -ref
             | -datapoints ] <entry>
 
     The same entry formats can be used as for all other stat subcommands.
 
     Example:
     \$ riak admin stat info riak.riak_kv.node.gets
-    [riak,riak_kv,node,gets]: name = [riak,riak_kv,node,gets]
-                              type = spiral
-                              module = exometer_spiral
-                              value = disabled
-                              cache = 0
-                              status = disabled
-                              timestamp = undefined
-                              options = [{status,disabled}]
+    [riak,riak_kv,node,gets]:[{name,[riak,riak_kv,node,gets]},
+                              {type,spiral},
+                              {module,exometer_spiral},
+                              {value,disabled},
+                              {cache,0},
+                              {status,disabled},
+                              {timestamp,undefined},
+                              {options,[{status,disabled}]}]
 
     \$ riak admin stat info -type -status riak.riak_kv.node.gets
-    [riak,riak_kv,node,gets]: type = spiral
-                              status = disabled
+    [riak,riak_kv,node,gets]:[{type,spiral},
+                              {status,disabled}]
 "
 }
 
@@ -415,7 +421,7 @@ stat_metadata_help()
 {
     echo "\
 
-    Usage $SCRIPT admin stat metadata <entry>=enable|disable|status
+    Usage $SCRIPT admin stat metadata <entry>= enable | disable | status
 
     Enable or Disable the persistence of stat options and configuration in
     the metadata. Disabling would mean the status of the stat, i.e. whether
