@@ -18,8 +18,8 @@
        lager_syslog,
        cluster_info,
        riak_kv,
-   
-     riak_repl,
-       riak_auth_mods       ]},
+       riak_repl,
+       riak_auth_mods
+   ]},
    {env, []}
   ]}.
