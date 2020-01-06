@@ -17,8 +17,10 @@
        runtime_tools,
        lager_syslog,
        cluster_info,
+     %  riak_core,
        riak_kv,
        riak_repl,
+     %  riak_pipe,
        riak_auth_mods
    ]},
    {env, []}
