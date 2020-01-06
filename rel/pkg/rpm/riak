@@ -1,0 +1,17 @@
+#!/bin/sh
+
+COMMAND={{platform_bin_dir}}/riak
+
+if [[ $EUID -ne 0 ]]; then
+   echo "You need to be root or use sudo to run this command." 
+   exit 1
+fi
+
+case "$1" in
+	start|console|foreground)
+		su - riak -c "PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches"
+		;;
+	*)
+		su - riak -c "PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*}"
+		;;
+esac
