@@ -82,7 +82,7 @@ rel: locked-deps compile
 	$(REBAR) as rel release
 
 rel-rpm: locked-deps compile
-	$(REBAR) as rpm release
+	$(REBAR) as rel,rpm release
 
 relclean:
 	rm -rf $(REL_DIR)
