@@ -18,27 +18,34 @@ usage() {
 
 case "$1" in
     profile)
+        echo "$1"
+        echo "$@"
         shift
         profile_admin "$@"
         ;;
     push)
+        echo "$1"
+        echo "$@"
         shift
         push_admin "$@"
         ;;
     help)
+        echo "$1"
+        echo "$@"
         shift
         help "$@"
         ;;
     *)
+        echo "$1"
+        echo "$@"
         shift
         stat_admin "$@"
-        ;;
 esac
 
 profile_admin()
 {
-  if [ -n "$3" ]; then
-      case "$2" in
+  if [ -n "$2" ]; then
+      case "$1" in
           load)
               shift
               relx_nodetool rpc riak_stat_profiles load_profile "$*"
@@ -73,8 +80,8 @@ profile_admin()
               profile_help
       esac
 
-  elif [ -z "$3" ]; then
-      case "$2" in
+  elif [ -z "$2" ]; then
+      case "$1" in
           help)
               profile_help
               ;;
@@ -180,9 +187,9 @@ profile_reset_help()
 
 push_admin()
 {
-    if [ -n "$3" ]; then
-        if [["$4" == @(tcp|udp) ]]; then
-            case "$2" in
+    if [ -n "$2" ]; then
+        if [["$3" == @(tcp|udp) ]]; then
+            case "$1" in
                 setup)
                     shift
                     relx_nodetool rpc riak_stat_push setup "$@"
@@ -201,7 +208,7 @@ push_admin()
                     ;;
                 help)
                     shift
-                    case "$3" in
+                    case "$2" in
                         setup)
                             push_setup_help
                             ;;
@@ -224,8 +231,8 @@ push_admin()
         else
             echo "Wrong Protocol Type"
         fi
-    elif [ -z "$3" ]; then
-        case "$2" in
+    elif [ -z "$2" ]; then
+        case "$1" in
             help)
                 push_help
                 ;;
@@ -352,8 +359,8 @@ push_info_all_help()
 
 stat_admin()
 {
-    if [ -n "$3" ]; then
-        case "$2" in
+    if [ -n "$2" ]; then
+        case "$1" in
             show)
                 shift
                 relx_nodetool rpc riak_stat_console show_stat "$*"
@@ -383,16 +390,16 @@ stat_admin()
                 relx_nodetool rpc riak_stat_console reset_stat "$*"
                 ;;
             metadata)
-                if [["$3" == @(enable|disable|status) ]]; then
+                if [["$2" == @(enable|disable|status) ]]; then
                     shift
-                    relx_nodetool rpc riak_stat_console stat_metadata "$3"
+                    relx_nodetool rpc riak_stat_console stat_metadata "$2"
                 else
                     echo "Wrong Argument Type entered"
                 fi
                 ;;
             help)
                 shift
-                case "$3" in
+                case "$1" in
                     show)
                         stat_show_help
                         ;;
@@ -425,12 +432,13 @@ stat_admin()
                 help
         esac
 
-    elif [ -z "$3" ]; then
-        case "$2" in
+    else
+        case "$1" in
             help)
                 help
                 ;;
             *)
+                usage
                 echo "No Argument Entered"
         esac
     fi
