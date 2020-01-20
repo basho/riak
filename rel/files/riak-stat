@@ -16,32 +16,6 @@ usage() {
     echo "                 disable | reset | metadata | help }"
 }
 
-case "$1" in
-    profile)
-        echo "$1"
-        echo "$@"
-        shift
-        profile_admin "$@"
-        ;;
-    push)
-        echo "$1"
-        echo "$@"
-        shift
-        push_admin "$@"
-        ;;
-    help)
-        echo "$1"
-        echo "$@"
-        shift
-        help "$@"
-        ;;
-    *)
-        echo "$1"
-        echo "$@"
-        shift
-        stat_admin "$@"
-esac
-
 profile_admin()
 {
   if [ -n "$2" ]; then
@@ -59,7 +33,7 @@ profile_admin()
               relx_nodetool rpc riak_stat_profiles delete_profile "$*"
               ;;
           help)
-              case "$3" in
+              case "$2" in
                   load)
                       profile_load_help
                       ;;
@@ -188,49 +162,56 @@ profile_reset_help()
 push_admin()
 {
     if [ -n "$2" ]; then
-        if [["$3" == @(tcp|udp) ]]; then
-            case "$1" in
-                setup)
-                    shift
-                    relx_nodetool rpc riak_stat_push setup "$@"
-                    ;;
-                setdown)
-                    shift
-                    relx_nodetool rpc riak_stat_push setdown "$@"
-                    ;;
-                info)
-                    shift
-                    relx_nodetool rpc riak_stat_push find_push_stats "$@"
-                    ;;
-                info-all)
-                    shift
-                    relx_nodetool rpc riak_stat_push find_push_stats_all "$@"
-                    ;;
-                help)
-                    shift
-                    case "$2" in
+        case "$3" in
+            udp|tcp)
+                    case "$1" in
                         setup)
-                            push_setup_help
+                            if [ -n "$4" ]; then
+                                shift
+                                relx_nodetool rpc riak_stat_push setup "$@"
+                            else
+                                echo "No Instance Found"
+                            fi
                             ;;
                         setdown)
-                            push_setdown_help
+                            shift
+                            relx_nodetool rpc riak_stat_push setdown "$@"
                             ;;
                         info)
-                            push_info_help
+                            shift
+                            relx_nodetool rpc riak_stat_push find_push_stats "$@"
                             ;;
                         info-all)
-                            push_info_all_help
-                            ;;
-                        *)
-                            push_help
-                     esac
-                     ;;
-                *)
-                    push_help
-            esac
-        else
-            echo "Wrong Protocol Type"
-        fi
+                            shift
+                            relx_nodetool rpc riak_stat_push find_push_stats_all "$@"
+                    esac
+                    ;;
+            *)
+                case "$1" in
+                    help)
+                        case "$2" in
+                            setup)
+                                push_setup_help
+                                ;;
+                            setdown)
+                                push_setdown_help
+                                ;;
+                            info)
+                                push_info_help
+                                ;;
+                            info-all)
+                                push_info_all_help
+                                ;;
+                            *)
+                                push_help
+                         esac
+                         ;;
+                    *)
+                        push_help
+                esac
+
+        esac
+
     elif [ -z "$2" ]; then
         case "$1" in
             help)
@@ -256,9 +237,9 @@ push_help()
 
         setdown     <instance>                                (specific)
                   | <protocol>          (all instances of that protocol)
-                  | <hostname>:<port> [<protocol> [<instance>]]
+                  | [[<hostname>:<port>] [<protocol>]] [<instance>]]
 
-        info        <hostname>:<port> [<protocol> [<instance>]]
+        info        [[<hostname>:<port>] [<protocol>]] [<instance>]]
             (return information about current and previous setups of
              this nodes stat pushing)
 
@@ -390,16 +371,17 @@ stat_admin()
                 relx_nodetool rpc riak_stat_console reset_stat "$*"
                 ;;
             metadata)
-                if [["$2" == @(enable|disable|status) ]]; then
-                    shift
-                    relx_nodetool rpc riak_stat_console stat_metadata "$2"
-                else
-                    echo "Wrong Argument Type entered"
-                fi
+                case "$2" in
+                    enable|disable|status)
+                        relx_nodetool rpc riak_stat_console stat_metadata "$2"
+                        ;;
+                    *)
+                        echo "Wrong Argument Type entered"
+                        stat_metadata_help
+                esac
                 ;;
             help)
-                shift
-                case "$1" in
+                case "$2" in
                     show)
                         stat_show_help
                         ;;
@@ -439,10 +421,10 @@ stat_admin()
                 ;;
             *)
                 usage
-                echo "No Argument Entered"
         esac
     fi
 }
+
 
 help()
 {
@@ -676,3 +658,18 @@ stat_metadata_help()
 
 "
 }
+
+case "$1" in
+    profile)
+        shift
+        profile_admin "$@"
+        ;;
+    push)
+        shift
+        push_admin "$@"
+        ;;
+    *)
+        stat_admin "$@"
+esac
+
+exit 0
