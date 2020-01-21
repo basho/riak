@@ -186,7 +186,7 @@
               {git,"git://github.com/basho/riak-erlang-client",
                    "6ca6620dae3a00264a0a0ab0c59139125f70523b"}},
        {yokozuna,".*",
-                 {git,"git://gitlab.com/riak/yokozuna.git",
+                 {git,"https://gitlab.com/riak/yokozuna.git",
                       "f6d223869e0a3fbe23602411c0cf1e6eb7df9ed2"}},
        {rebar_lock_deps_plugin,".*",
                                {git,"https://github.com/basho/rebar_lock_deps_plugin.git",
