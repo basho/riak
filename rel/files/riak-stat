@@ -12,8 +12,8 @@ cd $RUNNER_BASE_DIR
 SCRIPT=`basename $0`
 
 usage() {
-    echo "Usage: $SCRIPT { show | show-0 | disable-0 | info | enable"
-    echo "                 disable | reset | metadata | help }"
+    echo "Usage: $SCRIPT stat { show | show-0 | disable-0 | info | enable"
+    echo "                 disable | reset | metadata | help | push | profile}"
 }
 
 profile_admin()
@@ -64,7 +64,7 @@ profile_admin()
               relx_nodetool rpc riak_stat_profiles reset_profile
               ;;
           *)
-              echo "No Argument Entered"
+              profile_help
        esac
   fi
 }
@@ -73,7 +73,7 @@ profile_help()
 {
     echo "\
 
-    Usage: $SCRIPT profile (load | save | delete | reset) <entry>
+    Usage: $SCRIPT stat profile (load | save | delete | reset | help) <entry>
 
     Profiles are the specific set up of stats, whether enabled or disabled,
     saved in the metadata to allow consistency in testing and laziness in
@@ -162,63 +162,56 @@ profile_reset_help()
 push_admin()
 {
     if [ -n "$2" ]; then
-        case "$3" in
-            udp|tcp)
-                    case "$1" in
-                        setup)
-                            if [ -n "$4" ]; then
-                                shift
-                                relx_nodetool rpc riak_stat_push setup "$@"
-                            else
-                                echo "No Instance Found"
-                            fi
-                            ;;
-                        setdown)
-                            shift
-                            relx_nodetool rpc riak_stat_push setdown "$@"
-                            ;;
-                        info)
-                            shift
-                            relx_nodetool rpc riak_stat_push find_push_stats "$@"
-                            ;;
-                        info-all)
-                            shift
-                            relx_nodetool rpc riak_stat_push find_push_stats_all "$@"
-                    esac
-                    ;;
-            *)
-                case "$1" in
-                    help)
-                        case "$2" in
-                            setup)
-                                push_setup_help
-                                ;;
-                            setdown)
-                                push_setdown_help
-                                ;;
-                            info)
-                                push_info_help
-                                ;;
-                            info-all)
-                                push_info_all_help
-                                ;;
-                            *)
-                                push_help
-                         esac
-                         ;;
+        case "$1" in
+            setup)
+                if [ -n "$4" ] && [[ "$3" == @(udp|tcp) ]]; then
+                    shift
+                    relx_nodetool rpc riak_stat_push setup "$@"
+                else
+                    echo "No Instance name Entered or wrong Protocol type"
+                    push_setup_help
+                fi
+                ;;
+            setdown)
+                shift
+                relx_nodetool rpc riak_stat_push setdown "$@"
+                ;;
+            info)
+                shift
+                relx_nodetool rpc riak_stat_push find_push_stats "$@"
+                ;;
+            info-all)
+                shift
+                relx_nodetool rpc riak_stat_push find_push_stats_all "$@"
+                ;;
+            help)
+                case "$2" in
+                    setup)
+                        push_setup_help
+                        ;;
+                    setdown)
+                        push_setdown_help
+                        ;;
+                    info)
+                        push_info_help
+                        ;;
+                    info-all)
+                        push_info_all_help
+                        ;;
                     *)
                         push_help
                 esac
-
+                ;;
+            *)
+                push_help
         esac
-
     elif [ -z "$2" ]; then
         case "$1" in
             help)
                 push_help
                 ;;
             *)
-              echo "No Argument Entered"
+                echo "No Argument Entered"
         esac
     fi
 }
@@ -252,7 +245,7 @@ push_help()
                       <hostname>    serverip | hostname
                       <port>        0...65535
                       <stats>       riak.<app>.<statname>
-                                    (see riak admin stat help)
+                                    (see riak stat help)
 
   "
 }
