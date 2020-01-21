@@ -17,14 +17,28 @@ cache:
 before_script:
   - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
 
-build:
-  stage: build
+stages:
+  - base
+  - riak
+
+base:
+  stage: base
+  script:
+    - docker pull $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:latest || true
+    - docker build --cache-from $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:latest --tag $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA --tag $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:latest  --build-arg deployment=$CI_COMMIT_REF_NAME -f Dockerfile.base .
+    - docker push $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA
+    - docker push $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:latest
+
+riak:
+  stage: riak
   artifacts:
     paths:
       - "/tmp/packages/*.rpm"
   script:
-    - docker pull $CONTAINER_IMAGE:latest || true
-    - docker build --cache-from $CONTAINER_IMAGE:latest --tag $CONTAINER_IMAGE:$CI_COMMIT_SHA --tag $CONTAINER_IMAGE:latest .
+    - docker pull $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:latest || true
+    - docker pull $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest || true
+    - docker build --cache-from $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest --tag $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA --tag $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest  --build-arg deployment=$CI_COMMIT_REF_NAME .
     - docker cp $(docker create $CONTAINER_IMAGE:latest):"/var/src/riak/distdir/packages/" /tmp/packages
-    - docker push $CONTAINER_IMAGE:$CI_COMMIT_SHA
-    - docker push $CONTAINER_IMAGE:latest
+    - docker push $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA
+    - docker push $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest
+    #- curl --header "Content-Type:application/json" --request POST --data '{"event_type":"registry_push","tag":"'"$CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA"'","deployment":"'"$CI_COMMIT_REF_NAME"'"}' https://salt.streethawk.com:8000/hook/gitlab/streethawk/riak
