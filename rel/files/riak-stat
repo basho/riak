@@ -12,8 +12,8 @@ cd $RUNNER_BASE_DIR
 SCRIPT=`basename $0`
 
 usage() {
-    echo "Usage: $SCRIPT stat { show | show-0 | disable-0 | info | enable"
-    echo "                 disable | reset | metadata | help | push | profile}"
+    echo "Usage: $SCRIPT stat { show | info | enable | disable | reset"
+    echo "                        metadata | help | push | profile }"
 }
 
 profile_admin()
@@ -339,14 +339,6 @@ stat_admin()
                 shift
                 relx_nodetool rpc riak_stat_console show_stat "$*"
                 ;;
-            show-0)
-                shift
-                relx_nodetool rpc riak_stat_console show_stat_0 "$*"
-                ;;
-            disable-0)
-                shift
-                relx_nodetool rpc riak_stat_console disable_stat_0 "$*"
-                ;;
             info)
                 shift
                 relx_nodetool rpc riak_stat_console stat_info "$*"
@@ -378,17 +370,11 @@ stat_admin()
                     show)
                         stat_show_help
                         ;;
-                    show-0)
-                        stat_show_0_help
-                        ;;
                     enable)
                         stat_enable_help
                         ;;
                     disable)
                         stat_enable_help
-                        ;;
-                    disable-0)
-                        stat_disable_0_help
                         ;;
                     info)
                         stat_info_help
@@ -439,8 +425,6 @@ echo "\
     Use \`$SCRIPT admin stat help <command>\` for more details.
 
        show <entry>                Show the value(s) of a specific entry or entries
-       show-0 <entry>              Show the entry or entries that are not updating
-       disable-0 <entry>           Disable the entry or entries that are not updating
        enable <entry>              Enable entry or entries
        disable <entry>             Disable entry or entries
        reset <entry>               Reset entry or entries
@@ -519,26 +503,6 @@ stat_show_help()
 "
 }
 
-stat_show_0_help()
-{
-    echo "\
-
-    Usage: $SCRIPT stat show-0 <entry>[/type=<type>][/status=<status>]
-
-    Shows the Stats in riak, that are not updating or have a value of 0.
-
-    See 'riak stat help show' for the formatting of the <entry>,
-    this works in the same way.
-
-    Example:
-
-    \$ riak stat show-0 riak.**/type=duration
-    [riak,riak_core,converge_delay]: [{mean,0},{max,0}]
-    [riak,riak_core,rebalance_delay]: [{mean,0},{max,0}]
-
-    "
-}
-
 stat_enable_help()
 {
     echo "\
@@ -564,30 +528,6 @@ stat_enable_help()
     [riak,riak_kv,node,puts]: disabled
 "
 }
-
-stat_disable_0_help()
-{
-    echo "\
-
-    Some stats in exometer might go unused, and will not update often if
-    at all. \`$SCRIPT stat disable-0\` disables all the stats in exometer
-    that are enabled and have not updated values at all.
-
-    The same syntax can be used as in \`stat show\`. The requested action will be
-    performed on the matching entries, in the same way as \`stat disable\`.
-
-    \$ riak stat disable-0 node_gets
-    == node_gets (Legacy pattern): ==
-    [riak,riak_kv,node,gets]: disabled
-
-    Wildcards can be used:
-
-    \$ riak stat disable-0 riak.riak_kv.node.*
-    [riak,riak_kv,node,gets]: disabled
-    [riak,riak_kv,node,puts]: disabled
-"
-}
-
 
 stat_info_help()
 {
