@@ -82,7 +82,7 @@ rel: locked-deps compile
 	$(REBAR) as rel release
 
 rel-rpm: locked-deps compile
-	$(REBAR) as rpm release
+	$(REBAR) as rel,rpm release
 
 relclean:
 	rm -rf $(REL_DIR)
@@ -305,7 +305,7 @@ pkgclean: ballclean
 PKG_VERSION = $(shell echo $(PKG_ID) | sed -e 's/^$(REPO)-//')
 
 package:
-	git archive --format=tar HEAD | gzip >rel/pkg/out/riak-3.0.tar.gz
+	git archive --format=tar HEAD | gzip >rel/pkg/out/riak-$(PKG_ID).tar.gz
 	$(MAKE) -C rel/pkg/ -f Makefile
 
 packageclean:
