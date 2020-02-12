@@ -6,7 +6,7 @@ BASE_DIR         = $(shell pwd)
 ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
 REBAR           ?= $(BASE_DIR)/rebar
 OVERLAY_VARS    ?=
-SPECIAL_DEPS	?= meck hamcrest riak_ensemble webmachine
+SPECIAL_DEPS	?= meck riak_ensemble webmachine
 TEST_IGNORE     ?= rebar_lock_deps_plugin
 
 RIAK_CORE_STAT_PREFIX = riak
