@@ -1,3 +1,17 @@
+# Riak KV 2.9.1 Release Notes
+
+This release adds a number of features built on top of the Tictac AAE feature made available in 2.9.0.  The new features depend on Tictac AAE being enabled, but explicit the existence of the AAE caches and a key-ordered store to:
+
+- A new combined full-sync and real-time replication system `nextgenrepl`, that is much faster and more efficient at reconciling overall state of clusters (e.g. full-sync).  This feature is explained further [here](https://github.com/basho/riak_kv/blob/riak_kv-2.9.1.1/docs/NextGenREPL.md).
+
+- A mechanism for requesting mass deletion of objects on expiry, and mass reaping of tombstones after a time to live.  This is not yet an automated, scheduled set of garbage collection processes, it is required to be triggered by an operational process.  This feature is explained further [here](https://github.com/basho/riak_kv/blob/riak_kv-2.9.1.1/docs/ReapErase.md).
+
+- A safe method of listing buckets regardless of backend chosen.  Listing buckets had previously not been production safe, but can still be required in production environments - it can now be managed safely via an aae_fold.  For more information on using the HTTP API for all aee_folds see [here](https://github.com/basho/riak_kv/blob/develop-2.9/src/riak_kv_wm_aaefold.erl#L19-L91).  Or to use via the riak erlang client see [here](https://github.com/basho/riak-erlang-client/blob/riak_kv-2.9.1/src/riakc_pb_socket.erl#L1344-L1932).
+
+- A version uplift of the internal `ibrowse` client, a minor `riak_dt` fix to resolve issues of unit test reliability, a fix to help build (the now deprecated) erlang_js in some environments, and the removal of `hamcrest` as a dependency.
+
+Detail of volume testing related to the replication uplift can be found [here](https://github.com/martinsumner/riak_testing_notes/blob/master/Release%202.9.1%20-%20Volume%20Tests.md).
+
 # Riak KV 2.9.0 Release Notes - Patch 5
 
 This patch release is primarily required to improve two scenarios where leveled's handling of file-system corruption was unsatisfactory.  One scenario related to [corrupted blocks that fail CRC checks](https://github.com/martinsumner/leveled/issues/298), another related to failing to consistently check that [a file write had been flushed to disk](https://github.com/martinsumner/leveled/issues/301).
