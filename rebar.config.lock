@@ -3,6 +3,7 @@
 {sub_dirs,["rel","apps/riak"]}.
 {require_otp_vsn,"R16|17"}.
 {cover_enabled,true}.
+{recursive_cmds,[xref]}.
 {lib_dirs,["apps/riak"]}.
 {erl_opts,[debug_info,fail_on_warning]}.
 {eunit_opts,[verbose]}.
@@ -185,8 +186,8 @@
              {git,"https://github.com/jlouis/fuse.git",
                   "21c6e52ced3af294f2fe636039106068da12eeeb"}},
        {yokozuna,".*",
-                 {git,"git://github.com/basho/yokozuna.git",
-                      "1c533e3366a3c67c466f5d6523bc9c87ecea9400"}},
+                 {git,"https://gitlab.com/riak/yokozuna.git",
+                      "f6d223869e0a3fbe23602411c0cf1e6eb7df9ed2"}},
        {rebar_lock_deps_plugin,".*",
                                {git,"https://github.com/basho/rebar_lock_deps_plugin.git",
                                     "8816f45ff38cd04d5c7741bd39166af58116dd44"}}]}.
