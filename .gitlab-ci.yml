@@ -41,4 +41,3 @@ riak:
     - docker cp $(docker create $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest):"/var/src/riak/distdir/packages/" /tmp/packages
     - docker push $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA
     - docker push $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest
-    #- curl --header "Content-Type:application/json" --request POST --data '{"event_type":"registry_push","tag":"'"$CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA"'","deployment":"'"$CI_COMMIT_REF_NAME"'"}' https://salt.streethawk.com:8000/hook/gitlab/streethawk/riak
