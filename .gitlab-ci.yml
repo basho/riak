@@ -1,0 +1,43 @@
+image: docker:stable
+
+services:
+  - docker:dind
+
+variables:
+  CONTAINER_IMAGE: registry.gitlab.com/$CI_PROJECT_PATH
+  DOCKER_HOST: tcp://localhost:2375
+  DOCKER_DRIVER: overlay2
+  DOCKER_TLS_CERTDIR: ""
+
+cache:
+  paths:
+    - /tmp/solr/
+    - /var/src/riak/distdir/
+
+before_script:
+  - docker login -u gitlab-ci-token -p $CI_JOB_TOKEN registry.gitlab.com
+
+stages:
+  - base
+  - riak
+
+base:
+  stage: base
+  script:
+    - docker pull $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:latest || true
+    - docker build --cache-from $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:latest --tag $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA --tag $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:latest  --build-arg deployment=$CI_COMMIT_REF_NAME -f Dockerfile.base .
+    - docker push $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA
+    - docker push $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:latest
+
+riak:
+  stage: riak
+  artifacts:
+    paths:
+      - "/tmp/packages/*.rpm"
+  script:
+    - docker pull $CONTAINER_IMAGE/base/$CI_COMMIT_REF_NAME:latest || true
+    - docker pull $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest || true
+    - docker build --cache-from $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest --tag $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA --tag $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest  --build-arg deployment=$CI_COMMIT_REF_NAME .
+    - docker cp $(docker create $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest):"/var/src/riak/distdir/packages/" /tmp/packages
+    - docker push $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:$CI_COMMIT_SHA
+    - docker push $CONTAINER_IMAGE/$CI_COMMIT_REF_NAME:latest
