@@ -258,7 +258,7 @@ NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/
 ifeq ($(REVISION), $(MAJOR_VERSION))
 PKG_ID := $(REPO_TAG)
 else
-PKG_ID = $(REPO)-$(MAJOR_VERSION)-$(NAME_HASH)
+PKG_ID = $(REPO)-$(MAJOR_VERSION)-sentenai-$(NAME_HASH)
 endif
 
 # To ensure a clean build, copy the CLONEDIR at a specific tag to a new directory
