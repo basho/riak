@@ -17,7 +17,10 @@
        runtime_tools,
        lager_syslog,
        cluster_info,
-       riak_kv,
+       cluster_metadata,
+%%	exometer_core,
+	stats,
+	riak_kv,
        riak_repl,
        riak_auth_mods
    ]},

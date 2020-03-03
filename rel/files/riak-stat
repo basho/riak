@@ -22,19 +22,26 @@ profile_admin()
       case "$1" in
           load)
               shift
-              relx_nodetool rpc riak_stat_profiles load_profile "$*"
+              relx_nodetool rpc riak_core_stat_persist load_profile "$*"
+              ;;
+          load-all)
+              shift
+              relx_nodetool rpc riak_core_stat_persist load_profile_all "$*"
               ;;
           save)
               shift
-              relx_nodetool rpc riak_stat_profiles save_profile "$*"
+              relx_nodetool rpc riak_core_stat_persist save_profile "$*"
               ;;
           delete)
               shift
-              relx_nodetool rpc riak_stat_profiles delete_profile "$*"
+              relx_nodetool rpc riak_core_stat_persist delete_profile "$*"
               ;;
           help)
               case "$2" in
                   load)
+                      profile_load_help
+                      ;;
+                  load-all)
                       profile_load_help
                       ;;
                   save)
@@ -61,7 +68,7 @@ profile_admin()
               ;;
           reset)
               shift
-              relx_nodetool rpc riak_stat_profiles reset_profile
+              relx_nodetool rpc riak_core_stat_persist reset_profile
               ;;
           *)
               profile_help
@@ -98,12 +105,13 @@ profile_load_help()
     echo "\
 
     Usage: $SCRIPT profile load <entry>
+           $SCRPIT profile load-all <entry>
 
     Load all the stats in a \`profile\`, changing any stats with a different
     cnofiguration to the one in the profile.
 
     A profile created on a different node in the cluster can be loaded on
-    another node.
+    another node or all nodes at once.
 
     Any profile loaded before shutdown will be reloaded after reboot.
 
@@ -166,7 +174,7 @@ push_admin()
             setup)
                 if [ -n "$4" ] && [[ "$3" == @(udp|tcp) ]]; then
                     shift
-                    relx_nodetool rpc riak_stat_push setup "$@"
+                    relx_nodetool rpc riak_core_console setup "$@"
                 else
                     echo "No Instance name Entered or wrong Protocol type"
                     push_setup_help
@@ -174,15 +182,15 @@ push_admin()
                 ;;
             setdown)
                 shift
-                relx_nodetool rpc riak_stat_push setdown "$@"
+                relx_nodetool rpc riak_core_console setdown "$@"
                 ;;
             info)
                 shift
-                relx_nodetool rpc riak_stat_push find_push_stats "$@"
+                relx_nodetool rpc riak_core_console find_push_stats "$@"
                 ;;
             info-all)
                 shift
-                relx_nodetool rpc riak_stat_push find_push_stats_all "$@"
+                relx_nodetool rpc riak_core_console find_push_stats_all "$@"
                 ;;
             help)
                 case "$2" in
@@ -337,28 +345,28 @@ stat_admin()
         case "$1" in
             show)
                 shift
-                relx_nodetool rpc riak_stat_console show_stat "$*"
+                relx_nodetool rpc riak_core_console show_stat "$*"
                 ;;
             info)
                 shift
-                relx_nodetool rpc riak_stat_console stat_info "$*"
+                relx_nodetool rpc riak_core_console stat_info "$*"
                 ;;
             enable)
                 shift
-                relx_nodetool rpc riak_stat_console stat_enable "$*"
+                relx_nodetool rpc riak_core_console stat_enable "$*"
                 ;;
             disable)
                 shift
-                relx_nodetool rpc riak_stat_console stat_disable "$*"
+                relx_nodetool rpc riak_core_console stat_disable "$*"
                 ;;
             reset)
                 shift
-                relx_nodetool rpc riak_stat_console reset_stat "$*"
+                relx_nodetool rpc riak_core_console reset_stat "$*"
                 ;;
             metadata)
                 case "$2" in
                     enable|disable|status)
-                        relx_nodetool rpc riak_stat_console stat_metadata "$2"
+                        relx_nodetool rpc riak_core_console stat_metadata "$2"
                         ;;
                     *)
                         echo "Wrong Argument Type entered"
