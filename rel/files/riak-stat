@@ -1,0 +1,616 @@
+#!/bin/sh
+# -*- tab-width:4;indent-tabs-mode:nil -*-
+# ex: ts=4 sw=4 et
+
+# Keep track of where script was invoked
+ORIGINAL_DIR=$(pwd)
+
+# Make sure CWD is set to runner run dir
+cd $RUNNER_BASE_DIR
+
+# Identify the script name
+SCRIPT=`basename $0`
+
+usage() {
+    echo "Usage: $SCRIPT stat { show | info | enable | disable | reset"
+    echo "                        metadata | help | push | profile }"
+}
+
+profile_admin()
+{
+  if [ -n "$2" ]; then
+      case "$1" in
+          load)
+              shift
+              relx_nodetool rpc riak_core_stat_persist load_profile "$*"
+              ;;
+          load-all)
+              shift
+              relx_nodetool rpc riak_core_stat_persist load_profile_all "$*"
+              ;;
+          save)
+              shift
+              relx_nodetool rpc riak_core_stat_persist save_profile "$*"
+              ;;
+          delete)
+              shift
+              relx_nodetool rpc riak_core_stat_persist delete_profile "$*"
+              ;;
+          help)
+              case "$2" in
+                  load)
+                      profile_load_help
+                      ;;
+                  load-all)
+                      profile_load_help
+                      ;;
+                  save)
+                      profile_save_help
+                      ;;
+                  delete)
+                      profile_delete_help
+                      ;;
+                  reset)
+                      profile_reset_help
+                      ;;
+                  *)
+                      profile_help
+              esac
+              ;;
+          *)
+              profile_help
+      esac
+
+  elif [ -z "$2" ]; then
+      case "$1" in
+          help)
+              profile_help
+              ;;
+          reset)
+              shift
+              relx_nodetool rpc riak_core_stat_persist reset_profile
+              ;;
+          *)
+              profile_help
+       esac
+  fi
+}
+
+profile_help()
+{
+    echo "\
+
+    Usage: $SCRIPT stat profile (load | save | delete | reset | help) <entry>
+
+    Profiles are the specific set up of stats, whether enabled or disabled,
+    saved in the metadata to allow consistency in testing and laziness in
+    setting up.
+
+        load <entry>    Loads the stats configuration saved under <entry>
+
+        save <entry>    Takes the current configuration of stats and saves
+                        under <entry>
+
+        delete <entry>  Deletes the <entry> from metadata, does not affect the
+                        configuration of stats
+
+        reset           Reset the configuration of stats back to enabled,
+                        unload any profile - does not affect the stats values.
+
+        "
+}
+
+profile_load_help()
+{
+    echo "\
+
+    Usage: $SCRIPT profile load <entry>
+           $SCRPIT profile load-all <entry>
+
+    Load all the stats in a \`profile\`, changing any stats with a different
+    cnofiguration to the one in the profile.
+
+    A profile created on a different node in the cluster can be loaded on
+    another node or all nodes at once.
+
+    Any profile loaded before shutdown will be reloaded after reboot.
+
+    Example:
+       \$ riak stat profile load test-profile
+
+    "
+}
+
+profile_save_help()
+{
+    echo "\
+
+    Usage: $SCRIPT profile save <entry>
+
+    Save <entry> as the profile's name for the current configuration of stats,
+    if a profile of that name already exists then it will be overwritten.
+
+    Example:
+       \$ riak stat profile save test-profile
+
+    "
+}
+
+profile_delete_help()
+{
+    echo "\
+
+    Usage: $SCRIPT profile delete <entry>
+
+    Delete the profile from the metadata for all nodes in the cluster, it will
+    remove it's record from the metadata but not affect the stats and their
+    current status.
+
+    Example:
+       \$ riak stat profile delete test-profile
+
+    "
+}
+
+profile_reset_help()
+{
+    echo "\
+
+    Usage: $SCRIPT profile reset
+
+    Remove the profile current loaded (without deletion), re-enable all the
+    stats that are disabled in exometer
+
+    Example:
+       \$ riak stat profile reset
+
+    "
+}
+
+push_admin()
+{
+    if [ -n "$2" ]; then
+        case "$1" in
+            setup)
+                if [ -n "$4" ] && [[ "$3" == @(udp|tcp) ]]; then
+                    shift
+                    relx_nodetool rpc riak_core_console setup "$@"
+                else
+                    echo "No Instance name Entered or wrong Protocol type"
+                    push_setup_help
+                fi
+                ;;
+            setdown)
+                shift
+                relx_nodetool rpc riak_core_console setdown "$@"
+                ;;
+            info)
+                shift
+                relx_nodetool rpc riak_core_console find_push_stats "$@"
+                ;;
+            info-all)
+                shift
+                relx_nodetool rpc riak_core_console find_push_stats_all "$@"
+                ;;
+            help)
+                case "$2" in
+                    setup)
+                        push_setup_help
+                        ;;
+                    setdown)
+                        push_setdown_help
+                        ;;
+                    info)
+                        push_info_help
+                        ;;
+                    info-all)
+                        push_info_all_help
+                        ;;
+                    *)
+                        push_help
+                esac
+                ;;
+            *)
+                push_help
+        esac
+    elif [ -z "$2" ]; then
+        case "$1" in
+            help)
+                push_help
+                ;;
+            *)
+                echo "No Argument Entered"
+        esac
+    fi
+}
+
+push_help()
+{
+    echo "\
+
+    Usage: $SCRIPT push (setup | setdown | info | info-all) <entry>
+            <entry> :: <hostanme>:<port> <protocol> <instance> [<stats>]
+
+    Control the polling of stats from exometer and the output to an endpoint
+    using UDP and TCP protocols.
+
+        setup       <hostname>:<port> <protocol> <instance> [<stats>]
+
+        setdown     <instance>                                (specific)
+                  | <protocol>          (all instances of that protocol)
+                  | [[<hostname>:<port>] [<protocol>]] [<instance>]]
+
+        info        [[<hostname>:<port>] [<protocol>]] [<instance>]]
+            (return information about current and previous setups of
+             this nodes stat pushing)
+
+        info-all    <hostname>:<port> [<protocol> [<instance>]]
+            (return information about current and previous setups of
+             all nodes in the cluster, for stat pushing)
+
+                      <instance>    name without spaces
+                      <protocol>    tcp | udp | *
+                      <hostname>    serverip | hostname
+                      <port>        0...65535
+                      <stats>       riak.<app>.<statname>
+                                    (see riak stat help)
+
+  "
+}
+
+push_setup_help()
+{
+    echo "\
+
+    Usage: $SCRIPT push setup <hostname>:<port> <protocol> <instance> [<stats>]
+
+    Setup the polling of stats in exometer and pushing to an endpoint of
+    the hostname:port provided.
+
+        <hostname>    ipaddr | hostname
+        <port>        0...65535
+        <protocol>    tcp | udp
+        <instance>    name of instance (no spaces)
+        <stats>       as riak admin stat show etc...
+
+    If <stats> is not provided all the stats are polled by default (enabled ones)
+
+    Example :
+       \$ riak stat push setup 127.0.0.1:8000 udp test-udp riak.riak_kv.node.**
+
+        "
+}
+
+push_setdown_help()
+{
+    echo "\
+
+    Usage: $SCRIPT push setdown [[[<hostname>:<port>] [<protocol>]] <instance>]
+
+    Stop the polling and pushing of stats to an endpoint, It is best to give the
+    instance of the setup specifically - as the instances are unique to each one.
+    Multiple instances can be shutdown at once if calling for a generic denominator
+
+    For Example:
+
+        \$ riak stat push setdown tcp
+            (will stop all tcp instances)
+
+        \$ riak stat push setdown *:8080 udp
+            (stops udp instances going to 8080 port, of any host)
+
+    "
+}
+
+push_info_help()
+{
+    echo "\
+
+    Usage: $SCRIPT push info [[<hostname:port>] [<protocol>]] <instance>]
+
+    Find all the instances with details given on this node.
+    Works in a smiilar way to \`riak stat push setdown __\`, information on
+    multiple instances can be returned if a generic denominator is called.
+
+    For Example:
+
+        \$ riak stat push info tcp
+            (will return information on all tcp instances
+
+        \$ riak stat push info *:8080 udp
+            (will return information on udp instances that a pushing to
+              a port : 8080)
+
+        \$ riak stat push info *
+            (will return information on everything
+
+    "
+}
+
+push_info_all_help()
+{
+  echo  "\
+
+  Usage: $SCRIPT push info-all [[<hostname:port>] [<protocol>]] <instance>]
+
+  works in the same way as \`riak stat push info ___\` except it returns
+  the information on instances for all the nodes.
+
+  "
+}
+
+stat_admin()
+{
+    if [ -n "$2" ]; then
+        case "$1" in
+            show)
+                shift
+                relx_nodetool rpc riak_core_console show_stat "$*"
+                ;;
+            info)
+                shift
+                relx_nodetool rpc riak_core_console stat_info "$*"
+                ;;
+            enable)
+                shift
+                relx_nodetool rpc riak_core_console stat_enable "$*"
+                ;;
+            disable)
+                shift
+                relx_nodetool rpc riak_core_console stat_disable "$*"
+                ;;
+            reset)
+                shift
+                relx_nodetool rpc riak_core_console reset_stat "$*"
+                ;;
+            metadata)
+                case "$2" in
+                    enable|disable|status)
+                        relx_nodetool rpc riak_core_console stat_metadata "$2"
+                        ;;
+                    *)
+                        echo "Wrong Argument Type entered"
+                        stat_metadata_help
+                esac
+                ;;
+            help)
+                case "$2" in
+                    show)
+                        stat_show_help
+                        ;;
+                    enable)
+                        stat_enable_help
+                        ;;
+                    disable)
+                        stat_enable_help
+                        ;;
+                    info)
+                        stat_info_help
+                        ;;
+                    reset)
+                        stat_reset_help
+                        ;;
+                    metadata)
+                        stat_metadata_help
+                        ;;
+                    *)
+                        help
+                esac
+                ;;
+            *)
+                help
+        esac
+
+    else
+        case "$1" in
+            help)
+                help
+                ;;
+            *)
+                usage
+        esac
+    fi
+}
+
+
+help()
+{
+echo "\
+
+    Usage: $SCRIPT stat <command>
+
+    The following commands display, enable/disable and reset stats.
+    A stats entry is given either as a 'dotted' exometer name - with
+    Identifiers separated by periods, '.', e.g. riak.riak_kv.node.gets,
+    or as a 'legacy' name (same as in riak-admin status) - e.g. node_gets.
+    When a legacy name is listed, the corresponding exometer name is shown as well.
+
+    Two kinds of wildcard are suppored:
+    *  - matches anything up to the next separator ('.' or '_') or end of name;
+    ** - matches anything including separators.
+    Quoting is permitted.
+
+    Use \`$SCRIPT admin stat help <command>\` for more details.
+
+       show <entry>                Show the value(s) of a specific entry or entries
+       enable <entry>              Enable entry or entries
+       disable <entry>             Disable entry or entries
+       reset <entry>               Reset entry or entries
+       info [ -name | -type |      Display information about the entry or entries.
+            | -module              The attributes are described in the Exometer docs
+            | -value | -cache
+            | -status | -timestamp
+            | -options | -ref
+            | -datapoints ] <entry>
+
+       Additional Functions :
+
+       Enable the persistence of stats and their configuration, as well as house the profiles
+       functionality, gives more control over the use and status of all stats within riak
+
+       metadata <entry>     <entry> :: enable | disable
+                            Enables or disables the use of metadata in riak_stat, disabling the
+                            metadata will prevent the persistence of stats configuration
+
+"
+}
+
+stat_show_help()
+{
+    echo "\
+
+    Usage: $SCRIPT stat show <entry>[/type=<type>][/status=<status>][/<dp>[,<dp>]]
+
+    Show matching stats entries together with corresponding values
+
+    The format of <entry> can be one of:
+    - 'Dotted exometer name': In Exometer, entries are represented as [A,B,...].
+    These names can be emulated on the command-line as A.B.... Wildcards are
+    supported: '*' will match anything between deliminators (dots), whereas
+    '**' will match anything including deliminators. Thus \`stat show \"*.**\"\`
+    will match all stats entries. All Riak stat entry names start with 'riak',
+    so \`stat show riak.**\` will match all riak stat entries.
+
+    Example:
+    \$ riak stat show riak.riak_kv.node.gets
+    [riak,riak_kv,node,gets]: [{count,0},{one,0}]
+
+    - 'Legacy name': The stat names used e.g. in \`$SCRIPT admin status\` can be used
+    here, but also with wildcard support. The corresponding Exometer name and
+    datapoint will be shown as well.
+
+    Example:
+    \$ riak stat show node_gets
+    == node_gets (Legacy pattern): ==
+    node_gets: 0 ([riak,riak_kv,node,gets]/one)
+
+    (Note: A single '*' is treated as a legacy name and would match all such
+    names that contain no underscores; to match all exometer names, a '.' must
+    be present, so '*.**' would work as a catch-all expression.)
+
+    Each Exometer entry has a type and a set of datapoints. A filter can be
+    given on the command line, selecting only a subset of datapoints:
+
+    \$ riak stat show riak.riak_kv.node.gets/one
+    [riak,riak_kv,node,gets]: [{one,0}]
+
+    The type can also be restricted:
+    \$ riak stat show *.**/type=duration/mean,max
+    [riak,riak_core,converge_delay]: [{mean,0},{max,0}]
+    [riak,riak_core,rebalance_delay]: [{mean,0},{max,0}]
+
+    Note how multiple datapoints are separated by comma (no space).
+
+    Showing disabled entries:
+    \$ riak stat show riak.riak_kv.node.gets
+    No matching stats
+    \$ riak stat show riak.riak_kv.node.gets/status=*
+    [riak,riak_kv,node,gets]: disabled
+    \$ riak stat show riak.riak_kv.node.gets/status=disabled
+    [riak,riak_kv,node,gets]: disabled
+"
+}
+
+stat_enable_help()
+{
+    echo "\
+
+    Exometer stats can be disabled and enabled, and this can be done
+    using \`$SCRIPT stat enable|disable <entry>\`. Disabled entries are not actively
+    updated, and have no value.
+
+    The same syntax can be used as in \`stat show\`. The requested action will be
+    performed on the matching entries.
+
+    \$ riak stat disable node_gets
+    == node_gets (Legacy pattern): ==
+    [riak,riak_kv,node,gets]: disabled
+    \$ riak stat enable node_gets
+    == node_gets (Legacy pattern): ==
+    [riak,riak_kv,node,gets]: enabled
+
+    Wildcards can be used:
+
+    \$ riak stat disable riak.riak_kv.node.*
+    [riak,riak_kv,node,gets]: disabled
+    [riak,riak_kv,node,puts]: disabled
+"
+}
+
+stat_info_help()
+{
+    echo "\
+
+    Usage: $SCRIPT stat info <entry> [-<info> [-<info>]]
+
+    Display Exometer meta-data for matching entries. Type of data can be controlled
+    with options:
+
+       info [ -name
+            | -type
+            | -module
+            | -value
+            | -cache
+            | -status
+            | -timestamp
+            | -options
+            | -ref
+            | -datapoints ] <entry>
+
+    The same entry formats can be used as for all other stat subcommands.
+
+    Example:
+    \$ riak stat info riak.riak_kv.node.gets
+    [riak,riak_kv,node,gets]:[{name,[riak,riak_kv,node,gets]},
+                              {type,spiral},
+                              {module,exometer_spiral},
+                              {value,disabled},
+                              {cache,0},
+                              {status,disabled},
+                              {timestamp,undefined},
+                              {options,[{status,disabled}]}]
+
+    \$ riak stat info -type -status riak.riak_kv.node.gets
+    [riak,riak_kv,node,gets]:[{type,spiral},
+                              {status,disabled}]
+"
+}
+
+stat_reset_help()
+{
+    echo "\
+
+    Usage: $SCRIPT stat reset <entry>
+
+    Reset matching stat entries. Only enabled entries can be reset.
+"
+}
+
+stat_metadata_help()
+{
+    echo "\
+
+    Usage $SCRIPT stat metadata <entry>= enable | disable | status
+
+    Enable or Disable the persistence of stat options and configuration in
+    the metadata. Disabling would mean the status of the stat, i.e. whether
+    it is enabled or disabled would not be persisted, meaning on reboot the
+    stat will be enabled as default.
+
+"
+}
+
+case "$1" in
+    profile)
+        shift
+        profile_admin "$@"
+        ;;
+    push)
+        shift
+        push_admin "$@"
+        ;;
+    *)
+        stat_admin "$@"
+esac
+
+exit 0

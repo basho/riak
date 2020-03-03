@@ -81,6 +81,9 @@ test : test-deps
 rel: locked-deps compile
 	$(REBAR) as rel release
 
+rel-rpm: locked-deps compile
+	$(REBAR) as rel,rpm release
+
 relclean:
 	rm -rf $(REL_DIR)
 	rm -rf rel/riak
@@ -256,11 +259,7 @@ get_dist_deps = mkdir distdir && \
 #   This enables the toplevel repository package to change names
 #   when underlying dependencies change.
 NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/null | cut -c 1-8)
-ifeq ($(REVISION), $(MAJOR_VERSION))
 PKG_ID := $(REPO_TAG)
-else
-PKG_ID = $(REPO)-$(MAJOR_VERSION)-$(NAME_HASH)
-endif
 
 # To ensure a clean build, copy the CLONEDIR at a specific tag to a new directory
 #  which will be the basis of the src tar file (and packages)
@@ -305,9 +304,13 @@ pkgclean: ballclean
 # which differs from $REVISION that is repo-<commitcount>-<commitsha>
 PKG_VERSION = $(shell echo $(PKG_ID) | sed -e 's/^$(REPO)-//')
 
-package: distdir/$(PKG_ID).tar.gz
-	ln -s distdir package
-	$(MAKE) -C package -f $(PKG_ID)/deps/node_package/Makefile
+package:
+	git archive --format=tar HEAD | gzip >rel/pkg/out/riak-$(PKG_ID).tar.gz
+	$(MAKE) -C rel/pkg/ -f Makefile
+
+packageclean:
+	rm -rf rel/pkg/out/*
+
 
 .PHONY: package
 export PKG_VERSION PKG_ID PKG_BUILD BASE_DIR ERLANG_BIN REBAR OVERLAY_VARS RELEASE
