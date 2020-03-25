@@ -49,7 +49,7 @@
 %%
 %% bin/riak
 %%
-{runner_script_dir,  "\`cd \\`dirname $0\\` && /bin/pwd\`"}.
+{runner_script_dir,  "\`! cd \\`dirname $0\\` || /bin/pwd\`"}.
 {runner_base_dir,    "{{runner_script_dir}}/.."}.
 {runner_etc_dir,     "$RUNNER_BASE_DIR/etc"}.
 {runner_log_dir,     "$RUNNER_BASE_DIR/log"}.
