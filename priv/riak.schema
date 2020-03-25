@@ -218,6 +218,12 @@
   merge
 ]}.
 
+%% TLS/SSL setting
+{mapping, "erlang.proto_dist", "vm_args.-proto_dist", [
+  %% {default, "inet_tcp"}
+  {default, "inet_tls -ssl_dist_optfile etc/riak_ssl.conf"}
+]}.
+
 {{#devrel}}
 %% Because of the 'merge' keyword in the proplist below, the docs and datatype
 %% are pulled from the leveldb schema.
