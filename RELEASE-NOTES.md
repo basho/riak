@@ -1,3 +1,18 @@
+# Riak KV 2.9.2 Release Notes
+
+This release includes:
+
+- An extension to the `node_confirms` feature so that `node_confirms` can be [tracked on GETs as well as PUTs](https://github.com/basho/riak_kv/issues/1750).  This is provided so that if an attempt to PUT with a `node_confirms` value failed, a read can be made which will only succeed if repsonses from sufficient nodes are received.  This does not confirm absolutely that the actual returned response is on sufficient nodes, but does confirm nodes are now up so that anti-entropy mechanisms will soon resolve any missing data.  
+
+- Support for building [leveldb on 32bit platforms](https://github.com/basho/leveldb/commit/14c57fe018402b3271cc8ac070fbd620b6ff7798).
+
+- Improvements to reduce the cost of journal compaction in leveled when there are large numbers of files containing mainly skeleton key-changes objects.  The cost of scoring all of these files could have a notable impact on read loads when spinning HDDs are used (although this could be mitigated by running the journal compaction less frequently, or out of hours).  Now an attempt is made to reduce this scoring cost by reading the keys to be scored in order, and scoring keys relatively close together.  This will reduce the size of the disk head movements required to complete the scoring process.
+
+- The abilty to switch the configuration of leveled [journal compaction to using `recalc` mode](https://github.com/martinsumner/leveled/issues/306), and hence avoid using skeleton key changes objects altogether.  The default remains `retain` mode, the switch from `retain` mode to enabling `recalc` is supported without any data modification (just a restart required).  There is though, no safe way other than leaving the node from the cluster (and rejoining) to revert from `recalc` back to `retain`.  The use of the `recalc` strategy [can be enabled via configuration](https://github.com/basho/riak_kv/blob/riak_kv-2.9.2/priv/riak_kv.schema#L1120-L1138).  The use of `recalc` mode has outperformed `retain` in tests, when both running journal compaction jobs, and recovering empty ledgers via journal reloads.
+
+- An improvement to the efficiency of [compaction in the leveled LSM-tree based ledger](https://github.com/martinsumner/leveled/issues/311) with large numbers of tombstones (or modified index entries), by using a `grooming` selection strategy 50% of the time when selecting files to merge rather than selecting files at random each time.  The `grooming` selection, will take a sample of files and merge the one with the most tombstones.  The use of the grooming strategy is not configurable, and will have no impact until the vast majority of SST files have been written under this release.
+
+
 # Riak KV 2.9.1 Release Notes
 
 This release adds a number of features built on top of the Tictac AAE feature made available in 2.9.0.  The new features depend on Tictac AAE being enabled, but are backend independent. The primary features of the release are:
