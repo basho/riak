@@ -9,14 +9,12 @@ Eunit: ebloom PASSED
 Eunit: eleveldb PASSED
 Eunit: exometer_core PASSED
 Eunit: folsom PASSED
-Eunit: fuse PASSED
 Eunit: getopt PASSED
 Eunit: goldrush PASSED
 Eunit: hut PASSED
 Eunit: hyper PASSED
 Eunit: ibrowse PASSED
 Eunit: kv_index_tictactree PASSED
-Eunit: kvc PASSED
 Eunit: lager_syslog PASSED
 Eunit: leveled PASSED
 Eunit: lz4 PASSED
@@ -46,4 +44,3 @@ Eunit: sext PASSED
 Eunit: sidejob PASSED
 Eunit: syslog PASSED
 Eunit: webmachine PASSED
-Eunit: yokozuna PASSED
