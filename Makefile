@@ -65,7 +65,7 @@ test-deps : compile testclean $(patsubst %, testdep-%, $(TEST_DEPS))
 	echo Tested the dependencies: $(TEST_DEPS)
 
 # Test each dependency individually in its own VM
-test : testclean test-deps
+test : testclean eunit test-deps
 	@if test -s $(TEST_LOG_FILE) ; then \
              cat $(TEST_LOG_FILE) && \
              exit `cat $(TEST_LOG_FILE) | grep FAILED | wc -l`; \
