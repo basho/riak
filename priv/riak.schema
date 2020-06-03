@@ -218,6 +218,12 @@
   merge
 ]}.
 
+%% VM emulator ignore break signal (prevent ^C / ^Gq)
+{mapping, "erlang.vm.ignore_break_signal", "vm_args.+Bi", [
+  {default, "true"},
+  merge
+]}.
+
 {{#devrel}}
 %% Because of the 'merge' keyword in the proplist below, the docs and datatype
 %% are pulled from the leveldb schema.
