@@ -6,7 +6,7 @@ BASE_DIR         = $(shell pwd)
 ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
 REBAR           ?= $(BASE_DIR)/rebar3
 OVERLAY_VARS    ?=
-TEST_IGNORE     ?= riak
+TEST_IGNORE     ?= lager riak basho_bench
 TEST_DEPS_DIR   ?= _build/test/lib
 REL_DIR         ?= _build/default/rel
 DEPS             = $(patsubst $(TEST_DEPS_DIR)/%, %, $(wildcard $(TEST_DEPS_DIR)/*))
@@ -65,14 +65,11 @@ test-deps : compile testclean $(patsubst %, testdep-%, $(TEST_DEPS))
 	echo Tested the dependencies: $(TEST_DEPS)
 
 # Test each dependency individually in its own VM
-test : test-deps
+test : testclean eunit test-deps
 	@if test -s $(TEST_LOG_FILE) ; then \
-						 cat $(TEST_LOG_FILE) | grep FAILED && \
-						 exit `cat $(TEST_LOG_FILE) | grep FAILED | wc -l`; \
-				fi
-	$(REBAR) eunit
-
-
+             cat $(TEST_LOG_FILE) && \
+             exit `cat $(TEST_LOG_FILE) | grep FAILED | wc -l`; \
+        fi
 
 
 ##
@@ -80,6 +77,7 @@ test : test-deps
 ##
 rel: locked-deps compile
 	$(REBAR) as rel release
+	cp -a _build/rel/rel/riak rel/
 
 rel-rpm: locked-deps compile
 	$(REBAR) as rel,rpm release
