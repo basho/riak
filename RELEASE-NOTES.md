@@ -4,7 +4,7 @@ This major release allows Riak to run on OTP versions 20, 21 and 22 - but is not
 
 - It is not possible to run this release on any OTP version prior to OTP 20.  Testing of node-by-node upgrades is the responsibility of Riak customers, there has been no comprehensive testing of this upgrade managed centrally.  Most customer testing of upgrades has been spent on testing an uplift from 2.2.x and OTP R16 to 3.0 and OTP 20, so this is likely to be the safest transition.
 
-- This release will not by default include Yokozuna support, but Yokozuna can be added in by reverting the commented lines in rebar.config.  There are a number of riak_test failures with Yokozuna, and these have not been resolved prior to release.  More information on broken tests can be found [here](https://github.com/basho/yokozuna/pull/767).
+- This release will not by default include Yokozuna support, but Yokozuna can be added in by reverting the commented lines in rebar.config.  There are a number of riak_test failures with Yokozuna, and these have not been resolved prior to release.  More information on broken tests can be found [here](https://github.com/basho/yokozuna/pull/767).  Upgrading with yokozuna will be a breaking change, and data my be lost due to the uplift in solr version.  Any migration will require bespoke management of any data within yokozuna.
 
 - Packaging support is not currently proven for any platform other than CentOS.  Riak will build from source on other platforms - e.g. `make locked-deps; make rel`.
 
@@ -12,11 +12,9 @@ This major release allows Riak to run on OTP versions 20, 21 and 22 - but is not
 
 - If using riak_client directly (e.g. `{ok, C} = riak:local_client()`), then please use `riak_client:F(*Args, C)` not `C:F(*Args)` when calling functions within riak_client - the latter mechanism now has issues within OTP 20+.
 
-- The `riak attach` command will now unsafely attach to the riak node, please use `riak remote_console` instead.
-
 - Instead of `riak-admin` `riak admin` should now be used for adming CLI commands.
 
-Other than the limitations listed above, the release should be functionally identical to Riak KV 2.9.2.  Throughput improvements may be seen as a result of the OTP 20 upgrade on some CPU-bound workloads.  For disk-bound workloads, additional benefit may be achieved by upgrading further to OTP 22.
+Other than the limitations listed above, the release should be functionally identical to Riak KV 2.9.3.  Throughput improvements may be seen as a result of the OTP 20 upgrade on some CPU-bound workloads.  For disk-bound workloads, additional benefit may be achieved by upgrading further to OTP 22.
 
 
 # Riak KV 2.9.2 Release Notes
