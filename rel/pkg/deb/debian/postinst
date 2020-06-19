@@ -1,26 +1,26 @@
 #!/bin/sh
-# postinst script for {{package_name}}
+# postinst script for Riak
 #
 # see: dh_installdeb(1)
 
 set -e
 
 # create group
-if ! getent group {{package_install_group}} >/dev/null; then
-        addgroup --system {{package_install_group}}
+if ! getent group riak >/dev/null; then
+        addgroup --system riak
 fi
 
 # create user
-if ! getent passwd {{package_install_user}} >/dev/null; then
-        adduser --ingroup {{package_install_group}} \
-                --home /var/lib/{{package_install_name}} \
+if ! getent passwd riak >/dev/null; then
+        adduser --ingroup riak \
+                --home /var/lib/riak \
                 --disabled-password \
                 --system --shell /bin/bash --no-create-home \
-                --gecos "{{package_install_user_desc}}" {{package_install_user}}
+                --gecos "Riak KV Database" riak
 fi
 
 for i in lib log; do
-    chown -R {{package_install_user}}:{{package_install_group}} /var/$i/{{package_install_name}}
+    chown -R riak:riak /var/$i/riak
 done
 
 case "$1" in

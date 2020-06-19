@@ -1,0 +1,10 @@
+rel/riak/lib usr/lib/riak
+rel/riak/erts* usr/lib/riak
+rel/riak/releases usr/lib/riak
+
+{{#package_commands}}
+rel/riak/bin/riak usr/bin
+{{/package_commands}}
+
+rel/riak/etc/* etc/riak
+rel/riak/data/* var/lib/riak

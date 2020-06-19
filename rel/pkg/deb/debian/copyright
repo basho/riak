@@ -1,6 +1,6 @@
 Format: http://dep.debian.net/deps/dep5
-Upstream-Name: {{package_name}}
-Upstream-Contact: {{vendor_contact_name}} <{{vendor_contact_email}}>
+Upstream-Name: riak
+Upstream-Contact: packaging@riak.com <packaging@riak.com>
 
 Files: *
 Copyright: {{copyright}}
