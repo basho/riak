@@ -11,6 +11,7 @@ TEST_DEPS_DIR   ?= _build/test/lib
 REL_DIR         ?= _build/default/rel
 DEPS             = $(patsubst $(TEST_DEPS_DIR)/%, %, $(wildcard $(TEST_DEPS_DIR)/*))
 TEST_DEPS        = $(filter-out $(TEST_IGNORE), $(DEPS))
+DEVREL_NODE     ?= dev
 
 RIAK_CORE_STAT_PREFIX = riak
 export RIAK_CORE_STAT_PREFIX
@@ -107,12 +108,12 @@ $(eval stagedevrel : $(foreach n,$(SEQ),stagedev$(n)))
 $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
 dev% : all
-	rel/gen_dev dev$* rel/vars/dev_vars.config.src rel/vars/$*_vars.config
-	$(REBAR) release -o dev/dev$* --overlay_vars rel/vars/$*_vars.config
+	rel/gen_dev $(DEVREL_NODE)$* rel/vars/dev_vars.config.src rel/vars/$*_vars.config $*
+	$(REBAR) release -o dev/$(DEVREL_NODE)$* --overlay_vars rel/vars/$*_vars.config
 
 stagedev% : all
-	rel/gen_dev dev$* rel/vars/dev_vars.config.src rel/vars/$*_vars.config
-	$(REBAR) as dev release -o dev/dev$* --overlay_vars rel/vars/$*_vars.config
+	rel/gen_dev $(DEVREL_NODE)$* rel/vars/dev_vars.config.src rel/vars/$*_vars.config $*
+	$(REBAR) as dev release -o dev/$(DEVREL_NODE)$* --overlay_vars rel/vars/$*_vars.config
 
 perfdev : all
 	perfdev/bin/riak stop || :

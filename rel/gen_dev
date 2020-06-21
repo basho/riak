@@ -5,17 +5,17 @@
 # Generate an overlay config for devNNN from vars.src and write to vars
 #
 
-NAME=$1
+NAME=${NAME:-$1}
 TEMPLATE=$2
 VARFILE=$3
+NUMBER=$4
+PORT_BASE=${PORT_BASE:-10000}
 
 ## Allocate some ports per node
 ##   .
 ##   .7 - http
 NODE="$NAME@127.0.0.1"
-
-NUMBER=${NAME##dev}
-BASE=$((10000 + 10 * $NUMBER))
+BASE=$(($PORT_BASE + 10 * $NUMBER))
 YZSOLRJMXPORT=$(($BASE + 3))
 YZSOLRPORT=$(($BASE + 4))
 CM_PORT=$(($BASE + 6))
