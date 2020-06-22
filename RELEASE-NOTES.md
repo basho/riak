@@ -1,3 +1,15 @@
+# Riak KV 2.9.3 Release Notes
+
+This release is focused on fixing a number of non-critical issues:
+
+- [An issue with Tictac AAE](https://github.com/basho/riak_kv/issues/1759) failing to clean-up state correctly on leave, which may lead to false repairs on re-joining a node (until tree rebuilds occur).
+
+- [An issue with using the leveled backend in Riak CS](https://github.com/basho/riak_kv/issues/1758) releated to the ordered object fold not respecting the passed in range and crashing on hitting an out of range value.
+
+- [An issue with duplicate PUTs](https://github.com/basho/riak_kv/issues/1754) related to retries of PUT coordinater forward requests due to lost ACKS.
+
+- [An issue with Tictac AAE startup](https://github.com/martinsumner/kv_index_tictactree/issues/74) caused by a failure of the corrupt file detection to handle a situation where file truncation means the CRC is not present.
+
 # Riak KV 2.9.2 Release Notes
 
 This release includes:
