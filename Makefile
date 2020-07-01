@@ -308,7 +308,7 @@ PKG_VERSION = $(shell echo $(PKG_ID) | sed -e 's/^$(REPO)-//')
 
 package:
 	mkdir rel/pkg/out/riak-$(PKG_ID)
-	git archive --format=tar HEAD | gzip >rel/pkg/out/riak-$(PKG_ID).tar.gz
+	git archive --format=tar HEAD | gzip >rel/pkg/out/$(PKG_ID).tar.gz
 	$(MAKE) -f rel/pkg/Makefile
 
 packageclean:

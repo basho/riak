@@ -3,13 +3,13 @@ export
 TAR_VERSION = $(shell git describe --tags | sed -e 's/\([0-9.]*\-[0-9]*\)-.*/\1/')
 
 default:
-	mkdir -p $(BASE_DIR)/rel/pkg/out/riak-$(PKG_ID)/debian
-	cp -R $(BASE_DIR)/rel/pkg/deb/debian/* $(BASE_DIR)/rel/pkg/out/riak-$(PKG_ID)/debian
+	mkdir -p $(BASE_DIR)/rel/pkg/out/$(PKG_ID)/debian
+	cp -R $(BASE_DIR)/rel/pkg/deb/debian/* $(BASE_DIR)/rel/pkg/out/$(PKG_ID)/debian
 
-	tar -xf $(BASE_DIR)/rel/pkg/out/riak-$(PKG_ID).tar.gz -C $(BASE_DIR)/rel/pkg/out/riak-$(PKG_ID)/
-	ln -sf $(BASE_DIR)/rel/pkg/out/riak-$(PKG_ID).tar.gz $(BASE_DIR)/rel/pkg/out/riak_$(TAR_VERSION).orig.tar.gz
+	tar -xf $(BASE_DIR)/rel/pkg/out/$(PKG_ID).tar.gz -C $(BASE_DIR)/rel/pkg/out/$(PKG_ID)/
+	ln -sf $(BASE_DIR)/rel/pkg/out/$(PKG_ID).tar.gz $(BASE_DIR)/rel/pkg/out/$(TAR_VERSION).orig.tar.gz
 
-	cd $(BASE_DIR)/rel/pkg/out/riak-$(PKG_ID)/; \
+	cd $(BASE_DIR)/rel/pkg/out/$(PKG_ID)/; \
 	echo $(shell pwd); \
 	dch  --create --package riak -v "$(PKG_ID)" \
              "Build from $(PKG_ID)";\
@@ -20,7 +20,7 @@ default:
 		-i -uc -us -b
 	
 	mkdir -p $(BASE_DIR)/rel/pkg/packages
-	cd $(BASE_DIR)/rel/pkg/out && mv riak_*.deb ../packages
+	cd $(BASE_DIR)/rel/pkg/out && mv *.deb ../packages
 	cd $(BASE_DIR)/rel/pkg/packages && \
 		for debfile in *.deb; do \
 			sha256sum $${debfile} > $${debfile}.sha \
