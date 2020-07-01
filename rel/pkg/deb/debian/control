@@ -1,0 +1,13 @@
+Source: riak
+Section: net
+Priority: extra
+Maintainer: packaging <packaging@riak.com>
+Build-Depends: debhelper (>= 7)
+Standards-Version: 3.9.3
+Homepage: riak.com
+
+Package: riak
+Architecture: any
+Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, logrotate, sudo
+Homepage: riak.com
+Description: Riak KV Database

@@ -1,0 +1,6 @@
+#!/bin/bash
+
+source riakpre
+
+su - riak -c "riakrun ${*}"
+

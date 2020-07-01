@@ -1,5 +1,5 @@
 #!/bin/sh
-# postrm script for {{package_name}}
+# postrm script for Riak
 #
 # see: dh_installdeb(1)
 
@@ -21,26 +21,26 @@ set -e
 
 case "$1" in
     purge)
-        rm -f /etc/default/{{package_install_name}}
-        if [ -d /var/log/{{package_install_name}} ]; then
-                rm -r /var/log/{{package_install_name}}
+        rm -f /etc/default/riak
+        if [ -d /var/log/riak ]; then
+                rm -r /var/log/riak
         fi
-        if [ -d /var/run/{{package_install_name}} ]; then
-                rm -r /var/run/{{package_install_name}}
+        if [ -d /var/run/riak ]; then
+                rm -r /var/run/riak
         fi
-        if [ -d /etc/{{package_install_name}} ]; then
-                rm -r /etc/{{package_install_name}}
+        if [ -d /etc/riak ]; then
+                rm -r /etc/riak
         fi
-        if [ -e /etc/init.d/{{package_install_name}} ]; then
-                rm  /etc/init.d/{{package_install_name}}
+        if [ -e /etc/init.d/riak ]; then
+                rm  /etc/init.d/riak
         fi
         # Remove User & Group, killing any process owned by them
-        if getent passwd {{package_install_user}} >/dev/null; then
-                pkill -u {{package_install_user}} || true
-                deluser --quiet --system {{package_install_user}}
+        if getent passwd riak >/dev/null; then
+                pkill -u riak || true
+                deluser --quiet --system riak
         fi
-        if getent group {{package_install_group}} >/dev/null; then
-                delgroup --quiet --system --only-if-empty {{package_install_group}} || true
+        if getent group riak >/dev/null; then
+                delgroup --quiet --system --only-if-empty riak || true
         fi
     ;;
 

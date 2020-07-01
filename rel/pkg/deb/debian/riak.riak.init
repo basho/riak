@@ -1,16 +1,16 @@
 #! /bin/bash
 ### BEGIN INIT INFO
-# Provides:          {{package_name}}
+# Provides:          riak
 # Required-Start:    $remote_fs $syslog
 # Required-Stop:     $remote_fs $syslog
 # Default-Start:     2 3 4 5
 # Default-Stop:      0 1 6
-# Short-Description: {{package_shortdesc}}
-# Description:       {{package_desc}}
+# Short-Description: Riak KV Database
+# Description:       Riak KV Database
 ### END INIT INFO
 
-NAME={{package_install_name}}
-DAEMON=/usr/{{bin_or_sbin}}/$NAME
+NAME=riak
+DAEMON=/usr/sbin/$NAME
 SCRIPTNAME=/etc/init.d/$NAME
 RUNDIR=/var/run/$NAME
 
@@ -25,7 +25,7 @@ RUNDIR=/var/run/$NAME
 # if no HOME was set in /etc/default/$NAME then set one here
 # to the data directory for erlexec's sake
 if [ -z "$HOME" ]; then
-    export HOME={{platform_data_dir}}
+    export HOME="/var/lib/riak"
 fi
 
 #
@@ -35,7 +35,7 @@ do_start()
 {
     if [ ! -d $RUNDIR ]; then
         mkdir $RUNDIR
-        chown {{package_install_user}}:{{package_install_group}} $RUNDIR
+        chown riak:riak $RUNDIR
     fi
     # Return
     #   0 if daemon has been started
@@ -44,8 +44,8 @@ do_start()
 
     # Startup with the appropriate user
     start-stop-daemon --start \
-        --name {{package_install_name}} \
-        --user {{package_install_user}} \
+        --name riak \
+        --user riak \
         --exec $DAEMON -- start \
         || return 2
 }
@@ -70,7 +70,7 @@ do_stop()
     start-stop-daemon --stop \
                       --quiet \
                       --retry=TERM/30/KILL/5 \
-                      --user {{package_install_user}} \
+                      --user riak \
                       --exec $ERTS_PATH/run_erl
     return $?
 }

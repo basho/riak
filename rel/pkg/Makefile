@@ -83,7 +83,7 @@ PKG_BUILD    ?= 1
 ## Call platform dependent makefile
 ostype: varcheck
 	$(if $(PKGERDIR),,$(error "Operating system '$(OS)' not supported by node_package"))
-	$(MAKE) -C $(PKGERDIR) -f Makefile
+	$(MAKE) -C $(BASE_DIR)/rel/pkg/out/riak-$(PKG_ID) -f $(BASE_DIR)/rel/pkg/$(PKGERDIR)/Makefile
 
 ## Check required settings before continuing
 varcheck:
