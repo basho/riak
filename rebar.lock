@@ -126,7 +126,7 @@
   2},
  {<<"riak_kv">>,
   {git,"git://github.com/basho/riak_kv.git",
-       {ref,"56528b78d9b8a7f6560f3b7c48e426a530dec78b"}},
+       {ref,"ccd1e369500b96f27dbfcc65d3de9ab0b0ac8846"}},
   0},
  {<<"riak_pb">>,
   {git,"git://github.com/basho/riak_pb.git",
