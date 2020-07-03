@@ -1,4 +1,10 @@
-# Riak KV 2.9.3 Release Notes
+# Riak KV 2.9.4 Release Notes
+
+This release replaces the Riak KV 2.9.3 release, extending the issue resolution in kv_index_tictactree to detect other files where file truncation means the CRC is not present.
+
+This release has a key [outstanding issue](https://github.com/basho/riak_kv/issues/1765) when Tictac AAE is used in parallel mode.  On larger clusters, this has been seen to cause significant issues, and so this feature should not be used other than in native mode, until a resolution has been found, or mitigating action has been determined.   
+
+# Riak KV 2.9.3 Release Notes - NOT TO BE RELEASED
 
 This release is focused on fixing a number of non-critical issues:
 
