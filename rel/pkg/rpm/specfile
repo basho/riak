@@ -64,7 +64,7 @@ EOF
 make rel-rpm
 
 %install
-%define relpath %{_builddir}/%{buildsubdir}/_build/rel+rpm/rel/riak
+%define relpath %{_builddir}/%{buildsubdir}/_build/rpm/rel/riak
 %define buildroot_lib %{buildroot}%{_libdir}/riak
 %define buildroot_etc %{buildroot}%{_sysconfdir}/riak
 %define buildroot_bin %{buildroot_lib}/bin
