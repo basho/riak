@@ -78,7 +78,7 @@ rel: compile
 
 rel-rpm: compile
 	$(REBAR) as rpm release
-	cp -a _build/deb/rel/riak rel/
+	cp -a _build/rpm/rel/riak rel/
 
 rel-deb: compile
 	$(REBAR) as deb release
