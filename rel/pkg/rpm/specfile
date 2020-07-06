@@ -145,7 +145,7 @@ exit 0
 %{_localstatedir}/log/riak
 %{_libdir}/*
 %defattr(-,root,root)
-%{_sysconfdir}/init.d/riak
+#%{_sysconfdir}/init.d/riak
 %dir %{_sysconfdir}/riak
 /usr/bin/*
 %config(noreplace) %{_sysconfdir}/riak/*
