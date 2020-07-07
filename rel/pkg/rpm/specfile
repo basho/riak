@@ -153,4 +153,4 @@ exit 0
 %config(noreplace) %{_sysconfdir}/riak/*
 
 %clean
-#rm -rf %{buildroot}
+rm -rf %{buildroot}

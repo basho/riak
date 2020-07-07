@@ -1,13 +1,10 @@
 #!/bin/sh
 #
-# {{package_name}}
+# riak
 #
 # chkconfig: 2345 80 30
-# description: {{package_shortdesc}}
+# description: Riak KV Database
 # processname: beam
-# config: /etc/{{package_install_name}}/app.config
-# config: /etc/{{package_install_name}}/vm.args
-# config: /etc/sysconfig/{{package_install_name}}
 #
 
 # Source function library.
@@ -15,14 +12,14 @@
 
 RETVAL=0
 PATH=/sbin:/usr/sbin:/bin:/usr/bin
-DESC="{{package_shortdesc}}"
-NAME={{package_install_name}}
-DAEMON=/usr/{{bin_or_sbin}}/$NAME
+DESC="Riak KV Database"
+NAME=riak
+DAEMON=/usr/bin/$NAME
 lockfile=/var/lock/subsys/$NAME
 pidfile=/var/run/$NAME/$NAME.pid
 
 # Check for script, config and data dirs
-[ -x /usr/{{bin_or_sbin}}/$NAME ] || exit 0
+[ -x /usr/bin/$NAME ] || exit 0
 [ -d /etc/$NAME ] || exit 0
 [ -d /var/lib/$NAME ] || exit 0
 
@@ -52,7 +49,7 @@ check_pid_status() {
 
 start() {
     # Start daemons.
-    echo -n $"Starting {{package_install_name}}: "
+    echo -n $"Starting riak: "
     $DAEMON start
     RETVAL=$?
     if [ $RETVAL -eq 0 ]; then
@@ -67,7 +64,7 @@ start() {
 
 stop() {
     # Stop daemon.
-    echo -n $"Shutting down {{package_install_name}}: "
+    echo -n $"Shutting down riak: "
     $DAEMON stop 2>/dev/null
     for n in $(seq 1 10); do
         sleep 1
@@ -89,7 +86,7 @@ stop() {
 
 hardstop() {
     echo -n $"Shutting down $NAME: "
-    su - {{package_install_user}} -c "ps -ef | grep beam.smp | grep '\-progname $NAME ' | grep -v grep | awk '{print \$2}' | xargs kill -9"
+    su - riak -c "ps -ef | grep beam.smp | grep '\-progname $NAME ' | grep -v grep | awk '{print \$2}' | xargs kill -9"
     for n in $(seq 1 10); do
         sleep 1
         check_pid_status
