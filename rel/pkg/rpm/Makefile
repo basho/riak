@@ -15,9 +15,9 @@ default:
 		--define "_revision $(PKG_VERSION)" \
 		--define "_version $(PKG_VERSION_NO_H)" \
 		--define "_release $(PKG_BUILD)" \
-		--define "_tarname riak-$(PKG_ID).tar.gz" \
-		--define "_tarname_base riak-$(PKG_ID)" \
-		-ba specfile
+		--define "_tarname $(PKG_ID).tar.gz" \
+		--define "_tarname_base $(PKG_ID)" \
+		-ba $(BASE_DIR)/rel/pkg/rpm/specfile
 	cd $(BASE_DIR)/rel/pkg/out/packages && \
 		for rpmfile in *.rpm; do \
 			sha256sum $${rpmfile} > $${rpmfile}.sha \
