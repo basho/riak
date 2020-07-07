@@ -96,8 +96,8 @@ mkdir -p %{buildroot}%{_localstatedir}/lib/riak
 cp -R %{relpath}/data/* \
       %{buildroot}%{_localstatedir}/lib/riak
 
-#mkdir -p %{buildroot}%{_sysconfdir}/init.d
-#install -m755 %{_topdir}/init.script  %{buildroot}%{_sysconfdir}/init.d/riak
+mkdir -p %{buildroot}%{_sysconfdir}/init.d
+install -m755 %{relpath}/etc/init.d/init.script  %{buildroot}%{_sysconfdir}/init.d/riak
 
 # Needed to work around check-rpaths which seems to be hardcoded into recent
 # RPM releases
@@ -147,7 +147,7 @@ exit 0
 %{_localstatedir}/log/riak
 %{_libdir}/*
 %defattr(-,root,root)
-#%{_sysconfdir}/init.d/riak
+%{_sysconfdir}/init.d/riak
 %dir %{_sysconfdir}/riak
 /usr/bin/*
 %config(noreplace) %{_sysconfdir}/riak/*
