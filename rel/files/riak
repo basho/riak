@@ -5,40 +5,44 @@ RELEASE_ROOT_DIR="${RELEASE_ROOT_DIR:-{{ runner_base_dir }}}"
 PID_DIR={{pid_dir}}
 COMMAND={{platform_bin_dir}}/riak
 RUNNER_LOG_DIR={{platform_log_dir}}
+RELX_CONFIG_PATH=${RUNNER_GEN_DIR}/sys.config
+VMARGS_PATH=${RUNNER_GEN_DIR}/vm.args
+PATHS="RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR}"
 
 
+# On first running the sys.config and vm.args will not be a link
+# as cfconfig has not yet been run as a pre_start hook.  If there's no
+# link use the default for now
+if [ ! -L $RELX_CONFIG_PATH]; then
+    cp $RELEASE_ROOT_DIR/releases/{{release_version}}/sys.config $RELX_CONFIG_PATH
+fi
+if [ ! -L $VMARGS_PATH]; then
+    cp $RELEASE_ROOT_DIR/releases/{{release_version}}/vm.args $VMARGS_PATH
+fi
 
-# Switch (+) required on systemd to ensure this is run as root
-# as ExecStartPre
+# When running as a service, running as riak not as root, and systemd has created PID folder
 if [[ $EUID -ne 0 ]]; then
-   echo "You need to be root or use sudo to run this command." 
-   exit 1
+    case "$1" in
+        start|console|foreground)
+            ${PATHS} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches
+            ;;
+        *)
+            ${PATHS} ${COMMAND} ${*}
+            ;;
+    esac
+else
+    if [ ! -d $PID_DIR ]; then
+        mkdir $PID_DIR
+        chown riak:riak $PID_DIR
+    fi
+    case "$1" in
+        start|console|foreground)
+            su - riak -c "${PATHS} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches"
+            ;;
+        *)
+            su - riak -c "${PATHS} ${COMMAND} ${*}"
+            ;;
+    esac
 fi
-
-# If calling ping, admin, stop etc - this has been started and so
-# these files should have been created by cf_config
-if [ -e "$RUNNER_GEN_DIR/vm.args" ]; then
-    ln -sf $RUNNER_GEN_DIR/vm.args $RELEASE_ROOT_DIR/vm.args
-fi
-
-if [ -e "$RUNNER_GEN_DIR/sys.config" ]; then
-    ln -sf $RUNNER_GEN_DIR/sys.config $RELEASE_ROOT_DIR/sys.config
-fi
-
-# Expect this to have been created by systemd, unless
-# user has called sudo /usr/sbin/riak directly
-if [ ! -d $PID_DIR ]; then
-    mkdir $PID_DIR
-    chown riak:riak $PID_DIR
-fi
-
-case "$1" in
-	start|console|foreground)
-		su - riak -c "RELX_CONFIG_PATH=${RUNNER_GEN_DIR} VMARGS_PATH=${RUNNER_GEN_DIR} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches"
-		;;
-	*)
-		su - riak -c "RELX_CONFIG_PATH=${RUNNER_GEN_DIR} VMARGS_PATH=${RUNNER_GEN_DIR} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*}"
-		;;
-esac
 
 
