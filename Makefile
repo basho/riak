@@ -110,7 +110,7 @@ $(eval devrel : $(foreach n,$(SEQ),dev$(n)))
 
 dev% : all
 	rel/gen_dev dev$* rel/vars/dev_vars.config.src rel/vars/$*_vars.config
-	$(REBAR) release -o dev/dev$* --overlay_vars rel/vars/$*_vars.config
+	$(REBAR) as dev release -o dev/dev$* --overlay_vars rel/vars/$*_vars.config
 
 stagedev% : all
 	rel/gen_dev dev$* rel/vars/dev_vars.config.src rel/vars/$*_vars.config
