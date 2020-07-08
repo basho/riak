@@ -7,7 +7,6 @@ COMMAND={{platform_bin_dir}}/riak
 RUNNER_LOG_DIR={{platform_log_dir}}
 RELX_CONFIG_PATH=${RUNNER_GEN_DIR}/sys.config
 VMARGS_PATH=${RUNNER_GEN_DIR}/vm.args
-PATHS="RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR}"
 
 
 # On first running the sys.config and vm.args will not be a link
@@ -24,10 +23,10 @@ fi
 if [[ $EUID -ne 0 ]]; then
     case "$1" in
         start|console|foreground)
-            ${PATHS} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches
+            RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches
             ;;
         *)
-            ${PATHS} ${COMMAND} ${*}
+            RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*}
             ;;
     esac
 else
@@ -39,10 +38,10 @@ else
     fi
     case "$1" in
         start|console|foreground)
-            su - riak -c "${PATHS} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches"
+            su - riak -c "RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches"
             ;;
         *)
-            su - riak -c "${PATHS} ${COMMAND} ${*}"
+            su - riak -c "RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*}"
             ;;
     esac
 fi
