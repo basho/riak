@@ -13,10 +13,10 @@ PATHS="RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LO
 # On first running the sys.config and vm.args will not be a link
 # as cfconfig has not yet been run as a pre_start hook.  If there's no
 # link use the default for now
-if [ ! -L $RELX_CONFIG_PATH]; then
+if [ ! -L $RELX_CONFIG_PATH ]; then
     cp $RELEASE_ROOT_DIR/releases/{{release_version}}/sys.config $RELX_CONFIG_PATH
 fi
-if [ ! -L $VMARGS_PATH]; then
+if [ ! -L $VMARGS_PATH ]; then
     cp $RELEASE_ROOT_DIR/releases/{{release_version}}/vm.args $VMARGS_PATH
 fi
 
@@ -31,6 +31,8 @@ if [[ $EUID -ne 0 ]]; then
             ;;
     esac
 else
+    # In this case we're running sudo riak - so have root access, but cannot rely
+    # systemd having created the PID dir, and need to sudo to the riak user
     if [ ! -d $PID_DIR ]; then
         mkdir $PID_DIR
         chown riak:riak $PID_DIR
