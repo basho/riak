@@ -3,9 +3,8 @@ Description=Riak KV Database
 
 [Service]
 User=riak
-ExecStartPre=+/usr/sbin/riakpre
-ExecStart=/usr/sbin/riakrun start
-ExecStop=/usr/sbin/riakrun stop
+ExecStart=/usr/sbin/riak start
+ExecStop=/usr/sbin/riak stop
 Type=forking
 PIDFile=/run/riak/riak.pid
 EnvironmentFile=-/etc/default/riak

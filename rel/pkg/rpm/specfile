@@ -88,8 +88,6 @@ if [ -d %{relpath}/bin ]; then \
 fi
 
 cp %{relpath}/usr/bin/riak %{buildroot}%{_bindir}
-cp %{relpath}/usr/bin/riakpre %{buildroot}%{_bindir}
-cp %{relpath}/usr/bin/riakrun %{buildroot}%{_bindir}
 cp -R %{relpath}/etc/* %{buildroot_etc}
 
 mkdir -p %{buildroot}%{_localstatedir}/lib/riak
