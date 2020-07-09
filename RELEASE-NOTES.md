@@ -6,7 +6,7 @@ This major release allows Riak to run on OTP versions 20, 21 and 22 - but is not
 
 - This release will not by default include Yokozuna support, but Yokozuna can be added in by reverting the commented lines in rebar.config.  There are a number of riak_test failures with Yokozuna, and these have not been resolved prior to release.  More information on broken tests can be found [here](https://github.com/basho/yokozuna/pull/767).  Upgrading with yokozuna will be a breaking change, and data my be lost due to the uplift in solr version.  Any migration will require bespoke management of any data within yokozuna.
 
-- Packaging support is not currently proven for any platform other than CentOS.  Riak will build from source on other platforms - e.g. `make locked-deps; make rel`.
+- Packaging support is not currently proven for any platform other than CentOS, Debian or Ubuntu.  Riak will build from source on other platforms - e.g. `make locked-deps; make rel`.
 
 - As part of the release there has been a comprehensive review of all tests across the dependencies (riak_test, eunit, eqc and pulse), as well as removal of all dialyzer and xref warnings and addition where possible of travis tests.  The intention is to continue to raise the bar on test stability before accepting Pull Requests going forward.
 
@@ -14,7 +14,25 @@ This major release allows Riak to run on OTP versions 20, 21 and 22 - but is not
 
 - Instead of `riak-admin` `riak admin` should now be used for adming CLI commands.
 
-Other than the limitations listed above, the release should be functionally identical to Riak KV 2.9.3.  Throughput improvements may be seen as a result of the OTP 20 upgrade on some CPU-bound workloads.  For disk-bound workloads, additional benefit may be achieved by upgrading further to OTP 22.
+Other than the limitations listed above, the release should be functionally identical to Riak KV 2.9.4.  Throughput improvements may be seen as a result of the OTP 20 upgrade on some CPU-bound workloads.  For disk-bound workloads, additional benefit may be achieved by upgrading further to OTP 22.
+
+# Riak KV 2.9.4 Release Notes
+
+This release replaces the Riak KV 2.9.3 release, extending the issue resolution in kv_index_tictactree to detect other files where file truncation means the CRC is not present.
+
+This release has a key [outstanding issue](https://github.com/basho/riak_kv/issues/1765) when Tictac AAE is used in parallel mode.  On larger clusters, this has been seen to cause significant issues, and so this feature should not be used other than in native mode.   
+
+# Riak KV 2.9.3 Release Notes - NOT TO BE RELEASED
+
+This release is focused on fixing a number of non-critical issues:
+
+- [An issue with Tictac AAE](https://github.com/basho/riak_kv/issues/1759) failing to clean-up state correctly on node leaves, which may lead to false repairs on re-joining a node (until tree rebuilds occur).
+
+- [An issue with using the leveled backend in Riak CS](https://github.com/basho/riak_kv/issues/1758) releated to the ordered object fold not respecting the passed in range and crashing on hitting an out of range value.
+
+- [An issue with duplicate PUTs](https://github.com/basho/riak_kv/issues/1754) related to retries of PUT coordinater forward requests due to lost ACKs.
+
+- [An issue with Tictac AAE startup](https://github.com/martinsumner/kv_index_tictactree/issues/74) caused by a failure of the corrupt file detection to handle a situation where file truncation means the CRC is not present.
 
 
 # Riak KV 2.9.2 Release Notes
@@ -30,7 +48,6 @@ This release includes:
 - The abilty to switch the configuration of leveled [journal compaction to using `recalc` mode](https://github.com/martinsumner/leveled/issues/306), and hence avoid using skeleton key changes objects altogether.  The default remains `retain` mode, the switch from `retain` mode to enabling `recalc` is supported without any data modification (just a restart required).  There is though, no safe way other than leaving the node from the cluster (and rejoining) to revert from `recalc` back to `retain`.  The use of the `recalc` strategy [can be enabled via configuration](https://github.com/basho/riak_kv/blob/riak_kv-2.9.2/priv/riak_kv.schema#L1120-L1138).  The use of `recalc` mode has outperformed `retain` in tests, when both running journal compaction jobs, and recovering empty ledgers via journal reloads.
 
 - An improvement to the efficiency of [compaction in the leveled LSM-tree based ledger](https://github.com/martinsumner/leveled/issues/311) with large numbers of tombstones (or modified index entries), by using a `grooming` selection strategy 50% of the time when selecting files to merge rather than selecting files at random each time.  The `grooming` selection, will take a sample of files and merge the one with the most tombstones.  The use of the grooming strategy is not configurable, and will have no impact until the vast majority of SST files have been re-written under this release.
-
 
 # Riak KV 2.9.1 Release Notes
 
