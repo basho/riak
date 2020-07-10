@@ -87,7 +87,7 @@ if [ -d %{relpath}/bin ]; then \
    cd -
 fi
 
-cp %{relpath}/usr/sbin/riak %{buildroot}%{_sbindir}
+cp %{relpath}/usr/bin/riak %{buildroot}%{_sbindir}
 cp -R %{relpath}/etc/* %{buildroot_etc}
 
 mkdir -p %{buildroot}%{_localstatedir}/lib/riak
