@@ -72,7 +72,7 @@ make rel-rpm
 mkdir -p %{buildroot_etc}
 mkdir -p %{buildroot_lib}
 mkdir -p %{buildroot_bin}
-mkdir -p %{buildroot}%{_bindir}
+mkdir -p %{buildroot}%{_sbindir}
 mkdir -p %{buildroot}%{_localstatedir}/lib/riak
 mkdir -p %{buildroot}%{_localstatedir}/log/riak
 
@@ -87,7 +87,7 @@ if [ -d %{relpath}/bin ]; then \
    cd -
 fi
 
-cp %{relpath}/usr/bin/riak %{buildroot}%{_bindir}
+cp %{relpath}/usr/sbin/riak %{buildroot}%{_sbindir}
 cp -R %{relpath}/etc/* %{buildroot_etc}
 
 mkdir -p %{buildroot}%{_localstatedir}/lib/riak
@@ -147,7 +147,7 @@ exit 0
 %defattr(-,root,root)
 %{_sysconfdir}/init.d/riak
 %dir %{_sysconfdir}/riak
-/usr/bin/*
+/usr/sbin/*
 %config(noreplace) %{_sysconfdir}/riak/*
 
 %clean
