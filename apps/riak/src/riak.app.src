@@ -14,13 +14,24 @@
        os_mon,
        crypto,
        riak,
+       canola,
        cuttlefish,
        runtime_tools,
        lager_syslog,
-       cluster_info,
+       riak_auth_mods,
+	   riak_sysmon,
+       eleveldb,
+       pbkdf2,
+       poolboy,
+       exometer_core,
+       clique,
+	   cluster_info,
+	   basho_stats,
+	   cluster_info,
+       riak_ensemble,
+       riak_pb,
        riak_kv,
-       riak_repl,
-       riak_auth_mods
+       riak_repl
        ]},
    {env, []}
   ]}.
