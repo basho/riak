@@ -1,3 +1,25 @@
+# Riak KV 2.9.6 Release Notes
+
+This release improves the stability of Riak when running with Tictac AAE in parallel mode:
+
+- The aae_exchange schedule will back-off when exchanges begin to timeout due to pressure in the system.
+
+- The aae_runner now has a size-limited queue of snapshots for handling exchange fetch_clock queries.
+
+- The aae tree rebuilds now take a snapshot at the point the rebuild is de-queued for work, not at the point the rebuild is added to the queue.
+
+- The loading process will yield when applying the backlog of changes to allow for other messages to interleave (that may otherwise timeout).
+
+- The aae sub-system will listen to back-pressure signals from the aae_keystore, and ripple a response to slow-down upstream services (and ultimately the riak_kv_vnode).
+
+- It is possible to accelerate and decelerate AAE repairs by setting riak_kv application variables during running (e.e.g `tictacaae_exchangetick`, `tictacaae_maxresults`), and also log AAE-prompted repairs using `log_readrepair`.
+
+The system is now stable under specific load tests designed to trigger AAE failure.  However, parallel mode should still not be used in production systems unless it has been subject to environment-specific load testing.
+
+# Riak KV 2.9.5 Release Notes
+
+Withdrawn.
+
 # Riak KV 2.9.4 Release Notes
 
 This release replaces the Riak KV 2.9.3 release, extending the issue resolution in kv_index_tictactree to detect other files where file truncation means the CRC is not present.
