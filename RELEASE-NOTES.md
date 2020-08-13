@@ -12,7 +12,7 @@ This release improves the stability of Riak when running with Tictac AAE in para
 
 - The aae sub-system will listen to back-pressure signals from the aae_keystore, and ripple a response to slow-down upstream services (and ultimately the riak_kv_vnode).
 
-- It is possible to accelerate and decelerate AAE repairs by setting riak_kv application variables during running (e.e.g `tictacaae_exchangetick`, `tictacaae_maxresults`), and also log AAE-prompted repairs using `log_readrepair`.
+- It is possible to accelerate and decelerate AAE repairs by setting riak_kv application variables during running (e.g `tictacaae_exchangetick`, `tictacaae_maxresults`), and also log AAE-prompted repairs using `log_readrepair`.
 
 The system is now stable under specific load tests designed to trigger AAE failure.  However, parallel mode should still not be used in production systems unless it has been subject to environment-specific load testing.
 
