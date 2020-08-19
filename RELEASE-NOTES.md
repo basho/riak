@@ -12,9 +12,9 @@ This major release allows Riak to run on OTP versions 20, 21 and 22 - but is not
 
 - If using riak_client directly (e.g. `{ok, C} = riak:local_client()`), then please use `riak_client:F(*Args, C)` not `C:F(*Args)` when calling functions within riak_client - the latter mechanism now has issues within OTP 20+.
 
-- Instead of `riak-admin` `riak admin` should now be used for adming CLI commands.
+- Instead of `riak-admin` `riak admin` should now be used for admin CLI commands.
 
-Other than the limitations listed above, the release should be functionally identical to Riak KV 2.9.4.  Throughput improvements may be seen as a result of the OTP 20 upgrade on some CPU-bound workloads.  For disk-bound workloads, additional benefit may be achieved by upgrading further to OTP 22.
+Other than the limitations listed above, the release should be functionally identical to Riak KV 2.9.7.  Throughput improvements may be seen as a result of the OTP 20 upgrade on some CPU-bound workloads.  For disk-bound workloads, additional benefit may be achieved by upgrading further to OTP 22.
 
 # Riak KV 2.9.7 Release Notes
 
