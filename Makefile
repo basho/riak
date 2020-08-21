@@ -4,6 +4,7 @@ PKG_REVISION    ?= $(shell git describe --tags 2>/dev/null)
 PKG_BUILD        = 1
 BASE_DIR         = $(shell pwd)
 ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
+OTP_VER          = $(shell echo $(ERLANG_BIN) | rev | cut -d "/" -f 2 | rev)
 REBAR           ?= $(BASE_DIR)/rebar3
 OVERLAY_VARS    ?=
 TEST_IGNORE     ?= lager riak basho_bench
@@ -219,7 +220,7 @@ MAJOR_VERSION	?= $(shell echo $(REVISION) | sed -e 's/\([0-9.]*\)-.*/\1/')
 #   This enables the toplevel repository package to change names
 #   when underlying dependencies change.
 NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/null | cut -c 1-8)
-PKG_ID := $(REPO_TAG)
+PKG_ID := "$(REPO_TAG)_OTP_$(OTP_VER)"
 
 ##
 ## Packaging targets
