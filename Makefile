@@ -220,7 +220,7 @@ MAJOR_VERSION	?= $(shell echo $(REVISION) | sed -e 's/\([0-9.]*\)-.*/\1/')
 #   This enables the toplevel repository package to change names
 #   when underlying dependencies change.
 NAME_HASH = $(shell git hash-object distdir/$(CLONEDIR)/$(MANIFEST_FILE) 2>/dev/null | cut -c 1-8)
-PKG_ID := "$(REPO_TAG)_OTP_$(OTP_VER)"
+PKG_ID := "$(REPO_TAG)-OTP$(OTP_VER)"
 
 ##
 ## Packaging targets
