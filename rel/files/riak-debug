@@ -602,7 +602,7 @@ fi
 if [ 1 -eq $get_extracmds ]; then
     mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/.info
     cd "${start_dir}"/"${debug_dir}"/commands
-    dump riak_vnode_status "$riak_bin_dir"/riak admin vnode-status
+    dump riak_vnode_status "$riak_sbin_dir"/riak admin vnode-status
 fi
 
 ###
