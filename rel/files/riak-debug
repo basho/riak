@@ -812,7 +812,6 @@ if [ 1 -eq $get_logs ]; then
                 # Take a du listing of the bitcask directory for size checking.
                 # This info is included in the ls, but parsing ls is not recommended.
                 dump du_bitcask_dir du "$dr"/*
-            fi
             elif [ 'riak_kv_leveled_backend' = "$backend" ]; then
                 dr="`epath "riak_kv multi_backend $b riak_kv_leveled_backend data_root" "$riak_epaths" |
                     sed -e 's/^\"//' -e 's/\".*$//'`"
