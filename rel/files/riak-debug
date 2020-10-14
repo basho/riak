@@ -23,7 +23,7 @@
 ## -------------------------------------------------------------------
 
 # If you start to think "We should execute some Erlang in here", then go work
-# on Riaknostic, which is called with `riak-admin diag` below.
+# on Riaknostic, which is called with `riak admin diag` below.
 
 # /bin/sh on Solaris is not a POSIX compatible shell, but /usr/bin/ksh is.
 if [ `uname -s` = 'SunOS' -a "${POSIX_SHELL}" != "true" ]; then
@@ -140,6 +140,7 @@ RUNNER_BASE_DIR={{runner_base_dir}}
 riak_base_dir={{runner_base_dir}}
 riak_bin_dir={{runner_script_dir}}
 riak_etc_dir={{runner_etc_dir}}
+riak_sbin_dir=/usr/sbin
 
 get_cfgs=0
 get_ssl_certs=0
@@ -153,7 +154,7 @@ verbose_output=0
 
 ## Use riak config generate to set $riak_app_config and
 ## $riak_vm_args
-gen_result=`"$riak_bin_dir"/riak config generate | cut -d' ' -f 3,5`
+gen_result=`"$riak_bin_dir"/riak chkconfig | grep -v "OK" | cut -d' ' -f 2,4`
 riak_app_config=`echo $gen_result | cut -d' ' -f 1`
 generated_config_dir=`dirname "$riak_app_config"`
 riak_vm_args=`echo $gen_result | cut -d' ' -f 2`
@@ -467,26 +468,32 @@ if [ 1 -eq $get_riakcmds ]; then
     mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/.info
     cd "${start_dir}"/"${debug_dir}"/commands
 
-    # Note that 'riak-admin status' and 'riak-admin transfers' are heavy
+    # Note that 'riak admin status' and 'riak admin transfers' are heavy
     # commands on Riak<=1.2.0 and should not be executed in a loop against all
     # nodes in a cluster.
 
-    dump riak_ping "$riak_bin_dir"/riak ping
-    dump riak_version "$riak_bin_dir"/riak version
-    dump riak_member_status "$riak_bin_dir"/riak-admin member-status
-    dump riak_ring_status "$riak_bin_dir"/riak-admin ring-status
-    dump riak_status "$riak_bin_dir"/riak-admin status
-    dump riak_transfers "$riak_bin_dir"/riak-admin transfers
-    dump riak_aae_status "$riak_bin_dir"/riak-admin aae-status
-    dump riak_search_aae_status "$riak_bin_dir"/riak-admin search aae-status
-    dump riak_diag "$riak_bin_dir"/riak-admin diag
-    dump riak_repl_status "$riak_bin_dir"/riak-repl status
-    dump riak_repl_connections "$riak_bin_dir"/riak-repl connections
-    dump riak_repl_clusterstats "$riak_bin_dir"/riak-repl clusterstats
-    dump riak_repl_modes "$riak_bin_dir"/riak-repl modes
+    dump riak_ping "$riak_sbin_dir"/riak ping
+    dump riak_version "$riak_sbin_dir"/riak version
+    dump riak_member_status "$riak_sbin_dir"/riak admin member-status
+    dump riak_ring_status "$riak_sbin_dir"/riak admin ring-status
+    dump riak_status "$riak_sbin_dir"/riak admin status
+    dump riak_transfers "$riak_sbin_dir"/riak admin transfers
+    dump riak_search_aae_status "$riak_sbin_dir"/riak admin search aae-status
+    dump riak_diag "$riak_sbin_dir"/riak admin diag
+    dump riak_repl_status "$riak_sbin_dir"/riak repl status
+    dump riak_repl_connections "$riak_sbin_dir"/riak repl connections
+    dump riak_repl_clusterstats "$riak_sbin_dir"/riak repl clusterstats
+    dump riak_repl_modes "$riak_sbin_dir"/riak repl modes
 
     # Make a flat, easily searchable version of the app.config settings
     riak_epaths=`make_app_epaths "${riak_app_config}"`
+
+    # If Yokozuna is not installed, $yz_test will be null.
+    yz_test="`epath 'yokozuna root_dir' "$riak_epaths" | sed -e 's/^\"//' -e 's/\".*$//'`"
+    # Only execute the search aae_statis command if $yz_test is not null.
+    if [ -n "$yz_test" ]; then
+        dump riak_search_aae_status "$riak_sbin_dir"/riak admin search aae-status
+    fi
 
     # Get one http listener (epath might output a newline-separated list).
     riak_api_http="`epath 'riak_api http' "$riak_epaths" | sed -e 's/^\"//' -e 's/\" /:/' | head -n1`"
@@ -532,55 +539,59 @@ if [ 1 -eq $get_yzcmds ]; then
     [ -z "$riak_epaths" ] && riak_epaths=`make_app_epaths "${riak_app_config}"`
 
     yz_dir="`epath 'yokozuna root_dir' "$riak_epaths" | sed -e 's/^\"//' -e 's/\".*$//'`"
-    if [ '/' != `echo "$yz_dir" | cut -c1` ]; then
-        # relative path. prepend base dir
-        yz_dir="$riak_base_dir"/"$yz_dir"
-    fi
+    # If Yokozuna is not installed, $yz_dir will be null and cause errors.
+    # Only execute the Yokozuna commands if $yz_dir is not null.
+    if [ -n "$yz_dir" ]; then
+        if [ '/' != `echo "$yz_dir" | cut -c1` ]; then
+            # relative path. prepend base dir
+            yz_dir="$riak_base_dir"/"$yz_dir"
+        fi
 
-    yz_aae_dir="`epath 'yokozuna anti_entropy_data_dir' "$riak_epaths" | sed -e 's/^\"//' -e 's/\".*$//'`"
-    if [ '/' != `echo "$yz_aae_dir" | cut -c1` ]; then
-        # relative path. prepend base dir
-        yz_aae_dir="$riak_base_dir"/"$yz_aae_dir"
-    fi
+        yz_aae_dir="`epath 'yokozuna anti_entropy_data_dir' "$riak_epaths" | sed -e 's/^\"//' -e 's/\".*$//'`"
+        if [ '/' != `echo "$yz_aae_dir" | cut -c1` ]; then
+            # relative path. prepend base dir
+            yz_aae_dir="$riak_base_dir"/"$yz_aae_dir"
+        fi
 
-    if [ -d "$yz_dir" ]; then
-        mkdir_or_die "${start_dir}"/"${debug_dir}"/yokozuna/.info
-        cd "${start_dir}"/"${debug_dir}"/yokozuna
+        if [ -d "$yz_dir" ]; then
+            mkdir_or_die "${start_dir}"/"${debug_dir}"/yokozuna/.info
+            cd "${start_dir}"/"${debug_dir}"/yokozuna
 
-        # grab a listing of the yokozuna directory
-        dump ls_yokozuna_dir ls -lhR "$yz_dir"
+            # grab a listing of the yokozuna directory
+            dump ls_yokozuna_dir ls -lhR "$yz_dir"
 
-        # Take a du listing of the yokozuna directory for size checking.
-        # This info is included in the ls, but parsing ls is not recommended.
-        dump du_yokozuna_dir du "$yz_dir"/*
+            # Take a du listing of the yokozuna directory for size checking.
+            # This info is included in the ls, but parsing ls is not recommended.
+            dump du_yokozuna_dir du "$yz_dir"/*
 
-        # tar up every <schema>/conf directory. This will assure we capture the
-        # schema (regardless of name/extension).
-        cd "$yz_dir"
-        for f in `ls -1 .`; do
-            if [ -d "$f"  -a  -d "$f"/conf ]; then
-               tar -czf ""${start_dir}"/"${debug_dir}"/yokozuna/${f}_conf.tar.gz" "$f"/conf
-            fi
-        done
-    fi
+            # tar up every <schema>/conf directory. This will assure we capture the
+            # schema (regardless of name/extension).
+            cd "$yz_dir"
+            for f in `ls -1 .`; do
+                if [ -d "$f"  -a  -d "$f"/conf ]; then
+                   tar -czf ""${start_dir}"/"${debug_dir}"/yokozuna/${f}_conf.tar.gz" "$f"/conf
+                fi
+            done
+        fi
 
-    if [ -d "$yz_aae_dir" ]; then
-        mkdir_or_die "${start_dir}"/"${debug_dir}"/yokozuna/anti_entropy/.info
-        cd "${start_dir}"/"${debug_dir}"/yokozuna/anti_entropy
+        if [ -d "$yz_aae_dir" ]; then
+            mkdir_or_die "${start_dir}"/"${debug_dir}"/yokozuna/anti_entropy/.info
+            cd "${start_dir}"/"${debug_dir}"/yokozuna/anti_entropy
 
-        # Take a listing of the yz_aae_dir directory for reference
-        dump ls_yokozuna_anti_entropy_dir ls -lhR "$yz_aae_dir"
+            # Take a listing of the yz_aae_dir directory for reference
+            dump ls_yokozuna_anti_entropy_dir ls -lhR "$yz_aae_dir"
 
-        # Take a du listing of the yz_aae_dir directory for size checking.
-        # This info is included in the ls, but parsing ls is not recommended.
-        dump du_yokozuna_anti_entropy_dir du "$yz_aae_dir"/*
+            # Take a du listing of the yz_aae_dir directory for size checking.
+            # This info is included in the ls, but parsing ls is not recommended.
+            dump du_yokozuna_anti_entropy_dir du "$yz_aae_dir"/*
 
-        # Mirror the directory, only copying files that match the pattern
-        cd "$yz_aae_dir"
-        find . -type f -name 'LOG*' -exec sh -c '
-            mkdir -p "$0/${1%/*}";
-            cp "$1" "$0/$1"
-            ' "${start_dir}"/"${debug_dir}"/yokozuna/anti_entropy {} \;
+            # Mirror the directory, only copying files that match the pattern
+            cd "$yz_aae_dir"
+            find . -type f -name 'LOG*' -exec sh -c '
+                mkdir -p "$0/${1%/*}";
+                cp "$1" "$0/$1"
+                ' "${start_dir}"/"${debug_dir}"/yokozuna/anti_entropy {} \;
+        fi
     fi
 fi
 
@@ -591,7 +602,7 @@ fi
 if [ 1 -eq $get_extracmds ]; then
     mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/.info
     cd "${start_dir}"/"${debug_dir}"/commands
-    dump riak_vnode_status "$riak_bin_dir"/riak-admin vnode-status
+    dump riak_vnode_status "$riak_bin_dir"/riak admin vnode-status
 fi
 
 ###
@@ -716,6 +727,30 @@ if [ 1 -eq $get_logs ]; then
         # This info is included in the ls, but parsing ls is not recommended.
         dump du_bitcask_dir du "$bitcask_dir"/*
 
+    elif [ 'riak_kv_leveled_backend' = "$backend" ]; then
+        leveled_dir="`epath 'leveled data_root' "$riak_epaths" | sed -e 's/^\"//' -e 's/\".*$//'`"
+
+        if [ '/' != `echo "$bitcask_dir" | cut -c1` ]; then
+            # relative path. prepend base dir
+            leveled_dir="$riak_base_dir"/"$leveled_dir"
+        fi
+
+        if [ ! -d "$bitcask_dir" ]; then
+            echoerr "Unable to locate Leveled data directory. Aborting."
+            echoerr "Using leveled data_root: $leveled_dir"
+            exit 1
+        fi
+
+        mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/leveled/.info
+        cd "${start_dir}"/"${debug_dir}"/logs/leveled
+
+        # Take a listing of the bitcask directory for reference
+        dump ls_leveled_dir ls -lhR "$leveled_dir"
+
+        # Take a du listing of the bitcask directory for size checking.
+        # This info is included in the ls, but parsing ls is not recommended.
+        dump du_leveled_dir du "$leveled_dir"/*
+
     # Walk multi-backends and collect whatever information is there to collect.
     elif [ 'riak_kv_multi_backend' = "$backend" ] ||
          [ 'riak_cs_kv_multi_backend' = "$backend" ] ; then
@@ -778,6 +813,31 @@ if [ 1 -eq $get_logs ]; then
                 # This info is included in the ls, but parsing ls is not recommended.
                 dump du_bitcask_dir du "$dr"/*
             fi
+            elif [ 'riak_kv_leveled_backend' = "$backend" ]; then
+                dr="`epath "riak_kv multi_backend $b riak_kv_leveled_backend data_root" "$riak_epaths" |
+                    sed -e 's/^\"//' -e 's/\".*$//'`"
+
+                if [ '/' != `echo "$dr" | cut -c1` ]; then
+                    # relative path. prepend base dir
+                    dr="$riak_base_dir"/"$dr"
+                fi
+
+                if [ ! -d "${dr}" ]; then
+                    echoerr "Unable to locate $b Leveled data directory. Aborting."
+                    echoerr "Using riak_kv_leveled_backend data_root: $dr"
+                    exit 1
+                fi
+
+                mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/leveled-${b}/.info
+                cd "${start_dir}"/"${debug_dir}"/logs/leveled-${b}
+
+                # Take a listing of the bitcask directory for reference
+                dump ls_leveled_dir ls -lhR "$dr"
+
+                # Take a du listing of the bitcask directory for size checking.
+                # This info is included in the ls, but parsing ls is not recommended.
+                dump du_leveled_dir du "$dr"/*
+            fi
         done
     fi
 
@@ -810,6 +870,36 @@ if [ 1 -eq $get_logs ]; then
             mkdir -p "$0/${1%/*}";
             cp "$1" "$0/$1"
             ' "${start_dir}"/"${debug_dir}"/logs/anti_entropy {} \;
+    fi
+    # Gather AAE logs, listing, sizing information, etc..
+    # Calling `epath 'riak_kv tictacaae' "$riak_epaths. . .` will result in
+    # an empty variable regardless of the value set in the configuration
+    # settings. We're going to grab the `tictacaae_dataroot` instead, and
+    # assume it's presence on disk indicates activity.
+    tictacaae_dir="`epath 'riak_kv tictacaae_dataroot' "$riak_epaths" | sed -e 's/^\"//' -e 's/\".*$//'`"
+
+    if [ '/' != `echo "$tictacaae_dir" | cut -c1` ]; then
+        # relative path. prepend base dir
+        tictacaae_dir="$riak_base_dir"/"$tictacaae_dir"
+    fi
+
+    if [ -d "$tictacaae_dir" ]; then
+        mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/tictacaae/.info
+        cd "${start_dir}"/"${debug_dir}"/logs/tictacaae
+
+        # Take a listing of the anti_entropy_dir directory for reference
+        dump ls_tictacaae_dir ls -lhR "$tictacaae_dir"
+
+        # Take a du listing of the anti_entropy_dir directory for size checking.
+        # This info is included in the ls, but parsing ls is not recommended.
+        dump du_tictacaae_dir du "$tictacaae_dir"/*
+
+        # Mirror the directory, only copying files that match the pattern
+        cd "$tictacaae_dir"
+        find . -type f -name 'LOG*' -exec sh -c '
+            mkdir -p "$0/${1%/*}";
+            cp "$1" "$0/$1"
+            ' "${start_dir}"/"${debug_dir}"/logs/tictacaae {} \;
     fi
 fi
 

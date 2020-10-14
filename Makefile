@@ -4,7 +4,6 @@ PKG_REVISION    ?= $(shell git describe --tags 2>/dev/null)
 PKG_BUILD        = 1
 BASE_DIR         = $(shell pwd)
 ERLANG_BIN       = $(shell dirname $(shell which erl 2>/dev/null) 2>/dev/null)
-OTP_VER          = $(shell echo $(ERLANG_BIN) | rev | cut -d "/" -f 2 | rev)
 REBAR           ?= $(BASE_DIR)/rebar3
 OVERLAY_VARS    ?=
 TEST_IGNORE     ?= lager riak basho_bench
@@ -211,7 +210,7 @@ REVISION = $(shell echo $(REPO_TAG) | sed -e 's/^$(REPO)-//')
 
 # Primary version identifier, strip off commmit information
 # Changes to 1.0.3 or 1.1.0pre1 from example above
-MAJOR_VERSION	?= $(shell echo $(REVISION) | sed -e 's/\([0-9.]*\)-.*/\1/'|+="-OTP$(OTP_VER)")
+MAJOR_VERSION	?= $(shell echo $(REVISION) | sed -e 's/\([0-9.]*\)-.*/\1/')
 
 # Name resulting directory & tar file based on current status of the git tag
 # If it is a tagged release (PKG_VERSION == MAJOR_VERSION), use the toplevel
