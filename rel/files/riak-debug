@@ -473,12 +473,11 @@ if [ 1 -eq $get_riakcmds ]; then
     # nodes in a cluster.
 
     dump riak_ping "$riak_sbin_dir"/riak ping
-    dump riak_version "$riak_sbin_dir"/riak version
+    dump riak_version "$riak_sbin_dir"/riak versions
     dump riak_member_status "$riak_sbin_dir"/riak admin member-status
     dump riak_ring_status "$riak_sbin_dir"/riak admin ring-status
     dump riak_status "$riak_sbin_dir"/riak admin status
     dump riak_transfers "$riak_sbin_dir"/riak admin transfers
-    dump riak_search_aae_status "$riak_sbin_dir"/riak admin search aae-status
     dump riak_diag "$riak_sbin_dir"/riak admin diag
     dump riak_repl_status "$riak_sbin_dir"/riak repl status
     dump riak_repl_connections "$riak_sbin_dir"/riak repl connections
@@ -903,24 +902,24 @@ if [ 1 -eq $get_logs ]; then
 fi
 
 ###
-### Gather Riak's basho-patches directory
+### Gather Riak's patches directory
 ###
 
 if [ 1 -eq $get_patches ]; then
-    mkdir_or_die "${start_dir}"/"${debug_dir}"/basho-patches/.info
-    cd "${start_dir}"/"${debug_dir}"/basho-patches
+    mkdir_or_die "${start_dir}"/"${debug_dir}"/patches/.info
+    cd "${start_dir}"/"${debug_dir}"/patches
 
     # As per the below link, this patch should be based off the base_dir.
     # http://docs.basho.com/riakee/latest/cookbooks/Rolling-Upgrade-to-Enterprise/#Basho-Patches
-    riak_lib_dir="${riak_base_dir}/lib/basho-patches"
+    riak_lib_dir="${riak_base_dir}/lib/patches"
 
     # Use dump to execute the copy. This will provide a progress dot and
     # capture any error messages.
-    dump cp_basho_patches cp -R "$riak_lib_dir"/* .
+    dump cp_patches cp -R "$riak_lib_dir"/* .
 
     # If the copy succeeded, then the output will be empty and it is unneeded.
     if [ 0 -eq $? ]; then
-        rm -f cp_basho_patches
+        rm -f cp_patches
     fi
 fi
 
