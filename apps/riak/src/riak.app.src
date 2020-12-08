@@ -8,6 +8,7 @@
        stdlib,
        lager,
        tools,
+       lager_syslog,
        sasl,
        public_key,
        ssl,

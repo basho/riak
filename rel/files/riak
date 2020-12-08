@@ -1,0 +1,49 @@
+#!/bin/bash
+
+RUNNER_GEN_DIR="${RUNNER_GEN_DIR:-{{ platform_gen_dir }}}"
+RELEASE_ROOT_DIR="${RELEASE_ROOT_DIR:-{{ runner_base_dir }}}"
+PID_DIR={{pid_dir}}
+COMMAND={{platform_bin_dir}}/riak
+RUNNER_LOG_DIR={{platform_log_dir}}
+RELX_CONFIG_PATH=${RUNNER_GEN_DIR}/sys.config
+VMARGS_PATH=${RUNNER_GEN_DIR}/vm.args
+
+
+# On first running the sys.config and vm.args will not be a link
+# as cfconfig has not yet been run as a pre_start hook.  If there's no
+# link use the default for now
+if [ ! -L $RELX_CONFIG_PATH ]; then
+    cp $RELEASE_ROOT_DIR/releases/{{release_version}}/sys.config $RELX_CONFIG_PATH
+fi
+if [ ! -L $VMARGS_PATH ]; then
+    cp $RELEASE_ROOT_DIR/releases/{{release_version}}/vm.args $VMARGS_PATH
+fi
+
+# When running as a service, running as riak not as root, and systemd has created PID folder
+if [[ $EUID -ne 0 ]]; then
+    case "$1" in
+        start|console|foreground)
+            RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches
+            ;;
+        *)
+            RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*}
+            ;;
+    esac
+else
+    # In this case we're running sudo riak - so have root access, but cannot rely
+    # systemd having created the PID dir, and need to sudo to the riak user
+    if [ ! -d $PID_DIR ]; then
+        mkdir $PID_DIR
+        chown riak:riak $PID_DIR
+    fi
+    case "$1" in
+        start|console|foreground)
+            su - riak -c "RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches"
+            ;;
+        *)
+            su - riak -c "RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*}"
+            ;;
+    esac
+fi
+
+

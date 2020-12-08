@@ -1,8 +1,0 @@
-Format: http://dep.debian.net/deps/dep5
-Upstream-Name: {{package_name}}
-Upstream-Contact: {{vendor_contact_name}} <{{vendor_contact_email}}>
-
-Files: *
-Copyright: {{copyright}}
-License: {{license_type}}
-  {{license_full_text}}

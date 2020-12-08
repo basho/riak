@@ -1,0 +1,149 @@
+#!/bin/sh
+#
+# riak
+#
+# chkconfig: 2345 80 30
+# description: Riak KV Database
+# processname: beam
+#
+
+# Source function library.
+. /etc/rc.d/init.d/functions
+
+RETVAL=0
+PATH=/sbin:/usr/sbin:/bin:/usr/bin
+DESC="Riak KV Database"
+NAME=riak
+DAEMON=/usr/sbin/$NAME
+lockfile=/var/lock/subsys/$NAME
+pidfile=/var/run/$NAME/$NAME.pid
+
+# Check for script, config and data dirs
+[ -x /usr/sbin/$NAME ] || exit 0
+[ -d /etc/$NAME ] || exit 0
+[ -d /var/lib/$NAME ] || exit 0
+
+# Read configuration variable file if it is present and readable
+[ -r /etc/sysconfig/$NAME ] && . /etc/sysconfig/$NAME
+
+# `service` strips all environmental VARS so
+# if no HOME was set in /etc/sysconfig/$NAME then set one here
+# to the data directory for erlexec's sake
+if [ -z "$HOME" ]; then
+    export HOME={{platform_data_dir}}
+fi
+
+status -p $pidfile -l $(basename $lockfile) $NAME >/dev/null 2>&1
+running=$?
+
+check_pid_status() {
+    pid=$(ps ax | grep beam.smp | grep "\-progname $NAME " | awk '{print $1}')
+    if [ "$pid" = "" ]; then
+        # prog not running?
+        return 1
+    else
+        # running
+        return 0
+    fi
+}
+
+start() {
+    # Start daemons.
+    echo -n $"Starting riak: "
+    $DAEMON start
+    RETVAL=$?
+    if [ $RETVAL -eq 0 ]; then
+        touch $lockfile
+        success
+    else
+        failure $"$NAME start"
+    fi
+    echo
+    return $RETVAL
+}
+
+stop() {
+    # Stop daemon.
+    echo -n $"Shutting down riak: "
+    $DAEMON stop 2>/dev/null
+    for n in $(seq 1 10); do
+        sleep 1
+        check_pid_status
+        RETVAL=$?
+        if [ $RETVAL -eq 1 ]; then
+            break
+        fi
+    done
+    if [ $RETVAL -eq 1 ]; then
+        rm -f $lockfile $pidfile
+        success
+        echo && return 0
+    else
+        failure $"$NAME stop"
+        echo && return 1
+    fi
+}
+
+hardstop() {
+    echo -n $"Shutting down $NAME: "
+    su - riak -c "ps -ef | grep beam.smp | grep '\-progname $NAME ' | grep -v grep | awk '{print \$2}' | xargs kill -9"
+    for n in $(seq 1 10); do
+        sleep 1
+        check_pid_status
+        RETVAL=$?
+        if [ $RETVAL -eq 1 ]; then
+            break
+        fi
+    done
+    if [ $RETVAL -eq 1 ]; then
+        rm -f $lockfile $pidfile
+        success
+        echo && return 0
+    else
+        failure $"$NAME hardstop"
+        echo && return 1
+    fi
+}
+
+# See how we were called.
+case "$1" in
+    start)
+        [ $running -eq 0 ] && exit 0
+        start
+        ;;
+    stop)
+        if [ $running -eq 0 ]; then
+            stop
+        else
+            check_pid_status
+            RETVAL=$?
+            if [ $RETVAL -eq 1 ]; then
+                rm -f $lockfile $pidfile
+            fi
+            exit 0
+        fi
+        ;;
+    restart|force-reload)
+        [ $running -eq 0 ] && stop
+        start
+        ;;
+    hardstop)
+        [ $running -eq 0 ] || exit 0
+        hardstop
+        ;;
+    condrestart|try-restart)
+        [ $running -eq 0 ] || exit 0
+        restart
+        ;;
+    status)
+        status -p $pidfile -l $(basename $lockfile) $NAME
+        ;;
+    ping)
+        $DAEMON ping || exit $?
+        ;;
+    *)
+        echo $"Usage: $0 {start|stop|restart|force-reload|hardstop|condrestart|try-restart|status|ping}"
+        exit 1
+esac
+
+exit $?

@@ -1,0 +1,14 @@
+[Unit]
+Description=Riak KV Database
+
+[Service]
+User=riak
+ExecStart=/usr/sbin/riak start
+ExecStop=/usr/sbin/riak stop
+Type=forking
+PIDFile=/run/riak/riak.pid
+EnvironmentFile=-/etc/default/riak
+RuntimeDirectory=riak
+
+[Install]
+WantedBy=multi-user.target
