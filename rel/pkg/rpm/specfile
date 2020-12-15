@@ -122,7 +122,6 @@ fi
 
 %post
 # Post Installation Script
-ln -s /usr/lib64/riak/bin/riak-debug /usr/sbin/riak-debug 
 # For distros with SELinux (RHEL/Fedora)
 if [ `which selinuxenabled > /dev/null 2>&1` ] ; then
    # Fixup perms for SELinux (if it is enabled)

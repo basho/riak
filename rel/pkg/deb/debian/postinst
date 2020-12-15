@@ -23,8 +23,6 @@ for i in lib log; do
     chown -R riak:riak /var/$i/riak
 done
 
-ln -s /usr/lib/riak/bin/riak-debug /usr/sbin/riak-debug
-
 case "$1" in
     configure)
     ;;
