@@ -154,7 +154,7 @@
   1},
  {<<"riaknostic">>,
   {git,"git://github.com/basho/riaknostic.git",
-       {ref,"02666d016bc70db13dfb85adefb3c6e77ea5c9a7"}},
+       {ref,"dd71358c44b91fe7b916cebb854ad237cfac336b"}},
   0},
  {<<"setup">>,{pkg,<<"setup">>,<<"2.0.2">>},3},
  {<<"sext">>,
