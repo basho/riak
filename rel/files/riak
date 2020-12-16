@@ -4,6 +4,7 @@ RUNNER_GEN_DIR="${RUNNER_GEN_DIR:-{{ platform_gen_dir }}}"
 RELEASE_ROOT_DIR="${RELEASE_ROOT_DIR:-{{ runner_base_dir }}}"
 PID_DIR={{pid_dir}}
 COMMAND={{platform_bin_dir}}/riak
+DEBUG_COMMAND={{platform_bin_dir}}/riak-debug
 RUNNER_LOG_DIR={{platform_log_dir}}
 RELX_CONFIG_PATH=${RUNNER_GEN_DIR}/sys.config
 VMARGS_PATH=${RUNNER_GEN_DIR}/vm.args
@@ -39,6 +40,9 @@ else
     case "$1" in
         start|console|foreground)
             su - riak -c "RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches"
+            ;;
+        debug)
+            RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${DEBUG_COMMAND} ${*}
             ;;
         *)
             ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
