@@ -2,7 +2,6 @@
  [{description, "The Riak Database"},
    {vsn, "3.0"},
    {registered, []},
-   {modules, [etop_txt]},
    {applications, [
        kernel,
        stdlib,
