@@ -11,6 +11,11 @@ cd $RUNNER_BASE_DIR
 # Identify the script name
 SCRIPT="riak-admin"
 
+# Setup required due to relx not node-package
+ERTS_PATH=$BINDIR
+NAME_PARAM="-name"
+BOOT_FILE="start_clean"
+
 usage() {
     echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
     echo "                    reip | js-reload | erl-reload | wait-for-service | "
@@ -908,6 +913,7 @@ case "$1" in
         NEWNODE=$2
         $ERTS_PATH/erl -noshell \
             -pa $RUNNER_LIB_DIR/basho-patches \
+            -boot $BOOT_FILE \
             $CONFIG_ARGS \
             -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
             -s init stop
@@ -928,6 +934,7 @@ case "$1" in
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
                        -pa $RUNNER_LIB_DIR/basho-patches \
+                       -boot $BOOT_FILE \
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
 
@@ -947,6 +954,7 @@ case "$1" in
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
                        -pa $RUNNER_LIB_DIR/basho-patches \
+                       -boot $BOOT_FILE \
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
         ;;
 
@@ -960,6 +968,7 @@ case "$1" in
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_test$NAME_HOST $COOKIE_ARG \
                        -pa $RUNNER_LIB_DIR/basho-patches \
+                       -boot $BOOT_FILE \
                        -eval "case catch(riak:client_test(\"$NODE_NAME\")) of \
                                ok -> init:stop();                             \
                                _  -> init:stop(1)                             \
@@ -995,6 +1004,7 @@ case "$1" in
         # Using np_etop instead of riak_etop to follow node_package convention
         $ERTS_PATH/erl -noshell -noinput \
             -pa $RUNNER_LIB_DIR/basho-patches \
+            -boot $BOOT_FILE \
             -hidden $NAME_PARAM np_etop$RAND$NAME_HOST $COOKIE_ARG \
             -s etop -s erlang halt -output text \
             -node $NODE_NAME \
