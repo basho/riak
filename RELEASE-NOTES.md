@@ -4,7 +4,7 @@ There are four changes made in Release 3.0.2:
 
 - Inclusion of backend fixes introduced in [2.9.8](#riak-kv-298-release-notes).
 
-- The addition of the [`range_check` in the Tictac AAE based full-sync replication]https://github.com/basho/riak_kv/blob/riak_kv-3.0.2/docs/NextGenREPL-GettingStarted.md#configure-full-sync-replication), when replicating between entire clusters.  This, along with the backend performance improvements delivered in 2.9.8, can significantly improve the stability of Riak clusters when resolving large deltas.
+- The addition of the [`range_check` in the Tictac AAE based full-sync replication](https://github.com/basho/riak_kv/blob/riak_kv-3.0.2/docs/NextGenREPL-GettingStarted.md#configure-full-sync-replication), when replicating between entire clusters.  This, along with the backend performance improvements delivered in 2.9.8, can significantly improve the stability of Riak clusters when resolving large deltas.
 
 - A number of issues with command-line functions and packaging related to the switch from `node_package` to `relx` have now been resolved.
 
