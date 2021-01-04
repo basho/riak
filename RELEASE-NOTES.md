@@ -1,4 +1,19 @@
-# Riak KV 3.0 Release Notes
+# Riak KV 3.0.2 Release Notes
+
+There are four broad changes made in Release 3.0.2:
+
+- Inclusion of backend fixes released within 2.9.8.
+
+- The addition of the [`range_check` in the Tictac AAE based full-sync replication](https://github.com/basho/riak_kv/blob/develop-3.0/docs/NextGenREPL-GettingStarted.md#configure-full-sync-replication), when replicating between entire clusters.  This, along with the backend performance improvements delivered in 2.9.8, significantly improve the stability of Riak clusters when resolving large deltas.
+
+- A number of issues with command-line functions and packaging related to the switch from `node_package` to `relx` have now been resolved.
+
+- Riak tombstones, [empty objects used by Riak to replace deleted objects](https://riak.com/posts/technical/riaks-config-behaviors-part-3/index.html), will now have a last_modified_date added to the metadata, although this will only be visible internally within Riak.
+
+This release is tested with OTP 20, OTP 21 and OTP 22; but optimal performance is likely to be achieved when using OTP 22.
+
+
+# Riak KV 3.0.1 Release Notes
 
 This major release allows Riak to run on OTP versions 20, 21 and 22 - but is not fully backwards-compatible with previous releases.  Some limitations and key changes should be noted:
 
@@ -15,6 +30,29 @@ This major release allows Riak to run on OTP versions 20, 21 and 22 - but is not
 - Instead of `riak-admin` `riak admin` should now be used for admin CLI commands.
 
 Other than the limitations listed above, the release should be functionally identical to Riak KV 2.9.7.  Throughput improvements may be seen as a result of the OTP 20 upgrade on some CPU-bound workloads.  For disk-bound workloads, additional benefit may be achieved by upgrading further to OTP 22.
+
+# Riak KV 2.9.8 Release Notes
+
+This release improves the performance and stability of the leveled backend and of AAE folds.  These performance improvements are based on feedback from deployments with > 1bn keys per cluster.
+
+The particular improvements are:
+
+- In leveled, caching of individual file scores so not all files are required to be scored each journal compaction run.
+
+- In leveled, a change to the default journal compaction scoring percentages to make longer runs more likely (i.e. achieve more compaction per scoring run).
+
+- In leveled, a change to the caching of SST file block-index in the ledger, that makes repeated folds with a last modified date range an order of magnitude faster through improved computational efficiency.
+
+- In leveled, a fix to prevent very long list-buckets queries when buckets have just been deleted (by erasing all keys).
+
+- In kv_index_tictcatree, improved logging and exchange controls to make exchanges easier to monitor and less likely to prompt unnecessary work.
+
+- In kv_index_tictcatree, a change to speed-up the necessary rebuilds of aae tree-caches following a node crash, by only testing journal presence in scheduled rebuilds.
+
+- In riak_kv_ttaaefs_manager, some essential fixes to prevent excessive CPU load when comparing large volumes of keys and clocks, due to a failure to decode clocks correctly before passing to the exchange.
+
+Further significant improvements have been made to Tictac AAE full-sync, to greatly improve the efficiency of operation when there exists relatively large deltas between relatively large clusters (in terms of key counts).  Those changes, which introduce the use of 'day_check', 'hour_check' and 'range_check' options to nval-based full-sync will be available in a future 3.0.2 release of Riak.  For those wishing to use Tictac AAE full-sync at a non-trivial scale, it is recommended moving straight to 3.0.2 when it is available.
+
 
 # Riak KV 2.9.7 Release Notes
 
@@ -34,19 +72,23 @@ This release improves the stability of Riak when running with Tictac AAE in para
 
 The system is now stable under specific load tests designed to trigger AAE failure.  However, parallel mode should still not be used in production systems unless it has been subject to environment-specific load testing.
 
+
 # Riak KV 2.9.6 Release Notes
 
 Withdrawn.
 
+
 # Riak KV 2.9.5 Release Notes
 
 Withdrawn.
+
 
 # Riak KV 2.9.4 Release Notes
 
 This release replaces the Riak KV 2.9.3 release, extending the issue resolution in kv_index_tictactree to detect other files where file truncation means the CRC is not present.
 
 This release has a key [outstanding issue](https://github.com/basho/riak_kv/issues/1765) when Tictac AAE is used in parallel mode.  On larger clusters, this has been seen to cause significant issues, and so this feature should not be used other than in native mode.   
+
 
 # Riak KV 2.9.3 Release Notes - NOT TO BE RELEASED
 
@@ -75,6 +117,7 @@ This release includes:
 
 - An improvement to the efficiency of [compaction in the leveled LSM-tree based ledger](https://github.com/martinsumner/leveled/issues/311) with large numbers of tombstones (or modified index entries), by using a `grooming` selection strategy 50% of the time when selecting files to merge rather than selecting files at random each time.  The `grooming` selection, will take a sample of files and merge the one with the most tombstones.  The use of the grooming strategy is not configurable, and will have no impact until the vast majority of SST files have been re-written under this release.
 
+
 # Riak KV 2.9.1 Release Notes
 
 This release adds a number of features built on top of the Tictac AAE feature made available in 2.9.0.  The new features depend on Tictac AAE being enabled, but are backend independent. The primary features of the release are:
@@ -89,6 +132,7 @@ This release adds a number of features built on top of the Tictac AAE feature ma
 
 Detail of volume testing related to the replication uplift can be found [here](https://github.com/martinsumner/riak_testing_notes/blob/master/Release%202.9.1%20-%20Volume%20Tests.md).
 
+
 # Riak KV 2.9.0 Release Notes - Patch 5
 
 This patch release is primarily required to improve two scenarios where leveled's handling of file-system corruption was unsatisfactory.  One scenario related to [corrupted blocks that fail CRC checks](https://github.com/martinsumner/leveled/issues/298), another related to failing to consistently check that [a file write had been flushed to disk](https://github.com/martinsumner/leveled/issues/301).
@@ -102,6 +146,7 @@ The patch changes the handling by bitcask and eleveldb backends when file-system
 The patch changes the capability request for `HEAD` to be bucket-dependent, so that [HEAD requests are supported correctly in a multi-backend configuration](https://github.com/basho/riak_kv/issues/1719).
 
 Finally, the aae_fold features of 2.9.0 were previously only available via the HTTP API.  Such folds can now also be [requested via the PB API](https://github.com/basho/riak_kv/pull/1732).
+
 
 # Riak KV 2.9.0 Release Notes - Patch 4
 
@@ -119,6 +164,7 @@ There are a number of fixes in this patch:
 
 It is recommended that any 2.9.0 installations be upgraded to include this path, although if Tictac AAE is not used there is no immediate urgency to making the change.
 
+
 # Riak KV 2.9.0 Release Notes - Patch 3
 
 An [issue](https://github.com/martinsumner/leveled/issues/287) was discovered in leveled, whereby following a restart of Riak and a workload of fetch requests, the backend demanded excess amounts of binary heap references.  Underlying was an issue with the use of sub-binary references during the lazy load of slot header information after a SST file process restart.  This has been resolved, and with [greater control added](https://github.com/martinsumner/leveled/blob/0.9.18/priv/leveled.schema#L86-L93) to force the ledger contents into the page cache at startup.
@@ -127,17 +173,21 @@ A further [issue](https://github.com/martinsumner/leveled/issues/289) was discov
 
 The issues resolved in this patch impact only the use of leveled backend, either directly or via the use of Tictac AAE.
 
+
 # Riak KV 2.9.0 Release Notes - Patch 2
 
 An [issue](https://github.com/martinsumner/leveled/issues/285) with leveled holding references to binaries what could cause severe memory depletion, when a consecutive series of very large objects are received by a vnode.
+
 
 # Riak KV 2.9.0 Release Notes - Patch 1
 
 An [issue](https://github.com/basho/riak_kv/issues/1699) was discovered whereby leveled would leak file descriptors under heavy write pressure (e.g. handoffs).
 
+
 # Riak KV 2.9.0 Release Notes
 
 See [here for notes on 2.9.0](doc/Release%202.9%20Series%20-%20Overview.md)
+
 
 # Riak KV 2.2.5 Release Notes
 
