@@ -1,14 +1,14 @@
 # Riak KV 3.0.2 Release Notes
 
-There are four broad changes made in Release 3.0.2:
+There are four changes made in Release 3.0.2:
 
-- Inclusion of backend fixes released within 2.9.8.
+- Inclusion of backend fixes introduced in [2.9.8](#riak-kv-298-release-notes).
 
-- The addition of the [`range_check` in the Tictac AAE based full-sync replication](https://github.com/basho/riak_kv/blob/develop-3.0/docs/NextGenREPL-GettingStarted.md#configure-full-sync-replication), when replicating between entire clusters.  This, along with the backend performance improvements delivered in 2.9.8, significantly improve the stability of Riak clusters when resolving large deltas.
+- The addition of the [`range_check` in the Tictac AAE based full-sync replication]https://github.com/basho/riak_kv/blob/riak_kv-3.0.2/docs/NextGenREPL-GettingStarted.md#configure-full-sync-replication), when replicating between entire clusters.  This, along with the backend performance improvements delivered in 2.9.8, can significantly improve the stability of Riak clusters when resolving large deltas.
 
 - A number of issues with command-line functions and packaging related to the switch from `node_package` to `relx` have now been resolved.
 
-- Riak tombstones, [empty objects used by Riak to replace deleted objects](https://riak.com/posts/technical/riaks-config-behaviors-part-3/index.html), will now have a last_modified_date added to the metadata, although this will only be visible internally within Riak.
+- Riak tombstones, [empty objects used by Riak to replace deleted objects](https://riak.com/posts/technical/riaks-config-behaviors-part-3/index.html), will now have a last_modified_date added to the metadata, although this will not be visible externally via the API.
 
 This release is tested with OTP 20, OTP 21 and OTP 22; but optimal performance is likely to be achieved when using OTP 22.
 
