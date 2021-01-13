@@ -39,6 +39,7 @@ Eunit: riak_repl PASSED
 Eunit: riak_sysmon PASSED
 Eunit: riakc PASSED
 Eunit: riakhttpc PASSED
+Eunit: riaknostic PASSED
 Eunit: setup PASSED
 Eunit: sext PASSED
 Eunit: sidejob PASSED
