@@ -1,3 +1,14 @@
+# Riak KV 3.0.3 Release Notes
+
+There are two fixes provided in Release 3.0.3:
+
+- A [performance issue with OTP 22 and leveled](https://github.com/martinsumner/leveled/issues/326) has been corrected.  This generally did not have a significant impact when running Riak, but there were some potential cases with Tictac AAE and AAE Folds where there could have been a noticeable slowdown.
+
+- An [issue with console commands for bucket types](https://github.com/basho/riak/issues/1043) has now been fully corrected, having been partially mitigated in 3.0.2.
+
+This release is tested with OTP 20, OTP 21 and OTP 22; but optimal performance is likely to be achieved when using OTP 22.
+
+
 # Riak KV 3.0.2 Release Notes
 
 There are four changes made in Release 3.0.2:
