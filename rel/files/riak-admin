@@ -583,12 +583,12 @@ btype_admin()
             #     bucket-type create <type> {"props": { ... }}"
             #
             if [ $# -le 3 ]; then
-                json=${3:-}
+                json=`echo ${3:-}|tr -d " "`
                 relx_nodetool rpc riak_kv_console bucket_type_create "$2" "$json"
             else  # greater than 3 parameters
                 two=$2
                 shift 2
-                three=$@
+                three=`echo $@|tr -d " "`
                 relx_nodetool rpc riak_kv_console bucket_type_create "$two" "$three"
             fi
 
@@ -604,11 +604,12 @@ btype_admin()
             #     bucket-type update <type> {"props": { ... }}"
             #
             if [ $# -eq 3 ]; then
-                relx_nodetool rpc riak_kv_console bucket_type_update "$2" "$3"
+                json=`echo $3|tr -d " "`
+                relx_nodetool rpc riak_kv_console bucket_type_update "$2" "$json"
             else  # greater than 3 parameters
                 two=$2
                 shift 2
-                three=$@
+                three=`echo $@|tr -d " "`
                 relx_nodetool rpc riak_kv_console bucket_type_update "$two" "$three"
             fi
             ;;
