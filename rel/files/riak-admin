@@ -295,6 +295,10 @@ cluster_admin()
             shift
             relx_nodetool rpc riak_core_console command $SCRIPT cluster partition-count $@
             ;;
+        location)
+            shift
+            relx_nodetool rpc riak_core_console command $SCRIPT cluster location $@
+            ;;
         *)
             echo "\
 Usage: $SCRIPT cluster <command>
