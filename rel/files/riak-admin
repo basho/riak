@@ -321,6 +321,8 @@ plan must be committed to take effect:
    force-replace <node1> <node2>   Reassign all partitions owned by <node1> to
                                    <node2> without first handing off data, and
                                    remove <node1> from the cluster.
+    
+   location <location_name>        Assign a location to the current node
 
 Staging commands:
    plan                            Display the staged changes to the cluster
