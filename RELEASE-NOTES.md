@@ -1,3 +1,13 @@
+# Riak KV 3.0.5 Release Notes
+
+Release 3.0.5 adds [location-awareness to Riak cluster management](https://github.com/basho/riak_core/blob/riak_kv-3.0.5/docs/rack-awareness.md).  The broad aim is to improve data diversity across locations (e.g. racks) to reduce the probabibility of data-loss should a set of nodes fail concurrently within a location.  The location-awareness does not provide firm guarantees of data diversity that will always be maintained across all cluster changes - but testing has indicated it will generally find a cluster arrangement which is close to optimal in terms of data protection.
+
+If location information is not added to the cluster, there will be no change in behaviour from previous releases.
+
+There may be some performance advantages when using the location-awareness feature in conjunction with the leveled backend when handling GET requests.  Location awareness will mean that the cluster will be more likely to be able return an object from within the location in response to the request, without having to fetch that object from another location (only HEAD request/response will commonly be required inter-location).
+
+This release is tested with OTP 20 and OTP 22; but optimal performance is likely to be achieved when using OTP 22.
+
 # Riak KV 3.0.4 Release Notes
 
 There are two fixes provided in Release 3.0.4:
