@@ -1,3 +1,14 @@
+# Riak KV 3.0.4 Release Notes
+
+There are two fixes provided in Release 3.0.4:
+
+- An issue with [leveled application dependencies](https://github.com/basho/riak/issues/1059) has been resolved, and so lz4 can now again be used as the compression method.
+
+- The [riak clients are now compatible with systems that require semantic versioning](https://github.com/basho/riak-erlang-client/issues/400).
+
+This release is tested with OTP 20, OTP 21 and OTP 22; but optimal performance is likely to be achieved when using OTP 22.
+
+
 # Riak KV 3.0.3 Release Notes
 
 There are two fixes provided in Release 3.0.3:
