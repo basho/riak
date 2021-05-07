@@ -1,6 +1,6 @@
 # Riak KV 3.0.6 Release Notes
 
-Release 3.0.5 adds [location-awareness to Riak cluster management](https://github.com/basho/riak_core/blob/riak_kv-3.0.5/docs/rack-awareness.md).  The broad aim is to improve data diversity across locations (e.g. racks) to reduce the probabibility of data-loss should a set of nodes fail concurrently within a location.  The location-awareness does not provide firm guarantees of data diversity that will always be maintained across all cluster changes - but [testing](https://github.com/basho/riak_test/pull/1353) has indicated it will generally find a cluster arrangement which is close to optimal in terms of data protection.
+Release 3.0.5 adds [location-awareness to Riak cluster management](https://github.com/basho/riak_core/blob/riak_kv-3.0.5/docs/rack-awareness.md).  The broad aim is to improve data diversity across locations (e.g. racks) to reduce the probability of data-loss should a set of nodes fail concurrently within a location.  The location-awareness does not provide firm guarantees of data diversity that will always be maintained across all cluster changes - but [testing](https://github.com/basho/riak_test/pull/1353) has indicated it will generally find a cluster arrangement which is close to optimal in terms of data protection.
 
 If location information is not added to the cluster, there will be no change in behaviour from previous releases.
 
