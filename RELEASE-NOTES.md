@@ -4,7 +4,7 @@ Release 3.0.5 adds [location-awareness to Riak cluster management](https://githu
 
 If location information is not added to the cluster, there will be no change in behaviour from previous releases.
 
-There may be some performance advantages when using the location-awareness feature in conjunction with the leveled backend when handling GET requests.  Location awareness will mean that the cluster will be more likely to be able return an object from within the location in response to the request, without having to fetch that object from another location (only HEAD request/response will commonly be required inter-location).
+There may be some performance advantages when using the location-awareness feature in conjunction with the leveled backend when handling GET requests.  With location awareness, when responding to a GET request, a cluster is more likely to be able to fetch an object from a vnode within the location that received the GET request, without having to fetch that object from another location (only HEAD request/response will commonly travel between locations).
 
 This release is tested with OTP 20 and OTP 22; but optimal performance is likely to be achieved when using OTP 22.
 
