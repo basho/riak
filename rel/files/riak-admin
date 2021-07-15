@@ -83,7 +83,7 @@ Usage: $SCRIPT stat <command>
 The following commands display, enable/disable and reset statistics.
 A statistics entry is given either as a 'dotted' exometer name -
 Identifiers separated by periods, '.', e.g. riak.riak_kv.node.gets,
-or as a 'legacy' name (same as in riak-admin status) - e.g. node_gets.
+or as a 'legacy' name (same as in riak admin status) - e.g. node_gets.
 When a legacy name is listed, the corresponding exometer name is shown as well.
 
 Two kinds of wildcard are suppored:
@@ -122,7 +122,7 @@ will match all stats entries. All Riak stat entry names start with 'riak',
 so \`stat show riak.**\` will match all riak stat entries.
 
 Example:
-\$ bin/riak-admin stat show riak.riak_kv.node.gets
+\$ bin/riak admin stat show riak.riak_kv.node.gets
 [riak,riak_kv,node,gets]: [{count,0},{one,0}]
 
 - 'Legacy name': The stat names used e.g. in \`$SCRIPT status\` can be used
@@ -130,7 +130,7 @@ here, but also with wildcard support. The corresponding Exometer name and
 datapoint will be shown as well.
 
 Example:
-\$ bin/riak-admin stat show node_gets
+\$ bin/riak admin stat show node_gets
 == node_gets (Legacy pattern): ==
 node_gets: 0 ([riak,riak_kv,node,gets]/one)
 
@@ -141,22 +141,22 @@ be present, so '*.**' would work as a catch-all expression.)
 Each Exometer entry has a type and a set of datapoints. A filter can be
 given on the command line, selecting only a subset of datapoints:
 
-\$ bin/riak-admin stat show riak.riak_kv.node.gets/one
+\$ bin/riak admin stat show riak.riak_kv.node.gets/one
 [riak,riak_kv,node,gets]: [{one,0}]
 
 The type can also be restricted:
-\$ bin/riak-admin stat show *.**/type=duration/mean,max
+\$ bin/riak admin stat show *.**/type=duration/mean,max
 [riak,riak_core,converge_delay]: [{mean,0},{max,0}]
 [riak,riak_core,rebalance_delay]: [{mean,0},{max,0}]
 
 Note how multiple datapoints are separated by comma (no space).
 
 Showing disabled entries:
-\$ bin/riak-admin stat show riak.riak_kv.node.gets
+\$ bin/riak admin stat show riak.riak_kv.node.gets
 No matching stats
-\$ bin/riak-admin stat show riak.riak_kv.node.gets/status=*
+\$ bin/riak admin stat show riak.riak_kv.node.gets/status=*
 [riak,riak_kv,node,gets]: disabled
-\$ bin/riak-admin stat show riak.riak_kv.node.gets/status=disabled
+\$ bin/riak admin stat show riak.riak_kv.node.gets/status=disabled
 [riak,riak_kv,node,gets]: disabled
 "
 }
@@ -171,16 +171,16 @@ updated, and have no value.
 The same syntax can be used as in \`stat show\`. The requested action will be
 performed on the matching entries.
 
-\$ bin/riak-admin stat disable node_gets
+\$ bin/riak admin stat disable node_gets
 == node_gets (Legacy pattern): ==
 [riak,riak_kv,node,gets]: disabled
-\$ bin/riak-admin stat enable node_gets
+\$ bin/riak admin stat enable node_gets
 == node_gets (Legacy pattern): ==
 [riak,riak_kv,node,gets]: enabled
 
 Wildcards can be used:
 
-\$ bin/riak-admin stat disable riak.riak_kv.node.*
+\$ bin/riak admin stat disable riak.riak_kv.node.*
 [riak,riak_kv,node,gets]: disabled
 [riak,riak_kv,node,puts]: disabled
 "
@@ -202,7 +202,7 @@ with options:
 The same entry formats can be used as for all other stat subcommands.
 
 Example:
-\$ bin/riak-admin stat info riak.riak_kv.node.gets
+\$ bin/riak admin stat info riak.riak_kv.node.gets
 [riak,riak_kv,node,gets]: name = [riak,riak_kv,node,gets]
                           type = spiral
                           module = exometer_spiral
@@ -212,7 +212,7 @@ Example:
                           timestamp = undefined
                           options = [{status,disabled}]
 
-\$ bin/riak-admin stat info -type -status riak.riak_kv.node.gets
+\$ bin/riak admin stat info -type -status riak.riak_kv.node.gets
 [riak,riak_kv,node,gets]: type = spiral
                           status = disabled
 "
@@ -985,7 +985,7 @@ case "$1" in
     diag)
         case "$2" in
             --help|-h)
-                echo "Usage: riak-admin diag [-d <level>] [-l] [-h] [--export] [check_name ...]"
+                echo "Usage: riak admin diag [-d <level>] [-l] [-h] [--export] [check_name ...]"
                 echo ""
                 echo "-h, --help            Display help/usage dialogue"
                 echo "-d, --level           Minimum message severity level (default: notice)"
