@@ -6,7 +6,7 @@ PWD    = $(shell pwd)
 PKG_VERSION_NO_H	?= $(shell echo $(PKG_VERSION) | tr - .)
 
 default:
-	rpmbuild --define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}$(DISTRO)%%{ARCH}.rpm" \
+	rpmbuild --define "_rpmfilename %%{NAME}-%%{VERSION}-%%{RELEASE}$(DISTRO).%%{ARCH}.rpm" \
 		--define '_topdir $(BASE_DIR)/rel/pkg/out/' \
 		--define '_sourcedir $(BASE_DIR)/rel/pkg/out/' \
 		--define '_specdir $(BASE_DIR)/rel/pkg/out/' \
