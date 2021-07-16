@@ -1,3 +1,11 @@
+# Riak KV 3.0.7 Release Notes
+
+The primary change in 3.0.7 is that Riak will now run the [erlang runtime system in interactive mode, not embedded mode](http://erlang.org/doc/man/code.html).  This returns Riak to the default behaviour prior to Riak KV 3.0, in order to resolve a number of problems which occurred post 3.0 when trying to dynamically load code.
+
+The mode used is controlled in a [pre-start script](https://github.com/basho/riak/blob/develop-3.0/rel/files/erl_codeloadingmode), changing this script or overriding the referenced environment variable for the riak user should allow the runtime to be reverted to using `embedded` mode, should this be required.
+
+This release also extends a prototype API to support for the use of the `nextgenrepl` API by external applications, for example to reconcile replication to an external non-riak database.  The existing `fetch` api function has been extended to allow for a new response format that includes the Active Anti-Entropy Segment ID and Segment Hash for the object (e.g. to be used when recreating the Riak merkle tree in external databases).  A new `push` function has been added to the api, this will push a list of object references to be queued for replication.
+
 # Riak KV 3.0.6 Release Notes
 
 Release 3.0.5 adds [location-awareness to Riak cluster management](https://github.com/basho/riak_core/blob/riak_kv-3.0.5/docs/rack-awareness.md).  The broad aim is to improve data diversity across locations (e.g. racks) to reduce the probability of data-loss should a set of nodes fail concurrently within a location.  The location-awareness does not provide firm guarantees of data diversity that will always be maintained across all cluster changes - but [testing](https://github.com/basho/riak_test/pull/1353) has indicated it will generally find a cluster arrangement which is close to optimal in terms of data protection.
