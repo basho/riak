@@ -1,3 +1,7 @@
+# Riak KV 2.9.9 Release Notes
+
+Minor stability improvements to leveled backend - [see leveled release notes](https://github.com/martinsumner/leveled/releases/tag/0.9.24) for further details.
+
 # Riak KV 2.9.8 Release Notes
 
 This release improves the performance and stability of the leveled backend and of AAE folds.  These performance improvements are based on feedback from deployments with > 1bn keys per cluster.
