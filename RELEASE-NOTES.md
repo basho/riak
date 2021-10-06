@@ -1,3 +1,9 @@
+# Riak KV 2.9.10 Release Notes
+
+Fix to critical issue in leveled when using (non-default, but recommended, option): [leveled_reload_recalc = enabled](https://github.com/basho/riak_kv/blob/33add2a29b6880b680a407dc91828736f54c7911/priv/riak_kv.schema#L1156-L1174)
+
+If using this option, it is recommended to rebuild the ledger on each vnode at some stage after updating.
+
 # Riak KV 2.9.9 Release Notes
 
 Minor stability improvements to leveled backend - [see leveled release notes](https://github.com/martinsumner/leveled/releases/tag/0.9.24) for further details.
