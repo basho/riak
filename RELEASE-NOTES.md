@@ -1,3 +1,25 @@
+# Riak KV 3.0.8 Release Notes
+
+This release contains a number of stability  improvements.
+
+- Fix to critical issue in leveled when using (non-default, but recommended, option): [leveled_reload_recalc = enabled](https://github.com/basho/riak_kv/blob/33add2a29b6880b680a407dc91828736f54c7911/priv/riak_kv.schema#L1156-L1174).  If using this option, it is recommended to rebuild the ledger on each vnode at some stage after updating.
+
+- [Fix to an issue with cluster leave](https://github.com/basho/riak_core/issues/970) operations that could leave clusters unnecessarily unbalanced after Stage 1 of leave, and also cause unexpected safety violations in Stage 1 (with either a simple transfer or a rebalance).  An option to force a rebalance in Stage 1 is also now supported.
+
+- The ability to [set an environment variable](https://github.com/basho/riak/pull/1079) to remove the risk of atom table exhaustion due to repeated calls to `riak status` (and other) command-line functions.
+
+- The default setting of the object_hash_version environment variable to reduce the opportunity for the [riak_core_capability system to falsely request downgrading to legacy](https://github.com/basho/riak_kv/issues/1656), especially when concurrently restarting many nodes.
+
+- An update to the versions of `recon` and `redbug` used in Riak.
+
+- The fixing of an issue with [connection close handling](https://github.com/basho/riak-erlang-client/pull/402) in the Riak erlang client.
+
+This release also contains two new features:
+
+- A [new aae_fold operation](https://github.com/basho/riak_kv/issues/1793) has been added which will support the prompting of read-repair for a range of keys e.g. all the keys in a bucket after a given last modified date.  This is intended to allow an operator to accelerate full recovery of data following a known node outage.
+
+- The addition of the [`sync_on_write` property for write operations](https://github.com/basho/riak_kv/pull/1794).  Some Riak users require flushing of writes to disk to protect against data loss in disaster scenarios, such as mass loss of power across a DC.  This can have a significant impact on throughput even with hardware acceleration (e.g. flash-backed write caches).  The decision to flush was previously all or nothing.  It can now be set as a bucket property (and even determined on individual writes), and can be set to flush on `all` vnodes or just `one` (the coordinator), or to simply respect the `backend` configuration.  If `one` is used the single flush will occur only on client-initiated writes - writes due to handoffs or replication will not be flushed.
+
 # Riak KV 3.0.7 Release Notes
 
 The primary change in 3.0.7 is that Riak will now run the [erlang runtime system in interactive mode, not embedded mode](http://erlang.org/doc/man/code.html).  This returns Riak to the default behaviour prior to Riak KV 3.0, in order to resolve a number of problems which occurred post 3.0 when trying to dynamically load code.
@@ -74,6 +96,16 @@ This major release allows Riak to run on OTP versions 20, 21 and 22 - but is not
 - Instead of `riak-admin` `riak admin` should now be used for admin CLI commands.
 
 Other than the limitations listed above, the release should be functionally identical to Riak KV 2.9.7.  Throughput improvements may be seen as a result of the OTP 20 upgrade on some CPU-bound workloads.  For disk-bound workloads, additional benefit may be achieved by upgrading further to OTP 22.
+
+# Riak KV 2.9.10 Release Notes
+
+Fix to critical issue in leveled when using (non-default, but recommended, option): [leveled_reload_recalc = enabled](https://github.com/basho/riak_kv/blob/33add2a29b6880b680a407dc91828736f54c7911/priv/riak_kv.schema#L1156-L1174).
+
+If using this option, it is recommended to rebuild the ledger on each vnode at some stage after updating.
+
+# Riak KV 2.9.9 Release Notes
+
+Minor stability improvements to leveled backend - [see leveled release notes](https://github.com/martinsumner/leveled/releases/tag/0.9.24) for further details.
 
 # Riak KV 2.9.8 Release Notes
 
