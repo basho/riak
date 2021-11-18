@@ -24,7 +24,7 @@ fi
 if [[ $EUID -ne 0 ]]; then
     case "$1" in
         start|console|foreground)
-            RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches
+            RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{runner_patch_dir}}
             ;;
         *)
             RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*}
@@ -39,7 +39,7 @@ else
     fi
     case "$1" in
         start|console|foreground)
-            su - riak -c "NODETOOL_NODE_PREFIX=${NODETOOL_NODE_PREFIX} RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches"
+            su - riak -c "NODETOOL_NODE_PREFIX=${NODETOOL_NODE_PREFIX} RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{runner_patch_dir}}"
             ;;
         debug)
             # Drop the "debug" from the args as we're going to directly call riak-debug now

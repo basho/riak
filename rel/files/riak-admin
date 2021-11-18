@@ -919,7 +919,7 @@ case "$1" in
         OLDNODE=$1
         NEWNODE=$2
         $ERTS_PATH/erl -noshell \
-            -pa $RUNNER_LIB_DIR/basho-patches \
+            -pa {{runner_patch_dir}} \
             -boot $BOOT_FILE \
             $CONFIG_ARGS \
             -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
@@ -940,7 +940,7 @@ case "$1" in
         FILENAME=$3
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
-                       -pa $RUNNER_LIB_DIR/basho-patches \
+                       -pa {{runner_patch_dir}} \
                        -boot $BOOT_FILE \
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
@@ -960,7 +960,7 @@ case "$1" in
         TYPE=$4
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
-                       -pa $RUNNER_LIB_DIR/basho-patches \
+                       -pa {{runner_patch_dir}} \
                        -boot $BOOT_FILE \
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
         ;;
@@ -974,7 +974,7 @@ case "$1" in
         NODE_NAME=${NAME_ARG#* }
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_test$NAME_HOST $COOKIE_ARG \
-                       -pa $RUNNER_LIB_DIR/basho-patches \
+                       -pa {{runner_patch_dir}} \
                        -boot $BOOT_FILE \
                        -eval "case catch(riak:client_test(\"$NODE_NAME\")) of \
                                ok -> init:stop();                             \
@@ -1010,7 +1010,7 @@ case "$1" in
         NODE_NAME=${NAME_ARG#* }
         # Using np_etop instead of riak_etop to follow node_package convention
         $ERTS_PATH/erl -noshell -noinput \
-            -pa $RUNNER_LIB_DIR/basho-patches \
+            -pa {{runner_patch_dir}} \
             -boot $BOOT_FILE \
             -hidden $NAME_PARAM np_etop$RAND$NAME_HOST $COOKIE_ARG \
             -s etop -s erlang halt -output text \
