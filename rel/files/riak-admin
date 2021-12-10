@@ -2,23 +2,21 @@
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
 
-# Keep track of where script was invoked
-ORIGINAL_DIR=$(pwd)
-
-# Make sure CWD is set to runner run dir
-cd $RUNNER_BASE_DIR
-
 # Identify the script name
 SCRIPT="riak-admin"
 
-# Setup required due to relx not node-package
-ERTS_PATH=$BINDIR
-NAME_PARAM="-name"
-BOOT_FILE="start_clean"
+RPC_HOP="{{platform_bin_dir}}/riak rpc"
+
+ERTS_PATH="{{runner_base_dir}}/`(cd {{runner_base_dir}} && ls -d erts-*)`/bin"
+COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' {{platform_etc_dir}}/riak.conf 2> /dev/null | cut -d = -f 2 | tr -d ' '`
+NODE={{node}}
+HOST=${NODE#*@}
+
+BOOT_FILE="{{runner_base_dir}}/releases/{{rel_vsn}}/start_clean"
 
 usage() {
     echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
-    echo "                    reip | js-reload | erl-reload | wait-for-service | "
+    echo "                    reip | erl-reload | wait-for-service | "
     echo "                    ringready | transfers | force-remove | down |"
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
     echo "                    aae-status | diag | stat | status | transfer-limit | reformat-indexes |"
@@ -33,23 +31,23 @@ stat_admin()
     case "$1" in
         show)
             shift
-            relx_nodetool rpc riak_core_console stat_show "$*"
+            $RPC_HOP riak_core_console stat_show "$*"
             ;;
-       info)
+        info)
             shift
-            relx_nodetool rpc riak_core_console stat_info "$*"
+            $RPC_HOP riak_core_console stat_info "$*"
             ;;
         enable)
             shift
-            relx_nodetool rpc riak_core_console stat_enable "$*"
+            $RPC_HOP riak_core_console stat_enable "$*"
             ;;
         disable)
             shift
-            relx_nodetool rpc riak_core_console stat_disable "$*"
+            $RPC_HOP riak_core_console stat_disable "$*"
             ;;
         reset)
             shift
-            relx_nodetool rpc riak_core_console stat_reset "$*"
+            $RPC_HOP riak_core_console stat_reset "$*"
             ;;
         help)
             shift
@@ -235,13 +233,13 @@ cluster_admin()
                 echo "Usage: $SCRIPT cluster join <node>"
                 exit 1
             fi
-            relx_nodetool rpc riak_kv_console staged_join "$2"
+            $RPC_HOP riak_kv_console staged_join "$2"
             ;;
         leave)
             if [ $# -eq 1 ]; then
-                relx_nodetool rpc riak_core_console stage_leave
+                $RPC_HOP riak_core_console stage_leave
             elif [ $# -eq 2 ]; then
-                relx_nodetool rpc riak_core_console stage_leave "$2"
+                $RPC_HOP riak_core_console stage_leave "$2"
             else
                 echo "Usage: $SCRIPT cluster leave [<node>]"
                 exit 1
@@ -252,21 +250,21 @@ cluster_admin()
                 echo "Usage: $SCRIPT cluster force-remove <node>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console stage_remove "$2"
+            $RPC_HOP riak_core_console stage_remove "$2"
             ;;
         replace)
             if [ $# -ne 3 ]; then
                 echo "Usage: $SCRIPT cluster replace <node1> <node2>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console stage_replace "$2" "$3"
+            $RPC_HOP riak_core_console stage_replace "$2" "$3"
             ;;
         force-replace)
             if [ $# -ne 3 ]; then
                 echo "Usage: $SCRIPT cluster force-replace <node1> <node2>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console stage_force_replace "$2" "$3"
+            $RPC_HOP riak_core_console stage_force_replace "$2" "$3"
             ;;
         resize-ring)
             if [ $# -ne 2 ]; then
@@ -274,30 +272,30 @@ cluster_admin()
                 echo "       $SCRIPT cluster resize-ring abort"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console stage_resize_ring "$2"
+            $RPC_HOP riak_core_console stage_resize_ring "$2"
             ;;
         plan)
-            relx_nodetool rpc riak_core_console print_staged
+            $RPC_HOP riak_core_console print_staged
             ;;
         commit)
-            relx_nodetool rpc riak_core_console commit_staged
+            $RPC_HOP riak_core_console commit_staged
             ;;
         clear)
-            relx_nodetool rpc riak_core_console clear_staged
+            $RPC_HOP riak_core_console clear_staged
             ;;
         status)
-            relx_nodetool rpc riak_core_console command $SCRIPT cluster $@
+            $RPC_HOP riak_core_console command $SCRIPT cluster $@
             ;;
         partitions|partition)
-            relx_nodetool rpc riak_core_console command $SCRIPT cluster $@
+            $RPC_HOP riak_core_console command $SCRIPT cluster $@
             ;;
         partition[_-]count)
             shift
-            relx_nodetool rpc riak_core_console command $SCRIPT cluster partition-count $@
+            $RPC_HOP riak_core_console command $SCRIPT cluster partition-count $@
             ;;
         location)
             shift
-            relx_nodetool rpc riak_core_console command $SCRIPT cluster location $@
+            $RPC_HOP riak_core_console command $SCRIPT cluster location $@
             ;;
         *)
             echo "\
@@ -360,9 +358,9 @@ security_admin()
                 echo "Usage: $SCRIPT security add-user <user> [<option>=<value> [...]]"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console add_user "$@"
+            $RPC_HOP riak_core_console add_user "$@"
             if [ $? -eq 0 ]; then
-                relx_nodetool rpc riak_core_console print_user "$1"
+                $RPC_HOP riak_core_console print_user "$1"
             fi
             ;;
         add-group)
@@ -371,9 +369,9 @@ security_admin()
                 echo "Usage: $SCRIPT security add-group <group> [<option>=<value> [...]]"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console add_group "$@"
+            $RPC_HOP riak_core_console add_group "$@"
             if [ $? -eq 0 ]; then
-                relx_nodetool rpc riak_core_console print_group "$1"
+                $RPC_HOP riak_core_console print_group "$1"
             fi
             ;;
         alter-user)
@@ -382,9 +380,9 @@ security_admin()
                 echo "Usage: $SCRIPT security alter-user <user> <option> [<option>=<value> [...]]"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console alter_user "$@"
+            $RPC_HOP riak_core_console alter_user "$@"
             if [ $? -eq 0 ]; then
-                relx_nodetool rpc riak_core_console print_user "$1"
+                $RPC_HOP riak_core_console print_user "$1"
             fi
             ;;
         alter-group)
@@ -393,9 +391,9 @@ security_admin()
                 echo "Usage: $SCRIPT security alter-group <group> <option> [<option>=<value> [...]]"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console alter_group "$@"
+            $RPC_HOP riak_core_console alter_group "$@"
             if [ $? -eq 0 ]; then
-                relx_nodetool rpc riak_core_console print_group "$1"
+                $RPC_HOP riak_core_console print_group "$1"
             fi
             ;;
         del-user)
@@ -404,7 +402,7 @@ security_admin()
                 echo "Usage: $SCRIPT security del-user <user>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console del_user "$@"
+            $RPC_HOP riak_core_console del_user "$@"
             ;;
         del-group)
             shift
@@ -412,7 +410,7 @@ security_admin()
                 echo "Usage: $SCRIPT security del-group <user>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console del_group "$@"
+            $RPC_HOP riak_core_console del_group "$@"
             ;;
         add-source)
             shift
@@ -420,7 +418,7 @@ security_admin()
                 echo "Usage: $SCRIPT security add-source all|<users> <CIDR> <source> [<option>=<value> [...]]"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console add_source "$@"
+            $RPC_HOP riak_core_console add_source "$@"
             ;;
         del-source)
             shift
@@ -428,7 +426,7 @@ security_admin()
                 echo "Usage: $SCRIPT security del-source all|<users> <CIDR>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console del_source "$@"
+            $RPC_HOP riak_core_console del_source "$@"
             ;;
         grant)
             shift
@@ -436,7 +434,7 @@ security_admin()
                 echo "Usage: $SCRIPT security grant <permissions> on any|<type> [bucket] to <users>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console grant "$@"
+            $RPC_HOP riak_core_console grant "$@"
             ;;
         revoke)
             shift
@@ -444,27 +442,27 @@ security_admin()
                 echo "Usage: $SCRIPT security revoke <permissions> on any|<type> [bucket] from <users>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console revoke "$@"
+            $RPC_HOP riak_core_console revoke "$@"
             ;;
         print-users)
-            relx_nodetool rpc riak_core_console print_users
+            $RPC_HOP riak_core_console print_users
             ;;
         print-groups)
-            relx_nodetool rpc riak_core_console print_groups
+            $RPC_HOP riak_core_console print_groups
             ;;
         print-sources)
-            relx_nodetool rpc riak_core_console print_sources
+            $RPC_HOP riak_core_console print_sources
             ;;
         enable)
-            relx_nodetool rpc riak_core_console security_enable
-            relx_nodetool rpc riak_core_console security_status
+            $RPC_HOP riak_core_console security_enable
+            $RPC_HOP riak_core_console security_status
             ;;
         disable)
-            relx_nodetool rpc riak_core_console security_disable
-            relx_nodetool rpc riak_core_console security_status
+            $RPC_HOP riak_core_console security_disable
+            $RPC_HOP riak_core_console security_status
             ;;
         status)
-            relx_nodetool rpc riak_core_console security_status
+            $RPC_HOP riak_core_console security_status
             ;;
         print-grants)
             shift
@@ -472,7 +470,7 @@ security_admin()
                 echo "Usage: $SCRIPT security print-grants <user>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console print_grants "$@"
+            $RPC_HOP riak_core_console print_grants "$@"
             ;;
         print-user)
             shift
@@ -480,7 +478,7 @@ security_admin()
                 echo "Usage: $SCRIPT security print-user <user>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console print_user "$@"
+            $RPC_HOP riak_core_console print_user "$@"
             ;;
         print-group)
             shift
@@ -488,11 +486,11 @@ security_admin()
                 echo "Usage: $SCRIPT security print-group <group>"
                 exit 1
             fi
-            relx_nodetool rpc riak_core_console print_group "$@"
+            $RPC_HOP riak_core_console print_group "$@"
             ;;
         ciphers)
             shift
-            relx_nodetool rpc riak_core_console ciphers "$@"
+            $RPC_HOP riak_core_console ciphers "$@"
             ;;
         *)
             echo "\
@@ -536,7 +534,7 @@ search_admin()
 
             # Make sure the local node is running
 
-            relx_nodetool rpc yz_console aae_status "$@"
+            $RPC_HOP yz_console aae_status "$@"
             ;;
         switch[_-]to[_-]new[_-]search)
             if [ $# -ne 1 ]; then
@@ -547,7 +545,7 @@ search_admin()
 
             # Make sure the local node is running
 
-            relx_nodetool rpc yz_console switch_to_new_search "$@"
+            $RPC_HOP yz_console switch_to_new_search "$@"
             ;;
         *)
 echo "\
@@ -569,14 +567,14 @@ btype_admin()
                 echo "Usage: $SCRIPT bucket-type status <type>";
                 exit 1
             fi
-            relx_nodetool rpc riak_kv_console bucket_type_status "$2"
+            $RPC_HOP riak_kv_console bucket_type_status "$2"
             ;;
         activate)
             if [ $# -ne 2 ]; then
                 echo "Usage: $SCRIPT bucket-type activate <type>"
                 exit 1
             fi
-            relx_nodetool rpc riak_kv_console bucket_type_activate "$2"
+            $RPC_HOP riak_kv_console bucket_type_activate "$2"
             ;;
         create)
             if [ $# -lt 2 ]; then
@@ -590,12 +588,12 @@ btype_admin()
             #
             if [ $# -le 3 ]; then
                 json=`echo ${3:-}|tr -d " "`
-                relx_nodetool rpc riak_kv_console bucket_type_create "$2" "$json"
+                $RPC_HOP riak_kv_console bucket_type_create "$2" "$json"
             else  # greater than 3 parameters
                 two=$2
                 shift 2
                 three=`echo $@|tr -d " "`
-                relx_nodetool rpc riak_kv_console bucket_type_create "$two" "$three"
+                $RPC_HOP riak_kv_console bucket_type_create "$two" "$three"
             fi
 
             ;;
@@ -611,12 +609,12 @@ btype_admin()
             #
             if [ $# -eq 3 ]; then
                 json=`echo $3|tr -d " "`
-                relx_nodetool rpc riak_kv_console bucket_type_update "$2" "$json"
+                $RPC_HOP riak_kv_console bucket_type_update "$2" "$json"
             else  # greater than 3 parameters
                 two=$2
                 shift 2
                 three=`echo $@|tr -d " "`
-                relx_nodetool rpc riak_kv_console bucket_type_update "$two" "$three"
+                $RPC_HOP riak_kv_console bucket_type_update "$two" "$three"
             fi
             ;;
         list)
@@ -624,7 +622,7 @@ btype_admin()
                 echo "Usage: $SCRIPT bucket-type list"
                 exit 1
             fi
-            relx_nodetool rpc riak_kv_console bucket_type_list
+            $RPC_HOP riak_kv_console bucket_type_list
             ;;
         *)
             echo "\
@@ -658,7 +656,7 @@ case "$1" in
 
         # Make sure the local node IS running
 
-        relx_nodetool rpc riak_kv_console join "$3"
+        $RPC_HOP riak_kv_console join "$3"
         ;;
 
     leave)
@@ -676,7 +674,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console leave
+        $RPC_HOP riak_kv_console leave
         ;;
 
     remove)
@@ -705,7 +703,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console remove "$3"
+        $RPC_HOP riak_kv_console remove "$3"
         ;;
 
     down)
@@ -717,7 +715,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console down "$@"
+        $RPC_HOP riak_kv_console down "$@"
         ;;
 
     status)
@@ -729,7 +727,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console status "$@"
+        $RPC_HOP riak_kv_console status "$@"
         ;;
 
     vnode[_-]status)
@@ -741,7 +739,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console vnode_status "$@"
+        $RPC_HOP riak_kv_console vnode_status "$@"
         ;;
 
     ringready)
@@ -753,7 +751,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console ringready "$@"
+        $RPC_HOP riak_kv_console ringready "$@"
         ;;
 
     transfers)
@@ -765,7 +763,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_core_console transfers "$@"
+        $RPC_HOP riak_core_console transfers "$@"
         ;;
 
     member[_-]status)
@@ -777,7 +775,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_core_console member_status "$@"
+        $RPC_HOP riak_core_console member_status "$@"
         ;;
 
     ring[_-]status)
@@ -789,7 +787,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_core_console ring_status "$@"
+        $RPC_HOP riak_core_console ring_status "$@"
         ;;
 
     aae[_-]status)
@@ -801,7 +799,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console aae_status "$@"
+        $RPC_HOP riak_kv_console aae_status "$@"
         ;;
 
     ensemble[_-]status)
@@ -813,7 +811,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console ensemble_status "$@"
+        $RPC_HOP riak_kv_console ensemble_status "$@"
         ;;
 
     repair[_-]2i)
@@ -821,7 +819,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console repair_2i "$@"
+        $RPC_HOP riak_kv_console repair_2i "$@"
         ;;
 
     cluster[_-]info)
@@ -833,7 +831,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console cluster_info "$@"
+        $RPC_HOP riak_kv_console cluster_info "$@"
         ;;
 
     services)
@@ -843,7 +841,7 @@ case "$1" in
             echo "Lists the services available on the node. See also: wait-for-service"
             exit 1
         fi
-        relx_nodetool rpcterms riak_core_node_watcher services ''
+        $RPC_HOPterms riak_core_node_watcher services ''
         ;;
 
     wait[_-]for[_-]service)
@@ -857,7 +855,7 @@ case "$1" in
         while (true); do
             # Make sure riak_core_node_watcher is up and running locally before trying to query it
             # to avoid ugly (but harmless) error messages
-            NODEWATCHER=`relx_nodetool rpcterms erlang whereis "'riak_core_node_watcher'."`
+            NODEWATCHER=`$RPC_HOPterms erlang whereis "'riak_core_node_watcher'."`
             if [ "$NODEWATCHER" = "undefined" ]; then
                 echo "$SVC is not up: node watcher is not running"
                 continue
@@ -866,9 +864,9 @@ case "$1" in
             # Get the list of services that are available on the requested node
             # If no node is specified, get the list of services from the local node
             if [ "X$TARGETNODE" = "X" ]; then
-                SERVICES=`relx_nodetool rpcterms riak_core_node_watcher services ''`
+                SERVICES=`$RPC_HOPterms riak_core_node_watcher services ''`
             else
-                SERVICES=`relx_nodetool rpcterms riak_core_node_watcher services "'${TARGETNODE}'."`
+                SERVICES=`$RPC_HOPterms riak_core_node_watcher services "'${TARGETNODE}'."`
             fi
             echo "$SERVICES" | grep "[[,]$SVC[],]" > /dev/null 2>&1
             if [ "X$?" = "X0" ]; then
@@ -881,21 +879,11 @@ case "$1" in
         done
         ;;
 
-    js[_-]reload)
-        # Reload all Javascript VMs
-
-        shift #optional names come after 'js_reload'
-
-        # Make sure the local node is running
-
-        relx_nodetool rpc riak_kv_js_manager reload "$@"
-        ;;
-
     erl[_-]reload)
         # Reload user Erlang code
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_kv_console reload_code
+        $RPC_HOP riak_kv_console reload_code
         ;;
 
     reip)
@@ -919,7 +907,7 @@ case "$1" in
         OLDNODE=$1
         NEWNODE=$2
         $ERTS_PATH/erl -noshell \
-            -pa $RUNNER_LIB_DIR/basho-patches \
+            -pa {{runner_patch_dir}} \
             -boot $BOOT_FILE \
             $CONFIG_ARGS \
             -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
@@ -939,8 +927,8 @@ case "$1" in
         COOKIE=$2
         FILENAME=$3
 
-        $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
-                       -pa $RUNNER_LIB_DIR/basho-patches \
+        $ERTS_PATH/erl -noshell -name riak_kv_backup@$HOST -setcookie $COOKIE \
+                       -pa {{runner_patch_dir}} \
                        -boot $BOOT_FILE \
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
@@ -959,8 +947,8 @@ case "$1" in
         FILENAME=$3
         TYPE=$4
 
-        $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
-                       -pa $RUNNER_LIB_DIR/basho-patches \
+        $ERTS_PATH/erl -noshell -name riak_kv_backup@$HOST -setcookie $COOKIE \
+                       -pa {{runner_patch_dir}} \
                        -boot $BOOT_FILE \
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
         ;;
@@ -971,12 +959,11 @@ case "$1" in
         shift
 
         # Parse out the node name to pass to the client
-        NODE_NAME=${NAME_ARG#* }
 
-        $ERTS_PATH/erl -noshell $NAME_PARAM riak_test$NAME_HOST $COOKIE_ARG \
-                       -pa $RUNNER_LIB_DIR/basho-patches \
+        $ERTS_PATH/erl -noshell -name riak_test@$HOST -setcookie $COOKIE \
+                       -pa {{runner_patch_dir}} \
                        -boot $BOOT_FILE \
-                       -eval "case catch(riak:client_test(\"$NODE_NAME\")) of \
+                       -eval "case catch(riak:client_test(\"$NODE\")) of \
                                ok -> init:stop();                             \
                                _  -> init:stop(1)                             \
                               end."
@@ -998,7 +985,7 @@ case "$1" in
 
                 shift
 
-                relx_nodetool rpc riaknostic main --etc "$RUNNER_ETC_DIR" --base "$RUNNER_BASE_DIR" "$@"
+                $RPC_HOP riaknostic main --etc "$RUNNER_ETC_DIR" --base "$RUNNER_BASE_DIR" "$@"
         esac
         ;;
     top)
@@ -1007,14 +994,13 @@ case "$1" in
         shift
 
         RAND=$(($(($$ % 1000)) + 1))
-        NODE_NAME=${NAME_ARG#* }
         # Using np_etop instead of riak_etop to follow node_package convention
         $ERTS_PATH/erl -noshell -noinput \
-            -pa $RUNNER_LIB_DIR/basho-patches \
+            -pa {{runner_base_dir}} \
             -boot $BOOT_FILE \
-            -hidden $NAME_PARAM np_etop$RAND$NAME_HOST $COOKIE_ARG \
+            -hidden -name np_etop$RAND@$HOST -setcookie $COOKIE \
             -s etop -s erlang halt -output text \
-            -node $NODE_NAME \
+            -node $NODE \
             $* -tracing off
         ;;
     cluster)
@@ -1031,19 +1017,19 @@ case "$1" in
         ;;
     handoff)
         # New pattern for command line. Use nodetool for RPC
-        relx_nodetool rpc riak_core_console command $SCRIPT $@
+        $RPC_HOP riak_core_console command $SCRIPT $@
         ;;
     set)
         # New pattern for command line. Use nodetool for RPC
-        relx_nodetool rpc riak_core_console command $SCRIPT $@
+        $RPC_HOP riak_core_console command $SCRIPT $@
         ;;
     show)
         # New pattern for command line. Use nodetool for RPC
-        relx_nodetool rpc riak_core_console command $SCRIPT $@
+        $RPC_HOP riak_core_console command $SCRIPT $@
         ;;
     describe)
         # New pattern for command line. Use nodetool for RPC
-        relx_nodetool rpc riak_core_console command $SCRIPT $@
+        $RPC_HOP riak_core_console command $SCRIPT $@
         ;;
     transfer[_-]limit)
         if [ $# -gt 3 ]; then
@@ -1053,7 +1039,7 @@ case "$1" in
             exit
         fi
         shift
-        relx_nodetool rpc riak_core_console transfer_limit "$@"
+        $RPC_HOP riak_core_console transfer_limit "$@"
         ;;
     reformat[_-]indexes)
         if [ $# -gt 4 ]; then
@@ -1064,7 +1050,7 @@ case "$1" in
             exit 1
         fi
         shift
-        relx_nodetool rpc riak_kv_console reformat_indexes "$@"
+        $RPC_HOP riak_kv_console reformat_indexes "$@"
         ;;
     downgrade[_-]objects)
         if [ $# -lt 2 ]; then
@@ -1072,7 +1058,7 @@ case "$1" in
             exit
         fi
         shift
-        relx_nodetool rpc riak_kv_console reformat_objects "$@"
+        $RPC_HOP riak_kv_console reformat_objects "$@"
         ;;
     security)
         shift

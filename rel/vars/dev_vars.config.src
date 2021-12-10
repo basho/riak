@@ -3,12 +3,16 @@
 
 {devrel, true}.
 
+{rel_vsn, "3.0.9.1"}.
+
 %% Platform-specific installation paths
-{platform_bin_dir,  "./bin"}.
-{platform_data_dir, "./data"}.
-{platform_etc_dir,  "./etc"}.
-{platform_lib_dir,  "./lib"}.
-{platform_log_dir,  "./log"}.
+{platform_base_dir, "@PLATFORM_BASE_DIR@"}.
+{platform_bin_dir,  "{{platform_base_dir}}/bin"}.
+{platform_data_dir, "{{platform_base_dir}}/data"}.
+{platform_etc_dir,  "{{platform_base_dir}}/etc"}.
+{platform_lib_dir,  "{{platform_base_dir}}/lib"}.
+{platform_log_dir,  "{{platform_base_dir}}/log"}.
+{platform_gen_dir,  "{{platform_base_dir}}/releases/{{rel_vsn}}"}.
 
 %%
 %% etc/app.config
@@ -29,11 +33,6 @@
 %% lager
 {console_log_default, both}.
 
-%% Javascript VMs
-{map_js_vms,   8}.
-{reduce_js_vms, 6}.
-{hook_js_vms, 2}.
-
 %%
 %% etc/vm.args
 %%
@@ -43,24 +42,17 @@
 %%
 %% bin/riak
 %%
-{runner_script_dir,  "\`cd \\`dirname $0\\` && /bin/pwd\`"}.
-{runner_base_dir,    "{{runner_script_dir}}/.."}.
-{runner_etc_dir,     "$RUNNER_BASE_DIR/etc"}.
-{runner_log_dir,     "$RUNNER_BASE_DIR/log"}.
-{runner_lib_dir,     "$RUNNER_BASE_DIR/lib"}.
-{runner_patch_dir,   "$RUNNER_BASE_DIR/lib/basho-patches"}.
-{pipe_dir,           "/tmp/$RUNNER_BASE_DIR/"}.
-{runner_user,        ""}.
-{runner_wait_process, "riak_core_node_watcher"}.
+{runner_script_dir,  "{{platform_bin_dir}}"}.
+{runner_base_dir,    "{{platform_base_dir}}"}.
+{runner_etc_dir,     "{{platform_etc_dir}}"}.
+{runner_log_dir,     "{{platform_log_dir}}"}.
+{runner_lib_dir,     "{{platform_lib_dir}}"}.
+{runner_patch_dir,   "{{platform_lib_dir}}/patches"}.
+{pipe_dir,           "{{platform_base_dir}}/tmp/riak"}.
+{pid_dir,            "{{platform_base_dir}}/var/run/riak"}.
 
 %%
 %% cuttlefish
 %%
 {cuttlefish,         "on"}.
 {cuttlefish_conf,    "riak.conf"}.
-
-%%
-%% yokozuna
-%%
-{yz_solr_port, @YZSOLRPORT@}.
-{yz_solr_jmx_port, @YZSOLRJMXPORT@}.
