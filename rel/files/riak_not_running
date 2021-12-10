@@ -2,7 +2,9 @@
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
 
-if relx_nodetool "ping" > /dev/null; then
+RIAK="{{platform_bin_dir}}/riak"
+
+if $RIAK "ping" > /dev/null; then
     echo "Node is already running!"
     exit 1
 fi
