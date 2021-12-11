@@ -35,7 +35,7 @@ deps:
 clean: testclean
 	$(REBAR) clean
 
-distclean: clean devclean relclean ballclean
+distclean: clean devclean relclean
 	@rm -rf _build
 
 ##
