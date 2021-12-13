@@ -22,7 +22,7 @@ usage() {
     echo "                    aae-status | diag | stat | status | transfer-limit | reformat-indexes |"
     echo "                    top [-interval N] [-sort reductions|memory|msg_q] [-lines N] |"
     echo "                    downgrade-objects | security | bucket-type | repair-2i |"
-    echo "                    search | services | ensemble-status | handoff | set |"
+    echo "                    services | ensemble-status | handoff | set |"
     echo "                    show | describe }"
 }
 
@@ -518,43 +518,6 @@ The following commands modify users and security ACLs for Riak:
     disable
     status
     ciphers [cipherlist]
-"
-    esac
-}
-
-search_admin()
-{
-    case "$1" in
-        aae[_-]status)
-            if [ $# -ne 1 ]; then
-                echo "Usage: $SCRIPT search $1"
-                exit 1
-            fi
-            shift
-
-            # Make sure the local node is running
-
-            $RPC_HOP yz_console aae_status "$@"
-            ;;
-        switch[_-]to[_-]new[_-]search)
-            if [ $# -ne 1 ]; then
-                echo "Usage: $SCRIPT search $1"
-                exit 1
-            fi
-            shift
-
-            # Make sure the local node is running
-
-            $RPC_HOP yz_console switch_to_new_search "$@"
-            ;;
-        *)
-echo "\
-Usage: $SCRIPT search <command>
-
-Available commands:
-
-    aae-status
-    switch-to-new-search
 "
     esac
 }
