@@ -108,7 +108,6 @@ Usage: riak-debug [-c] [-l] [-r] [-s] [-e] [-v] [FILENAME | -]
 -l, --logs      Gather Riak logs.
 -p, --patches   Gather the contents of the basho-patches directory.
 -r, --riakcmds  Gather Riak information and command output.
--y, --yzmcmds   Gather yokozuna information and logs.
 -s, --syscmds   Gather general system commands.
 -v, --verbose   Print verbose failure messages to stdout
 -e, --extracmds Gather extra command output. These commands are too intense to
@@ -248,7 +247,7 @@ if [ 0 -eq $(( $get_cfgs + $get_logs + $get_patches + $get_riakcmds + $get_yzcmd
     get_logs=1
     get_patches=1
     get_riakcmds=1
-    get_yzcmds=1
+    get_yzcmds=0
     get_syscmds=1
     get_extracmds=0
 fi
