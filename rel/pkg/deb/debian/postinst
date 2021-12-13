@@ -22,6 +22,7 @@ fi
 for i in lib log; do
     chown -R riak:riak /var/$i/riak
 done
+chown -R riak:riak /etc/riak
 
 case "$1" in
     configure)
