@@ -28,6 +28,13 @@ function delete_pid_file {
     rm -f $PID_DIR/riak.pid
 }
 
+# prevents centos8 su from contacting pam and printing the "Last logged in" message
+if [ "`cat /etc/redhat-release 2>&1`" = "CentOS Stream release 8" ]; then
+    SU="su --session-command"
+else
+    SU=su
+fi
+
 function maybe_su {
     if [[ $EUID -ne 0 ]]; then
         NODETOOL_NODE_PREFIX=${NODETOOL_NODE_PREFIX} PIPE_DIR=${PIPE_DIR} $*
@@ -39,7 +46,7 @@ function maybe_su {
 NODETOOL_NODE_PREFIX=${NODETOOL_NODE_PREFIX} PIPE_DIR=$PIPE_DIR $*
 EOF
 	chmod +x $f
-	su - riak $f
+	$SU - riak $f
     fi
 }
 

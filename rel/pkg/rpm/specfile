@@ -21,7 +21,7 @@
 Name: riak
 Version: %{_version}
 Release: %{_release}%{?dist}
-License: "Apacke 2.0"
+License: "Apache 2.0"
 Group: Development/Libraries
 Source: %{_tarname}
 URL: "https://riak.com"
@@ -29,12 +29,14 @@ Vendor: "Riak"
 Packager: "Riak Package Maint" <"packaging@riak.com">
 BuildRoot: %{_tmppath}/%{name}-%{_revision}-%{release}-root
 Summary: "Riak is a distributed data store"
-Obsoletes: riak
+BuildRequires: systemd systemd-rpm-macros gcc-c++ pam-devel
+Requires(post): systemd
+Requires(preun): systemd
+Requires(postun): systemd
 
 %description
 "Riak is a distributed data store"
 
-%define init_script %{_sysconfdir}/init.d/riak
 %define debug_package %{nil}
 %define __prelink_undo_cmd /bin/cat prelink library
 
@@ -60,26 +62,35 @@ cat > rpm.vars.config <<EOF
 {platform_log_dir,  "%{platform_log_dir}"}.
 EOF
 
+%define _build_id_links none
+
 %build
 make rel-rpm
 
 %install
-%define relpath %{_builddir}/%{buildsubdir}/_build/rpm/rel/riak
+%define relpath %{_builddir}/%{buildsubdir}/rel/riak
 %define buildroot_lib %{buildroot}%{_libdir}/riak
 %define buildroot_etc %{buildroot}%{_sysconfdir}/riak
 %define buildroot_bin %{buildroot_lib}/bin
+%define buildroot_sbin %{buildroot}%{_sbindir}
+%define buildroot_unit %{buildroot}%{_unitdir}
+%define buildroot_run %{buildroot}%{_rundir}
 
-mkdir -p %{buildroot_etc}
-mkdir -p %{buildroot_lib}
-mkdir -p %{buildroot_bin}
-mkdir -p %{buildroot}%{_sbindir}
-mkdir -p %{buildroot}%{_localstatedir}/lib/riak
-mkdir -p %{buildroot}%{_localstatedir}/log/riak
+mkdir -p \
+  %{buildroot_etc} \
+  %{buildroot_lib} \
+  %{buildroot_bin} \
+  %{buildroot_sbin} \
+  %{buildroot_unit} \
+  %{buildroot_run}/riak \
+  %{buildroot}%{_localstatedir}/lib/riak \
+  %{buildroot}%{_localstatedir}/log/riak
 
 cp -R %{relpath}/lib       %{buildroot_lib}
 cp -R %{relpath}/erts-*    %{buildroot_lib}
 cp -R %{relpath}/releases  %{buildroot_lib}
 cp -R %{relpath}/share     %{buildroot_lib}
+cp rel/pkg/rpm/%{name}.service %{buildroot_unit}
 
 if [ -d %{relpath}/bin ]; then \
    cd %{relpath}/bin
@@ -90,13 +101,14 @@ fi
 cp %{relpath}/usr/sbin/riak %{buildroot}%{_sbindir}
 cp %{relpath}/etc/riak.conf %{buildroot_etc}
 cp %{relpath}/etc/advanced.config %{buildroot_etc}
+for f in riak-admin riak-repl riak-debug; do
+    cp %{relpath}/bin/$f %{buildroot}%{_sbindir}
+done
+cp %{relpath}/usr/bin/riak %{buildroot}%{_sbindir}
 
 mkdir -p %{buildroot}%{_localstatedir}/lib/riak
 cp -R %{relpath}/data/* \
       %{buildroot}%{_localstatedir}/lib/riak
-
-mkdir -p %{buildroot}%{_sysconfdir}/init.d
-install -m755 %{relpath}/etc/init.d/init.script  %{buildroot}%{_sysconfdir}/init.d/riak
 
 # Needed to work around check-rpaths which seems to be hardcoded into recent
 # RPM releases
@@ -128,8 +140,10 @@ if [ `which selinuxenabled > /dev/null 2>&1` ] ; then
    selinuxenabled && find %{_localstatedir}/lib/riak -name "*.so" -exec chcon -t textrel_shlib_t {} \;
 fi
 
+%systemd_post %{name}.service
+
 %preun
-# Pre-uninstall script
+%systemd_preun %{name}.service
 
 # Only on uninstall, not upgrades
 if [ "$1" = 0 ] ; then
@@ -137,17 +151,21 @@ if [ "$1" = 0 ] ; then
 fi
 exit 0
 
+%postun
+%systemd_postun %{name}.service
 
 # Man pages are optional and might be missing, read from file
 %files
+%defattr(-,root,root)
+%{_libdir}/*
+%{_unitdir}/%{name}.service
+%{_sbindir}/*
+
 %defattr(-,riak,riak)
+%{_sysconfdir}/riak
 %{_localstatedir}/lib/riak
 %{_localstatedir}/log/riak
-%{_libdir}/*
-%defattr(-,root,root)
-%{_sysconfdir}/init.d/riak
-%dir %{_sysconfdir}/riak
-/usr/sbin/*
+
 %config(noreplace) %{_sysconfdir}/riak/*
 
 %clean
