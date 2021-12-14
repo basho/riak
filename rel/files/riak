@@ -28,8 +28,9 @@ function delete_pid_file {
     rm -f $PID_DIR/riak.pid
 }
 
-# prevents centos8 su from contacting pam and printing the "Last logged in" message
-if [ "`cat /etc/redhat-release 2>&1`" = "CentOS Stream release 8" ]; then
+# centos7-based distros have a su that contacts pam and prints the "Last logged in" message
+if [ "`cat /etc/redhat-release 2>&1`" = "CentOS Stream release 8" ] ||
+   [ "`cat /etc/system-release 2>&1`" = "Amazon Linux release 2 (Karoo)" ]; then
     SU="su --session-command"
 else
     SU=su

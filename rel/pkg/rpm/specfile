@@ -29,7 +29,7 @@ Vendor: "Riak"
 Packager: "Riak Package Maint" <"packaging@riak.com">
 BuildRoot: %{_tmppath}/%{name}-%{_revision}-%{release}-root
 Summary: "Riak is a distributed data store"
-BuildRequires: systemd systemd-rpm-macros gcc-c++ pam-devel
+BuildRequires: systemd gcc-c++ pam-devel
 Requires(post): systemd
 Requires(preun): systemd
 Requires(postun): systemd
