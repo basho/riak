@@ -74,20 +74,21 @@ test : testclean eunit test-deps
 ## Release targets
 ##
 rel: compile
-	$(REBAR) as rel release
-	cp -a _build/rel/rel/riak rel/
+	@$(REBAR) as rel release
+# freebsd tar won't write to stdout, so
+	@tar  -c -f rel.tar --exclude '*/.git/*' -C _build/rel/rel riak && tar -x -f rel.tar -C rel && rm rel.tar
 
 rel-rpm: compile
-	$(REBAR) as rpm release
-	cp -a _build/rpm/rel/riak rel/
+	@$(REBAR) as rpm release
+	@tar --exclude='*/.git/*' -c -C _build/rpm/rel riak | tar -x -C rel
 
 rel-deb: compile
-	$(REBAR) as deb release
-	cp -a _build/deb/rel/riak rel/
+	@$(REBAR) as deb release
+	@tar --exclude='*/.git/*' -c -C _build/deb/rel riak | tar -x -C rel
 
 relclean:
-	rm -rf $(REL_DIR)
-	rm -rf rel/riak
+	@rm -rf $(REL_DIR)
+	@rm -rf rel/riak rel/.libs rel/.deps
 
 ##
 ## Developer targets
