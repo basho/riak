@@ -38,16 +38,16 @@ fi
 
 function maybe_su {
     if [[ $EUID -ne 0 ]]; then
-        NODETOOL_NODE_PREFIX=${NODETOOL_NODE_PREFIX} PIPE_DIR=${PIPE_DIR} $*
+        $*
     else
-	# freebsd su is fairly limited, so:
-	f=$RUNNER_GEN_DIR/su_piggy
-	cat >$f <<EOF
-#!/bin/sh
-NODETOOL_NODE_PREFIX=${NODETOOL_NODE_PREFIX} PIPE_DIR=$PIPE_DIR $*
-EOF
-	chmod +x $f
-	$SU - riak $f
+	# if we are executing an admin command that spins up a
+	# (hidden) node to then execute custom erlang code via -eval,
+	# we need to cd to a dir containing the erlang cookie
+	# (previously implicitly done by su -, which option we have
+	# removed in order to allow any env vars to be available for
+	# the ultimate invocation of riak/riak-cs/stanchion)
+	cd {{platform_base_dir}}
+	$SU riak -c "$*"
     fi
 }
 
