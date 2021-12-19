@@ -1,18 +1,19 @@
 %% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
 %% ex: ft=erlang ts=4 sw=4 et
 
+{rel_vsn, "{{release_version}}"}.
+
 {devrel, true}.
 
-{rel_vsn, "3.0.9.1"}.
-
 %% Platform-specific installation paths
-{platform_base_dir, "@PLATFORM_BASE_DIR@"}.
-{platform_bin_dir,  "{{platform_base_dir}}/bin"}.
-{platform_data_dir, "{{platform_base_dir}}/data"}.
-{platform_etc_dir,  "{{platform_base_dir}}/etc"}.
-{platform_lib_dir,  "{{platform_base_dir}}/lib"}.
-{platform_log_dir,  "{{platform_base_dir}}/log"}.
-{platform_gen_dir,  "{{platform_base_dir}}/releases/{{rel_vsn}}"}.
+{platform_base_dir,  "@PLATFORM_BASE_DIR@"}.
+{platform_bin_dir,   "{{platform_base_dir}}/bin"}.
+{platform_data_dir,  "{{platform_base_dir}}/data"}.
+{platform_etc_dir,   "{{platform_base_dir}}/etc"}.
+{platform_lib_dir,   "{{platform_base_dir}}/lib"}.
+{platform_log_dir,   "{{platform_base_dir}}/log"}.
+{platform_gen_dir,   "{{platform_base_dir}}"}.
+{platform_patch_dir, "{{platform_lib_dir}}/patches"}.
 
 %%
 %% etc/app.config
@@ -38,18 +39,6 @@
 %%
 {node,         "@NODE@"}.
 {crash_dump,   "{{platform_log_dir}}/erl_crash.dump"}.
-
-%%
-%% bin/riak
-%%
-{runner_script_dir,  "{{platform_bin_dir}}"}.
-{runner_base_dir,    "{{platform_base_dir}}"}.
-{runner_etc_dir,     "{{platform_etc_dir}}"}.
-{runner_log_dir,     "{{platform_log_dir}}"}.
-{runner_lib_dir,     "{{platform_lib_dir}}"}.
-{runner_patch_dir,   "{{platform_lib_dir}}/patches"}.
-{pipe_dir,           "{{platform_base_dir}}/tmp/riak"}.
-{pid_dir,            "{{platform_base_dir}}/var/run/riak"}.
 
 %%
 %% cuttlefish

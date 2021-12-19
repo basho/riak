@@ -76,15 +76,15 @@ test : testclean eunit test-deps
 rel: compile
 	@$(REBAR) as rel release
 # freebsd tar won't write to stdout, so
-	@tar  -c -f rel.tar --exclude '*/.git/*' -C _build/rel/rel riak && tar -x -f rel.tar -C rel && rm rel.tar
+	@tar -c -f rel.tar --exclude-vcs -C _build/rel/rel riak && tar -x -f rel.tar -C rel && rm rel.tar
 
 rel-rpm: compile
 	@$(REBAR) as rpm release
-	@tar --exclude='*/.git/*' -c -C _build/rpm/rel riak | tar -x -C rel
+	@tar --exclude-vcs -c -C _build/rpm/rel riak | tar -x -C rel
 
 rel-deb: compile
 	@$(REBAR) as deb release
-	@tar --exclude='*/.git/*' -c -C _build/deb/rel riak | tar -x -C rel
+	@tar --exclude=vcs -c -C _build/deb/rel riak | tar -x -C rel
 
 rel-osx: compile
 	@$(REBAR) as osx release

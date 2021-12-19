@@ -2,8 +2,9 @@
 
 RUNNER_GEN_DIR={{platform_gen_dir}}
 RELX_RIAK={{platform_bin_dir}}/riak
-PID_DIR={{pid_dir}}
-PIPE_DIR={{pipe_dir}}/   # terminating / (relx treats it as a prefix)
+export PID_DIR={{pid_dir}}
+export PIPE_DIR={{pipe_dir}}/   # / is required, see https://www.erlang.org/doc/man/run_erl.html#export
+export RUNNER_LOG_DIR={{platform_log_dir}}
 
 mkdir -p $PID_DIR $PIPE_DIR
 chown riak:riak $PID_DIR $PIPE_DIR
@@ -53,12 +54,12 @@ function maybe_su {
 
 case "$1" in
     start)
-        maybe_su $RELX_RIAK $* -pa {{runner_patch_dir}} \
+        maybe_su $RELX_RIAK $* -pa {{platform_patch_dir}} \
             && write_pid_file
 	test -r $PID_DIR/riak.pid && exit 0
 	;;
     console|foreground)
-        maybe_su $RELX_RIAK $* -pa {{runner_patch_dir}}
+        maybe_su $RELX_RIAK $* -pa {{platform_patch_dir}}
 	;;
     stop)
         maybe_su $RELX_RIAK $* \
@@ -67,6 +68,10 @@ case "$1" in
     admin)
 	shift
 	maybe_su `which riak-admin` $*
+	;;
+    chkconfig)
+	shift
+	maybe_su `which riak-chkconfig` $*
 	;;
     repl)
 	shift
