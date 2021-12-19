@@ -5,7 +5,15 @@
 # Identify the script name
 SCRIPT=`basename $0`
 
-RPC_HOP="{{platform_bin_dir}}/riak rpc"
+PLATFORM_BASE_DIR={{platform_base_dir}}
+PLATFORM_BASE_DIR=${PLATFORM_BASE_DIR:-$(cd $(dirname "$0")/.. && pwd -P)}
+
+PLATFORM_BIN_DIR={{platform_bin_dir}}
+if [ "$PLATFORM_BIN_DIR" = "${PLATFORM_BIN_DIR#/}" ]; then
+    PLATFORM_BIN_DIR=$PLATFORM_BASE_DIR/$PLATFORM_BIN_DIR
+fi
+
+RPC_HOP="${PLATFORM_BIN_DIR}/riak rpc"
 
 V2REPLDEP="DEPRECATION NOTICE: The replication protocol you are currently using in this cluster has been deprecated and will be unsupported and removed some time after the Riak Enterprise 2.1 release. Please upgrade to the latest replication protocol as soon as possible. If you need assistance migrating contact Basho Client Services or follow the instructions in our documentation ( http://docs.basho.com/riakee/latest/cookbooks/Multi-Data-Center-Replication-UpgradeV2toV3/ )."
 

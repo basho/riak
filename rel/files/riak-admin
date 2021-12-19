@@ -5,14 +5,35 @@
 # Identify the script name
 SCRIPT="riak-admin"
 
-RPC_HOP="{{platform_bin_dir}}/riak rpc"
+PLATFORM_BASE_DIR={{platform_base_dir}}
+PLATFORM_BASE_DIR=${PLATFORM_BASE_DIR:-$(cd $(dirname "$0")/.. && pwd -P)}
 
-ERTS_PATH="{{runner_base_dir}}/`(cd {{runner_base_dir}} && ls -d erts-*)`/bin"
-COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' {{platform_etc_dir}}/riak.conf 2> /dev/null | cut -d = -f 2 | tr -d ' '`
+PLATFORM_BIN_DIR={{platform_bin_dir}}
+if [ "$PLATFORM_BIN_DIR" = "${PLATFORM_BIN_DIR#/}" ]; then
+    PLATFORM_BIN_DIR=$PLATFORM_BASE_DIR/$PLATFORM_BIN_DIR
+fi
+
+RPC_HOP="${PLATFORM_BIN_DIR}/riak rpc"
+RPCt_HOP="${PLATFORM_BIN_DIR}/riak rpcterms"
+
+PLATFORM_ETC_DIR={{platform_etc_dir}}
+if [ "$PLATFORM_ETC_DIR" = "${PLATFORM_ETC_DIR#/}" ]; then
+    PLATFORM_ETC_DIR=$PLATFORM_BASE_DIR/$PLATFORM_ETC_DIR
+fi
+
+PLATFORM_PATCH_DIR={{platform_patch_dir}}
+if [ "$PLATFORM_PATCH_DIR" = "${PLATFORM_PATCH_DIR#/}" ]; then
+    PLATFORM_PATCH_DIR=$PLATFORM_BASE_DIR/$PLATFORM_PATCH_DIR
+fi
+
+ERTS_VER=$(cd ${PLATFORM_BASE_DIR} && ls -d erts-*)
+ERTS_PATH="${PLATFORM_BASE_DIR}/$ERTS_VER/bin"
+COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' $PLATFORM_ETC_DIR/riak.conf 2> /dev/null | cut -d = -f 2 | tr -d ' '`
+
 NODE={{node}}
 HOST=${NODE#*@}
 
-BOOT_FILE="{{runner_base_dir}}/releases/{{rel_vsn}}/start_clean"
+BOOT_FILE="${PLATFORM_BASE_DIR}/releases/{{release_version}}/start_clean"
 
 usage() {
     echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
@@ -804,7 +825,7 @@ case "$1" in
             echo "Lists the services available on the node. See also: wait-for-service"
             exit 1
         fi
-        $RPC_HOPterms riak_core_node_watcher services ''
+        $RPCt_HOP riak_core_node_watcher services ''
         ;;
 
     wait[_-]for[_-]service)
@@ -818,7 +839,7 @@ case "$1" in
         while (true); do
             # Make sure riak_core_node_watcher is up and running locally before trying to query it
             # to avoid ugly (but harmless) error messages
-            NODEWATCHER=`$RPC_HOPterms erlang whereis "'riak_core_node_watcher'."`
+            NODEWATCHER=`$RPCt_HOP erlang whereis "'riak_core_node_watcher'."`
             if [ "$NODEWATCHER" = "undefined" ]; then
                 echo "$SVC is not up: node watcher is not running"
                 continue
@@ -827,9 +848,9 @@ case "$1" in
             # Get the list of services that are available on the requested node
             # If no node is specified, get the list of services from the local node
             if [ "X$TARGETNODE" = "X" ]; then
-                SERVICES=`$RPC_HOPterms riak_core_node_watcher services ''`
+                SERVICES=`$RPCt_HOP riak_core_node_watcher services ''`
             else
-                SERVICES=`$RPC_HOPterms riak_core_node_watcher services "'${TARGETNODE}'."`
+                SERVICES=`$RPCt_HOP riak_core_node_watcher services "'${TARGETNODE}'."`
             fi
             echo "$SERVICES" | grep "[[,]$SVC[],]" > /dev/null 2>&1
             if [ "X$?" = "X0" ]; then
@@ -870,7 +891,7 @@ case "$1" in
         OLDNODE=$1
         NEWNODE=$2
         $ERTS_PATH/erl -noshell \
-            -pa {{runner_patch_dir}} \
+            -pa {{platform_patch_dir}} \
             -boot $BOOT_FILE \
             $CONFIG_ARGS \
             -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
@@ -891,7 +912,7 @@ case "$1" in
         FILENAME=$3
 
         $ERTS_PATH/erl -noshell -name riak_kv_backup@$HOST -setcookie $COOKIE \
-                       -pa {{runner_patch_dir}} \
+                       -pa {{platform_patch_dir}} \
                        -boot $BOOT_FILE \
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
@@ -911,12 +932,12 @@ case "$1" in
         TYPE=$4
 
         $ERTS_PATH/erl -noshell -name riak_kv_backup@$HOST -setcookie $COOKIE \
-                       -pa {{runner_patch_dir}} \
+                       -pa {{platform_patch_dir}} \
                        -boot $BOOT_FILE \
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
         ;;
 
-    test)
+    'test')
         # Make sure the local node IS running
 
         shift
@@ -924,7 +945,7 @@ case "$1" in
         # Parse out the node name to pass to the client
 
         $ERTS_PATH/erl -noshell -name riak_test@$HOST -setcookie $COOKIE \
-                       -pa {{runner_patch_dir}} \
+                       -pa {{platform_patch_dir}} \
                        -boot $BOOT_FILE \
                        -eval "case catch(riak:client_test(\"$NODE\")) of \
                                ok -> init:stop();                             \
@@ -959,7 +980,7 @@ case "$1" in
         RAND=$(($(($$ % 1000)) + 1))
         # Using np_etop instead of riak_etop to follow node_package convention
         $ERTS_PATH/erl -noshell -noinput \
-            -pa {{runner_base_dir}} \
+            -pa {{platform_patch_dir}} \
             -boot $BOOT_FILE \
             -hidden -name np_etop$RAND@$HOST -setcookie $COOKIE \
             -s etop -s erlang halt -output text \
