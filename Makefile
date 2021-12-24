@@ -86,6 +86,10 @@ rel-deb: compile
 	@$(REBAR) as deb release
 	@tar --exclude='*/.git/*' -c -C _build/deb/rel riak | tar -x -C rel
 
+rel-osx: compile
+	@$(REBAR) as osx release
+	@tar --exclude=vcs -c -C _build/osx/rel riak | tar -x -C rel
+
 relclean:
 	@rm -rf $(REL_DIR)
 	@rm -rf rel/riak rel/.libs rel/.deps

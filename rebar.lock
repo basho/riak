@@ -126,7 +126,7 @@
   2},
  {<<"riak_kv">>,
   {git,"https://github.com/TI-Tokyo/riak_kv.git",
-       {ref,"ce783a18219acf14a9c400522fef7fc0604509a3"}},
+       {ref,"d242bc57c947040d5014dd0489b666d000192bc0"}},
   0},
  {<<"riak_pb">>,
   {git,"https://github.com/basho/riak_pb.git",
