@@ -30,7 +30,7 @@ compile:
 
 deps:
 	$(if $(HEAD_REVISION),$(warning "Warning: you have checked out a tag ($(HEAD_REVISION)) and should use the compile target"))
-	$(REBAR) upgrade
+	$(REBAR) upgrade --all
 
 clean: testclean
 	$(REBAR) clean
