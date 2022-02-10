@@ -1,0 +1,9 @@
+# Sample conf.d file for alpine linux
+
+#
+# Specify daemon options here.
+#
+
+opts=""
+user="riak"
+group="riak"

@@ -1,0 +1,14 @@
+#!/sbin/openrc-run
+
+name="$SVCNAME"
+command="/usr/sbin/$SVCNAME"
+command_args="start"
+command_background="yes"
+
+pidfile="/run/riak/$name.pid"
+
+depend() {
+	need net
+	after firewall
+}
+
