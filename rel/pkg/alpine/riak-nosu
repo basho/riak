@@ -1,0 +1,60 @@
+#!/bin/bash
+
+RUNNER_GEN_DIR={{platform_gen_dir}}
+RELX_RIAK={{platform_bin_dir}}/riak
+export PID_DIR={{pid_dir}}
+export PIPE_DIR={{pipe_dir}}/   # terminating / (relx treats it as a prefix)
+
+mkdir -p $PID_DIR $PIPE_DIR
+
+function write_pid_file {  # relx doesn't write the pid file
+    local c=3
+    sleep 1
+    while [[ $c -ne 0 ]]; do
+	if [ "`${RELX_RIAK} ping`" = "pong" ]; then
+	    ${RELX_RIAK} pid >$PID_DIR/riak.pid
+	    break
+	fi
+	sleep 2
+	c=$(($c - 1))
+    done
+}
+
+function delete_pid_file {
+    rm -f $PID_DIR/riak.pid
+}
+
+case "$1" in
+    start)
+        $RELX_RIAK $* -pa {{platform_patch_dir}} \
+            && write_pid_file
+	test -r $PID_DIR/riak.pid && exit 0
+	;;
+    console|foreground)
+        $RELX_RIAK $* -pa {{platform_patch_dir}}
+	;;
+    stop)
+        $RELX_RIAK $* \
+	    && delete_pid_file
+	;;
+    admin)
+	shift
+	riak-admin $*
+	;;
+    chkconfig)
+	shift
+	riak-chkconfig $*
+	;;
+    repl)
+	shift
+	riak-repl $*
+	;;
+    debug)
+	shift
+	riak-debug $*
+	;;
+    *)
+        ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
+        $RELX_RIAK $ESCAPED_ARGS
+        ;;
+esac

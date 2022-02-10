@@ -93,6 +93,7 @@ rel-osx: compile
 # this one is to be called from an external make (not from rel/pkg/Makefile)
 rel-alpine: compile
 	@$(REBAR) as alpine release
+	@(cd _build/alpine/rel/riak/usr/bin && mv riak-nosu riak)
 	@tar --exclude=vcs -c -C _build/alpine/rel riak | tar -x -C rel
 
 relclean:
