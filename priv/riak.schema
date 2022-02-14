@@ -1,195 +1,47 @@
 %%-*- mode: erlang -*-
 
-%% @doc Where to emit the default log messages (typically at 'info'
-%% severity):
-%%     off: disabled
-%%    file: the file specified by log.console.file
-%% console: to standard output (seen when using `riak attach-direct`)
-%%    both: log.console.file and standard out.
-{mapping, "log.console", "lager.handlers", [
-  {default, {{console_log_default}} },
-  {datatype, {enum, [off, file, console, both]}}
-]}.
-
 %% @doc The severity level of the console log, default is 'info'.
-{mapping, "log.console.level", "lager.handlers", [
+{mapping, "logger.level", "kernel.logger_level", [
   {default, info},
   {datatype, {enum, [debug, info, notice, warning, error, critical, alert, emergency, none]}}
 ]}.
 
-%% @doc When 'log.console' is set to 'file' or 'both', the file where
-%% console messages will be logged.
-{mapping, "log.console.file", "lager.handlers", [
+%% @doc Filename to use for log files.
+{mapping, "logger.file", "kernel.logger", [
   {default, "$(platform_log_dir)/console.log"},
   {datatype, file}
 ]}.
 
-%% @doc The file where error messages will be logged.
-{mapping, "log.error.file", "lager.handlers", [
-  {default, "$(platform_log_dir)/error.log"},
-  {datatype, file}
+%% @doc With log rotation enabled, this decides the maximum number of log 
+%% files to store.
+{mapping, "logger.max_files", "kernel.logger", [
+  {default, 10},
+  {datatype, integer}
 ]}.
 
-%% @doc When set to 'on', enables log output to syslog.
-{mapping, "log.syslog", "lager.handlers", [
-  {default, off},
-  {datatype, flag}
-]}.
-
-%% @doc When set to 'on', enables log output to syslog.
-{mapping, "log.syslog.ident", "lager.handlers", [
-  {default, "riak"},
-  hidden
-]}.
-
-%% @doc Syslog facility to log entries from Riak.
-{mapping, "log.syslog.facility", "lager.handlers", [
-  {default, daemon},
-  {datatype, {enum,[kern, user, mail, daemon, auth, syslog,
-                    lpr, news, uucp, clock, authpriv, ftp,
-                    cron, local0, local1, local2, local3,
-                    local4, local5, local6, local7]}},
-  hidden
-]}.
-
-%% @doc The severity level at which to log entries to syslog, default is 'info'.
-{mapping, "log.syslog.level", "lager.handlers", [
-  {default, info},
-  {datatype, {enum, [debug, info, notice, warning, error, critical, alert, emergency, none]}},
-  hidden
+%% @doc The maximum size of a single log file. Total size used for log files will 
+%% be max_file_size * max_files.
+{mapping, "logger.max_file_size", "kernel.logger", [
+  {default, "1MB"},
+  {datatype, bytesize}
 ]}.
 
 {translation,
- "lager.handlers",
+ "kernel.logger",
  fun(Conf) ->
-    SyslogHandler = case cuttlefish:conf_get("log.syslog", Conf) of
-      true ->
-        Ident = cuttlefish:conf_get("log.syslog.ident", Conf),
-        Facility = cuttlefish:conf_get("log.syslog.facility", Conf),
-        LogLevel = cuttlefish:conf_get("log.syslog.level", Conf),
-        [{lager_syslog_backend, [Ident, Facility, LogLevel]}];
-      _ -> []
-    end,
-    ErrorHandler = case cuttlefish:conf_get("log.error.file", Conf) of
-      undefined -> [];
-      ErrorFilename -> [{lager_file_backend, [{file, ErrorFilename},
-                                              {level, error},
-                                              {size, 10485760},
-                                              {date, "$D0"},
-                                              {count, 5}]}]
-    end,
-
-    ConsoleLogLevel = cuttlefish:conf_get("log.console.level", Conf),
-    ConsoleLogFile = cuttlefish:conf_get("log.console.file", Conf),
-
-    ConsoleHandler = {lager_console_backend, ConsoleLogLevel},
-    ConsoleFileHandler = {lager_file_backend, [{file, ConsoleLogFile},
-                                               {level, ConsoleLogLevel},
-                                               {size, 10485760},
-                                               {date, "$D0"},
-                                               {count, 5}]},
-
-    ConsoleHandlers = case cuttlefish:conf_get("log.console", Conf) of
-      off -> [];
-      file -> [ConsoleFileHandler];
-      console -> [ConsoleHandler];
-      both -> [ConsoleHandler, ConsoleFileHandler];
-      _ -> []
-    end,
-    SyslogHandler ++ ConsoleHandlers ++ ErrorHandler
+    LogFile = cuttlefish:conf_get("logger.file", Conf),
+    MaxNumBytes = cuttlefish:conf_get("logger.max_file_size", Conf),
+    MaxNumFiles = cuttlefish:conf_get("logger.max_files", Conf),
+    ConfigMap = #{config => #{file => LogFile,
+                              max_no_bytes => MaxNumBytes,
+                              max_no_files => MaxNumFiles},
+                  formatter => {logger_formatter, 
+                                    #{template => [time," [",level,"] ",pid,"@",mfa,":",line," ",msg,"\n"]}
+                               }
+                 },
+    [{handler, default, logger_std_h, ConfigMap}]
   end
 }.
-
-
-%% @doc Whether to enable Erlang's built-in error logger.
-{mapping, "sasl", "sasl.sasl_error_logger", [
-  {default, off},
-  {datatype, flag},
-  hidden
-]}.
-
-%% @doc Whether to enable the crash log.
-{mapping, "log.crash", "lager.crash_log", [
-  {default, on},
-  {datatype, flag}
-]}.
-
-%% @doc If the crash log is enabled, the file where its messages will
-%% be written.
-{mapping, "log.crash.file", "lager.crash_log", [
-  {default, "$(platform_log_dir)/crash.log"},
-  {datatype, file}
-]}.
-
-{translation,
- "lager.crash_log",
- fun(Conf) ->
-     case cuttlefish:conf_get("log.crash", Conf) of
-         false -> undefined;
-         _ ->
-             cuttlefish:conf_get("log.crash.file", Conf, "{{platform_log_dir}}/crash.log")
-     end
- end}.
-
-%% @doc Maximum size in bytes of individual messages in the crash log
-{mapping, "log.crash.maximum_message_size", "lager.crash_log_msg_size", [
-  {default, "64KB"},
-  {datatype, bytesize}
-]}.
-
-%% @doc Maximum size of the crash log in bytes, before it is rotated
-{mapping, "log.crash.size", "lager.crash_log_size", [
-  {default, "10MB"},
-  {datatype, bytesize}
-]}.
-
-%% @doc The schedule on which to rotate the crash log.  For more
-%% information see:
-%% https://github.com/basho/lager/blob/master/README.md#internal-log-rotation
-{mapping, "log.crash.rotation", "lager.crash_log_date", [
-  {default, "$D0"}
-]}.
-
-%% @doc The number of rotated crash logs to keep. When set to
-%% 'current', only the current open log file is kept.
-{mapping, "log.crash.rotation.keep", "lager.crash_log_count", [
-  {default, 5},
-  {datatype, [integer, {atom, current}]},
-  {validators, ["rotation_count"]}
-]}.
-
-{validator,
- "rotation_count",
- "must be 'current' or a positive integer",
- fun(current) -> true;
-    (Int) when is_integer(Int) andalso Int >= 0 -> true;
-    (_) -> false
- end}.
-
-{translation,
- "lager.crash_log_count",
- fun(Conf) ->
-    case cuttlefish:conf_get("log.crash.rotation.keep", Conf) of
-       current -> 0;
-       Int -> Int
-    end
- end}.
-
-%% @doc Whether to redirect error_logger messages into lager -
-%% defaults to true
-{mapping, "log.error.redirect", "lager.error_logger_redirect", [
-  {default, on},
-  {datatype, flag},
-  hidden
-]}.
-
-%% @doc Maximum number of error_logger messages to handle in a second
-{mapping, "log.error.messages_per_second", "lager.error_logger_hwm", [
-  {default, 100},
-  {datatype, integer},
-  hidden
-]}.
-
 
 %% @doc Cookie for distributed node communication.  All nodes in the
 %% same cluster should use the same cookie or they will not be able to
