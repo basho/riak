@@ -46,9 +46,20 @@ function maybe_su {
 	# (previously implicitly done by su -, which option we have
 	# removed in order to allow any env vars to be available for
 	# the ultimate invocation of riak/riak-cs/stanchion)
-	cd {{platform_base_dir}}
-	$SU riak -c "$*"
-    fi
+	cd "{{platform_base_dir}}"
+	# freebsd su is fairly limited, so:
+	mkdir -p "$RUNNER_GEN_DIR"
+	chown riak:riak "$RUNNER_GEN_DIR"
+	f=`mktemp "$RUNNER_GEN_DIR"/su_piggy-XXXXXXX`
+	cat >"$f" <<EOF
+#!/bin/sh
+$*
+EOF
+	chmod +x "$f"
+	chown riak:riak "$f"
+	$SU riak -c "$f"
+	rm -f "$f"
+   fi
 }
 
 case "$1" in

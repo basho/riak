@@ -75,8 +75,8 @@ test : testclean eunit test-deps
 ##
 rel: compile
 	@$(REBAR) as rel release
-# freebsd tar won't write to stdout, so
-	@tar -c -f rel.tar --exclude-vcs -C _build/rel/rel riak && tar -x -f rel.tar -C rel && rm rel.tar
+# freebsd tar won't write to stdout, so:
+	@tar  -c -f rel.tar --exclude '*/.git/*' -C _build/rel/rel riak && tar -x -f rel.tar -C rel && rm rel.tar
 
 rel-rpm: compile
 	@$(REBAR) as rpm release
@@ -95,6 +95,10 @@ rel-alpine: compile
 	@$(REBAR) as alpine release
 	@(cd _build/alpine/rel/riak/usr/bin && mv riak-nosu riak)
 	@tar --exclude=vcs -c -C _build/alpine/rel riak | tar -x -C rel
+
+rel-fbsdng: compile
+	@$(REBAR) as fbsdng release
+	@tar  -c -f rel.tar --exclude '*/.git/*' -C _build/fbsdng/rel riak && tar -x -f rel.tar -C rel && rm rel.tar
 
 relclean:
 	@rm -rf $(REL_DIR)
