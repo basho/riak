@@ -37,13 +37,19 @@
 %% @doc Determines if messages should emit to syslog.
 {mapping, "syslogger.enabled", "kernel.logger", [
   {default, off},
-  {datatype, flag}
+  {datatype, {flag, on, off}}
 ]}.
 
 %% @doc The severity level of the syslog log, default is 'notice'.
 {mapping, "syslogger.level", "kernel.logger", [
   {default, notice},
   {datatype, {enum, [debug, info, notice, warning, error, critical, alert, emergency, none]}}
+]}.
+
+%% @doc The syslog facility to use, default is 'user'.
+{mapping, "syslogger.facility", "kernel.logger", [
+  {default, user},
+  {datatype, {enum, [user, local0]}}
 ]}.
 
 %% @doc Format string for the messages emitted to syslog. The string is passed into
@@ -54,6 +60,14 @@
   {default, "[\"severity=\",level,\" text=\",msg]."},
   {datatype, string}
 ]}.
+
+%% @doc Default opts that need setting for the syslogger application to ensure that
+%% the PID is printed with log messages, along with the correct process identifier.
+{translation, "syslogger",
+    fun(_Conf) ->
+        [{log_opts, [pid]}, {ident, "riak"}]
+    end
+}.
 
 {translation,
  "kernel.logger",
@@ -89,6 +103,7 @@
         case cuttlefish:conf_get("syslogger.enabled", Conf) of
             true ->
                 SyslogLevel = cuttlefish:conf_get("syslogger.level", Conf),
+                SyslogFacility = cuttlefish:conf_get("syslogger.facility", Conf),
                 SyslogFormatStr = cuttlefish:conf_get("syslogger.format", Conf),
                 SyslogFormatTerm =
                     case erl_scan:string(SyslogFormatStr) of
@@ -105,7 +120,7 @@
                 ConfigMap1 = #{level => SyslogLevel,
                                formatter => {logger_formatter, 
                                                 #{template => SyslogFormatTerm,
-                                                  single_line => true}}, facility => user},
+                                                  single_line => true}}, facility => SyslogFacility},
                 [{handler, syslog, syslogger, ConfigMap1}];
             false ->
                 []
