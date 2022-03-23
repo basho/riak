@@ -1,15 +1,14 @@
 # Packaging Riak for Alpine Linux
 
-Alpine Linux is a minimalistic Gentoo-inspired, source-based distribution.
+Alpine Linux is a minimalistic, Gentoo-inspired, source-based distribution.
 
 Packaging instructions for Alpine cannot be placed in
 rel/pkg/alpine/Makefile without bending too many rules and
-conventions. Rather, following their
-[wiki](https://wiki.alpinelinux.org/wiki/Creating_an_Alpine_package),
-the idea is to place the contents of this directory in your abuild
-dir, and execute `abuild` in it.
+conventions.
 
-Riak could not be built with the version of OTP currently available in
-Alpine (from the "community" repository) is 24. You will need to build
-and install version 22 manually (other versions may or may not work),
-or write an abuild for it.
+Instead, the aim is to have the APKBUILDs for
+[riak](https://gitlab.alpinelinux.org/hmmr/aports/-/commit/9a4f91c2f5336a492520c0ae774b95f088a09f96)
+(as well as for
+[erlang-22](https://gitlab.alpinelinux.org/hmmr/aports/-/commit/0f1eaabe0112f82e8e5acec6dc0fb826b2114858))
+merged into the official "community" repo. This file will be updated
+once it is done.
