@@ -22,6 +22,15 @@
 ##
 ## -------------------------------------------------------------------
 
+SUPPRESS_HYPH_DEPREC_WARN={{suppress_hyphen_deprec_warning}}
+if [ x$1 = x"--suppress-deprecation-warning" ]; then
+    shift
+elif [ x${SUPPRESS_HYPH_DEPREC_WARN} != x"yes" ]; then
+    echo "The hyphenated form of this command is deprecated. \
+Please fix your scripts to call \`riak debug\` instead.
+"
+fi
+
 # If you start to think "We should execute some Erlang in here", then go work
 # on Riaknostic, which is called with `riak admin diag` below.
 
