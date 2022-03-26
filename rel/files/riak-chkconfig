@@ -2,6 +2,15 @@
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
 
+SUPPRESS_HYPH_DEPREC_WARN={{suppress_hyphen_deprec_warning}}
+if [ x$1 = x"--suppress-deprecation-warning" ]; then
+    shift
+elif [ x${SUPPRESS_HYPH_DEPREC_WARN} != x"yes" ]; then
+    echo "The hyphenated form of this command is deprecated. \
+Please fix your scripts to call \`riak chkconfig\` instead.
+"
+fi
+
 PLATFORM_BASE_DIR={{platform_base_dir}}
 PLATFORM_BASE_DIR=${PLATFORM_BASE_DIR:-$(cd $(dirname "$0")/.. && pwd -P)}
 RPC_HOP="${PLATFORM_BASE_DIR}/bin/riak rpc"

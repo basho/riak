@@ -39,19 +39,19 @@ case "$1" in
 	;;
     admin)
 	shift
-	riak-admin $*
+	riak-admin --suppress-deprecation-warning $*
 	;;
     chkconfig)
 	shift
-	riak-chkconfig $*
+	riak-chkconfig --suppress-deprecation-warning $*
 	;;
     repl)
 	shift
-	riak-repl $*
+	riak-repl --suppress-deprecation-warning $*
 	;;
     debug)
 	shift
-	riak-debug $*
+	riak-debug --suppress-deprecation-warning $*
 	;;
     *)
         ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`

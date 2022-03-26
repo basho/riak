@@ -67,19 +67,23 @@ case "$1" in
 	;;
     admin)
 	shift
-	maybe_su `which riak-admin` $*
+        # when we are called as `riak admin`, pass a flag to
+        # riak-admin script to suppress the deprecation warning (which
+        # would be printed if that script were called directly, i.e.,
+        # `riak-admin`)
+	maybe_su `which riak-admin` --suppress-deprecation-warning $*
 	;;
     chkconfig)
 	shift
-	maybe_su `which riak-chkconfig` $*
+	maybe_su `which riak-chkconfig` --suppress-deprecation-warning $*
 	;;
     repl)
 	shift
-	maybe_su `which riak-repl` $*
+	maybe_su `which riak-repl` --suppress-deprecation-warning $*
 	;;
     debug)
 	shift
-	maybe_su `which riak-debug` $*
+	maybe_su `which riak-debug` --suppress-deprecation-warning $*
 	;;
     *)
         ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
