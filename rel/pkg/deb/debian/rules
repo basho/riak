@@ -11,20 +11,19 @@
 # Uncomment this to turn on verbose mode.
 export DH_VERBOSE=1
 
+#export REBAR_GIT_CLONE_OPTIONS="--depth 1"
 ROOTDIR := debian/riak
 
 ## Clear variables that may confound our build of sub-projects; also
 ## note that it is necessary to use overlay_vars relative to .. as
 ## the generate command EXECUTES in rel/
 build:
-	unset CC CFLAGS CPPFLAGS LDFLAGS CXX CXXFLAGS \
-		&& make rel-deb
+	make rel-deb
 	touch build
 
 clean:
 	dh_clean
 	rm -f build
-	make clean
 
 ## dh_shlibdeps was added to figure out the dependencies on shared libraries
 ##   and will populate the ${shlibs:Depends} callout in the control file
