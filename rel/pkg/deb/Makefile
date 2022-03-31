@@ -11,15 +11,13 @@ default:
 	tar -xf $(BASE_DIR)/rel/pkg/out/$(PKG_ID).tar.gz -C $(BASE_DIR)/rel/pkg/out/$(PKG_ID)/
 	ln -sf $(BASE_DIR)/rel/pkg/out/$(PKG_ID).tar.gz $(BASE_DIR)/rel/pkg/out/$(TAR_VERSION).orig.tar.gz
 
-	cd $(BASE_DIR)/rel/pkg/out/$(PKG_ID)/; \
-	(mkdir -p _build/default && cd _build/default && for d in plugins lib; do ln -s $(BASE_DIR)/_build/default/$$d; done); \
-
+	cd $(BASE_DIR)/rel/pkg/out/$(PKG_ID); \
+	(mkdir -p _build/default && cd _build/default && for d in plugins lib; do ln -fs $(BASE_DIR)/_build/default/$$d; done); \
 	dch  --create --package riak -v "$(PKG_VERSION)" \
              "Build from $(PKG_ID)";\
 	debuild --prepend-path=$(ERLANG_BIN) \
 			-e REVISION=$(PKG_VERSION) \
 			-e RELEASE=$(PKG_BUILD) \
-            -e REBAR=$(REBAR) \
 		-i -uc -us -b
 
 	mkdir -p $(BASE_DIR)/rel/pkg/packages
