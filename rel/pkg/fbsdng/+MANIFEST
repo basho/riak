@@ -1,0 +1,18 @@
+name: "riak"
+origin: "databases"
+comment: "Riak"
+licenses: ["Apache 2"]
+licenselogic: "single"
+arch: "freebsd:13:x86:64"
+www: "tiot.jp"
+maintainer: "packaging@tiot.jp"
+users: ["riak"]
+groups: ["riak"]
+prefix: "/usr/local"
+categories: ["databases"]
+desc: "Riak is a distributed data store"
+scripts: {
+  pre-install: "if ! pw groupshow riak 2>/dev/null; then pw groupadd riak; fi \n if ! pw usershow riak 2>/dev/null; then pw useradd riak -g riak -h - -d /usr/local/var/lib/riak -s /bin/sh -c \"Riak user\"; fi \n if [ ! -d /var/log/riak ]; then mkdir /var/log/riak && chown riak:riak /var/log/riak; fi"
+  post-install: "chown riak:riak /usr/local/etc/riak /usr/local/var/lib/riak; (cd /usr/local/lib/riak; ln -s erts-* erts)"
+  pre-deinstall: "rm -f /usr/local/lib/riak/erts"
+}
