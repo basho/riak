@@ -224,6 +224,62 @@
   merge
 ]}.
 
+%% @doc The VM single block carrier threshold (KB) for process heap
+{mapping, "erlang.eheap_memory.sbct", "vm_args.+MHsbct", [
+    {default, 512},
+    {datatype, integer},
+    merge
+]}.
+
+%% @doc The VM single block carrier threshold (KB) for binary heap
+{mapping, "erlang.binary_memory.sbct", "vm_args.+MBsbct", [
+    {default, 512},
+    {datatype, integer},
+    merge
+]}.
+
+%% @doc The VM multi block carrier large size for process heap
+{mapping, "erlang.eheap_memory.lmbcs", "vm_args.+MHlmbcs", [
+    {default, 5120},
+    {datatype, integer},
+    merge
+]}.
+
+%% @doc The VM multi block carrier large size for binary heap
+{mapping, "erlang.binary_memory.lmbcs", "vm_args.+MBlmbcs", [
+    {default, 5120},
+    {datatype, integer},
+    merge
+]}.
+
+%% @doc The VM multi block carrier small size for process heap
+{mapping, "erlang.eheap_memory.smbcs", "vm_args.+MHsmbcs", [
+    {default, 256},
+    {datatype, integer},
+    merge
+]}.
+
+%% @doc The VM multi block carrier small size for binary heap
+{mapping, "erlang.binary_memory.smbcs", "vm_args.+MBsmbcs", [
+    {default, 256},
+    {datatype, integer},
+    merge
+]}.
+
+%% @doc Force move on realloc for process heap
+{mapping, "erlang.eheap_memory.ramv", "vm_args.+MHramv", [
+    {default, "false"},
+    {datatype, {enum, [true, false]}},
+    merge
+]}.
+
+%% @doc Force move on realloc for binary heap
+{mapping, "erlang.binary_memory.ramv", "vm_args.+MBramv", [
+    {default, "false"},
+    {datatype, {enum, [true, false]}},
+    merge
+]}.
+
 {{#devrel}}
 %% Because of the 'merge' keyword in the proplist below, the docs and datatype
 %% are pulled from the leveldb schema.
