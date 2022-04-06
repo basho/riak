@@ -2,21 +2,6 @@
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
 
-# suppress_hyphen_deprec_warning is defined in top-level vars.config
-# but not in pkg/*/vars.config
-SUPPRESS_HYPH_DEPREC_WARN={{suppress_hyphen_deprec_warning}}
-
-# the --suppress-deprecation-warning flag is injected in riak launcher
-# script, meaning that if riak-admin is invoked from riak (as `riak
-# admin`), we should not print the warning.
-if [ x$1 = x"--suppress-deprecation-warning" ]; then
-    shift
-elif [ x${SUPPRESS_HYPH_DEPREC_WARN} != x"yes" ]; then
-    echo "The hyphenated form of this command is deprecated. \
-Please fix your scripts to call \`riak admin\` instead.
-"
-fi
-
 # Identify the script name
 SCRIPT="riak-admin"
 

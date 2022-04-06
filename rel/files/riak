@@ -56,26 +56,6 @@ case "$1" in
         maybe_su $RELX_RIAK $* \
 	    && rm -f $PID_DIR/riak.pid  ## relx-generated script doesn't remove it
 	;;
-    admin)
-	shift
-        # when we are called as `riak admin`, pass a flag to
-        # riak-admin script to suppress the deprecation warning (which
-        # would be printed if that script were called directly, i.e.,
-        # `riak-admin`)
-	maybe_su `which riak-admin` --suppress-deprecation-warning $*
-	;;
-    chkconfig)
-	shift
-	maybe_su `which riak-chkconfig` --suppress-deprecation-warning $*
-	;;
-    repl)
-	shift
-	maybe_su `which riak-repl` --suppress-deprecation-warning $*
-	;;
-    debug)
-	shift
-	maybe_su `which riak-debug` --suppress-deprecation-warning $*
-	;;
     *)
         ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
         maybe_su $RELX_RIAK $ESCAPED_ARGS

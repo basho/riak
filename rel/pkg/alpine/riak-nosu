@@ -10,32 +10,15 @@ mkdir -p $PID_DIR $PIPE_DIR
 case "$1" in
     start)
         $RELX_RIAK $* -pa {{platform_patch_dir}}
-	test -r $PID_DIR/riak.pid && exit 0
-	;;
+        test -r $PID_DIR/riak.pid && exit 0
+        ;;
     console|foreground)
         $RELX_RIAK $* -pa {{platform_patch_dir}}
-	;;
+        ;;
     stop)
         $RELX_RIAK $* \
-	    && rm -f $PID_DIR/riak.pid
-
-	;;
-    admin)
-	shift
-	riak-admin --suppress-deprecation-warning $*
-	;;
-    chkconfig)
-	shift
-	riak-chkconfig --suppress-deprecation-warning $*
-	;;
-    repl)
-	shift
-	riak-repl --suppress-deprecation-warning $*
-	;;
-    debug)
-	shift
-	riak-debug --suppress-deprecation-warning $*
-	;;
+            && rm -f $PID_DIR/riak.pid
+        ;;
     *)
         ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
         $RELX_RIAK $ESCAPED_ARGS
