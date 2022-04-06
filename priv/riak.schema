@@ -291,7 +291,26 @@
   merge
 ]}.
 
-%% @doc Set allocation strategy for binary multiblock carriers.  Default is
+%% @doc The abandonded carrier utilisation limit for binary multiblock
+%% carriers.
+%% Set to de to use the default value for the OTP version.  Set to 0 to revert
+%% to pre OTP 17 behaviour of no acul
+{mapping, "erlang.binary_memory.acul", "vm_args.+MBacul", [
+  {commented, "de"},
+  {datatype, [integer, {enum, [de]}]},
+  {validators, ["acul_validate"]},
+  merge
+]}.
+
+{validator,
+ "acul_validate",
+ "must be 'de' or an integer in range [0, 100]",
+ fun(de) -> true;
+    (Int) when is_integer(Int) andalso Int >= 0 andalso Int =< 100 -> true;
+    (_) -> false
+ end}.
+
+ %% @doc Set allocation strategy for binary multiblock carriers.  Default is
 %% not predictable - do not rely on aoffcbf being the default.  For more info
 %% see:
 %% https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/CarrierMigration.md
@@ -311,24 +330,6 @@
     merge
 ]}.
 
-%% @doc The abandonded carrier utilisation limit for binary multiblock
-%% carriers.
-%% Set to de to use the default value for the OTP version.  Set to 0 to revert
-%% to pre OTP 17 behaviour of no acul
-{mapping, "erlang.binary_memory.acul", "vm_args.+MBacul", [
-  {commented, "de"},
-  {datatype, [integer, {enum, [de]}]},
-  {validators, ["acul_validate"]},
-  merge
-]}.
-
-{validator,
- "acul_validate",
- "must be 'de' or an integer in range [0, 100]",
- fun(de) -> true;
-    (Int) when is_integer(Int) andalso Int >= 0 andalso Int =< 100 -> true;
-    (_) -> false
- end}.
 
 {{#devrel}}
 %% Because of the 'merge' keyword in the proplist below, the docs and datatype
