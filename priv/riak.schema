@@ -268,19 +268,19 @@
 
 %% @doc Force move on realloc for process heap
 {mapping, "erlang.eheap_memory.ramv", "vm_args.+MHramv", [
-    {default, "false"},
+    {commented, "false"},
     {datatype, {enum, [true, false]}},
     merge
 ]}.
 
 %% @doc Force move on realloc for binary heap
 {mapping, "erlang.binary_memory.ramv", "vm_args.+MBramv", [
-    {default, "false"},
+    {commented, "false"},
     {datatype, {enum, [true, false]}},
     merge
 ]}.
 
-%% @doc The abandonded carrier utilisation limit for eheap multiblock
+%% @doc The abandonded carrier utilisation limit for process multiblock
 %% carriers.
 %% Set to de to use the default value for the OTP version.  Set to 0 to revert
 %% to pre OTP 17 behaviour of no acul
@@ -289,6 +289,26 @@
   {datatype, [integer, {enum, [de]}]},
   {validators, ["acul_validate"]},
   merge
+]}.
+
+%% @doc Set allocation strategy for binary multiblock carriers.  Default is
+%% not predictable - do not rely on aoffcbf being the default.  For more info
+%% see:
+%% https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/CarrierMigration.md
+{mapping, "erlang.binary_memory.as", "vm_args.+MBas", [
+    {commented, "aoffcbf"},
+    {datatype, {enum, [bf, aobf, aoff, aoffcbf, aoffcaobf, ageffcaoff, ageffcbf, ageffcaobf, gf]}},
+    merge
+]}.
+
+%% @doc Set allocation strategy for process multiblock carriers.  Default is
+%% not predictable - do not rely on aoffcbf being the default.  For more info
+%% see:
+%% https://github.com/erlang/otp/blob/master/erts/emulator/internal_doc/CarrierMigration.md
+{mapping, "erlang.eheap_memory.as", "vm_args.+MHas", [
+    {commented, "aoffcbf"},
+    {datatype, {enum, [bf, aobf, aoff, aoffcbf, aoffcaobf, ageffcaoff, ageffcbf, ageffcaobf, gf]}},
+    merge
 ]}.
 
 %% @doc The abandonded carrier utilisation limit for binary multiblock
