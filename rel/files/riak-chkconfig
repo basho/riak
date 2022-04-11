@@ -4,30 +4,15 @@
 
 PLATFORM_BASE_DIR={{platform_base_dir}}
 PLATFORM_BASE_DIR=${PLATFORM_BASE_DIR:-$(cd $(dirname "$0")/.. && pwd -P)}
-RPC_HOP="${PLATFORM_BASE_DIR}/bin/riak rpc"
-RPCt_HOP="${PLATFORM_BASE_DIR}/bin/riak rpcterms"
+
+RELEASE_ROOT_DIR=$PLATFORM_BASE_DIR
 
 ERTS_VER=$(cd ${PLATFORM_BASE_DIR} && ls -d erts-*)
-ERTS_PATH="${PLATFORM_BASE_DIR}/$ERTS_VER/bin"
+ERTS_DIR="${PLATFORM_BASE_DIR}/$ERTS_VER"
 
-PLATFORM_ETC_DIR={{platform_etc_dir}}
-if [ "$PLATFORM_ETC_DIR" = "${PLATFORM_ETC_DIR#/}" ]; then
-    PLATFORM_ETC_DIR=$PLATFORM_BASE_DIR/$PLATFORM_ETC_DIR
-fi
-
-COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' "$PLATFORM_ETC_DIR"/riak.conf 2> /dev/null | cut -d = -f 2 | tr -d ' '`
-NODE={{node}}
-HOST=${NODE#*@}
+. $PLATFORM_BASE_DIR/bin/cf_config
 
 BOOT_FILE="${PLATFORM_BASE_DIR}/releases/{{release_version}}/start_clean"
-
-PLATFORM_GEN_DIR={{platform_gen_dir}}
-if [ "$PLATFORM_GEN_DIR" = "${PLATFORM_GEN_DIR#/}" ]; then
-    PLATFORM_GEN_DIR=$PLATFORM_BASE_DIR/$PLATFORM_GEN_DIR
-fi
-
-CONFIG_PATH=`ls -1r ${PLATFORM_GEN_DIR}/generated.conf/app.*.config | head -n1`
-VMARGS_PATH=`ls -1r ${PLATFORM_GEN_DIR}/generated.conf/vm.*.args | head -n1`
 
 CODE=" try
            {ok, _} = file:consult(\"$CONFIG_PATH\"),
@@ -39,11 +24,8 @@ CODE=" try
                halt(1)
        end."
 
-$ERTS_PATH/erl -noshell -noinput \
-               -pa $PLATFORM_PATCH_DIR \
-               -boot $BOOT_FILE \
-               -hidden -name riak_chkconfig$RAND@$HOST -setcookie $COOKIE \
-               -node $NODE  -tracing off \
-               -eval "$CODE"
+$ERTS_DIR/bin/erl -noshell -noinput \
+                  -boot $BOOT_FILE \
+                  -eval "$CODE"
 
-echo $CONFIG_PATH $VMARGS_PATH
+echo $CUTTLE_CONF
