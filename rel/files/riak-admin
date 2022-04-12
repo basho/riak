@@ -22,11 +22,11 @@ run_rpc() {
          # Pass through a list with an empty list - nodetool now demands that args
          # are passed in a list, and the CLI functions in riak expect a list (empty)
          # if no args are required. Thus, we pass a list of an empty list.
-         USE_NODETOOL=1 relx_nodetool rpc $MOD $FUN [[]]
+         USE_NODETOOL=1 relx_nodetool rpc riak_kv_console run_command [$MOD, $FUN, [[]]]
      else
          # Form the remaining args into a comma delimited list of quoted args.
          ARGS=$(awk '{$1=$1; gsub(/^/,"[\""); gsub(/$/,"\"]")}'1 OFS='","' <<< $@)
-         USE_NODETOOL=1 relx_nodetool rpc $MOD $FUN [$ARGS]
+         USE_NODETOOL=1 relx_nodetool rpc riak_kv_console run_command [$MOD, $FUN, [$ARGS]]
      fi
 }
 
