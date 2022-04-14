@@ -1,0 +1,11 @@
+#!/bin/sh
+
+deluser riak 2>/dev/null
+delgroup riak 2>/dev/null
+
+rm -r /var/log/riak
+rm -rf /var/lib/riak
+rm -r /var/run/riak
+rm -r /etc/riak
+
+exit 0

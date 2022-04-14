@@ -1,0 +1,67 @@
+# Contributor: Andrei Zavada <andrei.zavada@tiot.jp>
+# Maintainer: Andrei Zavada <andrei.zavada@tiot.jp>
+pkgname=riak
+pkgver="3.0.9.1"
+pkgtag="riak_kv-3.0.9.1-DEV"
+pkgrel=0
+pkgdesc="Riak is a distributed KV database"
+url="riak-packaging@tiot.jp"
+arch="all"
+license="Apache 2.0"
+depends="bash"
+makedepends="" # "erlang-22"
+checkdepends=""
+install="riak.post-install riak.post-deinstall"
+subpackages=""
+source="
+	https://github.com/hmmr/riak/archive/refs/tags/$pkgtag.tar.gz
+	riak.initd
+	riak.confd
+	"
+builddir="$srcdir/"
+
+build() {
+	cd riak-$pkgtag
+	make rel-alpine
+	rm -rf rel/riak/lib/eleveldb-riak_kv-3.0.0/c_src/snappy-1.0.4/testdata
+	:
+}
+
+check() {
+	# Replace with proper check command(s)
+	:
+}
+
+package() {
+	reldir="$srcdir/riak-$pkgtag/rel/riak"
+	mkdir -p "$pkgdir/usr/bin"
+	mkdir -p "$pkgdir/usr/sbin"
+	mkdir -p "$pkgdir/usr/lib/riak"
+	mkdir -p "$pkgdir/var/lib/riak"
+	mkdir -p "$pkgdir/var/log/riak"
+	mkdir -p "$pkgdir/etc/riak"
+	mkdir -p "$pkgdir/run/riak"
+	for f in riak-admin riak-chkconfig riak-debug riak-repl; do
+	    cp "$reldir/bin/$f" "$pkgdir/usr/bin"
+	done
+	cp "$reldir/usr/bin/riak" "$pkgdir/usr/sbin"
+	install "$reldir/etc/riak.conf" "$pkgdir/etc/riak/riak.conf"
+	cp -R "$reldir"/bin        "$pkgdir/usr/lib/riak"
+	cp -R "$reldir"/etc/*      "$pkgdir/etc/riak"
+	cp -R "$reldir"/erts-*     "$pkgdir/usr/lib/riak"
+	cp -R "$reldir"/share      "$pkgdir/usr/lib/riak"
+	cp -R "$reldir"/releases   "$pkgdir/usr/lib/riak"
+	cp -R "$reldir"/lib        "$pkgdir/usr/lib/riak"
+	cp -R "$reldir"/data/*     "$pkgdir/var/lib/riak"
+
+	install -m755 -D "$srcdir"/$pkgname.initd \
+		"$pkgdir"/etc/init.d/$pkgname
+	install -m644 -D "$srcdir"/$pkgname.confd \
+		"$pkgdir"/etc/conf.d/$pkgname
+}
+
+sha512sums="
+447e7567332db841aca0ff8d79cf621919b7740a5d5225e448ca0492077e5161bf3270cae8bf7ab856163492e26064eacf67ff94764beb2ac6efccb5b4bd7851  riak_kv-3.0.9.1-DEV.tar.gz
+53cd6ebd074a049d5a67541f987c7b46c0c81a7812ec60e0ce0748db36d387398fe6545a5cf1c098511f0a54c26d3ba1d10abc3a2c2e7edbe99cf476313de09e  riak.initd
+a067fe1b6fdd5757cd407d0640e2194ded3eb8f23e0d5d0dffe8f4c23209bd40d108e4fab6690fe6de36feefee6b56c218ca80bfebcf838a6ca68ecf5964b2dd  riak.confd
+"

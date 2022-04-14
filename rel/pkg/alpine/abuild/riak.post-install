@@ -1,0 +1,5 @@
+#!/bin/sh
+
+addgroup -S riak 2>/dev/null
+adduser -S -D -H -s /bin/false -G riak -g riak riak 2>/dev/null
+

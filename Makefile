@@ -90,6 +90,11 @@ rel-osx: compile
 	@$(REBAR) as osx release
 	@tar --exclude=vcs -c -C _build/osx/rel riak | tar -x -C rel
 
+# this one is to be called from an external make (not from rel/pkg/Makefile)
+rel-alpine: compile
+	@$(REBAR) as alpine release
+	@tar --exclude=vcs -c -C _build/alpine/rel riak | tar -x -C rel
+
 relclean:
 	@rm -rf $(REL_DIR)
 	@rm -rf rel/riak rel/.libs rel/.deps
