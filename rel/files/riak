@@ -9,25 +9,6 @@ export RUNNER_LOG_DIR={{platform_log_dir}}
 mkdir -p $PID_DIR $PIPE_DIR
 chown riak:riak $PID_DIR $PIPE_DIR
 
-function write_pid_file {  # relx doesn't seem to write the pid file, does it?
-    local c=3
-    sleep 1
-    while [[ $c -ne 0 ]]; do
-	if [ "`maybe_su ${RELX_RIAK} ping`" = "pong" ]; then
-	    maybe_su ${RELX_RIAK} pid >$PID_DIR/riak.pid
-            # systemd wants it to be owned by root, so:
-	    chown root:root $PID_DIR/riak.pid 2&>1 >/dev/null \
-                || true  # if we are run as non-root, just never mind
-	    break
-	fi
-	sleep 2
-	c=$(($c - 1))
-    done
-}
-
-function delete_pid_file {
-    rm -f $PID_DIR/riak.pid
-}
 
 # centos7-based distros have a su that contacts pam and prints the "Last logged in" message
 if [ "`cat /etc/redhat-release 2>&1`" = "CentOS Stream release 8" ] ||
@@ -54,8 +35,7 @@ function maybe_su {
 
 case "$1" in
     start)
-        maybe_su $RELX_RIAK $* -pa {{platform_patch_dir}} \
-            && write_pid_file
+        maybe_su $RELX_RIAK $* -pa {{platform_patch_dir}}
 	test -r $PID_DIR/riak.pid && exit 0
 	;;
     console|foreground)
@@ -63,7 +43,7 @@ case "$1" in
 	;;
     stop)
         maybe_su $RELX_RIAK $* \
-	    && delete_pid_file
+	    && rm -f $PID_DIR/riak.pid  ## relx-generated script doesn't remove it
 	;;
     admin)
 	shift
