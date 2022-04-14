@@ -330,6 +330,66 @@
     merge
 ]}.
 
+%% @doc Set the Percentage of Schedulers to be online
+%% For every vCPU in the system, what percentage should have a scheduler, and
+%% what percentage of those schedulers should be online by default.
+%% Do not set unless guided by perfomance tests for the specific setup and
+%% workload.
+{mapping, "erlang.schedulers_online_percentage", "vm_args.+SP",[
+    {commented, "100:75"},
+    {validators, ["scheduler_percentage"]},
+    merge
+]}.
+
+%% @doc Set the Percentage of Dirty CPU Schedulers to be online
+%% When using the leveled backend a relatievly low number of dirty schedulers
+%% (e.g. 25%) are likely to be required due to the low proportion of NIFs in
+%% use.
+%% The percentages cannot exceed those of the schedulers_online_percentage
+%% which will default to 100% of CPU.
+%% Do not set unless guided by perfomance tests for the specific setup and
+%% workload.
+{mapping, "erlang.schedulers_dirtycpu_online_percentage", "vm_args.+SDPcpu",[
+    {commented, "50:25"},
+    {validators, ["scheduler_percentage"]},
+    merge
+]}.
+
+%% @doc Set the absolute limit of Dirty IO Schedulers to be online
+%% When using the leveled backend a relatievly high number of dirty schedulers
+%% may be required relative to the CPU count, depending on the concurrent disk
+%% throughput possible.
+%% Unlike the scheduler percentages, this is set as an abolute number between
+%% 1 and 1024 (default is 10).
+%% Do not set unless guided by perfomance tests for the specific setup and
+%% workload.
+{mapping, "erlang.schedulers_dirtyio_online", "vm_args.+SDio",[
+    {commented, 10},
+    {datatype, integer},
+    {validators, ["scheduler_absolute"]},
+    merge
+]}.
+
+{validator,
+ "scheduler_percentage",
+ "must be A:B when B =< A and both A and B 1 < x =< 100",
+ fun(PercPerc) ->
+    case string:tokens(PercPerc, ":") of
+        [A, B] ->
+            AV = list_to_integer(A),
+            BV = list_to_integer(B),
+            AV =< 100 andalso AV > 0 andalso BV =< 100 andalso BV > 0;
+        _ ->
+            false
+    end
+ end}.
+
+{validator,
+ "scheduler_absolute",
+ "must be 1 to 1024",
+ fun(Value) ->
+    is_integer(Value) andalso Value =< 1024 andalso Value >= 1
+ end}.
 
 {{#devrel}}
 %% Because of the 'merge' keyword in the proplist below, the docs and datatype
