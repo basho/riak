@@ -1,7 +1,7 @@
 #!/bin/bash
 
 RUNNER_GEN_DIR={{platform_gen_dir}}
-RELX_RIAK={{platform_bin_dir}}/riak
+RELX_RIAK={{platform_bin_dir}}/riak -pa {{platform_patch_dir}}
 export PID_DIR={{pid_dir}}
 export PIPE_DIR={{pipe_dir}}/   # / is required, see https://www.erlang.org/doc/man/run_erl.html#export
 export RUNNER_LOG_DIR={{platform_log_dir}}
@@ -45,19 +45,12 @@ EOF
 }
 
 case "$1" in
-    start)
-        maybe_su $RELX_RIAK $* -pa {{platform_patch_dir}}
-	test -r $PID_DIR/riak.pid && exit 0
-	;;
-    console|foreground)
-        maybe_su $RELX_RIAK $* -pa {{platform_patch_dir}}
-	;;
     stop)
         maybe_su $RELX_RIAK $* \
 	    && rm -f $PID_DIR/riak.pid  ## relx-generated script doesn't remove it
 	;;
     *)
-        ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
-        maybe_su $RELX_RIAK $ESCAPED_ARGS
+#        ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
+        maybe_su $RELX_RIAK $*
         ;;
 esac
