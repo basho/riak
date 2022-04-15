@@ -14,7 +14,6 @@ if [ "$PLATFORM_BIN_DIR" = "${PLATFORM_BIN_DIR#/}" ]; then
 fi
 
 RPC_HOP="${PLATFORM_BIN_DIR}/riak rpc"
-RPCt_HOP="${PLATFORM_BIN_DIR}/riak rpcterms"
 
 PLATFORM_ETC_DIR={{platform_etc_dir}}
 if [ "$PLATFORM_ETC_DIR" = "${PLATFORM_ETC_DIR#/}" ]; then
@@ -825,7 +824,7 @@ case "$1" in
             echo "Lists the services available on the node. See also: wait-for-service"
             exit 1
         fi
-        $RPCt_HOP riak_core_node_watcher services ''
+        $RPC_HOP riak_core_node_watcher services ''
         ;;
 
     wait[_-]for[_-]service)
@@ -839,7 +838,7 @@ case "$1" in
         while (true); do
             # Make sure riak_core_node_watcher is up and running locally before trying to query it
             # to avoid ugly (but harmless) error messages
-            NODEWATCHER=`$RPCt_HOP erlang whereis "'riak_core_node_watcher'."`
+            NODEWATCHER=`$RPC_HOP erlang whereis "'riak_core_node_watcher'."`
             if [ "$NODEWATCHER" = "undefined" ]; then
                 echo "$SVC is not up: node watcher is not running"
                 continue
@@ -848,9 +847,9 @@ case "$1" in
             # Get the list of services that are available on the requested node
             # If no node is specified, get the list of services from the local node
             if [ "X$TARGETNODE" = "X" ]; then
-                SERVICES=`$RPCt_HOP riak_core_node_watcher services ''`
+                SERVICES=`$RPC_HOP riak_core_node_watcher services ''`
             else
-                SERVICES=`$RPCt_HOP riak_core_node_watcher services "'${TARGETNODE}'."`
+                SERVICES=`$RPC_HOP riak_core_node_watcher services "'${TARGETNODE}'."`
             fi
             echo "$SERVICES" | grep "[[,]$SVC[],]" > /dev/null 2>&1
             if [ "X$?" = "X0" ]; then
