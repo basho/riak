@@ -4,6 +4,7 @@
 
 PLATFORM_BASE_DIR={{platform_base_dir}}
 PLATFORM_BASE_DIR=${PLATFORM_BASE_DIR:-$(cd $(dirname "$0")/.. && pwd -P)}
+RUNNER_GEN_DIR={{platform_gen_dir}}
 
 RELEASE_ROOT_DIR=$PLATFORM_BASE_DIR
 

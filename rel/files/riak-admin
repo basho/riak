@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
 
@@ -46,28 +46,44 @@ usage() {
     echo "                    show | describe }"
 }
 
+fmt() {
+    echo -n "[["
+    local n=$#
+    if [ $n -ne 0 ]; then
+        echo -n "\"$1\""
+        shift
+        n=$((n-1))
+    fi
+    while [ $n -ne 0 ]; do
+        echo -n ", \"$1\""
+        shift
+        n=$((n-1))
+    done
+    echo "]]"
+}
+
 stat_admin()
 {
     case "$1" in
         show)
             shift
-            $RPC_HOP riak_core_console stat_show "$*"
+            $RPC_HOP riak_core_console stat_show `fmt "$@"`
             ;;
         info)
             shift
-            $RPC_HOP riak_core_console stat_info "$*"
+            $RPC_HOP riak_core_console stat_info `fmt "$@"`
             ;;
         enable)
             shift
-            $RPC_HOP riak_core_console stat_enable "$*"
+            $RPC_HOP riak_core_console stat_enable `fmt "$@"`
             ;;
         disable)
             shift
-            $RPC_HOP riak_core_console stat_disable "$*"
+            $RPC_HOP riak_core_console stat_disable `fmt "$@"`
             ;;
         reset)
             shift
-            $RPC_HOP riak_core_console stat_reset "$*"
+            $RPC_HOP riak_core_console stat_reset `fmt "$@"`
             ;;
         help)
             shift
@@ -253,13 +269,13 @@ cluster_admin()
                 echo "Usage: $SCRIPT cluster join <node>"
                 exit 1
             fi
-            $RPC_HOP riak_kv_console staged_join "$2"
+            $RPC_HOP riak_kv_console staged_join `fmt "$2"`
             ;;
         leave)
             if [ $# -eq 1 ]; then
-                $RPC_HOP riak_core_console stage_leave
+                $RPC_HOP riak_core_console stage_leave `fmt ""`
             elif [ $# -eq 2 ]; then
-                $RPC_HOP riak_core_console stage_leave "$2"
+                $RPC_HOP riak_core_console stage_leave `fmt "$2"`
             else
                 echo "Usage: $SCRIPT cluster leave [<node>]"
                 exit 1
@@ -270,21 +286,21 @@ cluster_admin()
                 echo "Usage: $SCRIPT cluster force-remove <node>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console stage_remove "$2"
+            $RPC_HOP riak_core_console stage_remove `fmt "$2"`
             ;;
         replace)
             if [ $# -ne 3 ]; then
                 echo "Usage: $SCRIPT cluster replace <node1> <node2>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console stage_replace "$2" "$3"
+            $RPC_HOP riak_core_console stage_replace `fmt "$2" "$3"`
             ;;
         force-replace)
             if [ $# -ne 3 ]; then
                 echo "Usage: $SCRIPT cluster force-replace <node1> <node2>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console stage_force_replace "$2" "$3"
+            $RPC_HOP riak_core_console stage_force_replace `fmt "$2" "$3"`
             ;;
         resize-ring)
             if [ $# -ne 2 ]; then
@@ -292,30 +308,30 @@ cluster_admin()
                 echo "       $SCRIPT cluster resize-ring abort"
                 exit 1
             fi
-            $RPC_HOP riak_core_console stage_resize_ring "$2"
+            $RPC_HOP riak_core_console stage_resize_ring `fmt "$2"`
             ;;
         plan)
-            $RPC_HOP riak_core_console print_staged
+            $RPC_HOP riak_core_console print_staged `fmt ""`
             ;;
         commit)
-            $RPC_HOP riak_core_console commit_staged
+            $RPC_HOP riak_core_console commit_staged `fmt ""`
             ;;
         clear)
-            $RPC_HOP riak_core_console clear_staged
+            $RPC_HOP riak_core_console clear_staged `fmt ""`
             ;;
         status)
-            $RPC_HOP riak_core_console command $SCRIPT cluster $@
+            $RPC_HOP riak_core_console command `fmt $SCRIPT cluster "$@"`
             ;;
         partitions|partition)
-            $RPC_HOP riak_core_console command $SCRIPT cluster $@
+            $RPC_HOP riak_core_console command `fmt $SCRIPT cluster "$@"`
             ;;
         partition[_-]count)
             shift
-            $RPC_HOP riak_core_console command $SCRIPT cluster partition-count $@
+            $RPC_HOP riak_core_console command `fmt $SCRIPT cluster partition-count "$@"`
             ;;
         location)
             shift
-            $RPC_HOP riak_core_console command $SCRIPT cluster location $@
+            $RPC_HOP riak_core_console command `fmt $SCRIPT cluster location "$@"`
             ;;
         *)
             echo "\
@@ -378,9 +394,9 @@ security_admin()
                 echo "Usage: $SCRIPT security add-user <user> [<option>=<value> [...]]"
                 exit 1
             fi
-            $RPC_HOP riak_core_console add_user "$@"
+            $RPC_HOP riak_core_console add_user `fmt "$@"`
             if [ $? -eq 0 ]; then
-                $RPC_HOP riak_core_console print_user "$1"
+                $RPC_HOP riak_core_console print_user `fmt "$1"`
             fi
             ;;
         add-group)
@@ -389,9 +405,9 @@ security_admin()
                 echo "Usage: $SCRIPT security add-group <group> [<option>=<value> [...]]"
                 exit 1
             fi
-            $RPC_HOP riak_core_console add_group "$@"
+            $RPC_HOP riak_core_console add_group `fmt "$@"`
             if [ $? -eq 0 ]; then
-                $RPC_HOP riak_core_console print_group "$1"
+                $RPC_HOP riak_core_console print_group `fmt "$1"`
             fi
             ;;
         alter-user)
@@ -400,9 +416,9 @@ security_admin()
                 echo "Usage: $SCRIPT security alter-user <user> <option> [<option>=<value> [...]]"
                 exit 1
             fi
-            $RPC_HOP riak_core_console alter_user "$@"
+            $RPC_HOP riak_core_console alter_user `fmt "$@"`
             if [ $? -eq 0 ]; then
-                $RPC_HOP riak_core_console print_user "$1"
+                $RPC_HOP riak_core_console print_user `fmt "$1"`
             fi
             ;;
         alter-group)
@@ -411,9 +427,9 @@ security_admin()
                 echo "Usage: $SCRIPT security alter-group <group> <option> [<option>=<value> [...]]"
                 exit 1
             fi
-            $RPC_HOP riak_core_console alter_group "$@"
+            $RPC_HOP riak_core_console alter_group `fmt "$@"`
             if [ $? -eq 0 ]; then
-                $RPC_HOP riak_core_console print_group "$1"
+                $RPC_HOP riak_core_console print_group `fmt "$1"`
             fi
             ;;
         del-user)
@@ -422,7 +438,7 @@ security_admin()
                 echo "Usage: $SCRIPT security del-user <user>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console del_user "$@"
+            $RPC_HOP riak_core_console del_user `fmt "$@"`
             ;;
         del-group)
             shift
@@ -430,7 +446,7 @@ security_admin()
                 echo "Usage: $SCRIPT security del-group <user>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console del_group "$@"
+            $RPC_HOP riak_core_console del_group `fmt "$@"`
             ;;
         add-source)
             shift
@@ -438,7 +454,7 @@ security_admin()
                 echo "Usage: $SCRIPT security add-source all|<users> <CIDR> <source> [<option>=<value> [...]]"
                 exit 1
             fi
-            $RPC_HOP riak_core_console add_source "$@"
+            $RPC_HOP riak_core_console add_source `fmt "$@"`
             ;;
         del-source)
             shift
@@ -446,7 +462,7 @@ security_admin()
                 echo "Usage: $SCRIPT security del-source all|<users> <CIDR>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console del_source "$@"
+            $RPC_HOP riak_core_console del_source `fmt "$@"`
             ;;
         grant)
             shift
@@ -454,7 +470,7 @@ security_admin()
                 echo "Usage: $SCRIPT security grant <permissions> on any|<type> [bucket] to <users>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console grant "$@"
+            $RPC_HOP riak_core_console grant `fmt "$@"`
             ;;
         revoke)
             shift
@@ -462,27 +478,27 @@ security_admin()
                 echo "Usage: $SCRIPT security revoke <permissions> on any|<type> [bucket] from <users>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console revoke "$@"
+            $RPC_HOP riak_core_console revoke `fmt "$@"`
             ;;
         print-users)
-            $RPC_HOP riak_core_console print_users
+            $RPC_HOP riak_core_console print_users `fmt ""`
             ;;
         print-groups)
-            $RPC_HOP riak_core_console print_groups
+            $RPC_HOP riak_core_console print_groups `fmt ""`
             ;;
         print-sources)
-            $RPC_HOP riak_core_console print_sources
+            $RPC_HOP riak_core_console print_sources `fmt ""`
             ;;
         enable)
-            $RPC_HOP riak_core_console security_enable
-            $RPC_HOP riak_core_console security_status
+            $RPC_HOP riak_core_console security_enable `fmt ""`
+            $RPC_HOP riak_core_console security_status `fmt ""`
             ;;
         disable)
-            $RPC_HOP riak_core_console security_disable
-            $RPC_HOP riak_core_console security_status
+            $RPC_HOP riak_core_console security_disable `fmt ""`
+            $RPC_HOP riak_core_console security_status `fmt ""`
             ;;
         status)
-            $RPC_HOP riak_core_console security_status
+            $RPC_HOP riak_core_console security_status `fmt ""`
             ;;
         print-grants)
             shift
@@ -490,7 +506,7 @@ security_admin()
                 echo "Usage: $SCRIPT security print-grants <user>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console print_grants "$@"
+            $RPC_HOP riak_core_console print_grants `fmt "$@"`
             ;;
         print-user)
             shift
@@ -498,7 +514,7 @@ security_admin()
                 echo "Usage: $SCRIPT security print-user <user>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console print_user "$@"
+            $RPC_HOP riak_core_console print_user `fmt "$@"`
             ;;
         print-group)
             shift
@@ -506,11 +522,11 @@ security_admin()
                 echo "Usage: $SCRIPT security print-group <group>"
                 exit 1
             fi
-            $RPC_HOP riak_core_console print_group "$@"
+            $RPC_HOP riak_core_console print_group `fmt "$@"`
             ;;
         ciphers)
             shift
-            $RPC_HOP riak_core_console ciphers "$@"
+            $RPC_HOP riak_core_console ciphers `fmt "$@"`
             ;;
         *)
             echo "\
@@ -550,14 +566,14 @@ btype_admin()
                 echo "Usage: $SCRIPT bucket-type status <type>";
                 exit 1
             fi
-            $RPC_HOP riak_kv_console bucket_type_status "$2"
+            $RPC_HOP riak_kv_console bucket_type_status `fmt "$2"`
             ;;
         activate)
             if [ $# -ne 2 ]; then
                 echo "Usage: $SCRIPT bucket-type activate <type>"
                 exit 1
             fi
-            $RPC_HOP riak_kv_console bucket_type_activate "$2"
+            $RPC_HOP riak_kv_console bucket_type_activate `fmt "$2"`
             ;;
         create)
             if [ $# -lt 2 ]; then
@@ -571,12 +587,12 @@ btype_admin()
             #
             if [ $# -le 3 ]; then
                 json=`echo ${3:-}|tr -d " "`
-                $RPC_HOP riak_kv_console bucket_type_create "$2" "$json"
+                $RPC_HOP riak_kv_console bucket_type_create `fmt "$2" "$json"`
             else  # greater than 3 parameters
                 two=$2
                 shift 2
                 three=`echo $@|tr -d " "`
-                $RPC_HOP riak_kv_console bucket_type_create "$two" "$three"
+                $RPC_HOP riak_kv_console bucket_type_create `fmt "$two" "$three"`
             fi
 
             ;;
@@ -592,12 +608,12 @@ btype_admin()
             #
             if [ $# -eq 3 ]; then
                 json=`echo $3|tr -d " "`
-                $RPC_HOP riak_kv_console bucket_type_update "$2" "$json"
+                $RPC_HOP riak_kv_console bucket_type_update `fmt "$2" "$json"`
             else  # greater than 3 parameters
                 two=$2
                 shift 2
                 three=`echo $@|tr -d " "`
-                $RPC_HOP riak_kv_console bucket_type_update "$two" "$three"
+                $RPC_HOP riak_kv_console bucket_type_update `fmt "$two" "$three"`
             fi
             ;;
         list)
@@ -605,7 +621,7 @@ btype_admin()
                 echo "Usage: $SCRIPT bucket-type list"
                 exit 1
             fi
-            $RPC_HOP riak_kv_console bucket_type_list
+            $RPC_HOP riak_kv_console bucket_type_list `fmt ""`
             ;;
         *)
             echo "\
@@ -637,9 +653,7 @@ case "$1" in
             exit 1
         fi
 
-        # Make sure the local node IS running
-
-        $RPC_HOP riak_kv_console join "$3"
+        $RPC_HOP riak_kv_console join `fmt "$3"`
         ;;
 
     leave)
@@ -655,9 +669,7 @@ case "$1" in
             exit 1
         fi
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console leave
+        $RPC_HOP riak_kv_console leave `fmt ""`
         ;;
 
     remove)
@@ -684,9 +696,7 @@ case "$1" in
             exit 1
         fi
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console remove "$3"
+        $RPC_HOP riak_kv_console remove `fmt "$3"`
         ;;
 
     down)
@@ -696,9 +706,7 @@ case "$1" in
         fi
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console down "$@"
+        $RPC_HOP riak_kv_console down `fmt "$@"`
         ;;
 
     status)
@@ -708,9 +716,7 @@ case "$1" in
         fi
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console status "$@"
+        $RPC_HOP riak_kv_console status `fmt "$@"`
         ;;
 
     vnode[_-]status)
@@ -720,9 +726,7 @@ case "$1" in
         fi
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console vnode_status "$@"
+        $RPC_HOP riak_kv_console vnode_status `fmt "$@"`
         ;;
 
     ringready)
@@ -732,9 +736,7 @@ case "$1" in
         fi
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console ringready "$@"
+        $RPC_HOP riak_kv_console ringready `fmt "$@"`
         ;;
 
     transfers)
@@ -744,9 +746,7 @@ case "$1" in
         fi
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_core_console transfers "$@"
+        $RPC_HOP riak_core_console transfers `fmt "$@"`
         ;;
 
     member[_-]status)
@@ -756,9 +756,7 @@ case "$1" in
         fi
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_core_console member_status "$@"
+        $RPC_HOP riak_core_console member_status `fmt "$@"`
         ;;
 
     ring[_-]status)
@@ -768,9 +766,7 @@ case "$1" in
         fi
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_core_console ring_status "$@"
+        $RPC_HOP riak_core_console ring_status `fmt "$@"`
         ;;
 
     aae[_-]status)
@@ -780,9 +776,7 @@ case "$1" in
         fi
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console aae_status "$@"
+        $RPC_HOP riak_kv_console aae_status `fmt "$@"`
         ;;
 
     ensemble[_-]status)
@@ -792,17 +786,13 @@ case "$1" in
         fi
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console ensemble_status "$@"
+        $RPC_HOP riak_kv_console ensemble_status `fmt "$@"`
         ;;
 
     repair[_-]2i)
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console repair_2i "$@"
+        $RPC_HOP riak_kv_console repair_2i `fmt "$@"`
         ;;
 
     cluster[_-]info)
@@ -812,9 +802,7 @@ case "$1" in
         fi
         shift
 
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console cluster_info "$@"
+        $RPC_HOP riak_kv_console cluster_info `fmt "$@"`
         ;;
 
     services)
@@ -824,7 +812,7 @@ case "$1" in
             echo "Lists the services available on the node. See also: wait-for-service"
             exit 1
         fi
-        $RPC_HOP riak_core_node_watcher services ''
+        $RPC_HOP riak_core_node_watcher services `fmt ""`
         ;;
 
     wait[_-]for[_-]service)
@@ -838,7 +826,8 @@ case "$1" in
         while (true); do
             # Make sure riak_core_node_watcher is up and running locally before trying to query it
             # to avoid ugly (but harmless) error messages
-            NODEWATCHER=`$RPC_HOP erlang whereis "'riak_core_node_watcher'."`
+            ff=`fmt "'riak_core_node_watcher'."`
+            NODEWATCHER=`$RPC_HOP erlang whereis $ff`
             if [ "$NODEWATCHER" = "undefined" ]; then
                 echo "$SVC is not up: node watcher is not running"
                 continue
@@ -847,9 +836,11 @@ case "$1" in
             # Get the list of services that are available on the requested node
             # If no node is specified, get the list of services from the local node
             if [ "X$TARGETNODE" = "X" ]; then
-                SERVICES=`$RPC_HOP riak_core_node_watcher services ''`
+                ff=`fmt services ""`
+                SERVICES=`$RPC_HOP riak_core_node_watcher $ff`
             else
-                SERVICES=`$RPC_HOP riak_core_node_watcher services "'${TARGETNODE}'."`
+                ff=`fmt services "'${TARGETNODE}'."`
+                SERVICES=`$RPC_HOP riak_core_node_watcher $ff`
             fi
             echo "$SERVICES" | grep "[[,]$SVC[],]" > /dev/null 2>&1
             if [ "X$?" = "X0" ]; then
@@ -864,9 +855,7 @@ case "$1" in
 
     erl[_-]reload)
         # Reload user Erlang code
-        # Make sure the local node is running
-
-        $RPC_HOP riak_kv_console reload_code
+        $RPC_HOP riak_kv_console reload_code `fmt ""`
         ;;
 
     reip)
@@ -937,8 +926,6 @@ case "$1" in
         ;;
 
     'test')
-        # Make sure the local node IS running
-
         shift
 
         # Parse out the node name to pass to the client
@@ -952,28 +939,7 @@ case "$1" in
                               end."
 
         ;;
-    diag)
-        case "$2" in
-            --help|-h)
-                echo "Usage: riak admin diag [-d <level>] [-l] [-h] [--export] [check_name ...]"
-                echo ""
-                echo "-h, --help            Display help/usage dialogue"
-                echo "-d, --level           Minimum message severity level (default: notice)"
-                echo "-l, --list            Describe available diagnostic tasks"
-                echo "--export              Package system info in '$CWD/export.zip'"
-                echo "check_name            A specific check to run"
-                exit 1
-                ;;
-            *)
-
-                shift
-
-                $RPC_HOP riaknostic main --etc "$RUNNER_ETC_DIR" --base "$RUNNER_BASE_DIR" "$@"
-        esac
-        ;;
     top)
-        # Make sure the local node IS running
-
         shift
 
         RAND=$(($(($$ % 1000)) + 1))
@@ -988,31 +954,27 @@ case "$1" in
         ;;
     cluster)
         shift
-        cluster_admin "$@"
+        cluster_admin `fmt "$@"`
         ;;
     stat)
         shift
-        stat_admin "$@"
+        stat_admin `fmt "$@"`
         ;;
     bucket-type)
         shift
-        btype_admin "$@"
+        btype_admin `fmt "$@"`
         ;;
     handoff)
-        # New pattern for command line. Use nodetool for RPC
-        $RPC_HOP riak_core_console command $SCRIPT $@
+        $RPC_HOP riak_core_console command `fmt $SCRIPT "$@"`
         ;;
     set)
-        # New pattern for command line. Use nodetool for RPC
-        $RPC_HOP riak_core_console command $SCRIPT $@
+        $RPC_HOP riak_core_console command `fmt $SCRIPT "$@"`
         ;;
     show)
-        # New pattern for command line. Use nodetool for RPC
-        $RPC_HOP riak_core_console command $SCRIPT $@
+        $RPC_HOP riak_core_console command `fmt $SCRIPT "$@"`
         ;;
     describe)
-        # New pattern for command line. Use nodetool for RPC
-        $RPC_HOP riak_core_console command $SCRIPT $@
+        $RPC_HOP riak_core_console command `fmt $SCRIPT "$@"`
         ;;
     transfer[_-]limit)
         if [ $# -gt 3 ]; then
@@ -1022,7 +984,7 @@ case "$1" in
             exit
         fi
         shift
-        $RPC_HOP riak_core_console transfer_limit "$@"
+        $RPC_HOP riak_core_console transfer_limit `fmt "$@"`
         ;;
     reformat[_-]indexes)
         if [ $# -gt 4 ]; then
@@ -1033,7 +995,7 @@ case "$1" in
             exit 1
         fi
         shift
-        $RPC_HOP riak_kv_console reformat_indexes "$@"
+        $RPC_HOP riak_kv_console reformat_indexes `fmt "$@"`
         ;;
     downgrade[_-]objects)
         if [ $# -lt 2 ]; then
@@ -1041,7 +1003,7 @@ case "$1" in
             exit
         fi
         shift
-        $RPC_HOP riak_kv_console reformat_objects "$@"
+        $RPC_HOP riak_kv_console reformat_objects `fmt "$@"`
         ;;
     security)
         shift
