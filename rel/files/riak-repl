@@ -13,31 +13,19 @@ if [ "$PLATFORM_BIN_DIR" = "${PLATFORM_BIN_DIR#/}" ]; then
     PLATFORM_BIN_DIR=$PLATFORM_BASE_DIR/$PLATFORM_BIN_DIR
 fi
 
-RPC_HOP="${PLATFORM_BIN_DIR}/riak rpc"
+PLATFORM_LIB_DIR={{platform_lib_dir}}
+if [ "$PLATFORM_LIB_DIR" = "${PLATFORM_LIB_DIR#/}" ]; then
+    PLATFORM_LIB_DIR=$PLATFORM_BASE_DIR/$PLATFORM_LIB_DIR
+fi
+. $PLATFORM_LIB_DIR/lib.sh
 
 V2REPLDEP="DEPRECATION NOTICE: The replication protocol you are currently using in this cluster has been deprecated and will be unsupported and removed some time after the Riak Enterprise 2.1 release. Please upgrade to the latest replication protocol as soon as possible. If you need assistance migrating contact Basho Client Services or follow the instructions in our documentation ( http://docs.basho.com/riakee/latest/cookbooks/Multi-Data-Center-Replication-UpgradeV2toV3/ )."
-
-fmt() {
-    echo -n "[["
-    local n=$#
-    if [ $n -ne 0 ]; then
-        echo -n "\"$1\""
-        shift
-        n=$((n-1))
-    fi
-    while [ $n -ne 0 ]; do
-        echo -n ", \"$1\""
-        shift
-        n=$((n-1))
-    done
-    echo "]]"
-}
 
 # Check the first argument for instructions
 case "$1" in
     status)
         shift
-        $RPC_HOP riak_repl_console status `fmt "$@"`
+        rpc riak_repl_console status "$@"
         ;;
 
     add-listener)
@@ -48,7 +36,7 @@ case "$1" in
             echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port>"
             exit 1
         fi
-        $RPC_HOP riak_repl_console add_listener `fmt $1 $2 $3`
+        rpc riak_repl_console add_listener $1 $2 $3
         ;;
 
     add-nat-listener)
@@ -59,7 +47,7 @@ case "$1" in
             echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port> <public_ip> <public_port>"
             exit 1
         fi
-        $RPC_HOP riak_repl_console add_nat_listener `fmt $1 $2 $3 $4 $5`
+        rpc riak_repl_console add_nat_listener $1 $2 $3 $4 $5
         ;;
 
 
@@ -71,7 +59,7 @@ case "$1" in
             echo "Usage $SCRIPT $ACTION <nodename> <listen_ip> <port>"
             exit 1
         fi
-        $RPC_HOP riak_repl_console del_listener `fmt $1 $2 $3`
+        rpc riak_repl_console del_listener $1 $2 $3
         ;;
 
     add-site)
@@ -82,7 +70,7 @@ case "$1" in
             echo "Usage: $SCRIPT $ACTION <ipaddr> <portnum> <sitename>"
             exit 1
         fi
-        $RPC_HOP riak_repl_console add_site `fmt $1 $2 $3`
+        rpc riak_repl_console add_site $1 $2 $3
         ;;
 
     del-site)
@@ -93,34 +81,34 @@ case "$1" in
             echo "Usage: $SCRIPT $ACTION <sitename>"
             exit 1
         fi
-        $RPC_HOP riak_repl_console del_site `fmt $1`
+        rpc riak_repl_console del_site $1
         ;;
 
     start-fullsync)
         echo $V2REPLDEP
         ACTION=$1
         shift
-        $RPC_HOP riak_repl_console start_fullsync `fmt ""`
+        rpc riak_repl_console start_fullsync
         ;;
 
     cancel-fullsync)
         echo $V2REPLDEP
         ACTION=$1
         shift
-        $RPC_HOP riak_repl_console cancel_fullsync `fmt ""`
+        rpc riak_repl_console cancel_fullsync
         ;;
     pause-fullsync)
         echo $V2REPLDEP
         ACTION=$1
         shift
-        $RPC_HOP riak_repl_console pause_fullsync `fmt ""`
+        rpc riak_repl_console pause_fullsync
         ;;
 
     resume-fullsync)
         echo $V2REPLDEP
         ACTION=$1
         shift
-        $RPC_HOP riak_repl_console resume_fullsync `fmt ""`
+        rpc riak_repl_console resume_fullsync
         ;;
 #
 # Repl2 Commands
@@ -129,9 +117,9 @@ case "$1" in
         ACTION=$1
         shift
         if [ $# -lt 1 ]; then
-            $RPC_HOP riak_repl_console `fmt $ACTION`
+            rpc riak_repl_console $ACTION
         else
-            $RPC_HOP riak_repl_console`fmt  $ACTION $1`
+            rpc riak_repl_console $ACTION $1
         fi
         ;;
 
@@ -144,9 +132,9 @@ case "$1" in
         fi
 
         if [ $# -lt 1 ]; then
-            $RPC_HOP riak_repl_console `fmt $ACTION`
+            rpc riak_repl_console $ACTION
         else
-            $RPC_HOP riak_repl_console `fmt $ACTION $1`
+            rpc riak_repl_console $ACTION $1
         fi
         ;;
 
@@ -160,7 +148,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        $RPC_HOP riak_repl_console `fmt $ACTION`
+        rpc riak_repl_console $ACTION
         ;;
 
     connect|disconnect)
@@ -181,17 +169,17 @@ case "$1" in
 
         if [ $# -lt 2 ]; then
             # by clustername or ip:port
-            $RPC_HOP riak_repl_console `fmt $CMD $1`
+            rpc riak_repl_console $CMD $1
         else
             # by IP/Port
-            $RPC_HOP riak_repl_console `fmt $CMD $1 $2`
+            rpc riak_repl_console $CMD $1 $2
         fi
         ;;
 
     modes)
         CMD=$1
         shift
-        $RPC_HOP riak_repl_console `fmt $CMD $@`
+        rpc riak_repl_console $CMD $@
         ;;
     realtime|fullsync)
         ACTION=$1
@@ -216,14 +204,14 @@ case "$1" in
                     echo "Usage: $SCRIPT $ACTION {enable|disable} <clustername>"
                     exit 1
                 fi
-                $RPC_HOP riak_repl_console `fmt $ACTION $SUB_CMD $1`
+                rpc riak_repl_console $ACTION $SUB_CMD $1
                 ;;
             start|stop)
                 if [ $# -lt 1 ]; then
-                    $RPC_HOP riak_repl_console `fmt $ACTION $SUB_CMD`
+                    rpc riak_repl_console $ACTION $SUB_CMD
                     exit 1
                 else
-                    $RPC_HOP riak_repl_console `fmt $ACTION $SUB_CMD $1`
+                    rpc riak_repl_console $ACTION $SUB_CMD $1
                 fi
                 ;;
             max_fssource_node)
@@ -233,7 +221,7 @@ case "$1" in
               fi
               NEWVAL=$1
 
-              $RPC_HOP riak_repl_console `fmt $SUB_CMD $@`
+              rpc riak_repl_console $SUB_CMD $@
               ;;
             cascades)
               if [ "$ACTION" != "realtime" ]; then
@@ -246,7 +234,7 @@ case "$1" in
                 echo "Node is not running!"
                 exit 1
               fi
-              $RPC_HOP riak_repl_console realtime_cascades `fmt $@`
+              rpc riak_repl_console realtime_cascades $@
               ;;
             max_fssource_cluster)
               if [ "$ACTION" != "fullsync" ]; then
@@ -254,7 +242,7 @@ case "$1" in
                 exit 1
               fi
               NEWVAL=$1
-              $RPC_HOP riak_repl_console `fmt $SUB_CMD $@`
+              rpc riak_repl_console $SUB_CMD $@
               ;;
             max_fssink_node)
               if [ "$ACTION" != "fullsync" ]; then
@@ -262,7 +250,7 @@ case "$1" in
                 exit 1
               fi
               NEWVAL=$1
-              $RPC_HOP riak_repl_console `fmt $SUB_CMD $@`
+              rpc riak_repl_console $SUB_CMD $@
               ;;
             *)
                 echo "Usage: $SCRIPT $ACTION realtime start [clustername] |"
@@ -290,7 +278,7 @@ case "$1" in
                     echo "Usage: $SCRIPT $ACTION {enable|disable} <clustername>"
                     exit 1
                 fi
-                $RPC_HOP riak_repl_console `fmt $ACTION $SUB_CMD $1`
+                rpc riak_repl_console $ACTION $SUB_CMD $1
                 ;;
         esac
         ;;
@@ -318,21 +306,21 @@ case "$1" in
                     echo "Usage: $SCRIPT $ACTION $SUB_CMD"
                     exit 1
                 fi
-                $RPC_HOP riak_repl_console show_nat_map `fmt ""`
+                rpc riak_repl_console show_nat_map
                 ;;
             add)
                 if [ $# -ne 2 ]; then
                     echo "Usage: $SCRIPT $ACTION $SUB_CMD <externalip>[:port] <internalip>"
                     exit 1
                 fi
-                $RPC_HOP riak_repl_console add_nat_map `fmt $1 $2`
+                rpc riak_repl_console add_nat_map $1 $2
                 ;;
             del)
                 if [ $# -ne 2 ]; then
                     echo "Usage: $SCRIPT $ACTION $SUB_CMD <externalip>[:port] <internalip>"
                     exit 1
                 fi
-                $RPC_HOP riak_repl_console del_nat_map `fmt $1 $2`
+                rpc riak_repl_console del_nat_map $1 $2
                 ;;
             *)
                 echo "Usage: $SCRIPT $ACTION show |"
@@ -349,7 +337,7 @@ case "$1" in
             echo "                       block-provider-redirect <from-cluster> <to-cluster>"
             exit 1
         fi
-        $RPC_HOP riak_repl_console add_block_provider_redirect `fmt $1 $2`
+        rpc riak_repl_console add_block_provider_redirect $1 $2
         ;;
     show-block-provider-redirect)
         CMD=$1
@@ -359,7 +347,7 @@ case "$1" in
             echo "                       show-block-provider-redirect <from-cluster>"
             exit 1
         fi
-        $RPC_HOP riak_repl_console show_block_provider_redirect `fmt $1`
+        rpc riak_repl_console show_block_provider_redirect $1
         ;;
     delete-block-provider-redirect)
         CMD=$1
@@ -369,7 +357,7 @@ case "$1" in
             echo "                       delete-block-provider-redirect <from-cluster>"
             exit 1
         fi
-        $RPC_HOP riak_repl_console delete_block_provider_redirect `fmt $1`
+        rpc riak_repl_console delete_block_provider_redirect $1
         ;;
     show-local-cluster-id)
         CMD=$1
@@ -379,7 +367,7 @@ case "$1" in
             echo "                       show-local-cluster-id"
             exit 1
         fi
-        $RPC_HOP riak_repl_console show_local_cluster_id `fmt ""`
+        rpc riak_repl_console show_local_cluster_id
         ;;
     *)
 
