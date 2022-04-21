@@ -8,13 +8,12 @@ export RUNNER_LOG_DIR={{platform_log_dir}}
 mkdir -p $PID_DIR
 chown riak:riak $PID_DIR
 
-
 # centos7-based distros have a su that contacts pam and prints the "Last logged in" message
-if [ "`cat /etc/redhat-release 2>&1`" = "CentOS Stream release 8" ] ||
+if [ "`cat /etc/redhat-release 2>&1`" = "CentOS Stream release 7" ] ||
    [ "`cat /etc/system-release 2>&1`" = "Amazon Linux release 2 (Karoo)" ]; then
-    SU="su --session-command"
+    COPTION="--session-command"
 else
-    SU=su
+    COPTION="-c"
 fi
 
 function maybe_su {
@@ -38,7 +37,7 @@ $*
 EOF
 	chmod +x "$f"
 	chown riak:riak "$f"
-	$SU riak -c "$f"
+	su riak $COPTION "$f"
 	rm -f "$f"
    fi
 }
@@ -49,7 +48,9 @@ case "$1" in
 	    && rm -f $PID_DIR/riak.pid  ## relx-generated script doesn't remove it
 	;;
     *)
-#        ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
+
+	# what is this for?
+        #ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
         maybe_su $RELX_RIAK $*
         ;;
 esac
