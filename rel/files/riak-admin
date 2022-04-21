@@ -814,22 +814,21 @@ case "$1" in
         while (true); do
             # Make sure riak_core_node_watcher is up and running locally before trying to query it
             # to avoid ugly (but harmless) error messages
-            NODEWATCHER=`"${PLATFORM_BIN_DIR}/riak" rpc erlang whereis "['riak_core_node_watcher']"`
-            if [ "$NODEWATCHER" = "undefined" ]; then
+            NODEWATCHER=`"${PLATFORM_BIN_DIR}/riak" rpc erlang whereis "['riak_core_node_watcher']" || :`
+            if [ x"$NODEWATCHER" = x"Node is not running!" ] || [ x"$NODEWATCHER" = x ]; then
                 echo "$SVC is not up: node watcher is not running"
+                sleep 3
                 continue
             fi
 
             # Get the list of services that are available on the requested node
             # If no node is specified, get the list of services from the local node
             if [ "X$TARGETNODE" = "X" ]; then
-                ff=`fmt services ""`
-                SERVICES=`"${PLATFORM_BIN_DIR}/riak" rpc riak_core_node_watcher services`
+                SERVICES=`"${PLATFORM_BIN_DIR}/riak" rpc riak_core_node_watcher services || :`
             else
-                SERVICES=`"${PLATFORM_BIN_DIR}/riak" rpc riak_core_node_watcher services "['${TARGETNODE}']"`
+                SERVICES=`"${PLATFORM_BIN_DIR}/riak" rpc riak_core_node_watcher services "['${TARGETNODE}']" || :`
             fi
-            echo "$SERVICES" | grep "[[,]$SVC[],]" > /dev/null 2>&1
-            if [ "X$?" = "X0" ]; then
+            if echo "$SERVICES" | grep "[[,]$SVC[],]" > /dev/null 2>&1; then
                 echo "$SVC is up"
                 exit 0
             else
