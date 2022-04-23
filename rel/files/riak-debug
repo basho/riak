@@ -143,8 +143,8 @@ is_relative() {
 }
 
 # These paths may be overridden with environment variables.
-RIAK_PATH="${RIAK_PATH:-$(cd $(dirname "$0")/.. && pwd -P)}"
 PLATFORM_BASE_DIR={{platform_base_dir}}
+PLATFORM_BASE_DIR=${PLATFORM_BASE_DIR:-$(cd $(dirname "$0")/.. && pwd -P)}
 riak_base_dir=$PLATFORM_BASE_DIR
 if is_relative "{{platform_bin_dir}}"; then
     riak_bin_dir="$PLATFORM_BASE_DIR/{{platform_bin_dir}}"
@@ -299,9 +299,9 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_patches + $get_riakcmds + $get_yzcmd
     ## Use riak config generate to set $riak_app_config and
     ## $riak_vm_args
     gen_result=`"$riak_bin_dir"/riak-chkconfig | grep -v "OK"`
-    riak_app_config=`echo $gen_result | cut -d' ' -f 1`
+    riak_app_config=`echo $gen_result | cut -d' ' -f 2`
     generated_config_dir=`dirname "$riak_app_config"`
-    riak_vm_args=`echo $gen_result | cut -d' ' -f 2`
+    riak_vm_args=`echo $gen_result | cut -d' ' -f 6`
 
     # Make a flat, easily searchable version of the app.config settings
     riak_epaths=`make_app_epaths "${riak_app_config}"`
