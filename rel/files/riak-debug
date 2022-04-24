@@ -22,6 +22,12 @@
 ##
 ## -------------------------------------------------------------------
 
+set +e
+# this is to revert the effect of `set -e`, set by relx-generated code
+# when we are invoked via `riak debug` (otherwise, non-zero exits,
+# which occur normally, will silently cause riak-debug to
+# terminate)
+
 # If you start to think "We should execute some Erlang in here", then go work
 # on Riaknostic, which is called with `riak admin diag` below.
 
