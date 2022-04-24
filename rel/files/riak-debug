@@ -504,7 +504,7 @@ if [ 1 -eq $get_riakcmds ]; then
     dump riak_ring_status "$riak_bin_dir"/riak-admin ring-status
     dump riak_status "$riak_bin_dir"/riak-admin status
     dump riak_transfers "$riak_bin_dir"/riak-admin transfers
-    dump riak_diag "$riak_bin_dir"/riak-admin diag
+    #dump riak_diag "$riak_bin_dir"/riak-admin diag  # until riaknostik is brought back
     dump riak_repl_status "$riak_bin_dir"/riak-repl status
     dump riak_repl_connections "$riak_bin_dir"/riak-repl connections
     dump riak_repl_clusterstats "$riak_bin_dir"/riak-repl clusterstats
