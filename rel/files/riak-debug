@@ -280,21 +280,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_patches + $get_riakcmds + $get_yzcmd
     # Information specific to Riak requested. Need app_epath.sh and must have
     # valid base and etc paths defined.
 
-    # app_epath.sh provides make_app_epaths and epath functions.
-    # Allow overriding with APP_EPATH
-    if [ -n "$APP_EPATH" ]; then
-        epath_file="$APP_EPATH"
-    else
-        epath_file="${riak_base_dir}/lib/app_epath.sh"
-    fi
-
-    if [ ! -f "$epath_file" ]; then
-        echoerr "Required file app_epath.sh not found. Expected here:"
-        echoerr "$epath_file"
-        echoerr "See 'riak-debug -h' and manpage for help."
-        exit 1
-    fi
-    . "$epath_file"
+    . $riak_lib_dir/lib.sh
 
     ## Use riak config generate to set $riak_app_config and
     ## $riak_vm_args
@@ -530,7 +516,7 @@ if [ 1 -eq $get_riakcmds ]; then
     fi
 
     # Get one http listener (epath might output a newline-separated list).
-    riak_api_http="`epath 'riak_api http' "$riak_epaths" | sed -e 's/^\"//' -e 's/\" /:/' | head -n1`"
+    riak_api_http="`epath 'riak_api http' "$riak_epaths" | head -n1 | sed -Ee 's|^\[\{\"(.+)\",([0-9]+)}\]|\1:\2|'`"
 
     # Dump the output of the /stats HTTP endpoint.
     dump riak_http_stats curl -s "http://$riak_api_http/stats"
