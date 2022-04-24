@@ -276,6 +276,8 @@ if [ 0 -eq $(( $get_cfgs + $get_logs + $get_patches + $get_riakcmds + $get_yzcmd
     get_extracmds=0
 fi
 
+cd $PLATFORM_BASE_DIR
+
 if [ 0 -ne $(( $get_cfgs + $get_logs + $get_patches + $get_riakcmds + $get_yzcmds + $get_extracmds )) ]; then
     # Information specific to Riak requested. Need app_epath.sh and must have
     # valid base and etc paths defined.
