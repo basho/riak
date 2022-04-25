@@ -96,8 +96,8 @@ $(BUILD_STAGE_DIR): buildrel
 #  * Ensure all binaries are executable
 #  * copy the vars.config over for build config
 buildrel:
-	tar -xf $(BASE_DIR)/rel/pkg/out/$(PKG_ID).tar.gz -C $(BASE_DIR)/rel/pkg/out/riak-$(PKG_ID)
-	$(MAKE) -C $(BASE_DIR)/rel/pkg/out/riak-$(PKG_ID) rel-fbsdng
+	tar -xf $(BASE_DIR)/rel/pkg/out/$(PKG_ID).tar.gz -C $(BASE_DIR)/rel/pkg/out/$(PKG_ID)
+	$(MAKE) -C $(BASE_DIR)/rel/pkg/out/$(PKG_ID) rel-fbsdng
 	chmod 0755 rel/riak/bin/* rel/riak/erts-*/bin/*
 
 $(BUILDDIR):
