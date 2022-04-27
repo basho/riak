@@ -867,7 +867,8 @@ case "$1" in
             -pa {{platform_patch_dir}} \
             -boot $BOOT_FILE \
             $CONFIG_ARGS \
-            -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
+            -eval "lists:foreach(fun code:add_path/1, filelib:wildcard(\"lib/*/ebin\")),
+                   riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
             -s init stop
         ;;
 
@@ -887,7 +888,8 @@ case "$1" in
         $ERTS_PATH/erl -noshell -name riak_kv_backup@$HOST -setcookie $COOKIE \
                        -pa {{platform_patch_dir}} \
                        -boot $BOOT_FILE \
-                       -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
+                       -eval "lists:foreach(fun code:add_path/1, filelib:wildcard(\"lib/*/ebin\")),
+                              riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
 
     backup)
@@ -907,7 +909,8 @@ case "$1" in
         $ERTS_PATH/erl -noshell -name riak_kv_backup@$HOST -setcookie $COOKIE \
                        -pa {{platform_patch_dir}} \
                        -boot $BOOT_FILE \
-                       -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
+                       -eval "lists:foreach(fun code:add_path/1, filelib:wildcard(\"lib/*/ebin\")),
+                              riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
         ;;
 
     'test')
@@ -918,9 +921,10 @@ case "$1" in
         $ERTS_PATH/erl -noshell -name riak_test@$HOST -setcookie $COOKIE \
                        -pa {{platform_patch_dir}} \
                        -boot $BOOT_FILE \
-                       -eval "case catch(riak:client_test(\"$NODE\")) of \
-                               ok -> init:stop();                             \
-                               _  -> init:stop(1)                             \
+                       -eval "lists:foreach(fun code:add_path/1, filelib:wildcard(\"lib/*/ebin\")),
+                              case catch(riak:client_test(\"$NODE\")) of
+                               ok -> init:stop();
+                               _  -> init:stop(1)
                               end."
 
         ;;
