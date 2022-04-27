@@ -330,6 +330,25 @@
     merge
 ]}.
 
+%% @doc Set scheduler binding.  This is either unbound (default - u) or can be
+%% set to whatever the default binding condition is, in the deployed release of
+%% OTP (db).
+%% For more info see: https://www.erlang.org/doc/man/erl.html#+sbt
+%% Note that if non-Riak work is activated on the same node - e.g. as part
+%% of batch operational jobs, or monitoring - allowing schedulers to be bound
+%% can result in significant and unpredictable negative outcomes.  There may be
+%% other ways of achieving similar performance improvements - e.g. by
+%% right-sizing scheduler counts - that are lower risk than scheduler binding.
+%% If a CPU topology cannot be determined, the binding will default to unbound
+%% even when a binding is configured.  To confirm binding, use `remote_console`
+%% and view:
+%% `erlang:system_info(scheduler_bindings).`
+{mapping, "erlang.schedulers_binding", "vm_args.+stbt", [
+    {commented, "u"},
+    {datatype, {enum, [u, db]}},
+    merge
+]}.
+
 %% @doc Set the Percentage of Schedulers to be online
 %% For every vCPU in the system, what percentage should have a scheduler, and
 %% what percentage of those schedulers should be online by default.
