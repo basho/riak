@@ -943,15 +943,15 @@ case "$1" in
         ;;
     cluster)
         shift
-        cluster_admin `fmt "$@"`
+        cluster_admin "$@"
         ;;
     stat)
         shift
-        stat_admin `fmt "$@"`
+        stat_admin "$@"
         ;;
     bucket-type)
         shift
-        btype_admin `fmt "$@"`
+        btype_admin "$@"
         ;;
     handoff)
         rpc riak_core_console command $SCRIPT "$@"
