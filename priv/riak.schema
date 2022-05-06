@@ -349,6 +349,16 @@
     merge
 ]}.
 
+%% @doc Busy wait of schedulers
+%% Sets scheduler busy wait threshold. Defaults to medium. The threshold
+%% determines how long schedulers are to busy wait when running out of work
+%% before going to sleep.
+{mapping, "erlang.schedulers_busywait", "vm_args.+sbwt", [
+    {commented, "none"},
+    {datatype, {enum, [none|very_short|short|medium|long|very_long]}},
+    merge
+]}.
+
 %% @doc Set the Percentage of Schedulers to be online
 %% For every vCPU in the system, what percentage should have a scheduler, and
 %% what percentage of those schedulers should be online by default.
