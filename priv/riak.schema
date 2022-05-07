@@ -355,7 +355,7 @@
 %% before going to sleep.
 {mapping, "erlang.schedulers_busywait", "vm_args.+sbwt", [
     {commented, "none"},
-    {datatype, {enum, [none|very_short|short|medium|long|very_long]}},
+    {datatype, {enum, [none, very_short, short, medium, long, very_long]}},
     merge
 ]}.
 
