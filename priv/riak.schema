@@ -359,6 +359,26 @@
     merge
 ]}.
 
+%% @doc Busy wait of dirty cpu schedulers
+%% Sets scheduler busy wait threshold. Defaults to short. The threshold
+%% determines how long schedulers are to busy wait when running out of work
+%% before going to sleep.
+{mapping, "erlang.schedulers_busywait_dirtycpu", "vm_args.+sbwtdcpu", [
+    {commented, "none"},
+    {datatype, {enum, [none, very_short, short, medium, long, very_long]}},
+    merge
+]}.
+
+%% @doc Busy wait of dirty io schedulers
+%% Sets scheduler busy wait threshold. Defaults to short. The threshold
+%% determines how long schedulers are to busy wait when running out of work
+%% before going to sleep.
+{mapping, "erlang.schedulers_busywait_dirtyio", "vm_args.+sbwtdio", [
+    {commented, "none"},
+    {datatype, {enum, [none, very_short, short, medium, long, very_long]}},
+    merge
+]}.
+
 %% @doc Set the Percentage of Schedulers to be online
 %% For every vCPU in the system, what percentage should have a scheduler, and
 %% what percentage of those schedulers should be online by default.
