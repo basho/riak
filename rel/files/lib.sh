@@ -19,10 +19,16 @@ rpc() {
     local fun=$2
     shift 2
     if [ $# -gt 0 ]; then
-        "${PLATFORM_BIN_DIR}/riak" rpc $mod $fun `fmt "$@"`
+        "${PLATFORM_BIN_DIR}/riak" rpc $mod $fun `fmt "$*"`
     else
         "${PLATFORM_BIN_DIR}/riak" rpc $mod $fun "[[]]"
     fi
+}
+
+rpc_raw() {
+    local mod=$1
+    local fun=$2
+    "${PLATFORM_BIN_DIR}/riak" rpc $mod $fun "$3"
 }
 
 ## Example usage:
