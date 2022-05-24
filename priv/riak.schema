@@ -205,16 +205,37 @@
   merge
 ]}.
 
-%% VM scheduler collapse, part 1 of 2
+%% @doc Riak changes the VM default wakeup interval in order to reduce the
+%% risk of scheduler collapse, prior to the availability of Dirty NIFs in
+%% later OTP versions. When using the leveled backend exclusively (either for
+%% AAE or object storage) this change is likely unnecessary, and the VM default
+%% of 0 can be used.
 {mapping, "erlang.schedulers.force_wakeup_interval", "vm_args.+sfwi", [
   {default, 500},
   {datatype, integer},
   merge
 ]}.
 
-%% VM scheduler collapse, part 2 of 2
+%% @doc Riak changes the compaction_of_load default from true to false. This
+%% is part of the strategy for preventing scheduler collapse in older VMs.
+%% When using the leveled backend exclusively (either for AAE or object
+%% storage), this change from the standard BEAM defaults is likely unnecessary
+%% - and compaction_of_load can be re-enabled.
 {mapping, "erlang.schedulers.compaction_of_load", "vm_args.+scl", [
   {default, "false"},
+  merge
+]}.
+
+%% @doc Sets the number of threads in async thread pool, valid range
+%% is 0-1024. If thread support is available, the default is 64.
+%%
+%% More information at: http://erlang.org/doc/man/erl.html
+%%
+%% Large async_thread pools are likely now unnecessary if exclusively using
+%% the leveled backend due to dirty NIFs, and so can be set to a much smaller
+%% value (potentially 1). 
+{mapping, "erlang.async_threads", "vm_args.+A", [
+  {default, 64},
   merge
 ]}.
 
@@ -280,36 +301,6 @@
     merge
 ]}.
 
-%% @doc The abandonded carrier utilisation limit for process multiblock
-%% carriers.
-%% Set to de to use the default value for the OTP version.  Set to 0 to revert
-%% to pre OTP 17 behaviour of no acul
-{mapping, "erlang.eheap_memory.acul", "vm_args.+MHacul", [
-  {commented, "de"},
-  {datatype, [integer, {enum, [de]}]},
-  {validators, ["acul_validate"]},
-  merge
-]}.
-
-%% @doc The abandonded carrier utilisation limit for binary multiblock
-%% carriers.
-%% Set to de to use the default value for the OTP version.  Set to 0 to revert
-%% to pre OTP 17 behaviour of no acul
-{mapping, "erlang.binary_memory.acul", "vm_args.+MBacul", [
-  {commented, "de"},
-  {datatype, [integer, {enum, [de]}]},
-  {validators, ["acul_validate"]},
-  merge
-]}.
-
-{validator,
- "acul_validate",
- "must be 'de' or an integer in range [0, 100]",
- fun(de) -> true;
-    (Int) when is_integer(Int) andalso Int >= 0 andalso Int =< 100 -> true;
-    (_) -> false
- end}.
-
  %% @doc Set allocation strategy for binary multiblock carriers.  Default is
 %% not predictable - do not rely on aoffcbf being the default.  For more info
 %% see:
@@ -353,6 +344,8 @@
 %% Sets scheduler busy wait threshold. Defaults to medium. The threshold
 %% determines how long schedulers are to busy wait when running out of work
 %% before going to sleep.
+%% Significant improvements in efficiency may be gained by disabling busy
+%% waiting
 {mapping, "erlang.schedulers_busywait", "vm_args.+sbwt", [
     {commented, "none"},
     {datatype, {enum, [none, very_short, short, medium, long, very_long]}},
@@ -363,6 +356,8 @@
 %% Sets scheduler busy wait threshold. Defaults to short. The threshold
 %% determines how long schedulers are to busy wait when running out of work
 %% before going to sleep.
+%% Significant improvements in efficiency may be gained by disabling busy
+%% waiting
 {mapping, "erlang.schedulers_busywait_dirtycpu", "vm_args.+sbwtdcpu", [
     {commented, "none"},
     {datatype, {enum, [none, very_short, short, medium, long, very_long]}},
@@ -373,6 +368,8 @@
 %% Sets scheduler busy wait threshold. Defaults to short. The threshold
 %% determines how long schedulers are to busy wait when running out of work
 %% before going to sleep.
+%% Significant improvements in efficiency may be gained by disabling busy
+%% waiting
 {mapping, "erlang.schedulers_busywait_dirtyio", "vm_args.+sbwtdio", [
     {commented, "none"},
     {datatype, {enum, [none, very_short, short, medium, long, very_long]}},
