@@ -236,6 +236,8 @@
 %% value (potentially 1). 
 {mapping, "erlang.async_threads", "vm_args.+A", [
   {default, 64},
+  {datatype, integer},
+  {validators, ["range:0-1024"]},
   merge
 ]}.
 
