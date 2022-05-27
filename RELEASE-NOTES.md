@@ -1,3 +1,45 @@
+# Riak KV 3.0.10 Release Notes
+
+This release is focused on improving memory management, especially with the leveled backend, and improving the efficiency and ease of configuration of tictacaae full-sync.
+
+- Improved [memory management of leveled](https://github.com/martinsumner/leveled/pull/371) SST files that contain [rarely accessed data](https://github.com/martinsumner/leveled/pull/371)
+
+- Fix a bug whereby leveled_sst files could spend an [extended time in the delete_pending state](https://github.com/martinsumner/leveled/pull/377), causing significant short-term increases in memory usage when there are work backlogs in the penciller.
+
+- Change the queue for reapers and erasers so that [they overflow to disk](https://github.com/basho/riak_kv/issues/1807), rather than simply consuming more and more memory.
+
+- Change the replrtq (nextgenrepl) queue to use the same [overflow queue mechanism](https://github.com/basho/riak_kv/issues/1817) as used by the reaper and erasers.
+
+- Change the default full-sync mechanism for tictacaae (nextgenrepl) full-sync to `auto_check`, which attempts to [automatically learn and use information about modified date-ranges](https://github.com/basho/riak_kv/issues/1815) in full-sync checks. The related changes also make full-sync by default bi-directional, reducing the amount of wasted effort in full-sync queries.
+
+- Add [a peer discovery feature](https://github.com/basho/riak_kv/issues/1804) for replrtq (nextgenrepl) so that new nodes added to the cluster can be automatically recognised without configuration changes.  By default this is disabled, and should only be enabled once both clusters have been upgraded to at least 3.0.10.
+
+- Allow for underlying beam memory management and scheduler configuration to be exposed via riak.conf to allow for further performance tests on these settings.  Note initial tests indicate the potential for [significant improvements when using the leveled backend](https://github.com/basho/riak_kv/issues/1826).
+
+- Fix a potential issue whereby corrupted objects would prevent AAE (either legacy or nextgenrepl) [tree rebuilds](https://github.com/basho/riak_kv/issues/1824) from completing.
+
+- Improved [handling of key amnesia](https://github.com/basho/riak_kv/issues/1813), to prevent rebounding of objects, and also introduce a reader process (like reaper and eraser) to which read repairs can be queued with overflow to disk.
+
+Some caveats for this release exist:
+
+- The release does not support OTP 20, only OTP 22 is supported.  Updating some long out-of-date components have led to a requirement for the OTP version to be lifted.
+
+- Volume and performance testing with the leveled backend now uses the following non-default settings:
+
+```
+erlang.schedulers_busywait = none
+erlang.schedulers_busywait_dirtycpu = none
+erlang.schedulers_busywait_dirtyio = none
+erlang.async_threads = 4
+erlang.schedulers.force_wakeup_interval = 0
+erlang.schedulers.compaction_of_load = true
+leveled_reload_recalc = enabled
+```
+
+- To maintain backwards compatibility with older linux versions, the [latest version of basho's leveldb](https://github.com/basho/leveldb/releases/tag/2.0.37) is not yet supported.  This is likely to change in the next release, where support for older linux versions will be dropped.
+
+- The release process has [exposed an issue](https://github.com/basho/riak_kv/issues/1831) via a recently extended test.  This issue is pre-existing, and not specific to this release.
+
 # Riak KV 3.0.9 Release Notes
 
 This release contains stability, monitoring and performance improvements.
