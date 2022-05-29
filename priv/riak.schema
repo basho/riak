@@ -289,20 +289,6 @@
     merge
 ]}.
 
-%% @doc Force move on realloc for process heap
-{mapping, "erlang.eheap_memory.ramv", "vm_args.+MHramv", [
-    {commented, "false"},
-    {datatype, {enum, [true, false]}},
-    merge
-]}.
-
-%% @doc Force move on realloc for binary heap
-{mapping, "erlang.binary_memory.ramv", "vm_args.+MBramv", [
-    {commented, "false"},
-    {datatype, {enum, [true, false]}},
-    merge
-]}.
-
  %% @doc Set allocation strategy for binary multiblock carriers.  Default is
 %% not predictable - do not rely on aoffcbf being the default.  For more info
 %% see:
