@@ -6,14 +6,14 @@
 {devrel, true}.
 
 %% Platform-specific installation paths
-{platform_base_dir,  "@PLATFORM_BASE_DIR@"}.
-{platform_bin_dir,   "{{platform_base_dir}}/bin"}.
-{platform_data_dir,  "{{platform_base_dir}}/data"}.
-{platform_etc_dir,   "{{platform_base_dir}}/etc"}.
-{platform_lib_dir,   "{{platform_base_dir}}/lib"}.
-{platform_log_dir,   "{{platform_base_dir}}/log"}.
-{platform_gen_dir,   "{{platform_base_dir}}"}.
-{platform_patch_dir, "{{platform_lib_dir}}/patches"}.
+{platform_base_dir,  "${RIAK_PATH:-$RELEASE_ROOT_DIR}"}.
+{platform_bin_dir,   "./bin"}.
+{platform_data_dir,  "./data"}.
+{platform_etc_dir,   "./etc"}.
+{platform_lib_dir,   "./lib"}.
+{platform_log_dir,   "./log"}.
+{platform_gen_dir,   "."}.
+{platform_patch_dir, "./lib/patches"}.
 
 %%
 %% etc/app.config
