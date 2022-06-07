@@ -1,17 +1,17 @@
 fmt() {
-    echo -n "[["
+    printf "[["
     local n=$#
     if [ $n -ne 0 ]; then
-        echo -n "\"$1\""
+        printf "\"$1\""
         shift
         n=$((n-1))
     fi
     while [ $n -ne 0 ]; do
-        echo -n ", \"$1\""
+        printf ", \"$1\""
         shift
         n=$((n-1))
     done
-    echo "]]"
+    printf "]]\n"
 }
 
 rpc() {
