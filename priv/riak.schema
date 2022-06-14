@@ -378,3 +378,127 @@
   {datatype, {duration, ms}}
 ]}.
 {{/devrel}}
+
+
+%% Unused log items
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.console", "legacy.handlers.console", [
+  {datatype, {enum, [off, file, console, both]}},
+  {default, off}, 
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.console.level", "legacy.handlers.console.level", [
+  {datatype, {enum, [debug, info, notice, warning, error, critical, alert, emergency, none]}},
+  {default, none},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.console.file", "legacy.handlers.console.file", [
+  {default, "$(platform_log_dir)/console.log"},
+  {datatype, file},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.error.file", "legacy.handlers.error.file", [
+  {default, "$(platform_log_dir)/error.log"},
+  {datatype, file},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.syslog", "legacy.handlers.syslog", [
+  {default, off},
+  {datatype, flag},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.syslog.ident", "legacy.handlers.syslog.ident", [
+  {default, "riak"},
+  {datatype, atom},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.syslog.facility", "legacy.handlers.syslog.facility", [
+  {datatype, {enum,[kern, user, mail, daemon, auth, syslog,
+                    lpr, news, uucp, clock, authpriv, ftp,
+                    cron, local0, local1, local2, local3,
+                    local4, local5, local6, local7]}},
+  {default, daemon},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.syslog.level", "legacy.handlers.syslog.level", [
+  {datatype, {enum, [debug, info, notice, warning, error, critical, alert, emergency, none]}},
+  {default, none},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "sasl", "legacy.sasl.sasl_error_logger", [
+  {default, off},
+  {datatype, flag},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.crash", "legacy.crash_log", [
+  {default, off},
+  {datatype, flag},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.crash.file", "legacy.crash_log_file", [
+  {default, "$(platform_log_dir)/crash.log"},
+  {datatype, file},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.crash.maximum_message_size", "legacy.crash_log_msg_size", [
+  {default, "64KB"},
+  {datatype, bytesize},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.crash.size", "legacy.crash_log_size", [
+  {default, "10MB"},
+  {datatype, bytesize},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.crash.rotation.keep", "legacy.crash_log_count", [
+  {datatype, [integer, {atom, current}]},
+  {default, current},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.crash.rotation", "legacy.crash_log_date", [
+  {default, "$D0"},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.error.redirect", "legacy.error_logger_redirect", [
+  {datatype, flag},
+  {default, off},
+  hidden
+]}.
+
+%% @doc Unused item - kept for backwards compatability
+{mapping, "log.error.messages_per_second", "legacy.error_logger_hwm", [
+  {datatype, integer},
+  {default, 100},
+  hidden
+]}.
