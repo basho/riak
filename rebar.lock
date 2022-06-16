@@ -122,7 +122,7 @@
   1},
  {<<"riak_repl">>,
   {git,"https://github.com/basho/riak_repl",
-       {ref,"c8f63e34822b82ef24e2545ecd6ca19a2ef3f37b"}},
+       {ref,"3c932a839d6ab6ae7595868647fbfa7f14ab037b"}},
   0},
  {<<"riak_sysmon">>,
   {git,"https://github.com/basho/riak_sysmon.git",
