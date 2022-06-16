@@ -229,11 +229,7 @@ case "$1" in
                 exit 1
               fi
               NEWVAL=$1
-              RES=`relx_nodetool ping`
-              if [ "$RES" != "pong" ]; then
-                echo "Node is not running!"
-                exit 1
-              fi
+              ping_or_exit
               rpc riak_repl_console realtime_cascades $@
               ;;
             max_fssource_cluster)
@@ -287,11 +283,7 @@ case "$1" in
         ACTION=$1
         shift
         # Make sure the local node is running
-        RES=`relx_nodetool ping`
-        if [ "$RES" != "pong" ]; then
-            echo "Node is not running!"
-            exit 1
-        fi
+        ping_or_exit
         if [ $# -lt 1 -o $# -gt 3 ]; then
             echo "Usage: $SCRIPT $ACTION show |"
             echo "                       add <externalip>[:port] <internalip> |"
