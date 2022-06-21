@@ -143,7 +143,7 @@
   1},
  {<<"syslogger">>,
   {git,"https://github.com/basho/syslogger",
-       {ref,"bf452dc05bf88a91c75329be395540abf92d0294"}},
+       {ref,"10b7aaa556b81806e4f82d546a1fbd29543f474b"}},
   0},
  {<<"webmachine">>,
   {git,"https://github.com/webmachine/webmachine.git",
