@@ -13,6 +13,20 @@ SCRIPT=`basename $0`
 
 V2REPLDEP="DEPRECATION NOTICE: The replication protocol you are currently using in this cluster has been deprecated and will be unsupported and removed some time after the Riak Enterprise 2.1 release. Please upgrade to the latest replication protocol as soon as possible. If you need assistance migrating contact Basho Client Services or follow the instructions in our documentation ( http://docs.basho.com/riakee/latest/cookbooks/Multi-Data-Center-Replication-UpgradeV2toV3/ )."
 
+run_rpc() {
+     MOD=$1; FUN=$2; shift 2
+     if [ $# -eq 0 ]; then
+         # Pass through a list with an empty list - nodetool now demands that args
+         # are passed in a list, and the CLI functions in riak expect a list (empty)
+         # if no args are required. Thus, we pass a list of an empty list.
+         USE_NODETOOL=1 relx_nodetool rpc riak_kv_console run_command [$MOD, $FUN, [[]]]
+     else
+         # Form the remaining args into a comma delimited list of quoted args.
+         ARGS=$(awk '{$1=$1; gsub(/^/,"[\""); gsub(/$/,"\"]")}'1 OFS='","' <<< $@)
+         USE_NODETOOL=1 relx_nodetool rpc riak_kv_console run_command [$MOD, $FUN, [$ARGS]]
+     fi
+}
+
 # Check the first argument for instructions
 case "$1" in
     status)
@@ -20,7 +34,7 @@ case "$1" in
 
         shift
 
-        relx_nodetool rpc riak_repl_console status $@
+        run_rpc riak_repl_console status $@
         ;;
 
     add-listener)
@@ -34,7 +48,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console add_listener $1 $2 $3
+        run_rpc riak_repl_console add_listener $1 $2 $3
         ;;
 
     add-nat-listener)
@@ -48,7 +62,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console add_nat_listener $1 $2 $3 $4 $5
+        run_rpc riak_repl_console add_nat_listener $1 $2 $3 $4 $5
         ;;
 
 
@@ -63,7 +77,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console del_listener $1 $2 $3
+        run_rpc riak_repl_console del_listener $1 $2 $3
         ;;
 
     add-site)
@@ -77,7 +91,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console add_site $1 $2 $3
+        run_rpc riak_repl_console add_site $1 $2 $3
         ;;
    del-site)
         echo $V2REPLDEP
@@ -90,7 +104,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console del_site $1
+        run_rpc riak_repl_console del_site $1
         ;;
     start-fullsync)
         echo $V2REPLDEP
@@ -99,7 +113,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console start_fullsync
+        run_rpc riak_repl_console start_fullsync
         ;;
     cancel-fullsync)
         echo $V2REPLDEP
@@ -108,7 +122,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console cancel_fullsync
+        run_rpc riak_repl_console cancel_fullsync
         ;;
     pause-fullsync)
         echo $V2REPLDEP
@@ -117,7 +131,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console pause_fullsync
+        run_rpc riak_repl_console pause_fullsync
         ;;
     resume-fullsync)
         echo $V2REPLDEP
@@ -126,7 +140,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console resume_fullsync
+        run_rpc riak_repl_console resume_fullsync
         ;;
 #
 # Repl2 Commands
@@ -138,9 +152,9 @@ case "$1" in
 
         shift
         if [ $# -lt 1 ]; then
-            relx_nodetool rpc riak_repl_console $ACTION
+            run_rpc riak_repl_console $ACTION
         else
-            relx_nodetool rpc riak_repl_console $ACTION $1
+            run_rpc riak_repl_console $ACTION $1
         fi
         ;;
     clustername)
@@ -154,9 +168,9 @@ case "$1" in
         # Make sure the local node is running
 
         if [ $# -lt 1 ]; then
-            relx_nodetool rpc riak_repl_console $ACTION
+            run_rpc riak_repl_console $ACTION
         else
-            relx_nodetool rpc riak_repl_console $ACTION $1
+            run_rpc riak_repl_console $ACTION $1
         fi
         ;;
     connections|clusters)
@@ -169,7 +183,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console $ACTION
+        run_rpc riak_repl_console $ACTION
         ;;
     connect|disconnect)
         ACTION=$1
@@ -191,10 +205,10 @@ case "$1" in
 
         if [ $# -lt 2 ]; then
             # by clustername or ip:port
-            relx_nodetool rpc riak_repl_console $CMD $1
+            run_rpc riak_repl_console $CMD $1
         else
             # by IP/Port
-            relx_nodetool rpc riak_repl_console $CMD $1 $2
+            run_rpc riak_repl_console $CMD $1 $2
         fi
         ;;
 
@@ -204,7 +218,7 @@ case "$1" in
 
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console $CMD $@
+        run_rpc riak_repl_console $CMD $@
         ;;
     realtime|fullsync)
         ACTION=$1
@@ -231,14 +245,14 @@ case "$1" in
                     echo "Usage: $SCRIPT $ACTION {enable|disable} <clustername>"
                     exit 1
                 fi
-                relx_nodetool rpc riak_repl_console $ACTION $SUB_CMD $1
+                run_rpc riak_repl_console $ACTION $SUB_CMD $1
                 ;;
             start|stop)
                 if [ $# -lt 1 ]; then
-                    relx_nodetool rpc riak_repl_console $ACTION $SUB_CMD
+                    run_rpc riak_repl_console $ACTION $SUB_CMD
                     exit 1
                 else
-                    relx_nodetool rpc riak_repl_console $ACTION $SUB_CMD $1
+                    run_rpc riak_repl_console $ACTION $SUB_CMD $1
                 fi
                 ;;
             max_fssource_node)
@@ -250,7 +264,7 @@ case "$1" in
 
               # Make sure the local node is running
 
-              relx_nodetool rpc riak_repl_console $SUB_CMD $@
+              run_rpc riak_repl_console $SUB_CMD $@
               ;;
             cascades)
               if [ "$ACTION" != "realtime" ]; then
@@ -263,7 +277,7 @@ case "$1" in
                 echo "Node is not running!"
                 exit 1
               fi
-              relx_nodetool rpc riak_repl_console realtime_cascades $@
+              run_rpc riak_repl_console realtime_cascades $@
               ;;
             max_fssource_cluster)
               if [ "$ACTION" != "fullsync" ]; then
@@ -274,7 +288,7 @@ case "$1" in
 
               # Make sure the local node is running
 
-              relx_nodetool rpc riak_repl_console $SUB_CMD $@
+              run_rpc riak_repl_console $SUB_CMD $@
               ;;
             max_fssink_node)
               if [ "$ACTION" != "fullsync" ]; then
@@ -285,7 +299,7 @@ case "$1" in
 
               # Make sure the local node is running
 
-              relx_nodetool rpc riak_repl_console $SUB_CMD $@
+              run_rpc riak_repl_console $SUB_CMD $@
               ;;
             *)
                 echo "Usage: $SCRIPT $ACTION realtime start [clustername] |"
@@ -315,7 +329,7 @@ case "$1" in
                     echo "Usage: $SCRIPT $ACTION {enable|disable} <clustername>"
                     exit 1
                 fi
-                relx_nodetool rpc riak_repl_console $ACTION $SUB_CMD $1
+                run_rpc riak_repl_console $ACTION $SUB_CMD $1
                 ;;
         esac
         ;;
@@ -343,21 +357,21 @@ case "$1" in
                     echo "Usage: $SCRIPT $ACTION $SUB_CMD"
                     exit 1
                 fi
-                relx_nodetool rpc riak_repl_console show_nat_map
+                run_rpc riak_repl_console show_nat_map
                 ;;
             add)
                 if [ $# -ne 2 ]; then
                     echo "Usage: $SCRIPT $ACTION $SUB_CMD <externalip>[:port] <internalip>"
                     exit 1
                 fi
-                relx_nodetool rpc riak_repl_console add_nat_map $1 $2
+                run_rpc riak_repl_console add_nat_map $1 $2
                 ;;
             del)
                 if [ $# -ne 2 ]; then
                     echo "Usage: $SCRIPT $ACTION $SUB_CMD <externalip>[:port] <internalip>"
                     exit 1
                 fi
-                relx_nodetool rpc riak_repl_console del_nat_map $1 $2
+                run_rpc riak_repl_console del_nat_map $1 $2
                 ;;
             *)
                 echo "Usage: $SCRIPT $ACTION show |"
@@ -376,7 +390,7 @@ case "$1" in
         fi
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console add_block_provider_redirect $1 $2
+        run_rpc riak_repl_console add_block_provider_redirect $1 $2
         ;;
     show-block-provider-redirect)
         CMD=$1
@@ -388,7 +402,7 @@ case "$1" in
         fi
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console show_block_provider_redirect $1
+        run_rpc riak_repl_console show_block_provider_redirect $1
         ;;
     delete-block-provider-redirect)
         CMD=$1
@@ -400,7 +414,7 @@ case "$1" in
         fi
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console delete_block_provider_redirect $1
+        run_rpc riak_repl_console delete_block_provider_redirect $1
         ;;
     show-local-cluster-id)
         CMD=$1
@@ -412,7 +426,7 @@ case "$1" in
         fi
         # Make sure the local node is running
 
-        relx_nodetool rpc riak_repl_console show_local_cluster_id
+        run_rpc riak_repl_console show_local_cluster_id
         ;;
     *)
 
