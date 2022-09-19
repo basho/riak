@@ -71,6 +71,7 @@ EOF
 
 %build
 make rel-rpm
+rm -rf rel/riak/lib/*/c_src rel/riak/lib/*/src
 
 %install
 %define relpath %{_builddir}/%{buildsubdir}/rel/riak

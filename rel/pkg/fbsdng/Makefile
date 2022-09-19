@@ -98,6 +98,7 @@ $(BUILD_STAGE_DIR): buildrel
 buildrel:
 	tar -xf $(BASE_DIR)/rel/pkg/out/$(PKG_ID).tar.gz -C $(BASE_DIR)/rel/pkg/out/$(PKG_ID)
 	$(MAKE) -C $(BASE_DIR)/rel/pkg/out/$(PKG_ID) rel-fbsdng
+	rm -rf rel/riak/lib/*/c_src rel/riak/lib/*/src
 	chmod 0755 rel/riak/bin/* rel/riak/erts-*/bin/*
 
 $(BUILDDIR):
