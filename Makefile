@@ -80,17 +80,17 @@ rel-rpm: compile
 
 rel-deb: compile
 	@$(REBAR) as deb release
-	@tar --exclude=vcs -c -C _build/deb/rel riak | tar -x -C rel
+	@tar --exclude-vcs -c -C _build/deb/rel riak | tar -x -C rel
 
 rel-osx: compile
 	@$(REBAR) as osx release
-	@tar --exclude=vcs -c -C _build/osx/rel riak | tar -x -C rel
+	@tar --exclude-vcs -c -C _build/osx/rel riak | tar -x -C rel
 
 # this one is to be called from an external make (not from rel/pkg/Makefile)
 rel-alpine: compile
 	@$(REBAR) as alpine release
 	@(cd _build/alpine/rel/riak/usr/bin && mv riak-nosu riak)
-	@tar --exclude=vcs -c -C _build/alpine/rel riak | tar -x -C rel
+	@tar --exclude-vcs -c -C _build/alpine/rel riak | tar -x -C rel
 
 rel-fbsdng: compile
 	@$(REBAR) as fbsdng release
