@@ -19,9 +19,6 @@
 
 {storage_backend,   "bitcask"}.
 
-{repl_data_root,    "{{platform_data_dir}}/riak_repl"}.
-{crash_dump,        "{{platform_log_dir}}/erl_crash.dump"}.
-
 %%
 %% cuttlefish
 %%
