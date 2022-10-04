@@ -30,7 +30,7 @@
   1},
  {<<"eleveldb">>,
   {git,"https://github.com/basho/eleveldb.git",
-       {ref,"bd83f3a1adf203360735db979b1bdb32943721d2"}},
+       {ref,"11987bf4d3b8483dd4a5a7b5ad2aa1714b91cb58"}},
   2},
  {<<"exometer_core">>,
   {git,"https://github.com/Feuerlabs/exometer_core.git",
