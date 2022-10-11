@@ -1,3 +1,7 @@
+# Riak KV 3.0.11 Release Notes
+
+A simple change to [release a bottleneck](https://github.com/martinsumner/leveled/issues/379) in 2i queries with the leveled backend.  Should only be relevant to those using leveled, and attempting o(1000) 2i queries per second.
+
 # Riak KV 3.0.10 Release Notes
 
 This release is focused on improving memory management, especially with the leveled backend, and improving the efficiency and ease of configuration of tictacaae full-sync.
