@@ -11,7 +11,6 @@
 # Uncomment this to turn on verbose mode.
 export DH_VERBOSE=1
 
-#export REBAR_GIT_CLONE_OPTIONS="--depth 1"
 ROOTDIR := debian/riak
 
 ## Clear variables that may confound our build of sub-projects; also
@@ -19,6 +18,7 @@ ROOTDIR := debian/riak
 ## the generate command EXECUTES in rel/
 build:
 	make rel-deb
+	rm -rf rel/riak/lib/*/c_src rel/riak/lib/*/src
 	touch build
 
 clean:

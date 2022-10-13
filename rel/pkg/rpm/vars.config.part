@@ -1,0 +1,33 @@
+%% -*- mode: erlang;erlang-indent-level: 4;indent-tabs-mode: nil -*-
+%% ex: ft=erlang ts=4 sw=4 et
+
+{rel_vsn, "{{release_version}}"}.
+
+%% platform_bin_dir etc to be appended at package build time (see specifile)
+
+{pid_dir,            "/var/run/riak"}.
+
+{cluster_manager_ip,    "127.0.0.1"}.
+{cluster_manager_port,  9080}.
+
+{web_ip,            "127.0.0.1"}.
+{web_port,          8098}.
+{handoff_ip,        "0.0.0.0"}.
+{handoff_port,      8099}.
+{pb_ip,             "127.0.0.1"}.
+{pb_port,           8087}.
+
+{storage_backend,   "bitcask"}.
+
+%%
+%% cuttlefish
+%%
+{cuttlefish,         "on"}.
+{cuttlefish_conf,    "riak.conf"}.
+
+{logger_level, info}.
+
+%%
+%% etc/vm.args
+%%
+{node,         "riak@127.0.0.1"}.
