@@ -16,9 +16,17 @@ ERTS_PATH=$BINDIR
 NAME_PARAM="-name"
 BOOT_FILE="start_clean"
 
+# Function to validate the node is down
+node_down_check() {
+    if relx_nodetool "ping" > /dev/null; then
+        echo "Node is already running!"
+        exit 1
+    fi
+}
+
 usage() {
     echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
-    echo "                    reip | js-reload | erl-reload | wait-for-service | "
+    echo "                    reip | reip_manual | erl-reload | wait-for-service | "
     echo "                    ringready | transfers | force-remove | down |"
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
     echo "                    aae-status | diag | stat | status | transfer-limit | reformat-indexes |"
@@ -881,16 +889,6 @@ case "$1" in
         done
         ;;
 
-    js[_-]reload)
-        # Reload all Javascript VMs
-
-        shift #optional names come after 'js_reload'
-
-        # Make sure the local node is running
-
-        relx_nodetool rpc riak_kv_js_manager reload "$@"
-        ;;
-
     erl[_-]reload)
         # Reload user Erlang code
         # Make sure the local node is running
@@ -909,22 +907,62 @@ case "$1" in
         # Make sure the local node is not running
         node_down_check
 
-        # Sanity check the app.config file
-        check_config
-        ES=$?
-        if [ "$ES" -ne 0 ]; then
-            exit $ES
+        OLDNODE=$1
+        NEWNODE=$2
+
+        echo ""
+        echo "Usage $SCRIPT $ACTION is not currently supported in Riak 3.0"
+        echo ""
+        echo "As an alternative use reip_manual:"
+        echo "riak admin reip_manual $OLDNODE $NEWNODE '/absolute_path_to/riak/data/ring' 'cluster_name'"
+        echo ""
+        echo "Where the path should be the absolute path to the ring directory in platform_data_dir containing filenames such as:"
+        echo "riak_core_ring.default.20221122164111"
+        echo ""
+        echo "The cluster_name should be set to the middle part of the ring file name (e.g. 'default' in this case),"
+        echo "or can be found when the node is active using app_helper:get_env(riak_core, cluster_name) from remote_console."
+        echo ""
+
+        exit 1;;
+
+        # check_config
+        # ES=$?
+        # if [ "$ES" -ne 0 ]; then
+        #     exit $ES
+        # fi
+
+        # OLDNODE=$1
+        # NEWNODE=$2
+        # $ERTS_PATH/erl -noshell \
+        #     -pa $RUNNER_LIB_DIR/basho-patches \
+        #     -boot $BOOT_FILE \
+        #     $CONFIG_ARGS \
+        #     -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
+        #     -s init stop
+        # ;;
+    
+    reip_manual)
+        ACTION=$1
+        shift
+        if [ $# -lt 4 ]; then
+            echo "Usage $SCRIPT $ACTION <old_nodename> <new_nodename> <ring_dir> <cluster_name>"
+            exit 1
         fi
+
+        # Make sure the local node is not running
+        node_down_check
 
         OLDNODE=$1
         NEWNODE=$2
+        RINGDIR=$3
+        CLUSTERNAME=$4
         $ERTS_PATH/erl -noshell \
             -pa $RUNNER_LIB_DIR/basho-patches \
             -boot $BOOT_FILE \
-            $CONFIG_ARGS \
-            -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
+            -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE', '$RINGDIR', '$CLUSTERNAME'])" \
             -s init stop
         ;;
+
 
     restore)
         ACTION=$1
