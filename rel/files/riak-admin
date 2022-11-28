@@ -33,7 +33,7 @@ ERTS_VER=$(cd ${PLATFORM_BASE_DIR} && ls -d erts-*)
 ERTS_PATH="${PLATFORM_BASE_DIR}/$ERTS_VER/bin"
 COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' $PLATFORM_ETC_DIR/riak.conf 2> /dev/null | cut -d = -f 2 | tr -d ' '`
 
-NODE={{node}}
+NODE=`egrep '^[ \t]*nodename[ \t]*=[ \t]*' $PLATFORM_ETC_DIR/riak.conf 2> /dev/null | cut -d = -f 2 | tr -d ' '`
 HOST=${NODE#*@}
 
 BOOT_FILE="${PLATFORM_BASE_DIR}/releases/{{release_version}}/start_clean"
