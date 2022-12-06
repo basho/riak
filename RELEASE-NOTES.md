@@ -12,6 +12,26 @@ Packaging suport has now been added for Alpine Linux and FreeBSD.
 
 When building from source, the `snappy` dependancy is now made rather than fetched using a cached package, so support for `cmake` is required to build.  Note that on older versions of OSX the current version of snappy will not compile.  This will be resolved when their is a formal release version of snappy containing [this fix](https://github.com/google/snappy/commit/8dd58a519f79f0742d4c68fbccb2aed2ddb651e8).
 
+# Riak KV 3.0.12 Release Notes
+
+This is a general release of changes and fixes:
+
+- A [fix to a critical issue with the use of PR variables](https://github.com/basho/riak_kv/pull/1836) in Riak KV (when the PR value is set via bucket properties).
+
+- Changes to the leveled backend with the aim of further improving memory management, by simplifying the [summary tree within each leveled_sst file](https://github.com/martinsumner/leveled/pull/383).
+
+- An [update to leveldb snappy compression](https://github.com/basho/eleveldb/pull/267), to make Riak compatible with a broader set of platforms (including AWS Graviton).  Because of this change, anyone building from source will now require `cmake` to be installed.
+
+- A [new `reip_manual` console command](https://github.com/basho/riak/pull/1122) has been added to use as an alternative to `reip`, which does not currently work in the 3.0 release stream.  Use `riak admin reip_manual` in place of `riak admin reip` when performing the reip operation on a node.  This now requires that the path to the ring file, and the cluster name, to be known by the operator.
+
+- Some [improvements to logging within the leveled backend](https://github.com/martinsumner/leveled/pull/385) have been made to allow for better statistics monitoring of low-level operations, and reduce the cost of writing a log within leveled.
+
+- A fix for a deadlock issue in [riak_repl AAE fullsync](https://github.com/basho/riak_repl/pull/818) to help when clusters with high object counts have large deltas.
+
+- [Two](https://github.com/basho/riak_kv/pull/1839) [other](https://github.com/basho/riak_kv/pull/1837) fixes within Riak KV.
+
+As part of this release, further testing of the new memory configuration options added in Riak 3.0.10 has been undertaken.  It is now recommended when using the leveled backend, that if memory growth in the Riak process is a signifcant concern, then the following configuration option may be tested: `erlang.eheap_memory.sbct = 128`.  This has been shown to reduce the memory footprint of Riak, with a small performance overhead.
+
 # Riak KV 3.0.11 Release Notes
 
 A simple change to [release a bottleneck](https://github.com/martinsumner/leveled/issues/379) in 2i queries with the leveled backend.  Should only be relevant to those using leveled, and attempting o(1000) 2i queries per second.
