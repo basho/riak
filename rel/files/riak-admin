@@ -33,7 +33,7 @@ ERTS_VER=$(cd ${PLATFORM_BASE_DIR} && ls -d erts-*)
 ERTS_PATH="${PLATFORM_BASE_DIR}/$ERTS_VER/bin"
 COOKIE=`egrep '^[ \t]*distributed_cookie[ \t]*=[ \t]*' $PLATFORM_ETC_DIR/riak.conf 2> /dev/null | cut -d = -f 2 | tr -d ' '`
 
-NODE={{node}}
+NODE=`egrep '^[ \t]*nodename[ \t]*=[ \t]*' $PLATFORM_ETC_DIR/riak.conf 2> /dev/null | cut -d = -f 2 | tr -d ' '`
 HOST=${NODE#*@}
 
 BOOT_FILE="${PLATFORM_BASE_DIR}/releases/{{release_version}}/start_clean"
@@ -546,6 +546,10 @@ The following commands modify users and security ACLs for Riak:
     esac
 }
 
+escape() {
+    echo -n "$1" | sed 's/"/\\"/g'
+}
+
 btype_admin()
 {
     case "$1" in
@@ -556,6 +560,7 @@ btype_admin()
             fi
             rpc riak_kv_console bucket_type_status "$2"
             ;;
+
         activate)
             if [ $# -ne 2 ]; then
                 echo "Usage: $SCRIPT bucket-type activate <type>"
@@ -563,13 +568,13 @@ btype_admin()
             fi
             rpc riak_kv_console bucket_type_activate "$2"
             ;;
+
         create)
             if [ $# -lt 2 ]; then
                 echo "Usage: $SCRIPT bucket-type create <type> ['{\"props\": { ... }}']"
                 exit 1
             fi
-            # spaces in the second arg won't be preserved, so:
-            rpc_raw riak_kv_console bucket_type_create "[[\"$2\", \"$3\"]]"
+            rpc_raw riak_kv_console bucket_type_create "[[\"$2\", \"`escape "$3"`\"]]"
             ;;
 
         update)
@@ -577,7 +582,7 @@ btype_admin()
                 echo "Usage: $SCRIPT bucket-type update <type> '{\"props\": { ... }}'"
                 exit 1
             fi
-            rpc_raw riak_kv_console bucket_type_update "[[\"$2\", \"$3\"]]"
+            rpc_raw riak_kv_console bucket_type_update "[[\"$2\", \"`escape "$3"`\"]]"
             ;;
 
         list)
