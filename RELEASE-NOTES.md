@@ -1,14 +1,14 @@
 # Riak KV 3.0.12 Release Notes
 
-This is a general release of small changes and fixes:
+This is a general release of changes and fixes:
 
 - A major refactoring of the leveled backend with the aim of further improving memory management, by simplifying the [summary tree within each leveled_sst file](https://github.com/martinsumner/leveled/pull/383).
 
-- A [fix to a critical issue with the use of PR variables](https://github.com/basho/riak_kv/pull/1836) in Riak KV (when defined via bucket properties).
+- A [fix to a critical issue with the use of PR variables](https://github.com/basho/riak_kv/pull/1836) in Riak KV (when the PR value is set via bucket properties).
 
-- An [update to leveldb snappy compression](https://github.com/basho/eleveldb/pull/267), to make Riak compatible with a broader set of platforms (including AWS Graviton).
+- An [update to leveldb snappy compression](https://github.com/basho/eleveldb/pull/267), to make Riak compatible with a broader set of platforms (including AWS Graviton).  Because of this change, anyone building from source will now require `cmake` to be installed.
 
-- A [new `reip_manual` console command](https://github.com/basho/riak/pull/1122) has been added to use as an alternative to `reip` which does not work in the 3.0 release stream.  Use `riak admin reip_manual` in place of `riak admin reip` when performing the reip operation on a node.  This now requirs that the path to the ring file, and cluster name be known by the operator.
+- A [new `reip_manual` console command](https://github.com/basho/riak/pull/1122) has been added to use as an alternative to `reip`, which does not currently work in the 3.0 release stream.  Use `riak admin reip_manual` in place of `riak admin reip` when performing the reip operation on a node.  This now requires that the path to the ring file, and the cluster name, to be known by the operator.
 
 - Some [improvements to logging within the leveled backend](https://github.com/martinsumner/leveled/pull/385) have been made to allow for better statistics monitoring of low-level operations, and reduce the cost of writing a log within leveled.
 
@@ -16,7 +16,7 @@ This is a general release of small changes and fixes:
 
 - [Two](https://github.com/basho/riak_kv/pull/1839) [other](https://github.com/basho/riak_kv/pull/1837) fixes within Riak KV.
 
-As part of this release, further testing of the new memory configuration options added in Riak 3.0.10 has been undertaken.  It is now recommended when using the leveled backend, that if memory growth in the Riak process is a signifcant concern that the following configuration option be tested: `erlang.eheap_memory.sbct = 128`.  This has been shown to reduce the memory footprint of Riak, with a small performance overhead.
+As part of this release, further testing of the new memory configuration options added in Riak 3.0.10 has been undertaken.  It is now recommended when using the leveled backend, that if memory growth in the Riak process is a signifcant concern, then the following configuration option may be tested: `erlang.eheap_memory.sbct = 128`.  This has been shown to reduce the memory footprint of Riak, with a small performance overhead.
 
 # Riak KV 3.0.11 Release Notes
 
