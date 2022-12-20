@@ -2,9 +2,9 @@
 
 This is a general release of changes and fixes:
 
-- A major refactoring of the leveled backend with the aim of further improving memory management, by simplifying the [summary tree within each leveled_sst file](https://github.com/martinsumner/leveled/pull/383).
-
 - A [fix to a critical issue with the use of PR variables](https://github.com/basho/riak_kv/pull/1836) in Riak KV (when the PR value is set via bucket properties).
+
+- Changes to the leveled backend with the aim of further improving memory management, by simplifying the [summary tree within each leveled_sst file](https://github.com/martinsumner/leveled/pull/383).
 
 - An [update to leveldb snappy compression](https://github.com/basho/eleveldb/pull/267), to make Riak compatible with a broader set of platforms (including AWS Graviton).  Because of this change, anyone building from source will now require `cmake` to be installed.
 
