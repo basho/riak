@@ -34,41 +34,6 @@
   {datatype, bytesize}
 ]}.
 
-%% @doc Determines if messages should emit to syslog.
-{mapping, "syslogger.enabled", "kernel.logger", [
-  {default, off},
-  {datatype, {flag, on, off}}
-]}.
-
-%% @doc The severity level of the syslog log, default is 'notice'.
-{mapping, "syslogger.level", "kernel.logger", [
-  {default, notice},
-  {datatype, {enum, [debug, info, notice, warning, error, critical, alert, emergency, none]}}
-]}.
-
-%% @doc The syslog facility to use, default is 'user'.
-{mapping, "syslogger.facility", "kernel.logger", [
-  {default, user},
-  {datatype, {enum, [user, local0]}}
-]}.
-
-%% @doc Format string for the messages emitted to syslog. The string is passed into
-%% the handler as a logger_formatter template, the format is a list containing strings
-%% and atoms. The atoms denote the keys for retrieving metadata from the logger events.
-%% More information on default metadata can be found here (https://www.erlang.org/doc/man/logger_formatter.html#type-template).
-{mapping, "syslogger.format", "kernel.logger", [
-  {default, "[\"severity=\",level,\" text=\",msg]."},
-  {datatype, string}
-]}.
-
-%% @doc Default opts that need setting for the syslogger application to ensure that
-%% the PID is printed with log messages, along with the correct process identifier.
-{translation, "syslogger",
-    fun(_Conf) ->
-        [{log_opts, [pid]}, {ident, "riak"}]
-    end
-}.
-
 {translation,
  "kernel.logger",
  fun(Conf) ->
@@ -97,35 +62,8 @@
                                }
                  },
 
-    DefaultLog = [{handler, default, logger_std_h, ConfigMap0}],
-
-    SyslogLog =
-        case cuttlefish:conf_get("syslogger.enabled", Conf) of
-            true ->
-                SyslogLevel = cuttlefish:conf_get("syslogger.level", Conf),
-                SyslogFacility = cuttlefish:conf_get("syslogger.facility", Conf),
-                SyslogFormatStr = cuttlefish:conf_get("syslogger.format", Conf),
-                SyslogFormatTerm =
-                    case erl_scan:string(SyslogFormatStr) of
-                        {ok, SyslogTokens, _} ->
-                            case erl_parse:parse_term(SyslogTokens) of
-                                {ok, SyslogTerm} ->
-                                    SyslogTerm;
-                                {error, {_, _, SyslogError}} ->
-                                    cuttlefish:error(foo)
-                            end;
-                        {error, {_, _, SyslogScanError}} ->
-                            cuttlefish:error(foo)
-                    end,
-                ConfigMap1 = #{level => SyslogLevel,
-                               formatter => {logger_formatter, 
-                                                #{template => SyslogFormatTerm,
-                                                  single_line => true}}, facility => SyslogFacility},
-                [{handler, syslog, syslogger, ConfigMap1}];
-            false ->
-                []
-        end,
-    DefaultLog ++ SyslogLog
+    [{handler, default, logger_std_h, ConfigMap0}]
+    
   end
 }.
 
