@@ -2,11 +2,18 @@
 # -*- tab-width:4;indent-tabs-mode:nil -*-
 # ex: ts=4 sw=4 et
 
-## cf_config defines the config arguments needed
-. bin/cf_config
+PLATFORM_BASE_DIR={{platform_base_dir}}
+PLATFORM_BASE_DIR=${PLATFORM_BASE_DIR:-$(cd $(dirname "$0")/.. && pwd -P)}
+RUNNER_GEN_DIR={{platform_gen_dir}}
 
-## "vm.args = $VMARGS_PATH"
-## "app.config = $CONFIG_PATH"
+RELEASE_ROOT_DIR=$PLATFORM_BASE_DIR
+
+ERTS_VER=$(cd ${PLATFORM_BASE_DIR} && ls -d erts-*)
+ERTS_DIR="${PLATFORM_BASE_DIR}/$ERTS_VER"
+
+. $PLATFORM_BASE_DIR/bin/cf_config
+
+BOOT_FILE="${PLATFORM_BASE_DIR}/releases/{{release_version}}/start_clean"
 
 CODE=" try
            {ok, _} = file:consult(\"$CONFIG_PATH\"),
@@ -18,6 +25,8 @@ CODE=" try
                halt(1)
        end."
 
-$BINDIR/erl -noshell -boot start_clean -eval "$CODE"
+$ERTS_DIR/bin/erl -noshell -noinput \
+                  -boot $BOOT_FILE \
+                  -eval "$CODE"
 
 echo $CUTTLE_CONF

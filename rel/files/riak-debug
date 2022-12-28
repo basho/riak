@@ -22,6 +22,12 @@
 ##
 ## -------------------------------------------------------------------
 
+set +e
+# this is to revert the effect of `set -e`, set by relx-generated code
+# when we are invoked via `riak debug` (otherwise, non-zero exits,
+# which occur normally, will silently cause riak-debug to
+# terminate)
+
 # If you start to think "We should execute some Erlang in here", then go work
 # on Riaknostic, which is called with `riak admin diag` below.
 
@@ -108,7 +114,6 @@ Usage: riak-debug [-c] [-l] [-r] [-s] [-e] [-v] [FILENAME | -]
 -l, --logs      Gather Riak logs.
 -p, --patches   Gather the contents of the basho-patches directory.
 -r, --riakcmds  Gather Riak information and command output.
--y, --yzmcmds   Gather yokozuna information and logs.
 -s, --syscmds   Gather general system commands.
 -v, --verbose   Print verbose failure messages to stdout
 -e, --extracmds Gather extra command output. These commands are too intense to
@@ -135,12 +140,43 @@ exit
 ### Set up variables
 ###
 
+is_relative() {
+    if [ "${1#/}" = "$1" ]; then
+        return 0
+    else
+        return 1
+    fi
+}
+
 # These paths may be overridden with environment variables.
-RUNNER_BASE_DIR={{runner_base_dir}}
-riak_base_dir={{runner_base_dir}}
-riak_bin_dir={{runner_script_dir}}
-riak_etc_dir={{runner_etc_dir}}
-riak_sbin_dir=/usr/sbin
+PLATFORM_BASE_DIR={{platform_base_dir}}
+PLATFORM_BASE_DIR=${PLATFORM_BASE_DIR:-$(cd $(dirname "$0")/.. && pwd -P)}
+riak_base_dir=$PLATFORM_BASE_DIR
+if is_relative "{{platform_bin_dir}}"; then
+    riak_bin_dir="$PLATFORM_BASE_DIR/{{platform_bin_dir}}"
+else
+    riak_bin_dir="{{platform_bin_dir}}"
+fi
+if is_relative "{{platform_etc_dir}}"; then
+    riak_etc_dir="$PLATFORM_BASE_DIR/{{platform_etc_dir}}"
+else
+    riak_etc_dir="{{platform_etc_dir}}"
+fi
+if is_relative "{{platform_log_dir}}"; then
+    riak_log_dir="$PLATFORM_BASE_DIR/{{platform_log_dir}}"
+else
+    riak_log_dir="{{platform_log_dir}}"
+fi
+if is_relative "{{platform_lib_dir}}"; then
+    riak_lib_dir="$PLATFORM_BASE_DIR/{{platform_lib_dir}}"
+else
+    riak_lib_dir="{{platform_lib_dir}}"
+fi
+if is_relative "{{platform_gen_dir}}"; then
+    riak_gen_dir="$PLATFORM_BASE_DIR/{{platform_gen_dir}}"
+else
+    riak_gen_dir="{{platform_gen_dir}}"
+fi
 
 get_cfgs=0
 get_ssl_certs=0
@@ -151,13 +187,6 @@ get_yzcmds=0
 get_syscmds=0
 get_extracmds=0
 verbose_output=0
-
-## Use riak config generate to set $riak_app_config and
-## $riak_vm_args
-gen_result=`"$riak_bin_dir"/riak chkconfig | grep -v "OK" | cut -d' ' -f 2,4`
-riak_app_config=`echo $gen_result | cut -d' ' -f 1`
-generated_config_dir=`dirname "$riak_app_config"`
-riak_vm_args=`echo $gen_result | cut -d' ' -f 2`
 
 ###
 ### Parse options
@@ -248,30 +277,32 @@ if [ 0 -eq $(( $get_cfgs + $get_logs + $get_patches + $get_riakcmds + $get_yzcmd
     get_logs=1
     get_patches=1
     get_riakcmds=1
-    get_yzcmds=1
+    get_yzcmds=0
     get_syscmds=1
     get_extracmds=0
 fi
+
+cd $PLATFORM_BASE_DIR
 
 if [ 0 -ne $(( $get_cfgs + $get_logs + $get_patches + $get_riakcmds + $get_yzcmds + $get_extracmds )) ]; then
     # Information specific to Riak requested. Need app_epath.sh and must have
     # valid base and etc paths defined.
 
-    # app_epath.sh provides make_app_epaths and epath functions.
-    # Allow overriding with APP_EPATH
-    if [ -n "$APP_EPATH" ]; then
-        epath_file="$APP_EPATH"
-    else
-        epath_file="${riak_base_dir}/lib/app_epath.sh"
-    fi
+    . $riak_lib_dir/lib.sh
 
-    if [ ! -f "$epath_file" ]; then
-        echoerr "Required file app_epath.sh not found. Expected here:"
-        echoerr "$epath_file"
-        echoerr "See 'riak-debug -h' and manpage for help."
-        exit 1
-    fi
-    . "$epath_file"
+    ## Use riak config generate to set $riak_app_config and
+    ## $riak_vm_args
+    gen_result=`"$riak_bin_dir"/riak-chkconfig | grep -v "OK"`
+    riak_app_config=`echo $gen_result | cut -d' ' -f 2`
+    generated_config_dir=`dirname "$riak_app_config"`
+    riak_vm_args=`echo $gen_result | cut -d' ' -f 6`
+
+    # Make a flat, easily searchable version of the app.config settings
+    riak_epaths=`make_app_epaths "${riak_app_config}"`
+    # run it now, before any other `riak cmd` (each such call invokes
+    # cuttlefish, which generates a new (and totally identical) app and
+    # vm.args config file in platform_gen_dir, eventually rotating the one
+    # we have just found)
 
     # Allow overriding riak_base_dir and riak_etc_dir from the environment
     if [ -n "$RIAK_BASE_DIR" ]; then
@@ -304,6 +335,7 @@ if [ 0 -ne $(( $get_cfgs + $get_logs + $get_patches + $get_riakcmds + $get_yzcmd
         fi
     fi
 fi
+
 
 
 if [ -f "${riak_vm_args}" ]; then
@@ -472,30 +504,27 @@ if [ 1 -eq $get_riakcmds ]; then
     # commands on Riak<=1.2.0 and should not be executed in a loop against all
     # nodes in a cluster.
 
-    dump riak_ping "$riak_sbin_dir"/riak ping
-    dump riak_version "$riak_sbin_dir"/riak versions
-    dump riak_member_status "$riak_sbin_dir"/riak admin member-status
-    dump riak_ring_status "$riak_sbin_dir"/riak admin ring-status
-    dump riak_status "$riak_sbin_dir"/riak admin status
-    dump riak_transfers "$riak_sbin_dir"/riak admin transfers
-    dump riak_diag "$riak_sbin_dir"/riak admin diag
-    dump riak_repl_status "$riak_sbin_dir"/riak repl status
-    dump riak_repl_connections "$riak_sbin_dir"/riak repl connections
-    dump riak_repl_clusterstats "$riak_sbin_dir"/riak repl clusterstats
-    dump riak_repl_modes "$riak_sbin_dir"/riak repl modes
-
-    # Make a flat, easily searchable version of the app.config settings
-    riak_epaths=`make_app_epaths "${riak_app_config}"`
+    dump riak_ping "$riak_bin_dir"/riak ping
+    dump riak_version "$riak_bin_dir"/riak versions
+    dump riak_member_status "$riak_bin_dir"/riak-admin member-status
+    dump riak_ring_status "$riak_bin_dir"/riak-admin ring-status
+    dump riak_status "$riak_bin_dir"/riak-admin status
+    dump riak_transfers "$riak_bin_dir"/riak-admin transfers
+    #dump riak_diag "$riak_bin_dir"/riak-admin diag  # until riaknostik is brought back
+    dump riak_repl_status "$riak_bin_dir"/riak-repl status
+    dump riak_repl_connections "$riak_bin_dir"/riak-repl connections
+    dump riak_repl_clusterstats "$riak_bin_dir"/riak-repl clusterstats
+    dump riak_repl_modes "$riak_bin_dir"/riak-repl modes
 
     # If Yokozuna is not installed, $yz_test will be null.
     yz_test="`epath 'yokozuna root_dir' "$riak_epaths" | sed -e 's/^\"//' -e 's/\".*$//'`"
     # Only execute the search aae_statis command if $yz_test is not null.
     if [ -n "$yz_test" ]; then
-        dump riak_search_aae_status "$riak_sbin_dir"/riak admin search aae-status
+        dump riak_search_aae_status "$riak_bin_dir"/riak-admin search aae-status
     fi
 
     # Get one http listener (epath might output a newline-separated list).
-    riak_api_http="`epath 'riak_api http' "$riak_epaths" | sed -e 's/^\"//' -e 's/\" /:/' | head -n1`"
+    riak_api_http="`epath 'riak_api http' "$riak_epaths" | head -n1 | sed -Ee 's|^\[\{\"(.+)\",([0-9]+)}\]|\1:\2|'`"
 
     # Dump the output of the /stats HTTP endpoint.
     dump riak_http_stats curl -s "http://$riak_api_http/stats"
@@ -534,9 +563,6 @@ fi
 ###
 
 if [ 1 -eq $get_yzcmds ]; then
-    # if not already made, make a flat, searchable version of the app.config
-    [ -z "$riak_epaths" ] && riak_epaths=`make_app_epaths "${riak_app_config}"`
-
     yz_dir="`epath 'yokozuna root_dir' "$riak_epaths" | sed -e 's/^\"//' -e 's/\".*$//'`"
     # If Yokozuna is not installed, $yz_dir will be null and cause errors.
     # Only execute the Yokozuna commands if $yz_dir is not null.
@@ -601,7 +627,7 @@ fi
 if [ 1 -eq $get_extracmds ]; then
     mkdir_or_die "${start_dir}"/"${debug_dir}"/commands/.info
     cd "${start_dir}"/"${debug_dir}"/commands
-    dump riak_vnode_status "$riak_sbin_dir"/riak admin vnode-status
+    dump riak_vnode_status "$riak_bin_dir"/riak-admin vnode-status
 fi
 
 ###
@@ -611,9 +637,6 @@ fi
 if [ 1 -eq $get_logs ]; then
     mkdir_or_die "${start_dir}"/"${debug_dir}"/logs/.info
     cd "${start_dir}"/"${debug_dir}"/logs
-
-    # if not already made, make a flat, searchable version of the app.config
-    [ -z "$riak_epaths" ] && riak_epaths=`make_app_epaths "${riak_app_config}"`
 
     log_dir="`epath 'riak_core platform_log_dir' "$riak_epaths" | sed -e 's/^\"//' -e 's/\".*$//'`"
     if [ '/' != `echo "$log_dir" | cut -c1` ]; then
@@ -754,9 +777,9 @@ if [ 1 -eq $get_logs ]; then
     elif [ 'riak_kv_multi_backend' = "$backend" ] ||
          [ 'riak_cs_kv_multi_backend' = "$backend" ] ; then
         for b in `epath 'riak_kv multi_backend' "$riak_epaths" | cut -d ' ' -f 1 | uniq`; do
-            backend="`epath "riak_kv multi_backend $b" "$riak_epaths" | cut -d ' ' -f 1 | uniq`"
+            backend="`epath "$b" "$riak_epaths" | cut -d ' ' -f 1 | uniq`"
             if [ 'riak_kv_eleveldb_backend' = "$backend" ]; then
-                dr="`epath "riak_kv multi_backend $b riak_kv_eleveldb_backend data_root" "$riak_epaths" |
+                dr="`epath "$b riak_kv_eleveldb_backend data_root" "$riak_epaths" |
                     sed -e 's/^\"//' -e 's/\".*$//'`"
 
                 if [ '/' != `echo "$dr" | cut -c1` ]; then
@@ -911,11 +934,11 @@ if [ 1 -eq $get_patches ]; then
 
     # As per the below link, this patch should be based off the base_dir.
     # http://docs.basho.com/riakee/latest/cookbooks/Rolling-Upgrade-to-Enterprise/#Basho-Patches
-    riak_lib_dir="${riak_base_dir}/lib/patches"
 
     # Use dump to execute the copy. This will provide a progress dot and
     # capture any error messages.
-    dump cp_patches cp -R "$riak_lib_dir"/* .
+    [ -r "${riak_lib_dir}/patches/*" ] && \
+	dump cp_patches cp -R "${riak_lib_dir}/patches/*" .
 
     # If the copy succeeded, then the output will be empty and it is unneeded.
     if [ 0 -eq $? ]; then

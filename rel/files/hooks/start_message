@@ -1,0 +1,5 @@
+#!/bin/sh
+# -*- tab-width:4;indent-tabs-mode:nil -*-
+# ex: ts=4 sw=4 et
+
+export DEPRECATED_START_MESSAGE="riak start is deprecated, and scripts should be change to use riak daemon where riak cannot be started as a service.  Riak starting .."

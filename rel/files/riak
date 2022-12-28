@@ -1,57 +1,56 @@
 #!/bin/bash
 
-RUNNER_GEN_DIR="${RUNNER_GEN_DIR:-{{ platform_gen_dir }}}"
-RELEASE_ROOT_DIR="${RELEASE_ROOT_DIR:-{{ runner_base_dir }}}"
-PID_DIR={{pid_dir}}
-COMMAND={{platform_bin_dir}}/riak
-DEBUG_COMMAND={{platform_bin_dir}}/riak-debug
-RUNNER_LOG_DIR={{platform_log_dir}}
-RELX_CONFIG_PATH=${RUNNER_GEN_DIR}/sys.config
-VMARGS_PATH=${RUNNER_GEN_DIR}/vm.args
+RUNNER_GEN_DIR={{platform_gen_dir}}
+RELX_RIAK={{platform_bin_dir}}/riak
+export PID_DIR={{pid_dir}}
+export RUNNER_LOG_DIR={{platform_log_dir}}
 
+mkdir -p $PID_DIR
+chown riak:riak $PID_DIR
 
-# On first running the sys.config and vm.args will not be a link
-# as cfconfig has not yet been run as a pre_start hook.  If there's no
-# link use the default for now
-if [ ! -L $RELX_CONFIG_PATH ]; then
-    cp $RELEASE_ROOT_DIR/releases/{{release_version}}/sys.config $RELX_CONFIG_PATH
-fi
-if [ ! -L $VMARGS_PATH ]; then
-    cp $RELEASE_ROOT_DIR/releases/{{release_version}}/vm.args $VMARGS_PATH
-fi
-
-# When running as a service, running as riak not as root, and systemd has created PID folder
-if [[ $EUID -ne 0 ]]; then
-    case "$1" in
-        start|console|foreground)
-            RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches
-            ;;
-        *)
-            RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*}
-            ;;
-    esac
+# centos7-based distros have a su that contacts pam and prints the "Last logged in" message
+if [ "`cat /etc/redhat-release 2>&1`" = "CentOS Stream release 7" ] ||
+   [ "`cat /etc/system-release 2>&1`" = "Amazon Linux release 2 (Karoo)" ]; then
+    COPTION="--session-command"
 else
-    # In this case we're running sudo riak - so have root access, but cannot rely
-    # systemd having created the PID dir, and need to sudo to the riak user
-    if [ ! -d $PID_DIR ]; then
-        mkdir $PID_DIR
-        chown riak:riak $PID_DIR
-    fi
-    case "$1" in
-        start|console|foreground)
-            su - riak -c "NODETOOL_NODE_PREFIX=${NODETOOL_NODE_PREFIX} RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${*} -pa {{platform_lib_dir}}/patches"
-            ;;
-        debug)
-            # Drop the "debug" from the args as we're going to directly call riak-debug now
-            shift
-            # Debug may fail if run via relx script due to use of relative start location, and also need for root access
-            NODETOOL_NODE_PREFIX=${NODETOOL_NODE_PREFIX} RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${DEBUG_COMMAND} ${*}
-            ;;
-        *)
-            ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
-            su - riak -c "NODETOOL_NODE_PREFIX=${NODETOOL_NODE_PREFIX} RELX_CONFIG_PATH=${RELX_CONFIG_PATH} VMARGS_PATH=${VMARGS_PATH} RUNNER_LOG_DIR=${RUNNER_LOG_DIR} PIPE_DIR=${PIPE_DIR} ${COMMAND} ${ESCAPED_ARGS}"
-            ;;
-    esac
+    COPTION="-c"
 fi
 
+function maybe_su {
+    if [[ $EUID -ne 0 ]]; then
+        $*
+    else
+	# if we are executing an admin command that spins up a
+	# (hidden) node to then execute custom erlang code via -eval,
+	# we need to cd to a dir containing the erlang cookie
+	# (previously implicitly done by su -, which option we have
+	# removed in order to allow any env vars to be available for
+	# the ultimate invocation of riak/riak-cs/stanchion)
+	cd "{{platform_base_dir}}"
+	# freebsd su is fairly limited, so:
+	mkdir -p "$RUNNER_GEN_DIR"
+	chown riak:riak "$RUNNER_GEN_DIR"
+	f=`mktemp "$RUNNER_GEN_DIR"/su_piggy-XXXXXXX`
+	cat >"$f" <<EOF
+#!/bin/sh
+$*
+EOF
+	chmod +x "$f"
+	chown riak:riak "$f"
+	su riak $COPTION "$f"
+	rm -f "$f"
+   fi
+}
 
+case "$1" in
+    stop)
+        maybe_su $RELX_RIAK $* \
+	    && rm -f $PID_DIR/riak.pid  ## relx-generated script doesn't remove it
+	;;
+    *)
+
+	# what is this for?
+        #ESCAPED_ARGS=`echo "$@" | sed -e 's/\([\\\(\\\){}"\x27]\)/\\\\\1/g'`
+        maybe_su $RELX_RIAK $*
+        ;;
+esac

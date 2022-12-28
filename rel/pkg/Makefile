@@ -12,9 +12,24 @@ DEPS_DIR     ?= deps
 ##
 ifeq ($(OS),Linux)
 ARCH          = $(shell uname -m)
+ISAMZ         = $(shell cat /etc/system-release 2> /dev/null)
 ISRPM         = $(shell cat /etc/redhat-release 2> /dev/null)
+ISAMZ         = $(shell cat /etc/system-release 2> /dev/null)
 ISDEB         = $(shell cat /etc/debian_version 2> /dev/null)
 ISSLES        = $(shell cat /etc/SuSE-release 2> /dev/null)
+
+ISALPINE      = $(shell cat /etc/alpine-release 2> /dev/null)
+ifneq ($(ISALPINE),)
+all:
+	@echo "For instructions on how to build for Alpine Linux, see https://github.com/TI-Tokyo/riak-alpine-builds"
+	@exit 1
+endif
+
+ifneq ($(ISAMZ),)
+OSNAME        = Amazon
+PKGERDIR      = rpm
+BUILDDIR      = rpmbuild
+else
 ifneq ($(ISRPM),)
 OSNAME        = RedHat
 PKGERDIR      = rpm
@@ -32,6 +47,7 @@ BUILDDIR      = rpmbuild
 endif  # SLES
 endif  # deb
 endif  # rpm
+endif  # amazon
 endif  # linux
 
 ifeq ($(OS),Darwin)          # OSX
@@ -83,7 +99,7 @@ PKG_BUILD    ?= 1
 ## Call platform dependent makefile
 ostype: varcheck
 	$(if $(PKGERDIR),,$(error "Operating system '$(OS)' not supported by node_package"))
-	$(MAKE) -C $(BASE_DIR)/rel/pkg/out/riak-$(PKG_ID) -f $(BASE_DIR)/rel/pkg/$(PKGERDIR)/Makefile
+	$(MAKE) -C $(BASE_DIR)/rel/pkg/out/$(PKG_ID) -f $(BASE_DIR)/rel/pkg/$(PKGERDIR)/Makefile
 
 ## Check required settings before continuing
 varcheck:

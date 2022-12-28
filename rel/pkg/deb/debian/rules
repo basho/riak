@@ -17,14 +17,13 @@ ROOTDIR := debian/riak
 ## note that it is necessary to use overlay_vars relative to .. as
 ## the generate command EXECUTES in rel/
 build:
-	unset CC CFLAGS CPPFLAGS LDFLAGS CXX CXXFLAGS \
-		&& make rel-deb
+	make rel-deb
+	rm -rf rel/riak/lib/*/c_src rel/riak/lib/*/src
 	touch build
 
 clean:
 	dh_clean
 	rm -f build
-	make clean
 
 ## dh_shlibdeps was added to figure out the dependencies on shared libraries
 ##   and will populate the ${shlibs:Depends} callout in the control file
