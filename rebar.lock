@@ -126,7 +126,7 @@
   0},
  {<<"riak_sysmon">>,
   {git,"https://github.com/basho/riak_sysmon.git",
-       {ref,"cca4f1af8980307ebd01dced23510d93bc6d7c3f"}},
+       {ref,"c9640bedc7bc011a10e177922b431b63be661512"}},
   2},
  {<<"riakc">>,
   {git,"https://github.com/basho/riak-erlang-client",
