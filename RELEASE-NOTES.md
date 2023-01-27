@@ -14,6 +14,10 @@ This release is focused on improving the reliability of handoffs.  The speed of 
 
 There are still [outstanding](https://github.com/basho/riak_kv/issues/1846) [issues](https://github.com/basho/riak_core/issues/996) related to handoffs.
 
+The release also includes a [significant change to the HTTP API](https://github.com/basho/riak_kv/issues/1849).  In previous releases PUT, POST and DELETE requests would all GET the object prior to starting the PUT process.  This is in contrast to the Protocol Buffers API which would only GET the object in case where conditions were passed in the put (e.g. `if_none_match` or `if_not_modified`).  These two APIs now have the same non-functional behaviour, the HTTP API will no longer request a GET before the PUT if the request does not contain a condition (e.g. using `If-None-Match`, `If-Match`, `If-Modified-Since` as well as a new bespoke condition `X-Riak-If-Not-Modified`).
+
+A vector clock being passed on a PUT using the `X-Riak-If-Not-Modified` header, will return a `409:Conflict` should the passed vector clock not match the clock found prior to updating the object.  This will work as the PB API `if_not_modified` option.  This is still an eventually consistent condition, parallel updates may still lead to siblings when `{allow_mult, true}`.
+
 # Riak KV 3.0.12 Release Notes
 
 This is a general release of changes and fixes:
