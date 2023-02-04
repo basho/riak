@@ -30,3 +30,6 @@ $ERTS_DIR/bin/erl -noshell -noinput \
                   -eval "$CODE"
 
 echo $CUTTLE_CONF
+
+# No explicit exit, assumed to have succeeded
+exit 0
