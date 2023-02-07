@@ -1,3 +1,9 @@
+# Riak KV 3.0.14 Release Notes
+
+This release [fixes an issue](https://github.com/martinsumner/leveled/issues/393) whereby a failure to signal and handle back-pressure correctly by the leveled backend can cause a backlog within the store.  In particular this can be triggered by handoffs (e.g. due to cluster admin operations), and lead to partition transfers stalling almost completely.
+
+The issue existed in previous releases, by may have been exacerbated by refactoring in [Riak KV 3.0.13](#riak-kv-3013-release-notes).
+
 # Riak KV 3.0.13 Release Notes
 
 This release is focused on improving the reliability of handoffs.  The speed of handoffs is critical to the recovery times of nodes following failure, and also to the time necessary to expand or contract the cluster.  Controlling the speed can be managed by increasing concurrency (using `riak admin transfer-limit <limit>`), but this can often lead to handoff unreliability due to timeouts.
