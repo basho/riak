@@ -1,3 +1,11 @@
+# Riak KV 3.0.14 Release Notes
+
+This release [fixes an issue](https://github.com/martinsumner/leveled/issues/393) whereby a failure to signal and handle back-pressure correctly by the leveled backend can cause a backlog within the store.  In particular this can be triggered by handoffs (e.g. due to cluster admin operations), and lead to partition transfers stalling almost completely.  The issue existed in previous releases, by may have been exacerbated by refactoring in [Riak KV 3.0.13](#riak-kv-3013-release-notes).
+
+An additional [minor improvement has been made to handoffs](https://github.com/basho/riak_kv/pull/1851). Previously requests to reap tombstones after deletions (where the delete_mode is not `keep`), would not be forwarded during handoffs.  These tombstones would then need to be corrected by AAE (which may result in a permanent tombstone).  There is now a configuration option `handoff_deletes` which can be enabled to ensure these reap requests are forwarded, reducing the AAE work required on handoff completion.
+
+Desipite the handoff improvements in [Riak KV 3.0.13](#riak-kv-3013-release-notes), handoff timeouts are still possible.  If handoff timeouts do occur, then the first stage should be to reduce the [handoff batch threshold count](https://github.com/basho/riak_core/blob/riak_kv-3.0.14/priv/riak_core.schema#L47-L55) to a lower number than that of [the item_count in the handoff sender log](https://github.com/basho/riak_core/blob/riak_kv-3.0.14/src/riak_core_handoff_sender.erl#L474-L486).
+
 # Riak KV 3.0.13 Release Notes
 
 This release is focused on improving the reliability of handoffs.  The speed of handoffs is critical to the recovery times of nodes following failure, and also to the time necessary to expand or contract the cluster.  Controlling the speed can be managed by increasing concurrency (using `riak admin transfer-limit <limit>`), but this can often lead to handoff unreliability due to timeouts.
