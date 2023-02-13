@@ -8,6 +8,13 @@ export RUNNER_LOG_DIR={{platform_log_dir}}
 mkdir -p $PID_DIR
 chown riak:riak $PID_DIR
 
+# cuttlefish should be doing this, but it doesn't:
+VMARGS_PATH=`ls -1 ${RUNNER_GEN_DIR}/generated.conf/vm.*.args 2>/dev/null | tail -1`
+if [ ! -r  "$VMARGS_PATH" ]; then
+    VMARGS_PATH="{{platform_base_dir}}/releases/{{rel_vsn}}/vm.args"
+fi
+export VMARGS_PATH
+
 # centos7-based distros have a su that contacts pam and prints the "Last logged in" message
 if [ "`cat /etc/redhat-release 2>&1`" = "CentOS Stream release 7" ] ||
    [ "`cat /etc/system-release 2>&1`" = "Amazon Linux release 2 (Karoo)" ]; then
