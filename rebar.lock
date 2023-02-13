@@ -56,7 +56,7 @@
   1},
  {<<"leveled">>,
   {git,"https://github.com/martinsumner/leveled",
-       {ref,"314a4a9b07db5c22caffda54c3033f42a89ce321"}},
+       {ref,"e06d2a538fac9669145f1d226ff049d1ab1f9294"}},
   2},
  {<<"lz4">>,
   {git,"https://github.com/martinsumner/erlang-lz4",
@@ -101,7 +101,7 @@
   0},
  {<<"riak_core">>,
   {git,"https://github.com/basho/riak_core.git",
-       {ref,"2972270953925290ffc8f06b6a2aaf6fbc0a1996"}},
+       {ref,"dfcc27ad86e3f28a01e6653d1e7fd2e02cd35591"}},
   1},
  {<<"riak_dt">>,
   {git,"https://github.com/basho/riak_dt.git",
@@ -113,7 +113,7 @@
   2},
  {<<"riak_kv">>,
   {git,"https://github.com/basho/riak_kv",
-       {ref,"91b966bd87e6bb11d0a66afaa9a78934a078f311"}},
+       {ref,"489597ce016c3db1ec52ffd9f60d23995056f10a"}},
   0},
  {<<"riak_pb">>,
   {git,"https://github.com/basho/riak_pb.git",
@@ -146,7 +146,7 @@
   1},
  {<<"webmachine">>,
   {git,"https://github.com/webmachine/webmachine.git",
-       {ref,"f8e2265728c553dc8fd2d22266d7fbb72b8bb6b7"}},
+       {ref,"9e07e439cbbe95c0e0bed137b183a4fb70fd3e0c"}},
   2}]}.
 [
 {pkg_hash,[
