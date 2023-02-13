@@ -1,6 +1,6 @@
 # Riak KV 3.2.1 Release Notes
 
-Release of Riak KV 3.2, with the addition of changes made in [Riak KV 3.0.13](#riak-kv-3013-release-notes).
+Release of Riak KV 3.2, with the addition of changes made in [Riak KV 3.0.13](#riak-kv-3013-release-notes) and [Riak KV 3.0.14](#riak-kv-3014-release-notes).
 
 # Riak KV 3.2.0 Release Notes
 
@@ -17,6 +17,14 @@ Note that this release of Riak is packaged with a bespoke build of [rebar3](http
 When building from source, the `snappy` dependancy is now made rather than fetched using a cached package, so support for `cmake` is required to build.  Note that on older versions of OSX the current version of snappy will not compile.  This will be resolved when their is a formal release version of snappy containing [this fix](https://github.com/google/snappy/commit/8dd58a519f79f0742d4c68fbccb2aed2ddb651e8).
 
 In this release, tagging of individual dependencies has not been used.  Building consistently with the correct versions of dependencies is therefore dependent on the commit references being used from within the rebar.lock file.
+
+# Riak KV 3.0.14 Release Notes
+
+This release [fixes an issue](https://github.com/martinsumner/leveled/issues/393) whereby a failure to signal and handle back-pressure correctly by the leveled backend can cause a backlog within the store.  In particular this can be triggered by handoffs (e.g. due to cluster admin operations), and lead to partition transfers stalling almost completely.  The issue existed in previous releases, by may have been exacerbated by refactoring in [Riak KV 3.0.13](#riak-kv-3013-release-notes).
+
+An additional [minor improvement has been made to handoffs](https://github.com/basho/riak_kv/pull/1851). Previously requests to reap tombstones after deletions (where the delete_mode is not `keep`), would not be forwarded during handoffs.  These tombstones would then need to be corrected by AAE (which may result in a permanent tombstone).  There is now a configuration option `handoff_deletes` which can be enabled to ensure these reap requests are forwarded, reducing the AAE work required on handoff completion.
+
+Desipite the handoff improvements in [Riak KV 3.0.13](#riak-kv-3013-release-notes), handoff timeouts are still possible.  If handoff timeouts do occur, then the first stage should be to reduce the [handoff batch threshold count](https://github.com/basho/riak_core/blob/riak_kv-3.0.14/priv/riak_core.schema#L47-L55) to a lower number than that of [the item_count in the handoff sender log](https://github.com/basho/riak_core/blob/riak_kv-3.0.14/src/riak_core_handoff_sender.erl#L474-L486).
 
 # Riak KV 3.0.13 Release Notes
 
