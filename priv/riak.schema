@@ -255,14 +255,30 @@
 ]}.
 
 %% @doc The threshold (percentage) before a single block carrier is shrunk.
-%% The default is 20, if a block located in a single block carrier is shrunk
-%% to less than 20% of the size of the carrier, the carrier will also be shrunk
+%% The default is not known
 {mapping, "erlang.eheap_memory.rsbcst", "vm_args.+MHrsbcst", [
-    {commented, 20},
+    {commented, 50},
     {datatype, integer},
     {validators, ["range:0-100"]},
     merge
 ]}.
+
+%% @doc The threshold (absolute KB) before a single block carrier is shrunk.
+%% The default is 4MB approx - 
+%% https://github.com/erlang/otp/blob/master/erts/emulator/beam/erl_alloc_util.h#L120
+%% - though perhaps this is intended to be 2MB
+{mapping, "erlang.eheap_memory.asbcst", "vm_args.+MHasbcst", [
+    {commented, 2048},
+    {datatype, integer},
+    merge
+]}.
+
+%% @doc Add tags to eheap allocations
+{mapping, "erlang.eheap_memory.atags", "vm_args.+MHatags", [
+  {commented, "false"},
+  merge
+]}.
+
 
 %% @doc The VM single block carrier threshold (KB) for binary heap
 {mapping, "erlang.binary_memory.sbct", "vm_args.+MBsbct", [
