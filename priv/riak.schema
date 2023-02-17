@@ -254,6 +254,16 @@
     merge
 ]}.
 
+%% @doc The threshold (percentage) before a single block carrier is shrunk.
+%% The default is 20, if a block located in a single block carrier is shrunk
+%% to less than 20% of the size of the carrier, the carrier will also be shrunk
+{mapping, "erlang.eheap_memory.rsbcst", "vm_args.+MHrsbcst", [
+    {commented, 20},
+    {datatype, integer},
+    {validators, ["range:0-100"]},
+    merge
+]}.
+
 %% @doc The VM single block carrier threshold (KB) for binary heap
 {mapping, "erlang.binary_memory.sbct", "vm_args.+MBsbct", [
     {commented, 512},
