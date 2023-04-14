@@ -555,7 +555,7 @@ The following commands modify users and security ACLs for Riak:
 }
 
 escape() {
-    echo -n "$1" | sed 's/"/\\"/g'
+    printf '%s' "$1" | sed 's/"/\\"/g'
 }
 
 btype_admin()
