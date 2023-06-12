@@ -60,6 +60,12 @@ This is a general release of changes and fixes:
 
 As part of this release, further testing of the new memory configuration options added in Riak 3.0.10 has been undertaken.  It is now recommended when using the leveled backend, that if memory growth in the Riak process is a signifcant concern, then the following configuration option may be tested: `erlang.eheap_memory.sbct = 128`.  This has been shown to reduce the memory footprint of Riak, with a small performance overhead.
 
+## 3.0.12 Addendum
+
+Although not originally advertised in the release, the version of eleveldb used in 3.0.12 includes an upgrade of the [`snappy` compression algorithm used within eleveldb](https://github.com/basho/eleveldb/pull/267).  This version of snappy is incompatible with the previous version used, and so any update to 3.0.12 and beyond where the eleveldb backend is deployed with `snappy` compression [will fail](https://github.com/basho/eleveldb/issues/273).
+
+To update to 3.0.12 in this case, the change should be rolled into the cluster using the ` riak admin cluster replace` command.
+
 # Riak KV 3.0.11 Release Notes
 
 A simple change to [release a bottleneck](https://github.com/martinsumner/leveled/issues/379) in 2i queries with the leveled backend.  Should only be relevant to those using leveled, and attempting o(1000) 2i queries per second.
