@@ -1,10 +1,20 @@
+# Riak KV 3.0.16 Release Notes
+
+This release includes the following updates:
+
+- A significant new [riak_core cluster claim algorithm](https://github.com/basho/riak_core/pull/1008) has been added - `choose_claim_v4`.  The default cluster claim algorithm (`choose_claim_v2`) is unchanged, but the `choose_claim_fun` configuration option in riak.conf can be used to enable the new algorithm.  The new algorithm offers significant improvements in the claim process, especially when location awareness is enabled, with the algorithm now more likely to find valid solutions and with fewer required transfers.  The trade-off when compared to `choose_claim_v2` is that in some situations computational overhead of claim may increase by multiple orders of magnitude, leading to long cluster plan times.
+
+- The leveled backend has been updated to reduce the memory required for stores with a large number of keys, and also reduce volatility in the memory demanded, by [optimising the memory footprint of the SST process working heap](https://github.com/martinsumner/leveled/pull/403).
+
+- A collection of fixes have been added.  A fix to timeouts in [leveled hot backups](https://github.com/martinsumner/leveled/pull/406).  A fix to reap and erase queries to [prevent a backlog from overloading riak_kv_eraser or riak_kv_reaper mailboxes](https://github.com/basho/riak_kv/pull/1862) (creating rapidly increasing memory footprint).  A fix to an issue with [nextgen replication when node_confirms is enabled](https://github.com/basho/riak_kv/pull/1858).  The [R/W value used by nextgen replication is now configurable](https://github.com/basho/riak_kv/pull/1860), and this may be useful for preventing a backlog of replication events from overloading a cluster.
+
 # Riak KV 3.0.15 Release Notes
 
 Fix to an issue introduced with the `auto_check` feature for TictacAAE full-sync in [Riak KV 3.0.10](#riak-kv-3010-release-notes).
 
 # Riak KV 3.0.14 Release Notes
 
-This release [fixes an issue](https://github.com/martinsumner/leveled/issues/393) whereby a failure to signal and handle back-pressure correctly by the leveled backend can cause a backlog within the store.  In particular this can be triggered by handoffs (e.g. due to cluster admin operations), and lead to partition transfers stalling almost completely.  The issue existed in previous releases, by may have been exacerbated by refactoring in [Riak KV 3.0.13](#riak-kv-3013-release-notes).
+This release [fixes an issue](https://github.com/martinsumner/leveled/issues/393) whereby a failure to signal and handle back-pressure correctly by the leveled backend can cause a backlog within the store.  In particular this can be triggered by handoffs (e.g. due to cluster admin operations), and lead to partition transfers stalling almost completely.  The issue existed in previous releases, but may have been exacerbated by refactoring in [Riak KV 3.0.13](#riak-kv-3013-release-notes).
 
 An additional [minor improvement has been made to handoffs](https://github.com/basho/riak_kv/pull/1851). Previously requests to reap tombstones after deletions (where the delete_mode is not `keep`), would not be forwarded during handoffs.  These tombstones would then need to be corrected by AAE (which may result in a permanent tombstone).  There is now a configuration option `handoff_deletes` which can be enabled to ensure these reap requests are forwarded, reducing the AAE work required on handoff completion.
 
