@@ -8,6 +8,8 @@ This release includes the following updates:
 
 - A collection of fixes have been added.  A fix to timeouts in [leveled hot backups](https://github.com/martinsumner/leveled/pull/406).  A fix to reap and erase queries to [prevent a backlog from overloading riak_kv_eraser or riak_kv_reaper mailboxes](https://github.com/basho/riak_kv/pull/1862) (creating rapidly increasing memory footprint).  A fix to an issue with [nextgen replication when node_confirms is enabled](https://github.com/basho/riak_kv/pull/1858).  The [R/W value used by nextgen replication is now configurable](https://github.com/basho/riak_kv/pull/1860), and this may be useful for preventing a backlog of replication events from overloading a cluster.
 
+As a result of the memory management improvements made in 3.0.16, the recommendation to consider altering the eheap single-block carrier threshold made in [Riak 3.0.12](#riak-kv-3012-release-notes) has been deprecated.  With the leveled backend, memory management should now be efficient on default settings, although with a small overhead on the latency of HEAD operations in that backend.
+
 # Riak KV 3.0.15 Release Notes
 
 Fix to an issue introduced with the `auto_check` feature for TictacAAE full-sync in [Riak KV 3.0.10](#riak-kv-3010-release-notes).
