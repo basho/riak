@@ -21,3 +21,6 @@ CODE=" try
 $BINDIR/erl -noshell -boot start_clean -eval "$CODE"
 
 echo $CUTTLE_CONF
+
+# No explicit exit, assumed to have succeeded
+exit 0

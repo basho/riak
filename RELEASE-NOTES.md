@@ -1,4 +1,215 @@
-# Riak KV 3.0 Release Notes
+# Riak KV 3.0.16 Release Notes
+
+This release includes the following updates:
+
+- A significant new [riak_core cluster claim algorithm](https://github.com/basho/riak_core/pull/1008) has been added - `choose_claim_v4`.  The default cluster claim algorithm (`choose_claim_v2`) is unchanged, but the `choose_claim_fun` configuration option in riak.conf can be used to enable the new algorithm.  The new algorithm offers significant improvements in the claim process, especially when location awareness is enabled, with the algorithm now more likely to find valid solutions and with fewer required transfers.  The trade-off when compared to `choose_claim_v2` is that in some situations computational overhead of claim may increase by multiple orders of magnitude, leading to long cluster plan times.
+
+- The leveled backend has been updated to reduce the memory required for stores with a large number of keys, and also reduce volatility in the memory demanded, by [optimising the memory footprint of the SST process working heap](https://github.com/martinsumner/leveled/pull/403).
+
+- A collection of fixes have been added.  A fix to timeouts in [leveled hot backups](https://github.com/martinsumner/leveled/pull/406).  A fix to reap and erase queries to [prevent a backlog from overloading riak_kv_eraser or riak_kv_reaper mailboxes](https://github.com/basho/riak_kv/pull/1862) (creating rapidly increasing memory footprint).  A fix to an issue with [nextgen replication when node_confirms is enabled](https://github.com/basho/riak_kv/pull/1858).  The [R/W value used by nextgen replication is now configurable](https://github.com/basho/riak_kv/pull/1860), and this may be useful for preventing a backlog of replication events from overloading a cluster.
+
+As a result of the memory management improvements made in 3.0.16, the recommendation to consider altering the eheap single-block carrier threshold made in [Riak 3.0.12](#riak-kv-3012-release-notes) has been deprecated.  With the leveled backend, memory management should now be efficient on default settings, although with a small overhead on the latency of HEAD operations in that backend.
+
+# Riak KV 3.0.15 Release Notes
+
+Fix to an issue introduced with the `auto_check` feature for TictacAAE full-sync in [Riak KV 3.0.10](#riak-kv-3010-release-notes).
+
+# Riak KV 3.0.14 Release Notes
+
+This release [fixes an issue](https://github.com/martinsumner/leveled/issues/393) whereby a failure to signal and handle back-pressure correctly by the leveled backend can cause a backlog within the store.  In particular this can be triggered by handoffs (e.g. due to cluster admin operations), and lead to partition transfers stalling almost completely.  The issue existed in previous releases, but may have been exacerbated by refactoring in [Riak KV 3.0.13](#riak-kv-3013-release-notes).
+
+An additional [minor improvement has been made to handoffs](https://github.com/basho/riak_kv/pull/1851). Previously requests to reap tombstones after deletions (where the delete_mode is not `keep`), would not be forwarded during handoffs.  These tombstones would then need to be corrected by AAE (which may result in a permanent tombstone).  There is now a configuration option `handoff_deletes` which can be enabled to ensure these reap requests are forwarded, reducing the AAE work required on handoff completion.
+
+Desipite the handoff improvements in [Riak KV 3.0.13](#riak-kv-3013-release-notes), handoff timeouts are still possible.  If handoff timeouts do occur, then the first stage should be to reduce the [handoff batch threshold count](https://github.com/basho/riak_core/blob/riak_kv-3.0.14/priv/riak_core.schema#L47-L55) to a lower number than that of [the item_count in the handoff sender log](https://github.com/basho/riak_core/blob/riak_kv-3.0.14/src/riak_core_handoff_sender.erl#L474-L486).
+
+# Riak KV 3.0.13 Release Notes
+
+This release is focused on improving the reliability of handoffs.  The speed of handoffs is critical to the recovery times of nodes following failure, and also to the time necessary to expand or contract the cluster.  Controlling the speed can be managed by increasing concurrency (using `riak admin transfer-limit <limit>`), but this can often lead to handoff unreliability due to timeouts.
+
+- The main [handoff process has been refactored](https://github.com/basho/riak_core/pull/995) to remove some deprecated messages, simplify the naming of configuration items, improve the logging of handoffs and increase the frequency of handoff sync messages.  More frequent sync messages should make the flow of handoffs from the sender more responsive to pressure at the receiver.
+
+-  On joining a node to a cluster, there will now be an attempt to exchange metadata with the joining node before the join is staged.  This should reduce the probability of events failing immediately after join, as bucket types had not yet been replicated to the joining node.
+
+- A [new configuration option has been added](https://github.com/basho/riak_kv/blob/fbb53630645e53af053228d526caa3c86f304066/priv/riak_kv.schema#L1469-L1487) to change Riak to only commit read repair on primary (not fallback) vnodes.  In short-term failures, enabling this option will reduce the time taken for hinted handoff to complete following recovery of a failed node - as now the handoff will contain only objects changed for that partition during the outage.  With the default setting of `disabled`; fallback nodes will also contain each object fetched during the outage, in-line with the behaviour in previous releases.
+
+- A [fix has been implemented in leveled](https://github.com/martinsumner/leveled/pull/390) to reduce failures and inefficiencies when re-building the ledger key store from the object Journal, in situations where there has been a high volume of object churn.
+
+- Some [helper functions have been added to riak_client](https://github.com/basho/riak_kv/blob/fbb53630645e53af053228d526caa3c86f304066/src/riak_client.erl#L949-L993), to simplify some operational tasks.  These functions can be called from `riak remote_console`, e.g. `riak_client:repair_node().` - which replaces the series of commands previously required to run partition repair across all partitions on a node. `riak_client:tictacaae_suspend_node().` may be used to suspend Tictacaae AAE exchanges on a node following a failure, so that they can be re-enabled using `riak_client:tictacaae_resume_node().` once handoffs have been completed.
+
+There are still [outstanding](https://github.com/basho/riak_kv/issues/1846) [issues](https://github.com/basho/riak_core/issues/996) related to handoffs.
+
+The release also includes a [significant change to the HTTP API](https://github.com/basho/riak_kv/issues/1849).  In previous releases PUT, POST and DELETE requests would all GET the object prior to starting the PUT process.  This is in contrast to the Protocol Buffers API which would only GET the object in case where conditions were passed in the put (e.g. `if_none_match` or `if_not_modified`).  These two APIs now have the same non-functional behaviour, the HTTP API will no longer request a GET before the PUT if the request does not contain a condition (e.g. using `If-None-Match`, `If-Match`, `If-Modified-Since` as well as a new bespoke condition `X-Riak-If-Not-Modified`).
+
+A vector clock being passed on a PUT using the `X-Riak-If-Not-Modified` header, will return a `409:Conflict` should the passed vector clock not match the clock found prior to updating the object.  This will work as the PB API `if_not_modified` option.  This is still an eventually consistent condition, parallel updates may still lead to siblings when `{allow_mult, true}`.
+
+# Riak KV 3.0.12 Release Notes
+
+This is a general release of changes and fixes:
+
+- A [fix to a critical issue with the use of PR variables](https://github.com/basho/riak_kv/pull/1836) in Riak KV (when the PR value is set via bucket properties).
+
+- Changes to the leveled backend with the aim of further improving memory management, by simplifying the [summary tree within each leveled_sst file](https://github.com/martinsumner/leveled/pull/383).
+
+- An [update to leveldb snappy compression](https://github.com/basho/eleveldb/pull/267), to make Riak compatible with a broader set of platforms (including AWS Graviton).  Because of this change, anyone building from source will now require `cmake` to be installed.
+
+- A [new `reip_manual` console command](https://github.com/basho/riak/pull/1122) has been added to use as an alternative to `reip`, which does not currently work in the 3.0 release stream.  Use `riak admin reip_manual` in place of `riak admin reip` when performing the reip operation on a node.  This now requires that the path to the ring file, and the cluster name, to be known by the operator.
+
+- Some [improvements to logging within the leveled backend](https://github.com/martinsumner/leveled/pull/385) have been made to allow for better statistics monitoring of low-level operations, and reduce the cost of writing a log within leveled.
+
+- A fix for a deadlock issue in [riak_repl AAE fullsync](https://github.com/basho/riak_repl/pull/818) to help when clusters with high object counts have large deltas.
+
+- [Two](https://github.com/basho/riak_kv/pull/1839) [other](https://github.com/basho/riak_kv/pull/1837) fixes within Riak KV.
+
+As part of this release, further testing of the new memory configuration options added in Riak 3.0.10 has been undertaken.  It is now recommended when using the leveled backend, that if memory growth in the Riak process is a signifcant concern, then the following configuration option may be tested: `erlang.eheap_memory.sbct = 128`.  This has been shown to reduce the memory footprint of Riak, with a small performance overhead.
+
+## 3.0.12 Addendum
+
+Although not originally advertised in the release, the version of eleveldb used in 3.0.12 includes an upgrade of the [`snappy` compression algorithm used within eleveldb](https://github.com/basho/eleveldb/pull/267).  This version of snappy is incompatible with the previous version used, and so any update to 3.0.12 and beyond where the eleveldb backend is deployed with `snappy` compression [will fail](https://github.com/basho/eleveldb/issues/273).
+
+To update to 3.0.12 in this case, the change should be rolled into the cluster using the ` riak admin cluster replace` command.
+
+# Riak KV 3.0.11 Release Notes
+
+A simple change to [release a bottleneck](https://github.com/martinsumner/leveled/issues/379) in 2i queries with the leveled backend.  Should only be relevant to those using leveled, and attempting o(1000) 2i queries per second.
+
+# Riak KV 3.0.10 Release Notes
+
+This release is focused on improving memory management, especially with the leveled backend, and improving the efficiency and ease of configuration of tictacaae full-sync.
+
+- Improved [memory management of leveled](https://github.com/martinsumner/leveled/pull/371) SST files that contain [rarely accessed data](https://github.com/martinsumner/leveled/pull/371)
+
+- Fix a bug whereby leveled_sst files could spend an [extended time in the delete_pending state](https://github.com/martinsumner/leveled/pull/377), causing significant short-term increases in memory usage when there are work backlogs in the penciller.
+
+- Change the queue for reapers and erasers so that [they overflow to disk](https://github.com/basho/riak_kv/issues/1807), rather than simply consuming more and more memory.
+
+- Change the replrtq (nextgenrepl) queue to use the same [overflow queue mechanism](https://github.com/basho/riak_kv/issues/1817) as used by the reaper and erasers.
+
+- Change the default full-sync mechanism for tictacaae (nextgenrepl) full-sync to `auto_check`, which attempts to [automatically learn and use information about modified date-ranges](https://github.com/basho/riak_kv/issues/1815) in full-sync checks. The related changes also make full-sync by default bi-directional, reducing the amount of wasted effort in full-sync queries.
+
+- Add [a peer discovery feature](https://github.com/basho/riak_kv/issues/1804) for replrtq (nextgenrepl) so that new nodes added to the cluster can be automatically recognised without configuration changes.  By default this is disabled, and should only be enabled once both clusters have been upgraded to at least 3.0.10.
+
+- Allow for underlying beam memory management and scheduler configuration to be exposed via riak.conf to allow for further performance tests on these settings.  Note initial tests indicate the potential for [significant improvements when using the leveled backend](https://github.com/basho/riak_kv/issues/1826).
+
+- Fix a potential issue whereby corrupted objects would prevent AAE (either legacy or nextgenrepl) [tree rebuilds](https://github.com/basho/riak_kv/issues/1824) from completing.
+
+- Improved [handling of key amnesia](https://github.com/basho/riak_kv/issues/1813), to prevent rebounding of objects, and also introduce a reader process (like reaper and eraser) to which read repairs can be queued with overflow to disk.
+
+Some caveats for this release exist:
+
+- The release does not support OTP 20, only OTP 22 is supported.  Updating some long out-of-date components have led to a requirement for the OTP version to be lifted.
+
+- Volume and performance testing with the leveled backend now uses the following non-default settings:
+
+```
+erlang.schedulers_busywait = none
+erlang.schedulers_busywait_dirtycpu = none
+erlang.schedulers_busywait_dirtyio = none
+erlang.async_threads = 4
+erlang.schedulers.force_wakeup_interval = 0
+erlang.schedulers.compaction_of_load = true
+leveled_reload_recalc = enabled
+```
+
+- To maintain backwards compatibility with older linux versions, the [latest version of basho's leveldb](https://github.com/basho/leveldb/releases/tag/2.0.37) is not yet supported.  This is likely to change in the next release, where support for older linux versions will be dropped.
+
+- The release process has [exposed an issue](https://github.com/basho/riak_kv/issues/1831) via a recently extended test.  This issue is pre-existing, and not specific to this release.
+
+# Riak KV 3.0.9 Release Notes
+
+This release contains stability, monitoring and performance improvements.
+
+- Fix to the [riak_core coverage planner](https://github.com/basho/riak_kv/issues/1801) to significantly reduce the CPU time required to produce a coverage plan, especially with larger ring sizes.  This improves both the mean and tail-latency of secondary index queries.  As a result of this change, it is recommended that larger ring sizes should be used by default, even when running relatively small clusters - for example in standard volume tests a ring size of 512 is outperforming lower ring sizes even on small (8-node) clusters.
+
+- Further monitoring stats have been added to track the performance of coverage queries, in particular secondary index queries.  For each worker queue (e.g. vnode_worker_pool, af1_pool etc) the queue_time and work_time is now monitored with results available via riak stats.  The result counts, and overall query time for secondary index queries are now also monitored via riak stats. See the [PR](https://github.com/basho/riak_kv/pull/1802#issuecomment-966160925) for a full list of stats added in this release.
+
+- Change to some default settings to be better adapted to running with higher concentrations of vnodes per nodes.  The per-vnode cache sizes in leveled are reduced, and the [default size of the vnode_worker_pool has been reduced from 10 to 5](https://github.com/basho/riak_kv/blob/0af857d57d0206b100db59043a926df2ada8f7db/priv/riak_kv.schema#L1210-L1233) and is now configurable via riak.conf.  Exceptionally heavy users of secondary index queries (i.e. > 1% of transactions), should consider monitoring the [new queue_time and work_time statistics](https://github.com/basho/riak_kv/pull/1802#issuecomment-966160925) before accepting this new default.
+
+- Fix to an issue in the leveled backend when a key and (internal) sequence number would [hash to 0](https://github.com/martinsumner/leveled/issues/361).  It is recommended that users of leveled uplift to this version as soon as possible to resolve this issue.  The risk is mitigated in Riak as it can generally be expected that most keys will have different sequence numbers in different vnodes, and will always have different sequence numbers when re-written - so normal anti-entropy process will recover from any localised data loss.
+
+- More time is now given to the legacy AAE `kv_index_hashtree` process to [shut down](https://github.com/basho/riak_kv/pull/1803), to handle delays as multiple vnodes are shutdown concurrently and contend for disk and CPU resources.
+
+# Riak KV 3.0.8 Release Notes
+
+This release contains a number of stability  improvements.
+
+- Fix to critical issue in leveled when using (non-default, but recommended, option): [leveled_reload_recalc = enabled](https://github.com/basho/riak_kv/blob/33add2a29b6880b680a407dc91828736f54c7911/priv/riak_kv.schema#L1156-L1174).  If using this option, it is recommended to rebuild the ledger on each vnode at some stage after updating.
+
+- [Fix to an issue with cluster leave](https://github.com/basho/riak_core/issues/970) operations that could leave clusters unnecessarily unbalanced after Stage 1 of leave, and also cause unexpected safety violations in Stage 1 (with either a simple transfer or a rebalance).  An option to force a rebalance in Stage 1 is also now supported.
+
+- The ability to [set an environment variable](https://github.com/basho/riak/pull/1079) to remove the risk of atom table exhaustion due to repeated calls to `riak status` (and other) command-line functions.
+
+- The default setting of the object_hash_version environment variable to reduce the opportunity for the [riak_core_capability system to falsely request downgrading to legacy](https://github.com/basho/riak_kv/issues/1656), especially when concurrently restarting many nodes.
+
+- An update to the versions of `recon` and `redbug` used in Riak.
+
+- The fixing of an issue with [connection close handling](https://github.com/basho/riak-erlang-client/pull/402) in the Riak erlang client.
+
+This release also contains two new features:
+
+- A [new aae_fold operation](https://github.com/basho/riak_kv/issues/1793) has been added which will support the prompting of read-repair for a range of keys e.g. all the keys in a bucket after a given last modified date.  This is intended to allow an operator to accelerate full recovery of data following a known node outage.
+
+- The addition of the [`sync_on_write` property for write operations](https://github.com/basho/riak_kv/blob/develop-3.0/docs/Sync-On-Write.md).  Some Riak users require flushing of writes to disk to protect against data loss in disaster scenarios, such as mass loss of power across a DC.  This can have a significant impact on throughput even with hardware acceleration (e.g. flash-backed write caches).  The decision to flush was previously all or nothing.  It can now be set as a bucket property (and even determined on individual writes), and can be set to flush on `all` vnodes or just `one` (the coordinator), or to simply respect the `backend` configuration.  If `one` is used the single flush will occur only on client-initiated writes - writes due to handoffs or replication will not be flushed.
+
+# Riak KV 3.0.7 Release Notes
+
+The primary change in 3.0.7 is that Riak will now run the [erlang runtime system in interactive mode, not embedded mode](http://erlang.org/doc/man/code.html).  This returns Riak to the default behaviour prior to Riak KV 3.0, in order to resolve a number of problems which occurred post 3.0 when trying to dynamically load code.
+
+The mode used is controlled in a [pre-start script](https://github.com/basho/riak/blob/develop-3.0/rel/files/erl_codeloadingmode), changing this script or overriding the referenced environment variable for the riak user should allow the runtime to be reverted to using `embedded` mode, should this be required.
+
+This release also extends a prototype API to support for the use of the `nextgenrepl` API by external applications, for example to reconcile replication to an external non-riak database.  The existing `fetch` api function has been extended to allow for a new response format that includes the Active Anti-Entropy Segment ID and Segment Hash for the object (e.g. to be used when recreating the Riak merkle tree in external databases).  A new `push` function has been added to the api, this will push a list of object references to be queued for replication.
+
+# Riak KV 3.0.6 Release Notes
+
+Release 3.0.5 adds [location-awareness to Riak cluster management](https://github.com/basho/riak_core/blob/riak_kv-3.0.5/docs/rack-awareness.md).  The broad aim is to improve data diversity across locations (e.g. racks) to reduce the probability of data-loss should a set of nodes fail concurrently within a location.  The location-awareness does not provide firm guarantees of data diversity that will always be maintained across all cluster changes - but [testing](https://github.com/basho/riak_test/pull/1353) has indicated it will generally find a cluster arrangement which is close to optimal in terms of data protection.
+
+If location information is not added to the cluster, there will be no change in behaviour from previous releases.
+
+There may be some performance advantages when using the location-awareness feature in conjunction with the leveled backend when handling GET requests.  With location awareness, when responding to a GET request, a cluster is more likely to be able to fetch an object from a vnode within the location that received the GET request, without having to fetch that object from another location (only HEAD request/response will commonly travel between locations).
+
+This release is tested with OTP 20 and OTP 22; but optimal performance is likely to be achieved when using OTP 22.
+
+# Riak KV 3.0.5 Release Notes
+
+Release version skipped due to tagging error
+
+# Riak KV 3.0.4 Release Notes
+
+There are two fixes provided in Release 3.0.4:
+
+- An issue with [leveled application dependencies](https://github.com/basho/riak/issues/1059) has been resolved, and so lz4 can now again be used as the compression method.
+
+- The [riak clients are now compatible with systems that require semantic versioning](https://github.com/basho/riak-erlang-client/issues/400).
+
+This release is tested with OTP 20, OTP 21 and OTP 22; but optimal performance is likely to be achieved when using OTP 22.
+
+
+# Riak KV 3.0.3 Release Notes
+
+There are two fixes provided in Release 3.0.3:
+
+- A [performance issue with OTP 22 and leveled](https://github.com/martinsumner/leveled/issues/326) has been corrected.  This generally did not have a significant impact when running Riak, but there were some potential cases with Tictac AAE and AAE Folds where there could have been a noticeable slowdown.
+
+- An [issue with console commands for bucket types](https://github.com/basho/riak/issues/1043) has now been fully corrected, having been partially mitigated in 3.0.2.
+
+This release is tested with OTP 20, OTP 21 and OTP 22; but optimal performance is likely to be achieved when using OTP 22.
+
+
+# Riak KV 3.0.2 Release Notes
+
+There are four changes made in Release 3.0.2:
+
+- Inclusion of backend fixes introduced in [2.9.8](#riak-kv-298-release-notes).
+
+- The addition of the [`range_check` in the Tictac AAE based full-sync replication](https://github.com/basho/riak_kv/blob/riak_kv-3.0.2/docs/NextGenREPL-GettingStarted.md#configure-full-sync-replication), when replicating between entire clusters.  This, along with the backend performance improvements delivered in 2.9.8, can significantly improve the stability of Riak clusters when resolving large deltas.
+
+- A number of issues with command-line functions and packaging related to the switch from `node_package` to `relx` have now been resolved.
+
+- Riak tombstones, [empty objects used by Riak to replace deleted objects](https://riak.com/posts/technical/riaks-config-behaviors-part-3/index.html), will now have a last_modified_date added to the metadata, although this will not be visible externally via the API.
+
+This release is tested with OTP 20, OTP 21 and OTP 22; but optimal performance is likely to be achieved when using OTP 22.
+
+
+# Riak KV 3.0.1 Release Notes
 
 This major release allows Riak to run on OTP versions 20, 21 and 22 - but is not fully backwards-compatible with previous releases.  Some limitations and key changes should be noted:
 
@@ -15,6 +226,39 @@ This major release allows Riak to run on OTP versions 20, 21 and 22 - but is not
 - Instead of `riak-admin` `riak admin` should now be used for admin CLI commands.
 
 Other than the limitations listed above, the release should be functionally identical to Riak KV 2.9.7.  Throughput improvements may be seen as a result of the OTP 20 upgrade on some CPU-bound workloads.  For disk-bound workloads, additional benefit may be achieved by upgrading further to OTP 22.
+
+# Riak KV 2.9.10 Release Notes
+
+Fix to critical issue in leveled when using (non-default, but recommended, option): [leveled_reload_recalc = enabled](https://github.com/basho/riak_kv/blob/33add2a29b6880b680a407dc91828736f54c7911/priv/riak_kv.schema#L1156-L1174).
+
+If using this option, it is recommended to rebuild the ledger on each vnode at some stage after updating.
+
+# Riak KV 2.9.9 Release Notes
+
+Minor stability improvements to leveled backend - [see leveled release notes](https://github.com/martinsumner/leveled/releases/tag/0.9.24) for further details.
+
+# Riak KV 2.9.8 Release Notes
+
+This release improves the performance and stability of the leveled backend and of AAE folds.  These performance improvements are based on feedback from deployments with > 1bn keys per cluster.
+
+The particular improvements are:
+
+- In leveled, caching of individual file scores so not all files are required to be scored each journal compaction run.
+
+- In leveled, a change to the default journal compaction scoring percentages to make longer runs more likely (i.e. achieve more compaction per scoring run).
+
+- In leveled, a change to the caching of SST file block-index in the ledger, that makes repeated folds with a last modified date range an order of magnitude faster through improved computational efficiency.
+
+- In leveled, a fix to prevent very long list-buckets queries when buckets have just been deleted (by erasing all keys).
+
+- In kv_index_tictcatree, improved logging and exchange controls to make exchanges easier to monitor and less likely to prompt unnecessary work.
+
+- In kv_index_tictcatree, a change to speed-up the necessary rebuilds of aae tree-caches following a node crash, by only testing journal presence in scheduled rebuilds.
+
+- In riak_kv_ttaaefs_manager, some essential fixes to prevent excessive CPU load when comparing large volumes of keys and clocks, due to a failure to decode clocks correctly before passing to the exchange.
+
+Further significant improvements have been made to Tictac AAE full-sync, to greatly improve the efficiency of operation when there exists relatively large deltas between relatively large clusters (in terms of key counts).  Those changes, which introduce the use of 'day_check', 'hour_check' and 'range_check' options to nval-based full-sync will be available in a future 3.0.2 release of Riak.  For those wishing to use Tictac AAE full-sync at a non-trivial scale, it is recommended moving straight to 3.0.2 when it is available.
+
 
 # Riak KV 2.9.7 Release Notes
 
@@ -34,19 +278,23 @@ This release improves the stability of Riak when running with Tictac AAE in para
 
 The system is now stable under specific load tests designed to trigger AAE failure.  However, parallel mode should still not be used in production systems unless it has been subject to environment-specific load testing.
 
+
 # Riak KV 2.9.6 Release Notes
 
 Withdrawn.
 
+
 # Riak KV 2.9.5 Release Notes
 
 Withdrawn.
+
 
 # Riak KV 2.9.4 Release Notes
 
 This release replaces the Riak KV 2.9.3 release, extending the issue resolution in kv_index_tictactree to detect other files where file truncation means the CRC is not present.
 
 This release has a key [outstanding issue](https://github.com/basho/riak_kv/issues/1765) when Tictac AAE is used in parallel mode.  On larger clusters, this has been seen to cause significant issues, and so this feature should not be used other than in native mode.   
+
 
 # Riak KV 2.9.3 Release Notes - NOT TO BE RELEASED
 
@@ -75,6 +323,7 @@ This release includes:
 
 - An improvement to the efficiency of [compaction in the leveled LSM-tree based ledger](https://github.com/martinsumner/leveled/issues/311) with large numbers of tombstones (or modified index entries), by using a `grooming` selection strategy 50% of the time when selecting files to merge rather than selecting files at random each time.  The `grooming` selection, will take a sample of files and merge the one with the most tombstones.  The use of the grooming strategy is not configurable, and will have no impact until the vast majority of SST files have been re-written under this release.
 
+
 # Riak KV 2.9.1 Release Notes
 
 This release adds a number of features built on top of the Tictac AAE feature made available in 2.9.0.  The new features depend on Tictac AAE being enabled, but are backend independent. The primary features of the release are:
@@ -89,6 +338,7 @@ This release adds a number of features built on top of the Tictac AAE feature ma
 
 Detail of volume testing related to the replication uplift can be found [here](https://github.com/martinsumner/riak_testing_notes/blob/master/Release%202.9.1%20-%20Volume%20Tests.md).
 
+
 # Riak KV 2.9.0 Release Notes - Patch 5
 
 This patch release is primarily required to improve two scenarios where leveled's handling of file-system corruption was unsatisfactory.  One scenario related to [corrupted blocks that fail CRC checks](https://github.com/martinsumner/leveled/issues/298), another related to failing to consistently check that [a file write had been flushed to disk](https://github.com/martinsumner/leveled/issues/301).
@@ -102,6 +352,7 @@ The patch changes the handling by bitcask and eleveldb backends when file-system
 The patch changes the capability request for `HEAD` to be bucket-dependent, so that [HEAD requests are supported correctly in a multi-backend configuration](https://github.com/basho/riak_kv/issues/1719).
 
 Finally, the aae_fold features of 2.9.0 were previously only available via the HTTP API.  Such folds can now also be [requested via the PB API](https://github.com/basho/riak_kv/pull/1732).
+
 
 # Riak KV 2.9.0 Release Notes - Patch 4
 
@@ -119,6 +370,7 @@ There are a number of fixes in this patch:
 
 It is recommended that any 2.9.0 installations be upgraded to include this path, although if Tictac AAE is not used there is no immediate urgency to making the change.
 
+
 # Riak KV 2.9.0 Release Notes - Patch 3
 
 An [issue](https://github.com/martinsumner/leveled/issues/287) was discovered in leveled, whereby following a restart of Riak and a workload of fetch requests, the backend demanded excess amounts of binary heap references.  Underlying was an issue with the use of sub-binary references during the lazy load of slot header information after a SST file process restart.  This has been resolved, and with [greater control added](https://github.com/martinsumner/leveled/blob/0.9.18/priv/leveled.schema#L86-L93) to force the ledger contents into the page cache at startup.
@@ -127,17 +379,21 @@ A further [issue](https://github.com/martinsumner/leveled/issues/289) was discov
 
 The issues resolved in this patch impact only the use of leveled backend, either directly or via the use of Tictac AAE.
 
+
 # Riak KV 2.9.0 Release Notes - Patch 2
 
 An [issue](https://github.com/martinsumner/leveled/issues/285) with leveled holding references to binaries what could cause severe memory depletion, when a consecutive series of very large objects are received by a vnode.
+
 
 # Riak KV 2.9.0 Release Notes - Patch 1
 
 An [issue](https://github.com/basho/riak_kv/issues/1699) was discovered whereby leveled would leak file descriptors under heavy write pressure (e.g. handoffs).
 
+
 # Riak KV 2.9.0 Release Notes
 
 See [here for notes on 2.9.0](doc/Release%202.9%20Series%20-%20Overview.md)
+
 
 # Riak KV 2.2.5 Release Notes
 

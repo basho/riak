@@ -11,9 +11,22 @@ cd $RUNNER_BASE_DIR
 # Identify the script name
 SCRIPT="riak-admin"
 
+# Setup required due to relx not node-package
+ERTS_PATH=$BINDIR
+NAME_PARAM="-name"
+BOOT_FILE="start_clean"
+
+# Function to validate the node is down
+node_down_check() {
+    if relx_nodetool "ping" > /dev/null; then
+        echo "Node is already running!"
+        exit 1
+    fi
+}
+
 usage() {
     echo "Usage: $SCRIPT { cluster | join | leave | backup | restore | test | "
-    echo "                    reip | js-reload | erl-reload | wait-for-service | "
+    echo "                    reip | reip_manual | erl-reload | wait-for-service | "
     echo "                    ringready | transfers | force-remove | down |"
     echo "                    cluster-info | member-status | ring-status | vnode-status |"
     echo "                    aae-status | diag | stat | status | transfer-limit | reformat-indexes |"
@@ -78,7 +91,7 @@ Usage: $SCRIPT stat <command>
 The following commands display, enable/disable and reset statistics.
 A statistics entry is given either as a 'dotted' exometer name -
 Identifiers separated by periods, '.', e.g. riak.riak_kv.node.gets,
-or as a 'legacy' name (same as in riak-admin status) - e.g. node_gets.
+or as a 'legacy' name (same as in riak admin status) - e.g. node_gets.
 When a legacy name is listed, the corresponding exometer name is shown as well.
 
 Two kinds of wildcard are suppored:
@@ -117,7 +130,7 @@ will match all stats entries. All Riak stat entry names start with 'riak',
 so \`stat show riak.**\` will match all riak stat entries.
 
 Example:
-\$ bin/riak-admin stat show riak.riak_kv.node.gets
+\$ bin/riak admin stat show riak.riak_kv.node.gets
 [riak,riak_kv,node,gets]: [{count,0},{one,0}]
 
 - 'Legacy name': The stat names used e.g. in \`$SCRIPT status\` can be used
@@ -125,7 +138,7 @@ here, but also with wildcard support. The corresponding Exometer name and
 datapoint will be shown as well.
 
 Example:
-\$ bin/riak-admin stat show node_gets
+\$ bin/riak admin stat show node_gets
 == node_gets (Legacy pattern): ==
 node_gets: 0 ([riak,riak_kv,node,gets]/one)
 
@@ -136,22 +149,22 @@ be present, so '*.**' would work as a catch-all expression.)
 Each Exometer entry has a type and a set of datapoints. A filter can be
 given on the command line, selecting only a subset of datapoints:
 
-\$ bin/riak-admin stat show riak.riak_kv.node.gets/one
+\$ bin/riak admin stat show riak.riak_kv.node.gets/one
 [riak,riak_kv,node,gets]: [{one,0}]
 
 The type can also be restricted:
-\$ bin/riak-admin stat show *.**/type=duration/mean,max
+\$ bin/riak admin stat show *.**/type=duration/mean,max
 [riak,riak_core,converge_delay]: [{mean,0},{max,0}]
 [riak,riak_core,rebalance_delay]: [{mean,0},{max,0}]
 
 Note how multiple datapoints are separated by comma (no space).
 
 Showing disabled entries:
-\$ bin/riak-admin stat show riak.riak_kv.node.gets
+\$ bin/riak admin stat show riak.riak_kv.node.gets
 No matching stats
-\$ bin/riak-admin stat show riak.riak_kv.node.gets/status=*
+\$ bin/riak admin stat show riak.riak_kv.node.gets/status=*
 [riak,riak_kv,node,gets]: disabled
-\$ bin/riak-admin stat show riak.riak_kv.node.gets/status=disabled
+\$ bin/riak admin stat show riak.riak_kv.node.gets/status=disabled
 [riak,riak_kv,node,gets]: disabled
 "
 }
@@ -166,16 +179,16 @@ updated, and have no value.
 The same syntax can be used as in \`stat show\`. The requested action will be
 performed on the matching entries.
 
-\$ bin/riak-admin stat disable node_gets
+\$ bin/riak admin stat disable node_gets
 == node_gets (Legacy pattern): ==
 [riak,riak_kv,node,gets]: disabled
-\$ bin/riak-admin stat enable node_gets
+\$ bin/riak admin stat enable node_gets
 == node_gets (Legacy pattern): ==
 [riak,riak_kv,node,gets]: enabled
 
 Wildcards can be used:
 
-\$ bin/riak-admin stat disable riak.riak_kv.node.*
+\$ bin/riak admin stat disable riak.riak_kv.node.*
 [riak,riak_kv,node,gets]: disabled
 [riak,riak_kv,node,puts]: disabled
 "
@@ -197,7 +210,7 @@ with options:
 The same entry formats can be used as for all other stat subcommands.
 
 Example:
-\$ bin/riak-admin stat info riak.riak_kv.node.gets
+\$ bin/riak admin stat info riak.riak_kv.node.gets
 [riak,riak_kv,node,gets]: name = [riak,riak_kv,node,gets]
                           type = spiral
                           module = exometer_spiral
@@ -207,7 +220,7 @@ Example:
                           timestamp = undefined
                           options = [{status,disabled}]
 
-\$ bin/riak-admin stat info -type -status riak.riak_kv.node.gets
+\$ bin/riak admin stat info -type -status riak.riak_kv.node.gets
 [riak,riak_kv,node,gets]: type = spiral
                           status = disabled
 "
@@ -290,6 +303,10 @@ cluster_admin()
             shift
             relx_nodetool rpc riak_core_console command $SCRIPT cluster partition-count $@
             ;;
+        location)
+            shift
+            relx_nodetool rpc riak_core_console command $SCRIPT cluster location $@
+            ;;
         *)
             echo "\
 Usage: $SCRIPT cluster <command>
@@ -312,6 +329,8 @@ plan must be committed to take effect:
    force-replace <node1> <node2>   Reassign all partitions owned by <node1> to
                                    <node2> without first handing off data, and
                                    remove <node1> from the cluster.
+    
+   location <location_name>        Assign a location to the current node
 
 Staging commands:
    plan                            Display the staged changes to the cluster
@@ -578,12 +597,12 @@ btype_admin()
             #     bucket-type create <type> {"props": { ... }}"
             #
             if [ $# -le 3 ]; then
-                json=${3:-}
+                json=`echo ${3:-}|tr -d " "`
                 relx_nodetool rpc riak_kv_console bucket_type_create "$2" "$json"
             else  # greater than 3 parameters
                 two=$2
                 shift 2
-                three=$@
+                three=`echo $@|tr -d " "`
                 relx_nodetool rpc riak_kv_console bucket_type_create "$two" "$three"
             fi
 
@@ -599,11 +618,12 @@ btype_admin()
             #     bucket-type update <type> {"props": { ... }}"
             #
             if [ $# -eq 3 ]; then
-                relx_nodetool rpc riak_kv_console bucket_type_update "$2" "$3"
+                json=`echo $3|tr -d " "`
+                relx_nodetool rpc riak_kv_console bucket_type_update "$2" "$json"
             else  # greater than 3 parameters
                 two=$2
                 shift 2
-                three=$@
+                three=`echo $@|tr -d " "`
                 relx_nodetool rpc riak_kv_console bucket_type_update "$two" "$three"
             fi
             ;;
@@ -869,16 +889,6 @@ case "$1" in
         done
         ;;
 
-    js[_-]reload)
-        # Reload all Javascript VMs
-
-        shift #optional names come after 'js_reload'
-
-        # Make sure the local node is running
-
-        relx_nodetool rpc riak_kv_js_manager reload "$@"
-        ;;
-
     erl[_-]reload)
         # Reload user Erlang code
         # Make sure the local node is running
@@ -897,21 +907,62 @@ case "$1" in
         # Make sure the local node is not running
         node_down_check
 
-        # Sanity check the app.config file
-        check_config
-        ES=$?
-        if [ "$ES" -ne 0 ]; then
-            exit $ES
+        OLDNODE=$1
+        NEWNODE=$2
+
+        echo ""
+        echo "Usage $SCRIPT $ACTION is not currently supported in Riak 3.0"
+        echo ""
+        echo "As an alternative use reip_manual:"
+        echo "riak admin reip_manual $OLDNODE $NEWNODE '/absolute_path_to/riak/data/ring' 'cluster_name'"
+        echo ""
+        echo "Where the path should be the absolute path to the ring directory in platform_data_dir containing filenames such as:"
+        echo "riak_core_ring.default.20221122164111"
+        echo ""
+        echo "The cluster_name should be set to the middle part of the ring file name (e.g. 'default' in this case),"
+        echo "or can be found when the node is active using app_helper:get_env(riak_core, cluster_name) from remote_console."
+        echo ""
+
+        exit 1;;
+
+        # check_config
+        # ES=$?
+        # if [ "$ES" -ne 0 ]; then
+        #     exit $ES
+        # fi
+
+        # OLDNODE=$1
+        # NEWNODE=$2
+        # $ERTS_PATH/erl -noshell \
+        #     -pa $RUNNER_LIB_DIR/basho-patches \
+        #     -boot $BOOT_FILE \
+        #     $CONFIG_ARGS \
+        #     -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
+        #     -s init stop
+        # ;;
+    
+    reip_manual)
+        ACTION=$1
+        shift
+        if [ $# -lt 4 ]; then
+            echo "Usage $SCRIPT $ACTION <old_nodename> <new_nodename> <ring_dir> <cluster_name>"
+            exit 1
         fi
+
+        # Make sure the local node is not running
+        node_down_check
 
         OLDNODE=$1
         NEWNODE=$2
+        RINGDIR=$3
+        CLUSTERNAME=$4
         $ERTS_PATH/erl -noshell \
             -pa $RUNNER_LIB_DIR/basho-patches \
-            $CONFIG_ARGS \
-            -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE'])" \
+            -boot $BOOT_FILE \
+            -eval "riak_kv_console:$ACTION(['$OLDNODE', '$NEWNODE', '$RINGDIR', '$CLUSTERNAME'])" \
             -s init stop
         ;;
+
 
     restore)
         ACTION=$1
@@ -928,6 +979,7 @@ case "$1" in
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
                        -pa $RUNNER_LIB_DIR/basho-patches \
+                       -boot $BOOT_FILE \
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\")" -s init stop
         ;;
 
@@ -947,6 +999,7 @@ case "$1" in
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_kv_backup$NAME_HOST -setcookie $COOKIE \
                        -pa $RUNNER_LIB_DIR/basho-patches \
+                       -boot $BOOT_FILE \
                        -eval "riak_kv_backup:$ACTION('$NODE', \"$FILENAME\", \"$TYPE\")" -s init stop
         ;;
 
@@ -960,6 +1013,7 @@ case "$1" in
 
         $ERTS_PATH/erl -noshell $NAME_PARAM riak_test$NAME_HOST $COOKIE_ARG \
                        -pa $RUNNER_LIB_DIR/basho-patches \
+                       -boot $BOOT_FILE \
                        -eval "case catch(riak:client_test(\"$NODE_NAME\")) of \
                                ok -> init:stop();                             \
                                _  -> init:stop(1)                             \
@@ -969,7 +1023,7 @@ case "$1" in
     diag)
         case "$2" in
             --help|-h)
-                echo "Usage: riak-admin diag [-d <level>] [-l] [-h] [--export] [check_name ...]"
+                echo "Usage: riak admin diag [-d <level>] [-l] [-h] [--export] [check_name ...]"
                 echo ""
                 echo "-h, --help            Display help/usage dialogue"
                 echo "-d, --level           Minimum message severity level (default: notice)"
@@ -995,6 +1049,7 @@ case "$1" in
         # Using np_etop instead of riak_etop to follow node_package convention
         $ERTS_PATH/erl -noshell -noinput \
             -pa $RUNNER_LIB_DIR/basho-patches \
+            -boot $BOOT_FILE \
             -hidden $NAME_PARAM np_etop$RAND$NAME_HOST $COOKIE_ARG \
             -s etop -s erlang halt -output text \
             -node $NODE_NAME \
