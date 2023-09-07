@@ -141,6 +141,7 @@ riak_base_dir={{runner_base_dir}}
 riak_bin_dir={{runner_script_dir}}
 riak_etc_dir={{runner_etc_dir}}
 riak_sbin_dir=/usr/sbin
+curdir=`pwd`
 
 get_cfgs=0
 get_ssl_certs=0
@@ -334,7 +335,7 @@ fi
 
 if [ -z "$outfile" ]; then
     # If output file not specified, output to the default
-    outfile="`pwd`"/"${debug_dir}".tar.gz
+    outfile="${curdir}"/"${debug_dir}".tar.gz
 fi
 
 if [ '-' != "$outfile" ] && [ -f "$outfile" ]; then
@@ -357,7 +358,8 @@ if [ 1 -eq $get_syscmds ]; then
     dump last last
     dump hostname hostname
     dump uname uname -a
-    dump lsb_release lsb_release
+    dump lsb_release lsb_release -a
+    dump hostnamectl hostnamectl
     dump ps ps aux
     dump vmstat vmstat 1 5
     dump free free -m
@@ -389,7 +391,7 @@ if [ 1 -eq $get_syscmds ]; then
 
     BLOCKDEV=/sbin/blockdev
     if [ -e $BLOCKDEV ]; then
-        for mount_point in `mount | egrep '^/' | awk '{print $1}'`; do
+        for mount_point in `mount | egrep '^/' | grep -v /dev/shm | grep -v /var/lib/snapd | awk '{print $1}'`; do
             flat_point=`echo $mount_point | sed 's:/:_:g'`
             dump blockdev.$flat_point $BLOCKDEV --getra $mount_point
         done
@@ -429,6 +431,13 @@ if [ 1 -eq $get_syscmds ]; then
     [ -f /etc/release ] && dump release cat /etc/release
     [ -f /etc/redhat-release ] && dump redhat_release cat /etc/redhat-release
     [ -f /etc/debian_version ] && dump debian_version cat /etc/debian_version
+    [ -f /etc/amazon-release ] && dump amazon_release cat /etc/amazon-release
+    [ -f /etc/ec2_version ] && dump ec2_version cat /etc/ec2_version
+    [ -f /etc/centos-release ] && dump centos_release cat /etc/centos-release
+    [ -f /etc/oracle-release ] && dump oracle_release cat /etc/oracle-release
+    [ -f /etc/os-release ] && dump os_release cat /etc/os-release
+    [ -f /etc/issue ] && dump issue cat /etc/issue
+    [ -f /etc/system-release ] && dump system_release cat /etc/system-release
     [ -f /etc/security/limits.conf ] && dump limits.conf cat /etc/security/limits.conf
     [ -f /var/log/messages ] && dump messages cat /var/log/messages
     [ -f /var/log/syslog ] && dump messages cat /var/log/syslog
@@ -729,12 +738,12 @@ if [ 1 -eq $get_logs ]; then
     elif [ 'riak_kv_leveled_backend' = "$backend" ]; then
         leveled_dir="`epath 'leveled data_root' "$riak_epaths" | sed -e 's/^\"//' -e 's/\".*$//'`"
 
-        if [ '/' != `echo "$bitcask_dir" | cut -c1` ]; then
+        if [ '/' != `echo "$leveled_dir" | cut -c1` ]; then
             # relative path. prepend base dir
             leveled_dir="$riak_base_dir"/"$leveled_dir"
         fi
 
-        if [ ! -d "$bitcask_dir" ]; then
+        if [ ! -d "$leveled_dir" ]; then
             echoerr "Unable to locate Leveled data directory. Aborting."
             echoerr "Using leveled data_root: $leveled_dir"
             exit 1
