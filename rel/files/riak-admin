@@ -3,7 +3,7 @@
 # ex: ts=4 sw=4 et
 
 # Identify the script name
-SCRIPT="riak-admin"
+SCRIPT="riak admin"
 
 PLATFORM_BASE_DIR={{platform_base_dir}}
 PLATFORM_BASE_DIR=${PLATFORM_BASE_DIR:-$(cd $(dirname "$0")/.. && pwd -P)}
