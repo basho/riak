@@ -26,6 +26,10 @@ $(if $(ERLANG_BIN),,$(warning "Warning: No Erlang found in your path, this will 
 all: compile
 
 compile:
+	$(REBAR) get-deps
+	if ls patches/*.patch 2>/dev/null; then \
+	  ls patches/*.patch | xargs cat | GIT_WORK_TREE=. git apply -v --unsafe-paths; \
+	fi
 	$(REBAR) compile
 
 clean: testclean

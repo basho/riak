@@ -5,7 +5,6 @@ export
 
 OS            = $(shell uname -s)
 ERLANG_BIN   ?= $(shell dirname $(shell which erl))
-DEPS_DIR     ?= deps
 
 ##
 ## Support RPM and Debian based linux systems

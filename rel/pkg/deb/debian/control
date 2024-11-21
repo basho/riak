@@ -8,6 +8,6 @@ Homepage: riak.com
 
 Package: riak
 Architecture: any
-Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, logrotate, sudo
+Depends: ${misc:Depends}, ${shlibs:Depends}, adduser, sudo
 Homepage: riak.com
 Description: Riak KV Database
